@@ -10,10 +10,12 @@ public class UserHolder {
     }
 
     public static UserDTO getUser(){
+
         return tl.get();
     }
 
     public static void removeUser(){
+
         tl.remove();
     }
 }
