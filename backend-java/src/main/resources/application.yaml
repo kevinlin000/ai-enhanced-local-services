@@ -41,3 +41,7 @@ line:
     token-url: https://api.line.me/oauth2/v2.1/token
     verify-url: https://api.line.me/oauth2/v2.1/verify
     scope: profile openid
+
+jwt:
+  secret: ${JWT_SECRET:change-me-in-production-this-is-only-for-dev-environment-must-be-at-least-256-bits}
+  ttl-hours: 2
