@@ -4,13 +4,21 @@ import cn.hutool.core.lang.UUID;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.data.redis.core.script.RedisScript;
 
-import java.time.Duration;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 手刻分散式鎖示範（教學用，非生產代碼）。
+ * <p>
+ * 本類別保留作為「為什麼最終選擇 Redisson 而非自製鎖」的對照範例：
+ * - 缺乏可重入支援
+ * - 釋放鎖時的擁有者驗證需自行處理
+ * - 看門狗機制需自行實作
+ * <p>
+ * 實際生產使用請見 {@link org.redisson.api.RLock}。
+ */
+@Deprecated
 public class SimpleRedisLock implements ILock {
 
     private String name; // 鎖的名字
