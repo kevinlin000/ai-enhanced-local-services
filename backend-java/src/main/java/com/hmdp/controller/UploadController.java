@@ -10,6 +10,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.UUID;
 
 @Slf4j
@@ -36,12 +39,22 @@ public class UploadController {
 
     @GetMapping("/blog/delete")
     public Result deleteBlogImg(@RequestParam("name") String filename) {
-        File file = new File(SystemConstants.IMAGE_UPLOAD_DIR, filename);
-        if (file.isDirectory()) {
-            return Result.fail("错误的文件名称");
+        try {
+            Path rootPath = Paths.get(SystemConstants.IMAGE_UPLOAD_DIR).toRealPath();
+            Path targetPath = Paths.get(SystemConstants.IMAGE_UPLOAD_DIR, filename).toRealPath();
+            if (!targetPath.startsWith(rootPath)) {
+                return Result.fail("非法檔名");
+            }
+            if (targetPath.toFile().isDirectory()) {
+                return Result.fail("非法檔名");
+            }
+            FileUtil.del(targetPath.toFile());
+            return Result.ok();
+        } catch (NoSuchFileException e) {
+            return Result.fail("檔案不存在");
+        } catch (IOException e) {
+            throw new RuntimeException("刪除檔案失敗", e);
         }
-        FileUtil.del(file);
-        return Result.ok();
     }
 
     private String createNewFileName(String originalFilename) {
