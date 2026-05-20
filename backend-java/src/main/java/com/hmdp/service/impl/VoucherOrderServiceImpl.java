@@ -180,6 +180,16 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                 Collections.emptyList(),
                 voucherId.toString(), userId.toString(), String.valueOf(orderId)
         );
+        int r = result == null ? -1 : result.intValue();
+        if (r == 1) {
+            return Result.fail("庫存不足");
+        }
+        if (r == 2) {
+            return Result.fail("不能重複下單");
+        }
+        if (r != 0) {
+            return Result.fail("下單失敗");
+        }
 
         //3. 獲取代理對象
         proxy = (IVoucherOrderService) AopContext.currentProxy();
@@ -296,4 +306,3 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             save(voucherOrder);
         }
     }
-
