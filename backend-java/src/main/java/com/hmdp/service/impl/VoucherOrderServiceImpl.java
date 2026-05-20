@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
 import java.time.Duration;
 import java.util.Collections;
@@ -60,17 +61,24 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     }
 
     private static final ExecutorService SECKILL_ORDER_EXECUTOR = Executors.newSingleThreadExecutor();
+    private volatile boolean running = true;
 
     @PostConstruct
     private void init() {
         SECKILL_ORDER_EXECUTOR.submit(new VoucherOrderHandler());
     }
 
+    @PreDestroy
+    private void destroy() {
+        running = false;
+        SECKILL_ORDER_EXECUTOR.shutdownNow();
+    }
+
         private class VoucherOrderHandler implements Runnable {
         String queueName = "stream.orders";
         @Override
         public void run() {
-            while (true) {
+            while (running && !Thread.currentThread().isInterrupted()) {
                 try {
                     //1.從消息隊列中獲取訂單資訊
                     List<MapRecord<String, Object, Object>> list = stringRedisTemplate.opsForStream().read(
@@ -89,7 +97,16 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                     handleVoucherOrder(voucherOrder);
                     //4.ACK確認
                     stringRedisTemplate.opsForStream().acknowledge(queueName, "g1", record.getId());
+                } catch (IllegalStateException e) {
+                    if (!running || Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
+                    log.error("處理訂單異常", e);
+                    handlePendingList();
                 } catch (Exception e) {
+                    if (!running || Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
                     log.error("處理訂單異常", e);
                     handlePendingList();
                 }
@@ -97,7 +114,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
 
             private void handlePendingList() {
-                while (true) {
+                while (running && !Thread.currentThread().isInterrupted()) {
                     try {
                         //1.從pending list中獲取訂單資訊
                         List<MapRecord<String, Object, Object>> list = stringRedisTemplate.opsForStream().read(
@@ -116,12 +133,21 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                         handleVoucherOrder(voucherOrder);
                         //4.ACK確認
                         stringRedisTemplate.opsForStream().acknowledge(queueName, "g1", record.getId());
+                    } catch (IllegalStateException e) {
+                        if (!running || Thread.currentThread().isInterrupted()) {
+                            return;
+                        }
+                        log.error("處理訂單異常", e);
                     } catch (Exception e) {
+                        if (!running || Thread.currentThread().isInterrupted()) {
+                            return;
+                        }
                         log.error("處理訂單異常", e);
                         try {
                             Thread.sleep(20);
                         } catch (InterruptedException ex) {
-                            throw new RuntimeException(ex);
+                            Thread.currentThread().interrupt();
+                            return;
                         }
                     }
                 }

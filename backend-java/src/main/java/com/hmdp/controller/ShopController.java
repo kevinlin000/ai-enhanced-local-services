@@ -20,7 +20,7 @@ import jakarta.annotation.Resource;
  * @since 2021-12-22
  */
 @RestController
-@RequestMapping("/shop")
+@RequestMapping({"/shop", "/api/shop"})
 public class ShopController {
 
     @Resource
@@ -93,6 +93,13 @@ public class ShopController {
                 .like(StrUtil.isNotBlank(name), "name", name)
                 .page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
         // 返回数据
+        return Result.ok(page.getRecords());
+    }
+
+    @GetMapping("/list")
+    public Result listShops(@RequestParam(value = "current", defaultValue = "1") Integer current) {
+        Page<Shop> page = shopService.query()
+                .page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
         return Result.ok(page.getRecords());
     }
 }

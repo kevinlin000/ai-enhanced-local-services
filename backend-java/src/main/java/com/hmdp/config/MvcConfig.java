@@ -17,19 +17,18 @@ public class MvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // 登錄攔截器
-        registry.addInterceptor(new LoginIntercepter())
-                .excludePathPatterns(
-                        "/shop/**",
-                        "/shop-type/**",
-                        "/upload/**",
-                        "/voucher/**",
-                        "/blog/hot",
-                        "/user/login",
-                        "/user/code"
-                ).order(1);
-        // token刷新攔截器
-        registry.addInterceptor(new RefreshTokenIntercepter(stringRedisTemplate)).addPathPatterns("/**").order(0);
-
+        // NOTE: replaced by Spring Security + JwtAuthenticationFilter (B2)
+        // kept here for reference; will be removed after JPA refactor
+//        registry.addInterceptor(new LoginIntercepter())
+//                .excludePathPatterns(
+//                        "/shop/**",
+//                        "/shop-type/**",
+//                        "/upload/**",
+//                        "/voucher/**",
+//                        "/blog/hot",
+//                        "/user/login",
+//                        "/user/code"
+//                ).order(1);
+//        registry.addInterceptor(new RefreshTokenIntercepter(stringRedisTemplate)).addPathPatterns("/**").order(0);
     }
 }
