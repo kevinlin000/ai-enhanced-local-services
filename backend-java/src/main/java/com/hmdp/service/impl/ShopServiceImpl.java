@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -42,6 +43,7 @@ import static com.hmdp.utils.RedisConstants.*;
  * @author 虎哥
  * @since 2021-12-22
  */
+@Slf4j
 @Service
 public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IShopService {
 
@@ -64,19 +66,23 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     public Result queryById(Long id) {
         Shop localShop = shopLocalCache.getIfPresent(id);
         if (localShop != null) {
+            log.debug("cache path: caffeine hit, id={}", id);
             return Result.ok(localShop);
         }
 
         if (!shopBloomFilter.contains(id)) {
+            log.debug("cache path: bloom blocked, id={}", id);
             return Result.fail("店家不存在！");
         }
 
         String key = CACHE_SHOP_KEY + id;
         String cacheValue = stringRedisTemplate.opsForValue().get(key);
         if (NULL_CACHE_VALUE.equals(cacheValue) || (cacheValue != null && cacheValue.isBlank())) {
+            log.debug("cache path: redis null cached, id={}", id);
             return Result.fail("店家不存在！");
         }
         if (StrUtil.isNotBlank(cacheValue)) {
+            log.debug("cache path: redis hit, id={}", id);
             Shop cachedShop = JSONUtil.toBean(cacheValue, Shop.class);
             shopLocalCache.put(id, cachedShop);
             return Result.ok(cachedShop);
@@ -84,10 +90,12 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
         Shop shop = getById(id);
         if (shop == null) {
+            log.debug("cache path: db miss, cache null, id={}", id);
             stringRedisTemplate.opsForValue().set(key, NULL_CACHE_VALUE, NULL_CACHE_TTL_SECONDS, TimeUnit.SECONDS);
             return Result.fail("店家不存在！");
         }
 
+        log.debug("cache path: db hit, id={}", id);
         stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(shop), CACHE_SHOP_TTL, TimeUnit.MINUTES);
         shopLocalCache.put(id, shop);
         return Result.ok(shop);

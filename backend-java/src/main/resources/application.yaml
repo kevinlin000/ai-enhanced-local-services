@@ -31,6 +31,7 @@ mybatis-plus:
 logging:
   level:
     com.hmdp: debug
+    com.hmdp.service.impl.ShopServiceImpl: DEBUG
 
 line:
   oauth:
