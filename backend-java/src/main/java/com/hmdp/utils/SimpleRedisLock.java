@@ -51,17 +51,4 @@ public class SimpleRedisLock implements ILock {
                 ID_PREFIX + Thread.currentThread().getId()
         );
     }
-
-//    @Override
-//    public void unlock() {
-//        //獲取線程標識
-//        String theardId = ID_PREFIX + Thread.currentThread().getId();
-//        //獲取鎖中的標識
-//        String id = stringRedisTemplate.opsForValue().get(KEY_PREFIX + name);
-//        //判斷標識是否一致
-//        if(theardId.equals(id)){
-//            // 釋放鎖，刪除鍵
-//            stringRedisTemplate.delete(KEY_PREFIX + name);
-//        }
-//    }
 }
