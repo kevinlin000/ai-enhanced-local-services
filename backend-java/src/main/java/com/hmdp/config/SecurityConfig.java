@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/line/**",
+                                "/api/category/**",
                                 "/api/mrt/**",
                                 "/api/shop/**",
                                 "/api/shop/nearby-mrt/**",
