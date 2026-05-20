@@ -10,6 +10,8 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -53,6 +55,7 @@ public class ShopJpa {
     private String district;
 
     @Column(name = "price_range")
+    @JdbcTypeCode(SqlTypes.TINYINT)
     private Integer priceRange;
 
     @Column(name = "business_hours")
