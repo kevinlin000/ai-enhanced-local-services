@@ -1,6 +1,7 @@
 package com.hmdp.controller;
 
 
+import com.hmdp.annotation.Idempotent;
 import com.hmdp.annotation.RateLimit;
 import com.hmdp.dto.Result;
 import com.hmdp.service.IVoucherOrderService;
@@ -27,6 +28,7 @@ public class VoucherOrderController {
     private IVoucherOrderService voucherOrderService;
 
     @PostMapping("seckill/{id}")
+    @Idempotent(key = "seckill:#voucherId", ttlSeconds = 5)
     @RateLimit(key = "secKill:#voucherId", capacity = 100, refillPerSecond = 10)
     public Result seckillVoucher(@PathVariable("id") Long voucherId) {
         return voucherOrderService.seckillVoucher(voucherId);
