@@ -37,8 +37,12 @@ public class UserController {
     private IUserInfoService userInfoService;
 
     /**
+     * @deprecated Replaced by LINE Login in B2.
+     * Endpoint kept temporarily for backward compatibility during transition.
+     * Will be removed in v1.1.
      * 发送手机验证码
      */
+    @Deprecated
     @PostMapping("code")
     public Result sendCode(@RequestParam("phone") String phone, HttpSession session) {
         // 发送短信验证码并保存验证码
@@ -46,9 +50,13 @@ public class UserController {
     }
 
     /**
+     * @deprecated Replaced by LINE Login in B2.
+     * Endpoint kept temporarily for backward compatibility during transition.
+     * Will be removed in v1.1.
      * 登录功能
      * @param loginForm 登录参数，包含手机号、验证码；或者手机号、密码
      */
+    @Deprecated
     @PostMapping("/login")
     public Result login(@RequestBody LoginFormDTO loginForm, HttpSession session){
         // 实现登录功能
