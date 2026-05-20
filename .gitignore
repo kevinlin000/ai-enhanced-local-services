@@ -31,3 +31,49 @@ nginx-1.18.0/
 
 # macOS
 .DS_Store
+
+# ========== IDE ==========
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# ========== Maven ==========
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+dependency-reduced-pom.xml
+
+# ========== Python（之後會用到） ==========
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.env
+.env.local
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# ========== Node/Vue（之後會用到） ==========
+node_modules/
+dist/
+dist-ssr/
+.vite/
+coverage/
+
+# ========== 機密 ==========
+application-*.yml
+!application-*.yml.example
+!application.yml
+secrets/
+*.pem
+*.key
+
+# ========== 外部參考代碼（絕對不可進 repo） ==========
+hmdp-plus*/
+damai-ai*/
+_references/
