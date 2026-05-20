@@ -111,6 +111,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     }
 
     @Override
+    public Result logout(String token) {
+        if (token != null && !token.isBlank()) {
+            stringRedisTemplate.delete(LOGIN_USER_KEY + token);
+        }
+        UserHolder.removeUser();
+        return Result.ok();
+    }
+
+    @Override
     public Result sign() {
         // 1. 獲取當前登錄用戶
         Long userId = UserHolder.getUser().getId();
