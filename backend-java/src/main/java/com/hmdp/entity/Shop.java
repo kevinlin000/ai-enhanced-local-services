@@ -94,6 +94,31 @@ public class Shop implements Serializable {
     private String openHours;
 
     /**
+     * 最近捷運站
+     */
+    private String mrtStation;
+
+    /**
+     * 距離捷運站公尺數
+     */
+    private Integer mrtDistanceMeters;
+
+    /**
+     * 行政區
+     */
+    private String district;
+
+    /**
+     * 價位等級
+     */
+    private Integer priceRange;
+
+    /**
+     * 營業時間 JSON
+     */
+    private String businessHours;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;
