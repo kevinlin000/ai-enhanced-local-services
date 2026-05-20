@@ -32,6 +32,13 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/api/auth/line/**",
+                                "/api/shop/**",
+                                "/api/shop-type/**",
+                                "/api/user/login",
+                                "/api/user/code"
+                        ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/line/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/shop/**", "/shop-type/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shop/**", "/api/shop-type/**").permitAll()
