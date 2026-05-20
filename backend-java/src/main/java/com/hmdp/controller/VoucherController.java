@@ -3,6 +3,7 @@ package com.hmdp.controller;
 
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Voucher;
+import com.hmdp.repository.VoucherJpaRepository;
 import com.hmdp.service.IVoucherService;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,8 @@ public class VoucherController {
 
     @Resource
     private IVoucherService voucherService;
+    @Resource
+    private VoucherJpaRepository voucherJpaRepo;
 
     /**
      * 新增普通券
@@ -53,5 +56,10 @@ public class VoucherController {
     @GetMapping("/list/{shopId}")
     public Result queryVoucherOfShop(@PathVariable("shopId") Long shopId) {
        return voucherService.queryVoucherOfShop(shopId);
+    }
+
+    @GetMapping("/list/{shopId}/active")
+    public Result listActiveVouchers(@PathVariable Long shopId) {
+        return Result.ok(voucherJpaRepo.findByShopIdAndStatus(shopId, 1));
     }
 }

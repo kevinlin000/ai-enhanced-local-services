@@ -50,7 +50,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/auth/line/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/shop/**", "/shop-type/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shop/**", "/api/shop-type/**").permitAll()
-                        .requestMatchers("/upload/**", "/voucher/**", "/blog/hot").permitAll()
+                        .requestMatchers("/upload/**", "/voucher/**", "/voucher/list/**", "/blog/hot").permitAll()
                         .requestMatchers("/user/login", "/user/code", "/error", "/actuator/**").permitAll()
                         .anyRequest().authenticated()
                 )
