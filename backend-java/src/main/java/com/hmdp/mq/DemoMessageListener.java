@@ -12,5 +12,13 @@ public class DemoMessageListener {
     @RabbitListener(queues = RabbitConfig.DEMO_QUEUE)
     public void receive(String message) {
         log.info("RabbitMQ received: {}", message);
+        if (message.contains("BOOM")) {
+            throw new RuntimeException("simulated failure");
+        }
+    }
+
+    @RabbitListener(queues = RabbitConfig.DEMO_DLQ)
+    public void receiveDLQ(String message) {
+        log.warn("DLQ received: {}", message);
     }
 }
