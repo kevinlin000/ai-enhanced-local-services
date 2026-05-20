@@ -35,9 +35,10 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(
                         (request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
                 ))
-                .authorizeHttpRequests(auth -> auth
+                        .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/line/**",
+                                "/api/demo/**",
                                 "/api/category/**",
                                 "/api/mrt/**",
                                 "/api/shop/**",
