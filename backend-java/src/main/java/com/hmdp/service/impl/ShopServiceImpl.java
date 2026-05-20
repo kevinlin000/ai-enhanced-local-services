@@ -1,8 +1,10 @@
 package com.hmdp.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import com.github.benmanes.caffeine.cache.Cache;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hmdp.config.BloomFilterConfig;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Shop;
@@ -12,6 +14,7 @@ import com.hmdp.utils.CacheClient;
 import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.RedisData;
 import com.hmdp.utils.SystemConstants;
+import org.redisson.api.RBloomFilter;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.GeoResult;
 import org.springframework.data.geo.GeoResults;
@@ -42,6 +45,8 @@ import static com.hmdp.utils.RedisConstants.*;
 @Service
 public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IShopService {
 
+    private static final String NULL_CACHE_VALUE = "__NULL__";
+    private static final long NULL_CACHE_TTL_SECONDS = 60L;
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
@@ -49,20 +54,57 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     @Resource
     private CacheClient cacheClient;
 
+    @Resource
+    private Cache<Long, Shop> shopLocalCache;
+
+    @Resource
+    private RBloomFilter<Long> shopBloomFilter;
+
     @Override
     public Result queryById(Long id) {
+        Shop localShop = shopLocalCache.getIfPresent(id);
+        if (localShop != null) {
+            return Result.ok(localShop);
+        }
+
+        if (!shopBloomFilter.contains(id)) {
+            return Result.fail("店家不存在！");
+        }
+
+        String key = CACHE_SHOP_KEY + id;
+        String cacheValue = stringRedisTemplate.opsForValue().get(key);
+        if (NULL_CACHE_VALUE.equals(cacheValue) || (cacheValue != null && cacheValue.isBlank())) {
+            return Result.fail("店家不存在！");
+        }
+        if (StrUtil.isNotBlank(cacheValue)) {
+            Shop cachedShop = JSONUtil.toBean(cacheValue, Shop.class);
+            shopLocalCache.put(id, cachedShop);
+            return Result.ok(cachedShop);
+        }
+
+        Shop shop = getById(id);
+        if (shop == null) {
+            stringRedisTemplate.opsForValue().set(key, NULL_CACHE_VALUE, NULL_CACHE_TTL_SECONDS, TimeUnit.SECONDS);
+            return Result.fail("店家不存在！");
+        }
+
+        stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(shop), CACHE_SHOP_TTL, TimeUnit.MINUTES);
+        shopLocalCache.put(id, shop);
+        return Result.ok(shop);
+    }
+
+    /**
+     * @deprecated TODO C1 後續清理：舊版邏輯過期 / 穿透回退流程保留作為對照，不再作為主查詢路徑。
+     */
+    @Deprecated
+    private Shop queryByIdWithLegacyCache(Long id) {
         Shop shop = cacheClient
                 .queryWithLogicalExpire(CACHE_SHOP_KEY, id, Shop.class, this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
         if (shop == null) {
             shop = cacheClient
                     .queryWithPassThrough(CACHE_SHOP_KEY, id, Shop.class, this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
         }
-
-        if (shop == null) {
-            return Result.fail("店家不存在！");
-        }
-        //7.返回
-        return Result.ok(shop);
+        return shop;
     }
 
     private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);
