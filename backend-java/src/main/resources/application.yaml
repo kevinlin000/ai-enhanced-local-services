@@ -3,6 +3,12 @@ server:
 spring:
   application:
     name: hmdp
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+    baseline-description: "original heima dianping schema"
+    locations: classpath:db/migration
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:hmdp}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Taipei

@@ -1,3 +1,6 @@
+-- V1: original heima dianping schema (china edition)
+-- this is the baseline before taiwan localization
+
 /*
  Navicat Premium Data Transfer
 
