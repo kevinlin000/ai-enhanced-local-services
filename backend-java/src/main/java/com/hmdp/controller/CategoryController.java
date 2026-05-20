@@ -1,16 +1,18 @@
 package com.hmdp.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hmdp.domain.jpa.ShopTypeJpa;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Shop;
+import com.hmdp.repository.ShopTypeJpaRepository;
 import com.hmdp.service.IShopService;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -18,31 +20,27 @@ import java.util.List;
 @RequestMapping("/api/category")
 public class CategoryController {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final ShopTypeJpaRepository shopTypeJpaRepository;
     private final IShopService shopService;
 
-    public CategoryController(JdbcTemplate jdbcTemplate, IShopService shopService) {
-        this.jdbcTemplate = jdbcTemplate;
+    public CategoryController(ShopTypeJpaRepository shopTypeJpaRepository, IShopService shopService) {
+        this.shopTypeJpaRepository = shopTypeJpaRepository;
         this.shopService = shopService;
     }
 
     @GetMapping("/list")
     public Result listCategories() {
-        List<CategoryView> categories = jdbcTemplate.query(
-                """
-                SELECT id, name, icon, slug, sort
-                FROM tb_shop_type
-                WHERE is_active = 1 AND id BETWEEN 1001 AND 1012
-                ORDER BY sort, id
-                """,
-                (rs, rowNum) -> new CategoryView(
-                        rs.getLong("id"),
-                        rs.getString("name"),
-                        rs.getString("icon"),
-                        rs.getString("slug"),
-                        rs.getInt("sort")
-                )
-        );
+        List<ShopTypeJpa> activeTypes = shopTypeJpaRepository.findByIsActiveTrueOrderBySortAsc();
+        List<CategoryView> categories = new ArrayList<>(activeTypes.size());
+        for (ShopTypeJpa type : activeTypes) {
+            categories.add(new CategoryView(
+                    type.getId(),
+                    type.getName(),
+                    type.getIcon(),
+                    type.getSlug(),
+                    type.getSort()
+            ));
+        }
         return Result.ok(categories);
     }
 
@@ -79,12 +77,9 @@ public class CategoryController {
     }
 
     private Long findTypeIdBySlug(String slug) {
-        List<Long> ids = jdbcTemplate.query(
-                "SELECT id FROM tb_shop_type WHERE slug = ? AND is_active = 1 LIMIT 1",
-                (rs, rowNum) -> rs.getLong("id"),
-                slug
-        );
-        return ids.isEmpty() ? null : ids.get(0);
+        return shopTypeJpaRepository.findBySlugAndIsActiveTrue(slug)
+                .map(ShopTypeJpa::getId)
+                .orElse(null);
     }
 
     public static class CategoryView {
