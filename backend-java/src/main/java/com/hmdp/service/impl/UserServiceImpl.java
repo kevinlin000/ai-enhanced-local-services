@@ -11,6 +11,8 @@ import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
+import com.hmdp.service.oauth.LineOAuthService;
+import com.hmdp.security.JwtTokenProvider;
 import com.hmdp.utils.RegexUtils;
 import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +47,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    private JwtTokenProvider jwtTokenProvider;
 
     @Override
     public Result sendCode(String phone, HttpSession session) {
@@ -108,6 +113,29 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         stringRedisTemplate.expire(Tokenkey,LOGIN_USER_TTL, TimeUnit.MINUTES);
         //8. 返回token
         return Result.ok(token);
+    }
+
+    @Override
+    public String loginWithLine(LineOAuthService.LineProfile profile) {
+        User user = query().eq("line_user_id", profile.getSub()).one();
+        if (user == null) {
+            user = new User();
+            user.setLineUserId(profile.getSub());
+            user.setLineDisplayName(profile.getName());
+            user.setLinePictureUrl(profile.getPicture());
+            user.setNickName(profile.getName() != null ? profile.getName() : "user_" + RandomUtil.randomString(6));
+            user.setIcon(profile.getPicture() != null ? profile.getPicture() : "");
+            user.setPhone("");
+            save(user);
+        } else {
+            user.setLineDisplayName(profile.getName());
+            user.setLinePictureUrl(profile.getPicture());
+            if (profile.getPicture() != null) {
+                user.setIcon(profile.getPicture());
+            }
+            updateById(user);
+        }
+        return jwtTokenProvider.issue(user.getId(), profile.getSub());
     }
 
     @Override

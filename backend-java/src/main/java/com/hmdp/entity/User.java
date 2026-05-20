@@ -53,6 +53,21 @@ public class User implements Serializable {
     private String icon = "";
 
     /**
+     * LINE user id
+     */
+    private String lineUserId;
+
+    /**
+     * LINE display name
+     */
+    private String lineDisplayName;
+
+    /**
+     * LINE picture url
+     */
+    private String linePictureUrl;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;

@@ -27,7 +27,7 @@ import jakarta.servlet.http.HttpSession;
  */
 @Slf4j
 @RestController
-@RequestMapping("/user")
+@RequestMapping({"/user", "/api/user"})
 public class UserController {
 
     @Resource
