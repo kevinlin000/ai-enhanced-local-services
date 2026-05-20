@@ -2,6 +2,7 @@ package com.hmdp.config;
 
 import com.hmdp.dto.Result;
 import com.hmdp.exception.IdempotentException;
+import com.hmdp.exception.LockAcquireException;
 import com.hmdp.exception.RateLimitException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 @RestControllerAdvice
 public class WebExceptionAdvice {
+
+    @ExceptionHandler(LockAcquireException.class)
+    public ResponseEntity<Result> handleLockAcquireException(LockAcquireException e) {
+        return ResponseEntity.status(HttpStatus.LOCKED).body(Result.fail("資源忙碌中"));
+    }
 
     @ExceptionHandler(IdempotentException.class)
     public ResponseEntity<Result> handleIdempotentException(IdempotentException e) {
