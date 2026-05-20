@@ -1,11 +1,12 @@
 package com.hmdp.controller;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hmdp.domain.jpa.ShopJpa;
 import com.hmdp.domain.jpa.ShopTypeJpa;
 import com.hmdp.dto.Result;
-import com.hmdp.entity.Shop;
+import com.hmdp.repository.ShopJpaRepository;
 import com.hmdp.repository.ShopTypeJpaRepository;
-import com.hmdp.service.IShopService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,11 +22,11 @@ import java.util.List;
 public class CategoryController {
 
     private final ShopTypeJpaRepository shopTypeJpaRepository;
-    private final IShopService shopService;
+    private final ShopJpaRepository shopJpaRepository;
 
-    public CategoryController(ShopTypeJpaRepository shopTypeJpaRepository, IShopService shopService) {
+    public CategoryController(ShopTypeJpaRepository shopTypeJpaRepository, ShopJpaRepository shopJpaRepository) {
         this.shopTypeJpaRepository = shopTypeJpaRepository;
-        this.shopService = shopService;
+        this.shopJpaRepository = shopJpaRepository;
     }
 
     @GetMapping("/list")
@@ -54,10 +55,8 @@ public class CategoryController {
         if (typeId == null) {
             return Result.ok(Collections.emptyList(), 0L);
         }
-        Page<Shop> result = shopService.query()
-                .eq("type_id", typeId)
-                .page(new Page<>(page, size));
-        return Result.ok(result.getRecords(), result.getTotal());
+        Page<ShopJpa> result = shopJpaRepository.findByTypeId(typeId, PageRequest.of((int) page - 1, (int) size));
+        return Result.ok(result.getContent(), result.getTotalElements());
     }
 
     @GetMapping("/{slug}/shops/popular")
@@ -66,13 +65,10 @@ public class CategoryController {
         if (typeId == null) {
             return Result.ok(Collections.emptyList());
         }
-        List<Shop> shops = shopService.query()
-                .eq("type_id", typeId)
-                .ge("score", 45)
-                .orderByDesc("score")
-                .orderByDesc("comments")
-                .last("LIMIT 5")
-                .list();
+        List<ShopJpa> shops = shopJpaRepository.findByTypeIdAndScoreGreaterThanEqualOrderByScoreDesc(typeId, 45)
+                .stream()
+                .limit(5)
+                .toList();
         return Result.ok(shops);
     }
 

@@ -1,9 +1,8 @@
 package com.hmdp.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.hmdp.domain.jpa.ShopJpa;
 import com.hmdp.dto.Result;
-import com.hmdp.entity.Shop;
-import com.hmdp.service.IShopService;
+import com.hmdp.repository.ShopJpaRepository;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.GeoResult;
 import org.springframework.data.geo.GeoResults;
@@ -31,12 +30,12 @@ public class MrtController {
 
     private final JdbcTemplate jdbcTemplate;
     private final StringRedisTemplate stringRedisTemplate;
-    private final IShopService shopService;
+    private final ShopJpaRepository shopJpaRepository;
 
-    public MrtController(JdbcTemplate jdbcTemplate, StringRedisTemplate stringRedisTemplate, IShopService shopService) {
+    public MrtController(JdbcTemplate jdbcTemplate, StringRedisTemplate stringRedisTemplate, ShopJpaRepository shopJpaRepository) {
         this.jdbcTemplate = jdbcTemplate;
         this.stringRedisTemplate = stringRedisTemplate;
-        this.shopService = shopService;
+        this.shopJpaRepository = shopJpaRepository;
     }
 
     @GetMapping("/api/mrt/stations")
@@ -80,13 +79,11 @@ public class MrtController {
             return Result.fail("捷運站不存在");
         }
 
-        List<Shop> shops = shopService.list(
-                new QueryWrapper<Shop>().isNotNull("x").isNotNull("y")
-        );
-        List<Shop> nearbyShops = shops.stream()
+        List<ShopJpa> shops = shopJpaRepository.findByMrtStation(stationName);
+        List<ShopJpa> nearbyShops = shops.stream()
                 .peek(shop -> shop.setDistance(haversineMeters(station.getY(), station.getX(), shop.getY(), shop.getX())))
                 .filter(shop -> shop.getDistance() != null && shop.getDistance() <= radius)
-                .sorted(Comparator.comparing(Shop::getDistance))
+                .sorted(Comparator.comparing(ShopJpa::getDistance))
                 .collect(Collectors.toList());
         return Result.ok(nearbyShops);
     }
