@@ -5,12 +5,14 @@ import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.domain.jpa.UserJpa;
 import com.hmdp.dto.LoginFormDTO;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
+import com.hmdp.service.jpa.UserJpaService;
 import com.hmdp.service.oauth.LineOAuthService;
 import com.hmdp.security.JwtTokenProvider;
 import com.hmdp.utils.RegexUtils;
@@ -50,6 +52,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Resource
     private JwtTokenProvider jwtTokenProvider;
+
+    @Resource
+    private UserJpaService userJpaService;
 
     @Override
     public Result sendCode(String phone, HttpSession session) {
@@ -117,23 +122,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     public String loginWithLine(LineOAuthService.LineProfile profile) {
-        User user = query().eq("line_user_id", profile.getSub()).one();
+        UserJpa user = userJpaService.findByLineId(profile.getSub()).orElse(null);
         if (user == null) {
-            user = new User();
+            user = new UserJpa();
             user.setLineUserId(profile.getSub());
             user.setLineDisplayName(profile.getName());
             user.setLinePictureUrl(profile.getPicture());
             user.setNickName(profile.getName() != null ? profile.getName() : "user_" + RandomUtil.randomString(6));
-            user.setIcon(profile.getPicture() != null ? profile.getPicture() : "");
             user.setPhone("");
-            save(user);
+            user = userJpaService.save(user);
         } else {
             user.setLineDisplayName(profile.getName());
             user.setLinePictureUrl(profile.getPicture());
-            if (profile.getPicture() != null) {
-                user.setIcon(profile.getPicture());
-            }
-            updateById(user);
+            user = userJpaService.save(user);
         }
         return jwtTokenProvider.issue(user.getId(), profile.getSub());
     }
