@@ -14,6 +14,14 @@ spring:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:hmdp}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Taipei
     username: ${MYSQL_USERNAME:root}
     password: ${MYSQL_PASSWORD:password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
