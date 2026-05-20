@@ -77,3 +77,14 @@ secrets/
 hmdp-plus*/
 damai-ai*/
 _references/
+
+# ========== AI 助手 contract（本地保留、不上 git） ==========
+CLAUDE.md
+AGENTS.md
+
+# ========== 內部規劃文件（不對外） ==========
+docs/_internal/
+docs/code-review-request.md
+docs/code-review-report.md
+docs/codex-task-*.md
+docs/cc-task-*.md
