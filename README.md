@@ -27,7 +27,10 @@
 | ORM | MyBatis-Plus（TODO: 將遷移到 JPA） |
 | Migration | Flyway |
 | Cache / GEO | Redis 7 |
+| Local Cache | Caffeine |
+| Bloom Filter | Redisson |
 | Distributed Lock | Redisson |
+| MQ | RabbitMQ 3.13 |
 | Database | MySQL 8 |
 
 ## 目前進度（Stage 1 完成）
@@ -38,6 +41,20 @@
 - LINE Login OAuth 2.0、Spring Security、JWT 驗證鏈打通，登入入口已從簡訊登入轉向真實 OAuth 流程。
 - 台北捷運 GEO 已接上 Redis，能查捷運站、附近捷運站與捷運站周邊店家，完成 Stage 1 的地理能力基底。
 - 分類 API 與店家台灣欄位映射完成，前端已可直接用 slug 查分類店家、熱門店家與完整台灣化店家資料。
+
+## 進階工程能力（Stage 1.5）
+
+在 Stage 1 完成台灣在地化基礎後，補上對應 Junior Java 面試常考的進階工程能力：
+
+| 能力 | 實作 | 設計取捨 |
+| --- | --- | --- |
+| 多層快取 | Caffeine（L1） + Redis（L2） + Bloom Filter + 空值快取 | 避免穿透、擊穿、雪崩三大問題 |
+| 限流 | Lua 令牌桶 + 註解式 `@RateLimit` + AOP | 原子性扣減；支援多維度 |
+| 冪等 | Redis SETNX + 註解式 `@Idempotent` + SpEL key | TTL 過期自動釋放，避免持久污染 |
+| 讀寫鎖 | Redisson 註解式 `@DistributedLock(type=READ/WRITE)` | 讀並行寫互斥 |
+| 可靠消息 | RabbitMQ + Outbox 模式 + 死信佇列（DLQ） | DB transaction + 背景 publisher 保證一致性 |
+
+完整 commit 流水與「為什麼這樣做」見 [CHANGELOG.md](./CHANGELOG.md)。
 
 ## 已實作 API
 
@@ -52,6 +69,8 @@
 | Category Shops | `GET /api/category/{slug}/shops?page=1&size=10` | 依 slug 分頁查分類店家 |
 | Category Popular Shops | `GET /api/category/{slug}/shops/popular` | 查分類熱門店家 Top 5 |
 | Shop Detail | `GET /api/shop/{id}` | 取得店家明細，含 `mrtStation`、`district`、`priceRange`、`businessHours` |
+| MQ Publish Demo | `POST /api/demo/mq` | 直接發 MQ（教學用） |
+| MQ Publish via Outbox | `POST /api/demo/mq-outbox` | 透過 outbox 發 MQ |
 
 ## 本地啟動
 
@@ -65,6 +84,6 @@ mvn spring-boot:run
 
 啟動後可先訪問 `http://localhost:8081/api/category/list` 或 `http://localhost:8081/api/mrt/stations`。
 
-## Roadmap
+## 規劃路線
 
-後續規劃見 [docs/roadmap.md](docs/roadmap.md)。
+詳見 [docs/roadmap.md](./docs/roadmap.md)。
