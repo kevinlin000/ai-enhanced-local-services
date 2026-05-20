@@ -4,10 +4,11 @@ import cn.hutool.core.util.StrUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.hmdp.config.BloomFilterConfig;
+import com.hmdp.annotation.DistributedLock;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Shop;
+import com.hmdp.enums.LockType;
 import com.hmdp.mapper.ShopMapper;
 import com.hmdp.service.IShopService;
 import com.hmdp.utils.CacheClient;
@@ -63,6 +64,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     private RBloomFilter<Long> shopBloomFilter;
 
     @Override
+    @DistributedLock(key = "shop:#id", type = LockType.READ, waitSeconds = 3, leaseSeconds = 10)
     public Result queryById(Long id) {
         Shop localShop = shopLocalCache.getIfPresent(id);
         if (localShop != null) {
@@ -130,6 +132,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     @Override
     @Transactional
+    @DistributedLock(key = "shop:#shop.id", type = LockType.WRITE, waitSeconds = 3, leaseSeconds = 10)
     public Result update(Shop shop) {
         Long id =shop.getId();
         if (id == null) {
