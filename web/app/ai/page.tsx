@@ -73,7 +73,7 @@ export default function AiPage() {
   ];
 
   return (
-    <main className="mx-auto min-h-screen max-w-4xl p-8">
+    <main className="mx-auto min-h-screen max-w-4xl px-4 py-8 md:px-8">
       <h1 className="mb-2 text-3xl font-bold">AI 搜尋</h1>
       <p className="text-muted-foreground mb-6">三種 AI 能力 demo</p>
 

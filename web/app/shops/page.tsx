@@ -21,7 +21,7 @@ export default async function ShopsPage({
   const { icon: Icon, gradient } = getCategoryStyle(slug);
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl p-8">
+    <main className="mx-auto min-h-screen max-w-6xl px-4 py-8 md:px-8">
       <h1 className="mb-2 text-3xl font-bold">商家</h1>
       <p className="text-muted-foreground mb-6">瀏覽台北在地店家</p>
 

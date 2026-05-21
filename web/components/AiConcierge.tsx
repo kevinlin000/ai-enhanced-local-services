@@ -60,14 +60,14 @@ export function AiConcierge() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed right-6 bottom-6 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-linear-to-br from-primary to-emerald-500 text-primary-foreground shadow-[0_12px_30px_rgba(23,110,55,0.35)] transition hover:scale-105 hover:shadow-[0_16px_38px_rgba(23,110,55,0.42)]"
+        className="fixed right-4 bottom-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-linear-to-br from-primary to-emerald-500 text-primary-foreground shadow-[0_12px_30px_rgba(23,110,55,0.35)] transition hover:scale-105 hover:shadow-[0_16px_38px_rgba(23,110,55,0.42)] md:right-6 md:bottom-6 md:h-14 md:w-14"
         aria-label="AI Concierge"
       >
-        <Sparkles className="h-6 w-6" />
+        <Sparkles className="h-5 w-5 md:h-6 md:w-6" />
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex h-[600px] max-w-2xl flex-col gap-0 overflow-hidden border-foreground/10 p-0">
+        <DialogContent className="flex h-[90vh] max-w-2xl flex-col gap-0 overflow-hidden border-foreground/10 p-0 md:h-[600px]">
           <DialogHeader className="bg-muted/50 border-b px-6 py-4">
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Sparkles className="text-primary h-5 w-5" />

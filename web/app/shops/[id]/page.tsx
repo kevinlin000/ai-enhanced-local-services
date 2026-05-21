@@ -42,7 +42,7 @@ export default async function ShopDetailPage({
   };
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl p-8">
+    <main className="mx-auto min-h-screen max-w-3xl px-4 py-8 md:px-8">
       <div className={`-mt-8 -mx-8 mb-8 flex h-40 items-center justify-center bg-gradient-to-br ${gradient}`}>
         <Icon className="h-16 w-16 text-foreground/40" strokeWidth={1.5} />
       </div>
