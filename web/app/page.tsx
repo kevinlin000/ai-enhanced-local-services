@@ -1,11 +1,6 @@
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { aiApi, javaApi } from "@/lib/api";
-
-type Category = {
-  id: number;
-  name: string;
-  slug: string;
-};
+import { aiApi, javaApi, type Category } from "@/lib/api";
 
 export default async function Home() {
   let categories: Category[] = [];
@@ -70,12 +65,14 @@ export default async function Home() {
       <h2 className="mb-4 text-xl font-semibold">分類</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {categories.map((category) => (
-          <Card key={category.id} className="transition hover:shadow-md">
-            <CardContent className="p-4">
-              <div className="font-medium">{category.name}</div>
-              <div className="text-muted-foreground text-xs">{category.slug}</div>
-            </CardContent>
-          </Card>
+          <Link key={category.id} href={`/shops?category=${category.slug}`}>
+            <Card className="cursor-pointer transition hover:shadow-md">
+              <CardContent className="p-4">
+                <div className="font-medium">{category.name}</div>
+                <div className="text-muted-foreground text-xs">{category.slug}</div>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
     </main>
