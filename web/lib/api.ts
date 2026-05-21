@@ -28,6 +28,14 @@ export type Category = {
   slug: string;
 };
 
+export type SearchHit = {
+  shop_id: number;
+  name: string;
+  district: string | null;
+  mrt_station: string | null;
+  score: number;
+};
+
 export const javaApi = {
   listCategories: () =>
     fetchJson<{ success: boolean; data: Category[] }>(
@@ -47,4 +55,30 @@ export const javaApi = {
 
 export const aiApi = {
   health: () => fetchJson<{ status: string }>(`${AI_API}/health`),
+  search: (query: string, top_k = 5) =>
+    fetchJson<{ query: string; hits: SearchHit[] }>(`${AI_API}/api/ai/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, top_k }),
+    }),
+  recommend: (query: string, top_k = 5) =>
+    fetchJson<{ query: string; answer: string; hits: SearchHit[] }>(
+      `${AI_API}/api/ai/recommend`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, top_k }),
+      },
+    ),
+  agent: (query: string) =>
+    fetchJson<{
+      query: string;
+      answer: string;
+      tool_used: string | null;
+      tool_args?: unknown;
+    }>(`${AI_API}/api/ai/agent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    }),
 };
