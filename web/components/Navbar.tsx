@@ -19,6 +19,11 @@ export function Navbar() {
               商家
             </Button>
           </Link>
+          <Link href="/ai">
+            <Button variant="ghost" size="sm">
+              AI 搜尋
+            </Button>
+          </Link>
           {mounted
             ? isLoggedIn
               ? (

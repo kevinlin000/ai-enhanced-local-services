@@ -62,6 +62,20 @@ export default async function Home() {
         </Card>
       </div>
 
+      <Link href="/ai">
+        <Card className="mb-8 cursor-pointer border-primary/50 transition hover:shadow-lg">
+          <CardContent className="flex items-center gap-4 p-6">
+            <div className="text-4xl">✨</div>
+            <div>
+              <div className="text-lg font-semibold">AI 智能搜尋</div>
+              <div className="text-muted-foreground text-sm">
+                語意搜尋、智能推薦、Agent 自動選工具
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+
       <h2 className="mb-4 text-xl font-semibold">分類</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {categories.map((category) => (
