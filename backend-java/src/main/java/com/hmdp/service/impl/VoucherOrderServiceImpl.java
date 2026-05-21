@@ -2,9 +2,11 @@ package com.hmdp.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.domain.jpa.VoucherOrderJpa;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.VoucherOrder;
 import com.hmdp.mapper.VoucherOrderMapper;
+import com.hmdp.repository.VoucherOrderJpaRepository;
 import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherOrderService;
 import com.hmdp.utils.RedisIdWorker;
@@ -52,6 +54,9 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     @Resource
     private RedissonClient redissonClient;
+
+    @Resource
+    private VoucherOrderJpaRepository voucherOrderJpaRepo;
 
     private static final DefaultRedisScript<Long> SECKILL_SCRIPT;
     static {
@@ -230,6 +235,8 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             }
 
             //7.創建訂單
-            save(voucherOrder);
+            VoucherOrderJpa jpaOrder = new VoucherOrderJpa();
+            BeanUtil.copyProperties(voucherOrder, jpaOrder);
+            voucherOrderJpaRepo.save(jpaOrder);
         }
     }
