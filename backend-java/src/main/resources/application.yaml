@@ -52,6 +52,17 @@ logging:
   level:
     com.bytebites: debug
     com.bytebites.service.impl.ShopServiceImpl: DEBUG
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    prometheus:
+      access: unrestricted
+  metrics:
+    tags:
+      application: bytebites-java
 
 line:
   oauth:
