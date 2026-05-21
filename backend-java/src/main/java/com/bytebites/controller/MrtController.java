@@ -88,6 +88,18 @@ public class MrtController {
         return Result.ok(nearbyShops);
     }
 
+    @GetMapping("/api/mrt/{station}/popular-shops")
+    public Result popularShopsByMrt(@PathVariable String station) {
+        List<ShopJpa> shops = shopJpaRepository.findByMrtStation(station);
+        List<ShopJpa> sorted = shops.stream()
+                .sorted((a, b) -> Integer.compare(
+                        b.getScore() != null ? b.getScore() : 0,
+                        a.getScore() != null ? a.getScore() : 0))
+                .limit(5)
+                .toList();
+        return Result.ok(sorted);
+    }
+
     private NearbyStationView toNearbyStation(
             GeoResult<RedisGeoCommands.GeoLocation<String>> result,
             Map<String, StationView> stationMap

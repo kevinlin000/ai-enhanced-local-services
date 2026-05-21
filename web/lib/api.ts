@@ -45,6 +45,10 @@ export const javaApi = {
     fetchJson<{ success: boolean; data: unknown[] }>(
       `${JAVA_API}/api/mrt/stations`,
     ),
+  popularShopsByMrt: (station: string) =>
+    fetchJson<{ success: boolean; data: Shop[] }>(
+      `${JAVA_API}/api/mrt/${encodeURIComponent(station)}/popular-shops`,
+    ),
   shopsByCategory: (slug: string, page = 1, size = 20) =>
     fetchJson<{ success: boolean; data: Shop[] }>(
       `${JAVA_API}/api/category/${slug}/shops?page=${page}&size=${size}`,

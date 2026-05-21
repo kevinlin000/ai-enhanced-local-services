@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { aiApi, javaApi, type Category } from "@/lib/api";
-import { getCategoryStyle } from "@/lib/categoryStyle";
+import { aiApi, javaApi, type Category, type Shop } from "@/lib/api";
+import { getCategoryStyle, getStyleByTypeId } from "@/lib/categoryStyle";
+
+const HOT_STATIONS = ["市政府", "中山", "信義安和"];
 
 export default async function Home() {
   let categories: Category[] = [];
   let mrt: unknown[] = [];
   let aiOk = false;
+  let stationShops: { data: Shop[] }[] = [];
 
   try {
     const c = await javaApi.listCategories();
@@ -23,13 +26,19 @@ export default async function Home() {
     aiOk = a.status === "ok";
   } catch {}
 
+  stationShops = await Promise.all(
+    HOT_STATIONS.map((station) =>
+      javaApi.popularShopsByMrt(station).catch(() => ({ data: [] as Shop[] })),
+    ),
+  );
+
   return (
     <main>
-      <section className="mx-auto max-w-5xl px-8 py-20">
+      <section className="mx-auto max-w-5xl px-4 py-20 md:px-8">
         <div className="text-muted-foreground font-mono mb-2 text-sm tracking-wide">
           ByteBites · v1.0 · Taiwan
         </div>
-        <h1 className="mb-4 text-5xl font-bold tracking-tight md:text-6xl">
+        <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-6xl">
           台灣在地
           <br />
           <span className="text-primary">AI 點評平台</span>
@@ -51,7 +60,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-5xl grid-cols-2 gap-8 border-y px-8 py-8 text-sm md:grid-cols-4">
+      <section className="mx-auto grid max-w-5xl grid-cols-2 gap-8 border-y px-4 py-8 text-sm md:grid-cols-4 md:px-8">
         <div>
           <div className="font-mono text-3xl font-bold">{categories.length || "—"}</div>
           <div className="text-muted-foreground mt-1">在地分類</div>
@@ -70,7 +79,59 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-8 py-12">
+      <section className="mx-auto max-w-5xl px-4 py-12 md:px-8">
+        <h2 className="mb-1 text-2xl font-semibold">捷運站熱門</h2>
+        <p className="text-muted-foreground mb-6 text-sm">依評分排序、台北 3 個熱門站點</p>
+
+        <div className="space-y-8">
+          {HOT_STATIONS.map((station, idx) => {
+            const shops = stationShops[idx]?.data || [];
+            if (shops.length === 0) return null;
+            return (
+              <div key={station}>
+                <div className="mb-3 flex items-baseline justify-between">
+                  <h3 className="font-medium">
+                    捷運<span className="text-primary">{station}</span>站
+                  </h3>
+                  <span className="text-muted-foreground font-mono text-xs">{shops.length} 家</span>
+                </div>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  {shops.slice(0, 3).map((shop) => {
+                    const style = getStyleByTypeId(shop.typeId);
+                    const Icon = style.icon;
+                    return (
+                      <Link key={shop.id} href={`/shops/${shop.id}`}>
+                        <div className="overflow-hidden rounded-xl border transition hover:border-foreground/40 hover:shadow-md">
+                          <div className={`flex h-16 items-center justify-center bg-gradient-to-br ${style.gradient}`}>
+                            <Icon className="h-7 w-7 text-foreground/40" strokeWidth={1.5} />
+                          </div>
+                          <div className="p-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="text-sm leading-tight font-medium">{shop.name}</h4>
+                              {shop.score ? (
+                                <span className="bg-foreground text-background font-mono shrink-0 rounded px-1.5 py-0.5 text-xs">
+                                  {(shop.score / 10).toFixed(1)}
+                                </span>
+                              ) : null}
+                            </div>
+                            {shop.avgPrice ? (
+                              <div className="text-muted-foreground font-mono mt-1 text-xs">
+                                NT$ {shop.avgPrice}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 py-12 md:px-8">
         <h2 className="mb-1 text-2xl font-semibold">12 個在地分類</h2>
         <p className="text-muted-foreground mb-6 text-sm">
           從牛肉麵到手搖飲、依台灣口味分
