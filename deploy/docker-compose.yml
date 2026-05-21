@@ -10,6 +10,15 @@ services:
       RABBITMQ_DEFAULT_PASS: admin
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+  qdrant:
+    image: qdrant/qdrant:v1.13.4
+    container_name: bytebites-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
 
 volumes:
   rabbitmq-data:
+  qdrant-data:
