@@ -11,7 +11,7 @@ services:
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
   qdrant:
-    image: qdrant/qdrant:v1.12.4
+    image: qdrant/qdrant:v1.13.4
     container_name: bytebites-qdrant
     ports:
       - "6333:6333"
