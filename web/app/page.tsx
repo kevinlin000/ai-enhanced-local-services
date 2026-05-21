@@ -1,0 +1,83 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { aiApi, javaApi } from "@/lib/api";
+
+type Category = {
+  id: number;
+  name: string;
+  slug: string;
+};
+
+export default async function Home() {
+  let categories: Category[] = [];
+  let mrt: unknown[] = [];
+  let aiOk = false;
+
+  try {
+    const c = await javaApi.listCategories();
+    categories = (c.data ?? []) as Category[];
+  } catch {}
+
+  try {
+    const m = await javaApi.listMrtStations();
+    mrt = m.data ?? [];
+  } catch {}
+
+  try {
+    const a = await aiApi.health();
+    aiOk = a.status === "ok";
+  } catch {}
+
+  return (
+    <main className="mx-auto min-h-screen max-w-5xl p-8">
+      <h1 className="mb-2 text-3xl font-bold">ByteBites</h1>
+      <p className="text-muted-foreground mb-8">
+        台灣在地點評平台 + AI 應用整合
+      </p>
+
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Java Backend</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className={categories.length ? "text-green-600" : "text-red-600"}>
+              {categories.length ? `✓ ${categories.length} categories` : "✗ unreachable"}
+            </span>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">MRT Stations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className={mrt.length ? "text-green-600" : "text-red-600"}>
+              {mrt.length ? `✓ ${mrt.length} stations` : "✗ unreachable"}
+            </span>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">AI Service</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className={aiOk ? "text-green-600" : "text-red-600"}>
+              {aiOk ? "✓ healthy" : "✗ unreachable"}
+            </span>
+          </CardContent>
+        </Card>
+      </div>
+
+      <h2 className="mb-4 text-xl font-semibold">分類</h2>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {categories.map((category) => (
+          <Card key={category.id} className="transition hover:shadow-md">
+            <CardContent className="p-4">
+              <div className="font-medium">{category.name}</div>
+              <div className="text-muted-foreground text-xs">{category.slug}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </main>
+  );
+}
