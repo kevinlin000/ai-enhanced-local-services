@@ -1,88 +1,159 @@
-# 台灣在地點評平台 + AI 應用整合作品（v1.0 開發中）
+# ByteBites · 台灣在地 AI 點評平台
 
-以台灣使用者為主要服務對象的店家點評與發現平台，整合 LINE Login、台北捷運 GEO 搜尋、在地店家分類，並逐步引入 AI 搜尋、評論摘要與平台助手能力。
+> Java 後端 + Python AI 服務 + Next.js 前端的三服務整合作品，台北場景。
 
 ## 為什麼這個專案
 
-台灣的店家發現與評論資訊分散在不同平台，使用者要在 Google Maps、社群、論壇之間切換才能做選擇。本專案的目標是把「在地店家發現、評論瀏覽、AI 智能搜尋」整合在同一個介面。
+台灣在地店家發現分散在 Google Maps、社群、論壇之間。本專案做一個整合「在地店家發現、語意搜尋、AI 推薦」的平台，並以此展示後端工程實踐與 AI 應用整合的雙能力。
 
-技術定位上，這是一個**以 Java 後端為核心、Python AI 服務為延伸**的整合作品，重點在 Spring Boot 3 工程實踐、Redis 多元應用、與 AI 應用架構的雙服務拆分。
+## 三大差異化
 
-## 差異化定位
-
-本專案刻意做出以下設計選擇，呈現對「為什麼這樣做」的取捨思考：
-
-- **LINE Login** 作為主要登入方式（非簡訊、非密碼）
-- **台北捷運站 GEO** 作為地理搜尋的核心索引（非縣市行政區）
-- **Java + Python 雙服務架構**，AI 服務獨立部署（非 Java 內嵌 LLM 框架）
-- **Spring Data JPA**（規劃中）作為主要 ORM（與作者另一個作品的 MyBatis 形成對照）
+- **Java + Python 雙服務**：Java 處理核心業務（用戶、店家、訂單、秒殺），Python 負責 AI（RAG、Agent、Eval）
+- **LINE Login + 台北捷運 GEO**：對齊台灣使用情境，非 Google OAuth、非縣市行政區
+- **Strangler Fig 漸進遷移**：MyBatis-Plus 與 Spring Data JPA 並存，秒殺路徑保留 MyBatis 因 AOP 整合穩定，是有意的工程取捨
 
 ## 技術棧
 
+### 後端 (Java)
 | 類別 | 技術 |
-| --- | --- |
-| Java | Java 17 |
-| Backend | Spring Boot 3.2 |
-| Security | Spring Security + JWT |
-| ORM | MyBatis-Plus（TODO: 將遷移到 JPA） |
+|------|------|
+| 語言 / 框架 | Java 17 · Spring Boot 3.2 |
+| 安全 | Spring Security · OAuth 2.0 (LINE) · JWT |
+| ORM | Spring Data JPA · MyBatis-Plus（並存） |
 | Migration | Flyway |
-| Cache / GEO | Redis 7 |
-| Local Cache | Caffeine |
-| Bloom Filter | Redisson |
-| Distributed Lock | Redisson |
-| MQ | RabbitMQ 3.13 |
+| 快取 | Caffeine (L1) · Redis 7 (L2) · Bloom Filter (Redisson) |
+| 鎖 | Redisson 讀寫鎖 |
+| MQ | RabbitMQ 3.13 · Outbox 模式 · DLQ |
 | Database | MySQL 8 |
+| 可觀測性 | Micrometer · Prometheus |
 
-## 目前進度（Stage 1 完成）
+### AI 服務 (Python)
+| 類別 | 技術 |
+|------|------|
+| 語言 / 框架 | Python 3.12 · FastAPI · uv |
+| LLM | Gemini 2.5 Flash · Function Calling |
+| Embedding | Gemini Embedding 001 (768d) |
+| 向量庫 | Qdrant 1.13 |
+| 監控 | prometheus-client · token tracking |
+| 評估 | 自寫 hit@k · 10 案例 dataset |
+| 安全 | Input injection guardrail · Output filter |
 
-- Spring Boot 3.2.5 + Java 17 + Jakarta 遷移完成，先把專案升到現代 Spring 生態，後續功能開發不用背舊包袱。
-- Repo 結構、`.gitignore`、內部文件邊界與初始體檢完成，讓專案能持續演進，不會一開始就把工作區搞亂。
-- Flyway 接管 schema，並完成台灣化 migration、12 個在地分類、25 家台北店家種子資料，資料層已具備在地 demo 所需的資料基底。
-- LINE Login OAuth 2.0、Spring Security、JWT 驗證鏈打通，登入入口已從簡訊登入轉向真實 OAuth 流程。
-- 台北捷運 GEO 已接上 Redis，能查捷運站、附近捷運站與捷運站周邊店家，完成 Stage 1 的地理能力基底。
-- 分類 API 與店家台灣欄位映射完成，前端已可直接用 slug 查分類店家、熱門店家與完整台灣化店家資料。
+### 前端 (Web)
+| 類別 | 技術 |
+|------|------|
+| 框架 | Next.js 15 · React 19 · TypeScript |
+| 樣式 | Tailwind v4 · shadcn-ui |
+| 字型 | Geist Sans · Geist Mono · Noto Sans TC |
+| 圖示 | Lucide |
 
-## 進階工程能力（Stage 1.5）
+## 目前進度
 
-在 Stage 1 完成台灣在地化基礎後，補上對應 Junior Java 面試常考的進階工程能力：
+- Spring Boot 3.2.5 + Java 17 + Jakarta 遷移完成，底座已升到現代 Spring 生態。
+- Flyway 接管 schema，完成 V1-V7 migration、12 個在地分類、25 家台北店家與捷運站種子資料。
+- LINE Login OAuth 2.0、Spring Security、JWT 驗證鏈打通，登入流程已對齊實際台灣使用情境。
+- JPA 遷移已切完 User、ShopType、Shop、Review、Voucher 系列，保留秒殺高風險路徑的漸進式切換。
+- Python AI 服務已完成 Qdrant ingest、語意搜尋、RAG 推薦、Function Calling Agent、輕量 eval、guardrail、Prometheus。
+- Next.js 前端已完成商家瀏覽、AI 搜尋頁、AI Concierge 浮窗、首頁視覺 polish 與手機版調整。
+
+## 進階工程能力
+
+### 後端層
 
 | 能力 | 實作 | 設計取捨 |
-| --- | --- | --- |
-| 多層快取 | Caffeine（L1） + Redis（L2） + Bloom Filter + 空值快取 | 避免穿透、擊穿、雪崩三大問題 |
+|------|------|----------|
+| 多層快取 | Caffeine + Redis + Bloom + 空值快取 | 避免穿透、擊穿、雪崩 |
 | 限流 | Lua 令牌桶 + 註解式 `@RateLimit` + AOP | 原子性扣減；支援多維度 |
-| 冪等 | Redis SETNX + 註解式 `@Idempotent` + SpEL key | TTL 過期自動釋放，避免持久污染 |
+| 冪等 | Redis SETNX + 註解式 `@Idempotent` + SpEL key | TTL 過期自動釋放 |
 | 讀寫鎖 | Redisson 註解式 `@DistributedLock(type=READ/WRITE)` | 讀並行寫互斥 |
-| 可靠消息 | RabbitMQ + Outbox 模式 + 死信佇列（DLQ） | DB transaction + 背景 publisher 保證一致性 |
+| 可靠消息 | RabbitMQ + Outbox 模式 + DLQ | DB transaction + 背景 publisher 保證一致性 |
+| 可觀測性 | Actuator + Prometheus + 業務 counter | seckill / ratelimit / outbox metric |
+
+### AI 層
+
+| 能力 | 實作 | 重點 |
+|------|------|------|
+| 語意搜尋 | Gemini Embedding + Qdrant cosine | task_type 區分 query/document |
+| RAG | Embedding + 檢索 + LLM 生成 | tenacity retry on 429/503 |
+| Agent | Function Calling (2 tools) | LLM 自動決定查 GEO 或語意檢索 |
+| 評估 | hit@5 dataset (10 case) | baseline 80%、失敗案例有 root cause |
+| Guardrail | Regex input filter + output blocklist | 中英文 injection pattern |
+| Observability | Prometheus + token tracking | prompt / output token by model |
 
 完整 commit 流水與「為什麼這樣做」見 [CHANGELOG.md](./CHANGELOG.md)。
 
 ## 已實作 API
 
-| 功能 | Endpoint | 說明 |
-| --- | --- | --- |
-| LINE Login | `GET /api/auth/line/login` | 導向 LINE OAuth 授權頁 |
-| LINE Callback | `GET /api/auth/line/callback` | LINE 回調後交換 profile 並發 JWT |
-| MRT Stations | `GET /api/mrt/stations` | 取得捷運站列表 |
-| MRT Nearby | `GET /api/mrt/stations/nearby?lng=121.5&lat=25.0&radius=500` | 查半徑內捷運站 |
-| Nearby Shops by MRT | `GET /api/shop/nearby-mrt/{station}` | 查指定捷運站附近店家 |
-| Category List | `GET /api/category/list` | 取得 12 個 active 在地分類 |
-| Category Shops | `GET /api/category/{slug}/shops?page=1&size=10` | 依 slug 分頁查分類店家 |
-| Category Popular Shops | `GET /api/category/{slug}/shops/popular` | 查分類熱門店家 Top 5 |
-| Shop Detail | `GET /api/shop/{id}` | 取得店家明細，含 `mrtStation`、`district`、`priceRange`、`businessHours` |
-| MQ Publish Demo | `POST /api/demo/mq` | 直接發 MQ（教學用） |
-| MQ Publish via Outbox | `POST /api/demo/mq-outbox` | 透過 outbox 發 MQ |
+### Java Backend (8081)
+
+| 方法 | 路徑 | 說明 |
+|------|------|------|
+| GET | `/api/auth/line/login` | LINE OAuth 起點（302 到 LINE） |
+| GET | `/api/auth/line/callback` | OAuth callback、回傳 JWT |
+| GET | `/api/category/list` | 12 個在地分類 |
+| GET | `/api/category/{slug}/shops` | 分類下店家（分頁） |
+| GET | `/api/category/{slug}/shops/popular` | 分類熱門 top 5 |
+| GET | `/api/shop/{id}` | 單店詳情（多層快取 + 讀寫鎖） |
+| GET | `/api/mrt/stations` | 8 個捷運站 |
+| GET | `/api/mrt/stations/nearby` | GEO 半徑搜尋 |
+| GET | `/api/mrt/{station}/popular-shops` | 捷運站附近熱門 |
+| GET | `/api/shop/nearby-mrt/{station}` | 該站附近店家 |
+| POST | `/voucher-order/seckill/{id}` | 秒殺（限流 + 冪等） |
+| POST | `/api/demo/mq-outbox` | Outbox demo |
+
+### Python AI Service (8000)
+
+| 方法 | 路徑 | 說明 |
+|------|------|------|
+| GET | `/health` | 健康檢查 |
+| POST | `/api/ai/search` | 純向量檢索 top-k |
+| POST | `/api/ai/recommend` | RAG 完整閉環 |
+| POST | `/api/ai/agent` | Function Calling Agent |
+| GET | `/metrics` | Prometheus metrics |
 
 ## 本地啟動
 
+### 1. 啟動依賴服務
+
 ```bash
-cp .env.example .env
-# 先準備 MySQL 8 與 Redis 7，並確認 .env 內連線資訊正確
+cd deploy
+docker compose up -d mysql redis rabbitmq qdrant
+```
+
+### 2. Java Backend (port 8081)
+
+```bash
 cd backend-java
+cp ../.env.example ../.env  # 填入 LINE_CHANNEL_ID / SECRET / JWT_SECRET
 set -a; source ../.env; set +a
 mvn spring-boot:run
 ```
 
-啟動後可先訪問 `http://localhost:8081/api/category/list` 或 `http://localhost:8081/api/mrt/stations`。
+首次啟動會跑 Flyway migration（V1-V7）。
+
+### 3. Python AI Service (port 8000)
+
+```bash
+cd ai-service-python
+cp .env.example .env  # 填入 GEMINI_API_KEY
+uv sync
+uv run uvicorn app.main:app --port 8000
+```
+
+一次性 ingest 25 家種子店家到 Qdrant：
+
+```bash
+uv run python -m app.ingest
+```
+
+### 4. 前端 (port 3000)
+
+```bash
+cd web
+pnpm install
+pnpm dev
+```
+
+訪問 http://localhost:3000
 
 ## 規劃路線
 
