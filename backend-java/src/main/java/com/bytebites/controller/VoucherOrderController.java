@@ -8,6 +8,7 @@ import com.bytebites.domain.jpa.VoucherOrderJpa;
 import com.bytebites.repository.VoucherOrderJpaRepository;
 import com.bytebites.service.IVoucherOrderService;
 import com.bytebites.utils.UserHolder;
+import io.micrometer.core.instrument.Counter;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,11 +36,14 @@ public class VoucherOrderController {
     private IVoucherOrderService voucherOrderService;
     @Resource
     private VoucherOrderJpaRepository voucherOrderJpaRepo;
+    @Resource
+    private Counter seckillAttempts;
 
     @PostMapping("seckill/{id}")
     @Idempotent(key = "seckill:#voucherId", ttlSeconds = 5)
     @RateLimit(key = "secKill:#voucherId", capacity = 100, refillPerSecond = 10)
     public Result seckillVoucher(@PathVariable("id") Long voucherId) {
+        seckillAttempts.increment();
         return voucherOrderService.seckillVoucher(voucherId);
     }
 

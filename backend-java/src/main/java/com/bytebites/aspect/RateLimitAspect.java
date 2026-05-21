@@ -2,6 +2,7 @@ package com.bytebites.aspect;
 
 import com.bytebites.annotation.RateLimit;
 import com.bytebites.exception.RateLimitException;
+import io.micrometer.core.instrument.Counter;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -38,11 +39,13 @@ public class RateLimitAspect {
     }
 
     private final StringRedisTemplate stringRedisTemplate;
+    private final Counter rateLimitRejects;
     private final ExpressionParser expressionParser = new SpelExpressionParser();
     private final ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
-    public RateLimitAspect(StringRedisTemplate stringRedisTemplate) {
+    public RateLimitAspect(StringRedisTemplate stringRedisTemplate, Counter rateLimitRejects) {
         this.stringRedisTemplate = stringRedisTemplate;
+        this.rateLimitRejects = rateLimitRejects;
     }
 
     @Around("@annotation(rateLimit)")
@@ -59,6 +62,7 @@ public class RateLimitAspect {
                 String.valueOf(rateLimit.tokensNeeded())
         );
         if (!Long.valueOf(1L).equals(allowed)) {
+            rateLimitRejects.increment();
             log.debug("rate limit blocked, key={}", resolvedKey);
             throw new RateLimitException("請稍後再試");
         }
