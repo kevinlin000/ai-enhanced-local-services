@@ -1,0 +1,10 @@
+{"query": "中山站附近的咖啡店", "expected_shop_ids": [10018], "rationale": "mrt + cafe"}
+{"query": "想吃春水堂", "expected_shop_ids": [10003], "rationale": "exact brand match"}
+{"query": "市政府站旁的牛肉麵", "expected_shop_ids": [10001], "rationale": "mrt + category"}
+{"query": "信義區的滷味", "expected_shop_ids": [10002], "rationale": "district + category"}
+{"query": "中山區的手搖飲", "expected_shop_ids": [10016], "rationale": "district + category"}
+{"query": "象山站的咖啡店", "expected_shop_ids": [], "rationale": "negative case; no coffee shop at 象山 in seeded data"}
+{"query": "雙連站附近", "expected_shop_ids": [10015, 10017, 10024], "rationale": "mrt only"}
+{"query": "想吃日式料理", "expected_shop_ids": [10006, 10019], "rationale": "category only"}
+{"query": "晚餐想吃火鍋", "expected_shop_ids": [10009, 10022], "rationale": "category only"}
+{"query": "中山區豆漿", "expected_shop_ids": [], "rationale": "negative case; no 豆漿 shop in 中山區 seeded data"}
