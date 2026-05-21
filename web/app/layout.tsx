@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans_TC } from "next/font/google";
+import { AiConcierge } from "@/components/AiConcierge";
 import { Navbar } from "@/components/Navbar";
 import "./globals.css";
 
@@ -36,6 +37,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <Navbar />
         {children}
+        <AiConcierge />
       </body>
     </html>
   );
