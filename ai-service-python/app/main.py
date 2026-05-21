@@ -1,5 +1,6 @@
 import httpx
 from fastapi import FastAPI, HTTPException, Response
+from fastapi.middleware.cors import CORSMiddleware
 from app.guardrail import GuardrailViolation, check_input, filter_output
 from google import genai
 from google.genai.errors import ClientError, ServerError
@@ -24,6 +25,12 @@ class Settings(BaseSettings):
 
 settings = Settings()
 app = FastAPI(title="ByteBites AI Service", version="0.1.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 _gemini_client: genai.Client | None = None
 _qdrant_client: QdrantClient | None = None
 ai_requests = PromCounter("bytebites_ai_requests_total", "AI endpoint requests", ["endpoint"])
