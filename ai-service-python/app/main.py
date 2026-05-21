@@ -1,5 +1,6 @@
 import httpx
 from fastapi import FastAPI, HTTPException, Response
+from app.guardrail import GuardrailViolation, check_input, filter_output
 from google import genai
 from google.genai.errors import ClientError, ServerError
 from google.genai import types
@@ -205,8 +206,10 @@ async def ping_java():
 @app.post("/api/ai/search")
 async def semantic_search(req: SearchRequest):
     """Semantic shop search via Gemini embedding + Qdrant."""
-    if not req.query.strip():
-        raise HTTPException(400, "query is empty")
+    try:
+        check_input(req.query)
+    except GuardrailViolation as exc:
+        raise HTTPException(400, f"input rejected: {exc}") from exc
 
     ai_requests.labels(endpoint="search").inc()
     with ai_latency.labels(endpoint="search").time():
@@ -247,8 +250,10 @@ async def semantic_search(req: SearchRequest):
 @app.post("/api/ai/recommend")
 async def recommend(req: RecommendRequest):
     """Full RAG: retrieve + LLM generate recommendation."""
-    if not req.query.strip():
-        raise HTTPException(400, "query is empty")
+    try:
+        check_input(req.query)
+    except GuardrailViolation as exc:
+        raise HTTPException(400, f"input rejected: {exc}") from exc
 
     ai_requests.labels(endpoint="recommend").inc()
     with ai_latency.labels(endpoint="recommend").time():
@@ -292,7 +297,7 @@ async def recommend(req: RecommendRequest):
 
     return RecommendResponse(
         query=req.query,
-        answer=answer,
+        answer=filter_output(answer),
         hits=[
             SearchHit(
                 shop_id=result.payload["shop_id"],
@@ -309,8 +314,10 @@ async def recommend(req: RecommendRequest):
 @app.post("/api/ai/agent")
 async def agent(req: AgentRequest):
     """LLM with function calling - picks tool, executes, then synthesizes answer."""
-    if not req.query.strip():
-        raise HTTPException(400, "query is empty")
+    try:
+        check_input(req.query)
+    except GuardrailViolation as exc:
+        raise HTTPException(400, f"input rejected: {exc}") from exc
 
     ai_requests.labels(endpoint="agent").inc()
     with ai_latency.labels(endpoint="agent").time():
@@ -333,7 +340,7 @@ async def agent(req: AgentRequest):
                 break
 
         if not function_call:
-            return {"query": req.query, "answer": first.text, "tool_used": None}
+            return {"query": req.query, "answer": filter_output(first.text), "tool_used": None}
 
         tool_name = function_call.name
         tool_args = dict(function_call.args)
@@ -367,7 +374,7 @@ async def agent(req: AgentRequest):
 
     return {
         "query": req.query,
-        "answer": second.text,
+        "answer": filter_output(second.text),
         "tool_used": tool_name,
         "tool_args": tool_args,
         "tool_result_count": len(tool_result.get("shops", [])),
