@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { javaApi, type Shop } from "@/lib/api";
+import { getStyleByTypeId } from "@/lib/categoryStyle";
 
 export default async function ShopDetailPage({
   params,
@@ -28,6 +29,8 @@ export default async function ShopDetailPage({
     if (shop.businessHours) hours = JSON.parse(shop.businessHours);
   } catch {}
 
+  const { icon: Icon, gradient } = getStyleByTypeId(shop.typeId);
+
   const dayMap: Record<string, string> = {
     mon: "週一",
     tue: "週二",
@@ -40,6 +43,10 @@ export default async function ShopDetailPage({
 
   return (
     <main className="mx-auto min-h-screen max-w-3xl p-8">
+      <div className={`-mt-8 -mx-8 mb-8 flex h-40 items-center justify-center bg-gradient-to-br ${gradient}`}>
+        <Icon className="h-16 w-16 text-foreground/40" strokeWidth={1.5} />
+      </div>
+
       <Link href="/shops">
         <Button variant="ghost" size="sm" className="mb-4">
           <ArrowLeft className="mr-1 h-4 w-4" />

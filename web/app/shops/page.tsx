@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { javaApi, type Category, type Shop } from "@/lib/api";
+import { getCategoryStyle } from "@/lib/categoryStyle";
 
 export default async function ShopsPage({
   searchParams,
@@ -17,6 +18,7 @@ export default async function ShopsPage({
 
   const categories = catRes.data;
   const shops = shopRes.data;
+  const { icon: Icon, gradient } = getCategoryStyle(slug);
 
   return (
     <main className="mx-auto min-h-screen max-w-6xl p-8">
@@ -39,17 +41,26 @@ export default async function ShopsPage({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {shops.map((s) => (
           <Link key={s.id} href={`/shops/${s.id}`}>
-            <div className="hover:border-foreground/40 h-full rounded-xl border bg-card p-4 transition">
-              <div className="mb-2 flex items-start justify-between gap-4">
-                <h3 className="text-lg font-semibold">{s.name}</h3>
-                {s.score ? (
-                  <div className="font-mono text-sm">{(s.score / 10).toFixed(1)}</div>
-                ) : null}
+            <div className="h-full overflow-hidden rounded-xl border bg-card transition hover:border-foreground/40 hover:shadow-md">
+              <div className={`flex h-24 items-center justify-center bg-gradient-to-br ${gradient}`}>
+                <Icon className="h-10 w-10 text-foreground/40" strokeWidth={1.5} />
               </div>
-              <div className="text-muted-foreground space-y-1 text-sm">
-                {s.district ? <div>📍 {s.district} · 捷運{s.mrtStation}站</div> : null}
-                {s.address ? <div className="truncate">{s.address}</div> : null}
-                {s.avgPrice ? <div>平均 ${s.avgPrice}</div> : null}
+              <div className="p-4">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <h3 className="leading-tight font-semibold">{s.name}</h3>
+                  {s.score ? (
+                    <span className="bg-foreground text-background font-mono shrink-0 rounded px-2 py-0.5 text-sm">
+                      {(s.score / 10).toFixed(1)}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="text-muted-foreground space-y-1 text-xs">
+                  {s.district ? (
+                    <div className="font-mono">📍 {s.district} · 捷運{s.mrtStation}站</div>
+                  ) : null}
+                  {s.address ? <div className="truncate">{s.address}</div> : null}
+                  {s.avgPrice ? <div className="font-mono">NT$ {s.avgPrice}</div> : null}
+                </div>
               </div>
             </div>
           </Link>

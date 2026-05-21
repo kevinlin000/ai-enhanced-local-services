@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { aiApi, javaApi, type Category } from "@/lib/api";
+import { getCategoryStyle } from "@/lib/categoryStyle";
 
 export default async function Home() {
   let categories: Category[] = [];
@@ -74,17 +75,25 @@ export default async function Home() {
         <p className="text-muted-foreground mb-6 text-sm">
           從牛肉麵到手搖飲、依台灣口味分
         </p>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {categories.map((category) => (
-            <Link key={category.id} href={`/shops?category=${category.slug}`}>
-              <div className="hover:border-foreground/50 rounded-lg border p-4 transition">
-                <div className="font-medium">{category.name}</div>
-                <div className="text-muted-foreground font-mono mt-1 text-xs">
-                  {category.slug}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+          {categories.map((category) => {
+            const { icon: Icon, gradient } = getCategoryStyle(category.slug);
+            return (
+              <Link key={category.id} href={`/shops?category=${category.slug}`}>
+                <div
+                  className={`relative flex h-32 flex-col justify-between overflow-hidden rounded-xl border bg-gradient-to-br p-5 transition hover:border-foreground/40 hover:shadow-sm ${gradient}`}
+                >
+                  <Icon className="h-8 w-8 text-foreground/70" strokeWidth={1.5} />
+                  <div>
+                    <div className="font-semibold">{category.name}</div>
+                    <div className="text-muted-foreground/70 font-mono mt-0.5 text-xs">
+                      {category.slug}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </section>
     </main>
