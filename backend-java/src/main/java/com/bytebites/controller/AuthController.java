@@ -31,9 +31,14 @@ public class AuthController {
     }
 
     @GetMapping("/callback")
-    public Result callback(@RequestParam String code, @RequestParam(required = false) String state) {
+    public void callback(
+        @RequestParam String code,
+        @RequestParam(required = false) String state,
+        HttpServletResponse resp
+    ) throws IOException {
         LineProfile profile = lineOAuthService.exchangeCodeForProfile(code);
         String token = userService.loginWithLine(profile);
-        return Result.ok(token);
+        String frontendUrl = System.getenv().getOrDefault("FRONTEND_URL", "http://localhost:3000");
+        resp.sendRedirect(frontendUrl + "/auth/callback?token=" + token);
     }
 }
