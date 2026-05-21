@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { javaApi, type Category, type Shop } from "@/lib/api";
 
 export default async function ShopsPage({
@@ -29,7 +28,7 @@ export default async function ShopsPage({
           <Link key={c.id} href={`/shops?category=${c.slug}`}>
             <Badge
               variant={c.slug === slug ? "default" : "outline"}
-              className="cursor-pointer px-3 py-1 text-sm"
+              className="cursor-pointer rounded-full px-3 py-1 text-sm"
             >
               {c.name}
             </Badge>
@@ -40,21 +39,19 @@ export default async function ShopsPage({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {shops.map((s) => (
           <Link key={s.id} href={`/shops/${s.id}`}>
-            <Card className="h-full cursor-pointer transition hover:shadow-lg">
-              <CardContent className="p-4">
-                <div className="mb-2 flex items-start justify-between gap-4">
-                  <h3 className="text-lg font-semibold">{s.name}</h3>
-                  {s.score ? (
-                    <Badge variant="secondary">{(s.score / 10).toFixed(1)}</Badge>
-                  ) : null}
-                </div>
-                <div className="text-muted-foreground space-y-1 text-sm">
-                  {s.district ? <div>📍 {s.district} · 捷運{s.mrtStation}站</div> : null}
-                  {s.address ? <div className="truncate">{s.address}</div> : null}
-                  {s.avgPrice ? <div>💰 平均 ${s.avgPrice}</div> : null}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="hover:border-foreground/40 h-full rounded-xl border bg-card p-4 transition">
+              <div className="mb-2 flex items-start justify-between gap-4">
+                <h3 className="text-lg font-semibold">{s.name}</h3>
+                {s.score ? (
+                  <div className="font-mono text-sm">{(s.score / 10).toFixed(1)}</div>
+                ) : null}
+              </div>
+              <div className="text-muted-foreground space-y-1 text-sm">
+                {s.district ? <div>📍 {s.district} · 捷運{s.mrtStation}站</div> : null}
+                {s.address ? <div className="truncate">{s.address}</div> : null}
+                {s.avgPrice ? <div>平均 ${s.avgPrice}</div> : null}
+              </div>
+            </div>
           </Link>
         ))}
       </div>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { aiApi, javaApi, type Category } from "@/lib/api";
 
 export default async function Home() {
@@ -23,72 +23,70 @@ export default async function Home() {
   } catch {}
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl p-8">
-      <h1 className="mb-2 text-3xl font-bold">ByteBites</h1>
-      <p className="text-muted-foreground mb-8">
-        台灣在地點評平台 + AI 應用整合
-      </p>
-
-      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Java Backend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <span className={categories.length ? "text-green-600" : "text-red-600"}>
-              {categories.length ? `✓ ${categories.length} categories` : "✗ unreachable"}
-            </span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">MRT Stations</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <span className={mrt.length ? "text-green-600" : "text-red-600"}>
-              {mrt.length ? `✓ ${mrt.length} stations` : "✗ unreachable"}
-            </span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">AI Service</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <span className={aiOk ? "text-green-600" : "text-red-600"}>
-              {aiOk ? "✓ healthy" : "✗ unreachable"}
-            </span>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Link href="/ai">
-        <Card className="mb-8 cursor-pointer border-primary/50 transition hover:shadow-lg">
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="text-4xl">✨</div>
-            <div>
-              <div className="text-lg font-semibold">AI 智能搜尋</div>
-              <div className="text-muted-foreground text-sm">
-                語意搜尋、智能推薦、Agent 自動選工具
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </Link>
-
-      <h2 className="mb-4 text-xl font-semibold">分類</h2>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {categories.map((category) => (
-          <Link key={category.id} href={`/shops?category=${category.slug}`}>
-            <Card className="cursor-pointer transition hover:shadow-md">
-              <CardContent className="p-4">
-                <div className="font-medium">{category.name}</div>
-                <div className="text-muted-foreground text-xs">{category.slug}</div>
-              </CardContent>
-            </Card>
+    <main>
+      <section className="mx-auto max-w-5xl px-8 py-20">
+        <div className="text-muted-foreground font-mono mb-2 text-sm tracking-wide">
+          ByteBites · v1.0 · Taiwan
+        </div>
+        <h1 className="mb-4 text-5xl font-bold tracking-tight md:text-6xl">
+          台灣在地
+          <br />
+          <span className="text-primary">AI 點評平台</span>
+        </h1>
+        <p className="text-muted-foreground mb-8 max-w-xl text-lg">
+          用自然語言找台北的店家。RAG 檢索、Agent 自動選工具、評論摘要。
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/ai">
+            <Button size="lg" className="bg-primary hover:bg-primary/90">
+              開始 AI 搜尋 →
+            </Button>
           </Link>
-        ))}
-      </div>
+          <Link href="/shops">
+            <Button size="lg" variant="outline">
+              瀏覽店家
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-5xl grid-cols-2 gap-8 border-y px-8 py-8 text-sm md:grid-cols-4">
+        <div>
+          <div className="font-mono text-3xl font-bold">{categories.length || "—"}</div>
+          <div className="text-muted-foreground mt-1">在地分類</div>
+        </div>
+        <div>
+          <div className="font-mono text-3xl font-bold">{mrt.length || "—"}</div>
+          <div className="text-muted-foreground mt-1">捷運站</div>
+        </div>
+        <div>
+          <div className="font-mono text-3xl font-bold">25</div>
+          <div className="text-muted-foreground mt-1">精選店家</div>
+        </div>
+        <div>
+          <div className="font-mono text-3xl font-bold">{aiOk ? "ON" : "OFF"}</div>
+          <div className="text-muted-foreground mt-1">AI 服務</div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-8 py-12">
+        <h2 className="mb-1 text-2xl font-semibold">12 個在地分類</h2>
+        <p className="text-muted-foreground mb-6 text-sm">
+          從牛肉麵到手搖飲、依台灣口味分
+        </p>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {categories.map((category) => (
+            <Link key={category.id} href={`/shops?category=${category.slug}`}>
+              <div className="hover:border-foreground/50 rounded-lg border p-4 transition">
+                <div className="font-medium">{category.name}</div>
+                <div className="text-muted-foreground font-mono mt-1 text-xs">
+                  {category.slug}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
