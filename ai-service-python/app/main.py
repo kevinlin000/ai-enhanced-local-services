@@ -5,8 +5,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     java_backend_url: str = "http://localhost:8081"
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_collection: str = "shops"
+    gemini_api_key: str = ""
+    gemini_embedding_model: str = "gemini-embedding-001"
 
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()
