@@ -3,6 +3,7 @@ package com.bytebites.mq;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.bytebites.entity.OutboxMessage;
 import com.bytebites.service.IOutboxService;
+import io.micrometer.core.instrument.Counter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,10 +18,12 @@ public class OutboxPublisher {
 
     private final IOutboxService outboxService;
     private final RabbitTemplate rabbitTemplate;
+    private final Counter outboxPublished;
 
-    public OutboxPublisher(IOutboxService outboxService, RabbitTemplate rabbitTemplate) {
+    public OutboxPublisher(IOutboxService outboxService, RabbitTemplate rabbitTemplate, Counter outboxPublished) {
         this.outboxService = outboxService;
         this.rabbitTemplate = rabbitTemplate;
+        this.outboxPublished = outboxPublished;
     }
 
     @Scheduled(fixedDelay = 2000)
@@ -34,6 +37,7 @@ public class OutboxPublisher {
         for (OutboxMessage message : messages) {
             try {
                 rabbitTemplate.convertAndSend(message.getExchange(), message.getRoutingKey(), message.getPayload());
+                outboxPublished.increment();
                 outboxService.lambdaUpdate()
                         .eq(OutboxMessage::getId, message.getId())
                         .set(OutboxMessage::getStatus, 1)
