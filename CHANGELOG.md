@@ -3,7 +3,7 @@
 ## Stage 0 — 接手與工程基礎建設
 
 ### 原始功能導入與基礎模組
-- `99c310d` add hmdp Spring Boot backend with nginx static frontend
+- `99c310d` add bytebites Spring Boot backend with nginx static frontend
 - `2f42a56` 簡訊登入功能模組
 - `83b4836` 商家快取功能模組
 - `a4696c5` 優惠券秒殺功能模組
