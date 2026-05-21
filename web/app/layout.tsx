@@ -1,15 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Noto_Sans_TC } from "next/font/google";
+import { AiConcierge } from "@/components/AiConcierge";
 import { Navbar } from "@/components/Navbar";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const notoTC = Noto_Sans_TC({
+  variable: "--font-noto-tc",
   subsets: ["latin"],
 });
 
@@ -25,12 +31,13 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="zh-Hant"
+      className={`${geist.variable} ${geistMono.variable} ${notoTC.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <Navbar />
         {children}
+        <AiConcierge />
       </body>
     </html>
   );

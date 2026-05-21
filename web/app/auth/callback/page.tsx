@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function AuthCallback() {
+function AuthCallbackContent() {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -17,9 +17,15 @@ export default function AuthCallback() {
     }
   }, [params, router]);
 
+  return <p className="text-muted-foreground">登入中...</p>;
+}
+
+export default function AuthCallback() {
   return (
     <main className="flex min-h-screen items-center justify-center">
-      <p className="text-muted-foreground">登入中...</p>
+      <Suspense fallback={<p className="text-muted-foreground">登入中...</p>}>
+        <AuthCallbackContent />
+      </Suspense>
     </main>
   );
 }
