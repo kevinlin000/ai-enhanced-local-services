@@ -1,10 +1,11 @@
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from google import genai
 from google.genai.errors import ClientError, ServerError
 from google.genai import types
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from prometheus_client import CONTENT_TYPE_LATEST, Counter as PromCounter, Histogram, generate_latest
 from qdrant_client import QdrantClient
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -24,6 +25,9 @@ settings = Settings()
 app = FastAPI(title="ByteBites AI Service", version="0.1.0")
 _gemini_client: genai.Client | None = None
 _qdrant_client: QdrantClient | None = None
+ai_requests = PromCounter("bytebites_ai_requests_total", "AI endpoint requests", ["endpoint"])
+ai_tokens = PromCounter("bytebites_ai_tokens_total", "Gemini token usage", ["model", "kind"])
+ai_latency = Histogram("bytebites_ai_latency_seconds", "AI endpoint latency", ["endpoint"])
 
 
 def get_gemini() -> genai.Client:
@@ -48,11 +52,16 @@ def get_qdrant() -> QdrantClient:
     retry=retry_if_exception_type((ClientError, ServerError)),
 )
 def generate(model: str, contents, config=None):
-    return get_gemini().models.generate_content(
+    response = get_gemini().models.generate_content(
         model=model,
         contents=contents,
         config=config,
     )
+    usage = getattr(response, "usage_metadata", None)
+    if usage:
+        ai_tokens.labels(model=model, kind="prompt").inc(usage.prompt_token_count or 0)
+        ai_tokens.labels(model=model, kind="output").inc(usage.candidates_token_count or 0)
+    return response
 
 
 def call_llm(prompt: str) -> str:
@@ -173,6 +182,11 @@ async def health():
     return {"status": "ok", "service": "bytebites-ai"}
 
 
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
 @app.get("/api/ai/ping-java")
 async def ping_java():
     """Verify connectivity to Java backend."""
@@ -194,24 +208,26 @@ async def semantic_search(req: SearchRequest):
     if not req.query.strip():
         raise HTTPException(400, "query is empty")
 
-    gemini = get_gemini()
-    qdrant = get_qdrant()
+    ai_requests.labels(endpoint="search").inc()
+    with ai_latency.labels(endpoint="search").time():
+        gemini = get_gemini()
+        qdrant = get_qdrant()
 
-    emb_resp = gemini.models.embed_content(
-        model=settings.gemini_embedding_model,
-        contents=req.query,
-        config=types.EmbedContentConfig(
-            task_type="RETRIEVAL_QUERY",
-            output_dimensionality=768,
-        ),
-    )
-    query_vec = emb_resp.embeddings[0].values
+        emb_resp = gemini.models.embed_content(
+            model=settings.gemini_embedding_model,
+            contents=req.query,
+            config=types.EmbedContentConfig(
+                task_type="RETRIEVAL_QUERY",
+                output_dimensionality=768,
+            ),
+        )
+        query_vec = emb_resp.embeddings[0].values
 
-    results = qdrant.query_points(
-        collection_name=settings.qdrant_collection,
-        query=query_vec,
-        limit=req.top_k,
-    ).points
+        results = qdrant.query_points(
+            collection_name=settings.qdrant_collection,
+            query=query_vec,
+            limit=req.top_k,
+        ).points
 
     return {
         "query": req.query,
@@ -234,35 +250,37 @@ async def recommend(req: RecommendRequest):
     if not req.query.strip():
         raise HTTPException(400, "query is empty")
 
-    gemini = get_gemini()
-    qdrant = get_qdrant()
+    ai_requests.labels(endpoint="recommend").inc()
+    with ai_latency.labels(endpoint="recommend").time():
+        gemini = get_gemini()
+        qdrant = get_qdrant()
 
-    emb_resp = gemini.models.embed_content(
-        model=settings.gemini_embedding_model,
-        contents=req.query,
-        config=types.EmbedContentConfig(
-            task_type="RETRIEVAL_QUERY",
-            output_dimensionality=768,
-        ),
-    )
-    query_vec = emb_resp.embeddings[0].values
-
-    results = qdrant.query_points(
-        collection_name=settings.qdrant_collection,
-        query=query_vec,
-        limit=req.top_k,
-    ).points
-
-    context_lines = []
-    for index, result in enumerate(results, 1):
-        payload = result.payload
-        context_lines.append(
-            f"{index}. {payload.get('name')} | {payload.get('district')} | "
-            f"捷運{payload.get('mrt_station')}站 | 評分 {payload.get('score', 'N/A')}"
+        emb_resp = gemini.models.embed_content(
+            model=settings.gemini_embedding_model,
+            contents=req.query,
+            config=types.EmbedContentConfig(
+                task_type="RETRIEVAL_QUERY",
+                output_dimensionality=768,
+            ),
         )
-    context = "\n".join(context_lines)
+        query_vec = emb_resp.embeddings[0].values
 
-    prompt = f"""你是台灣在地店家推薦助手。使用者問：「{req.query}」
+        results = qdrant.query_points(
+            collection_name=settings.qdrant_collection,
+            query=query_vec,
+            limit=req.top_k,
+        ).points
+
+        context_lines = []
+        for index, result in enumerate(results, 1):
+            payload = result.payload
+            context_lines.append(
+                f"{index}. {payload.get('name')} | {payload.get('district')} | "
+                f"捷運{payload.get('mrt_station')}站 | 評分 {payload.get('score', 'N/A')}"
+            )
+        context = "\n".join(context_lines)
+
+        prompt = f"""你是台灣在地店家推薦助手。使用者問：「{req.query}」
 
 候選店家列表：
 {context}
@@ -270,9 +288,11 @@ async def recommend(req: RecommendRequest):
 請用 2-3 句話自然地推薦 1-2 家最合適的店家，說明推薦理由（位置、評分等）。
 不要編造資訊，只能用候選列表中的資料。用繁體中文回答。"""
 
+        answer = call_llm(prompt)
+
     return RecommendResponse(
         query=req.query,
-        answer=call_llm(prompt),
+        answer=answer,
         hits=[
             SearchHit(
                 shop_id=result.payload["shop_id"],
@@ -292,56 +312,58 @@ async def agent(req: AgentRequest):
     if not req.query.strip():
         raise HTTPException(400, "query is empty")
 
-    gemini = get_gemini()
+    ai_requests.labels(endpoint="agent").inc()
+    with ai_latency.labels(endpoint="agent").time():
+        gemini = get_gemini()
 
-    first = generate(
-        settings.gemini_chat_model,
-        req.query,
-        types.GenerateContentConfig(
-            tools=TOOLS,
-            system_instruction="你是台灣店家推薦助手。根據使用者的問題，選擇合適的 tool 查詢資料，然後用繁體中文簡潔回答。",
-        ),
-    )
-
-    candidate = first.candidates[0]
-    function_call = None
-    for part in candidate.content.parts:
-        if hasattr(part, "function_call") and part.function_call:
-            function_call = part.function_call
-            break
-
-    if not function_call:
-        return {"query": req.query, "answer": first.text, "tool_used": None}
-
-    tool_name = function_call.name
-    tool_args = dict(function_call.args)
-
-    if tool_name == "search_shops_by_mrt":
-        tool_result = await tool_search_by_mrt(**tool_args)
-    elif tool_name == "semantic_shop_search":
-        tool_result = await tool_semantic_search(**tool_args)
-    else:
-        raise HTTPException(500, f"unknown tool: {tool_name}")
-
-    second = generate(
-        settings.gemini_chat_model,
-        [
+        first = generate(
+            settings.gemini_chat_model,
             req.query,
-            candidate.content,
-            types.Content(
-                role="tool",
-                parts=[
-                    types.Part.from_function_response(
-                        name=tool_name,
-                        response=tool_result,
-                    )
-                ],
+            types.GenerateContentConfig(
+                tools=TOOLS,
+                system_instruction="你是台灣店家推薦助手。根據使用者的問題，選擇合適的 tool 查詢資料，然後用繁體中文簡潔回答。",
             ),
-        ],
-        types.GenerateContentConfig(
-            system_instruction="根據查詢結果，用 2-3 句繁體中文推薦最合適的 1-2 家店。",
-        ),
-    )
+        )
+
+        candidate = first.candidates[0]
+        function_call = None
+        for part in candidate.content.parts:
+            if hasattr(part, "function_call") and part.function_call:
+                function_call = part.function_call
+                break
+
+        if not function_call:
+            return {"query": req.query, "answer": first.text, "tool_used": None}
+
+        tool_name = function_call.name
+        tool_args = dict(function_call.args)
+
+        if tool_name == "search_shops_by_mrt":
+            tool_result = await tool_search_by_mrt(**tool_args)
+        elif tool_name == "semantic_shop_search":
+            tool_result = await tool_semantic_search(**tool_args)
+        else:
+            raise HTTPException(500, f"unknown tool: {tool_name}")
+
+        second = generate(
+            settings.gemini_chat_model,
+            [
+                req.query,
+                candidate.content,
+                types.Content(
+                    role="tool",
+                    parts=[
+                        types.Part.from_function_response(
+                            name=tool_name,
+                            response=tool_result,
+                        )
+                    ],
+                ),
+            ],
+            types.GenerateContentConfig(
+                system_instruction="根據查詢結果，用 2-3 句繁體中文推薦最合適的 1-2 家店。",
+            ),
+        )
 
     return {
         "query": req.query,
