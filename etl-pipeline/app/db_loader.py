@@ -15,14 +15,18 @@ TYPE_MAPPING = {
     "barbecue_restaurant": 2002,
     "korean_barbecue_restaurant": 2002,
     "yakiniku_restaurant": 2002,
+    "mongolian_barbecue_restaurant": 2002,
     "yakitori_restaurant": 2003,
     "japanese_pub": 2003,
     "izakaya": 2003,
+    "japanese_izakaya_restaurant": 2003,
     "japanese_restaurant": 2004,
     "ramen_restaurant": 2004,
     "sushi_restaurant": 2004,
     "udon_noodle_restaurant": 2004,
+    "sukiyaki_restaurant": 2004,
     "fine_dining_restaurant": 2011,
+    "buffet_restaurant": 2011,
     "steak_house": 2006,
     "italian_restaurant": 2007,
     "french_restaurant": 2007,
@@ -33,15 +37,51 @@ TYPE_MAPPING = {
     "cantonese_restaurant": 2008,
     "dim_sum_restaurant": 2008,
     "seafood_restaurant": 2008,
+    "middle_eastern_restaurant": 2008,
+    "vietnamese_restaurant": 2008,
+    "thai_restaurant": 2008,
+    "asian_restaurant": 2008,
+    "vegan_restaurant": 2008,
     "korean_restaurant": 2009,
     "brunch_restaurant": 2010,
     "american_restaurant": 2010,
+    "australian_restaurant": 2010,
+    "mexican_restaurant": 2010,
+    "hot_dog_restaurant": 2010,
     "bar_and_grill": 2010,
     "cafe": 2012,
     "coffee_shop": 2012,
+    "dessert_shop": 2012,
+    "pastry_shop": 2012,
     "restaurant": 2008,  # fallback 中式
     "bar": 2003,
 }
+
+
+def smart_type_id(shop):
+    primary_type = shop.get("primary_type", "restaurant")
+    name = shop.get("display_name", "")
+
+    # 1. 先看 primary_type
+    if primary_type in TYPE_MAPPING:
+        type_id = TYPE_MAPPING[primary_type]
+    else:
+        type_id = 2008  # fallback
+
+    # 2. 店名關鍵字覆寫
+    name_lower = name.lower()
+    if "咖啡" in name or "cafe" in name_lower or "coffee" in name_lower:
+        return 2012
+    if "壽喜燒" in name:
+        return 2004
+    if "燒肉" in name and type_id == 2008:
+        return 2002
+    if "義" in name and "大利" in name:
+        return 2007
+    if "甜點" in name or "蛋糕" in name:
+        return 2012
+
+    return type_id
 
 PRICE_LEVEL_MAP = {
     "PRICE_LEVEL_INEXPENSIVE": 1,
@@ -104,8 +144,7 @@ def load():
 
                 try:
                     # 2. type_id mapping
-                    primary_type = shop.get("primary_type", "restaurant")
-                    type_id = TYPE_MAPPING.get(primary_type, 2008)  # 預設中式
+                    type_id = smart_type_id(shop)
 
                     # 3. price_range
                     price_level = shop.get("price_level")
