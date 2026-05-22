@@ -5,6 +5,7 @@ from datetime import datetime
 import structlog
 
 from app.config import DISTRICTS, MAX_RESULTS, RADIUS, RAW_DIR, settings
+from app.enricher import Enricher
 from app.filter import filter_quality_shops
 from app.normalizer import normalize_place
 from app.places_client import PlacesClient
@@ -54,6 +55,7 @@ def run() -> dict:
     filtered_out_places = [
         place for place in deduped_places if place["place_id"] not in filtered_ids
     ]
+    enriched_places = Enricher(client).enrich(filtered_places)
 
     for place in deduped_places:
         if place["place_id"] in filtered_ids:
@@ -73,8 +75,15 @@ def run() -> dict:
         "excluded_primary_types": dict(excluded_primary_types),
         "results": raw_batches,
     }
-    output_path = RAW_DIR / f"places_search_{timestamp}.json"
-    output_path.write_text(json.dumps(output, ensure_ascii=False, indent=2))
+    search_output_path = RAW_DIR / f"places_search_{timestamp}.json"
+    search_output_path.write_text(json.dumps(output, ensure_ascii=False, indent=2))
+    enriched_output_path = RAW_DIR / f"places_enriched_{timestamp}.json"
+    enriched_output_path.write_text(json.dumps(enriched_places, ensure_ascii=False, indent=2))
+    average_reviews = (
+        sum(len(place.get("reviews", [])) for place in enriched_places) / len(enriched_places)
+        if enriched_places
+        else 0
+    )
 
     for district in DISTRICTS:
         print(f"{district}: {district_counts[district]} 家")
@@ -92,10 +101,17 @@ def run() -> dict:
     print("排除的店家類型分佈:")
     for primary_type, count in excluded_primary_types.most_common():
         print(f"- {primary_type}: {count}")
+    print(f"enrich 完成 {len(enriched_places)} 家、平均評論數 {average_reviews:.2f}")
     print(f"總計 {sum(district_counts.values())} 家（去重後 {len(deduped)} 家）")
-    print(f"raw json: {output_path}")
+    print(f"search raw json: {search_output_path}")
+    print(f"enriched raw json: {enriched_output_path}")
 
-    return output
+    return {
+        **output,
+        "enriched_total": len(enriched_places),
+        "average_reviews": average_reviews,
+        "enriched_results": enriched_places,
+    }
 
 
 if __name__ == "__main__":
