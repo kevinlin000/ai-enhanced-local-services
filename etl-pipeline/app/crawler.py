@@ -51,6 +51,9 @@ def run() -> dict:
     deduped_places = list(deduped.values())
     filtered_places = filter_quality_shops(deduped_places)
     filtered_ids = {place["place_id"] for place in filtered_places}
+    filtered_out_places = [
+        place for place in deduped_places if place["place_id"] not in filtered_ids
+    ]
 
     for place in deduped_places:
         if place["place_id"] in filtered_ids:
@@ -76,6 +79,16 @@ def run() -> dict:
     for district in DISTRICTS:
         print(f"{district}: {district_counts[district]} 家")
     print(f"篩選前 {len(deduped_places)} 家、篩選後 {len(filtered_places)} 家")
+    print("被過濾掉的店家:")
+    for place in filtered_out_places:
+        print(
+            "- "
+            f"{place.get('display_name') or place.get('name')} | "
+            f"{place.get('primary_type')} | "
+            f"rating={place.get('rating')} | "
+            f"user_rating_count={place.get('user_rating_count')} | "
+            f"price_level={place.get('price_level')}"
+        )
     print("排除的店家類型分佈:")
     for primary_type, count in excluded_primary_types.most_common():
         print(f"- {primary_type}: {count}")
