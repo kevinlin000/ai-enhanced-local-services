@@ -57,6 +57,9 @@ venv/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+etl-pipeline/.env
+etl-pipeline/data/raw/
+etl-pipeline/data/processed/
 
 # ========== Node/Vue（之後會用到） ==========
 node_modules/
