@@ -43,6 +43,7 @@ class PlacesClient:
         body = {
             "includedTypes": INCLUDED_TYPES,
             "maxResultCount": max_results,
+            "languageCode": "zh-TW",
             "locationRestriction": {
                 "circle": {
                     "center": {"latitude": lat, "longitude": lng},
@@ -86,7 +87,7 @@ class PlacesClient:
         }
         with httpx.Client(timeout=self.timeout) as client:
             response = client.get(
-                f"{self.base_url}/places/{place_id}",
+                f"{self.base_url}/places/{place_id}?languageCode=zh-TW",
                 headers=headers,
             )
             if response.is_error:
