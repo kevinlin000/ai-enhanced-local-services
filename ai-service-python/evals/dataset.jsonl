@@ -1,10 +1,15 @@
-{"query": "中山站附近的咖啡店", "expected_shop_ids": [10018], "rationale": "mrt + cafe"}
-{"query": "想吃春水堂", "expected_shop_ids": [10003], "rationale": "exact brand match"}
-{"query": "市政府站旁的牛肉麵", "expected_shop_ids": [10001], "rationale": "mrt + category"}
-{"query": "信義區的滷味", "expected_shop_ids": [10002], "rationale": "district + category"}
-{"query": "中山區的手搖飲", "expected_shop_ids": [10016], "rationale": "district + category"}
-{"query": "象山站的咖啡店", "expected_shop_ids": [], "rationale": "negative case; no coffee shop at 象山 in seeded data"}
-{"query": "雙連站附近", "expected_shop_ids": [10015, 10017, 10024], "rationale": "mrt only"}
-{"query": "想吃日式料理", "expected_shop_ids": [10006, 10019], "rationale": "category only"}
-{"query": "晚餐想吃火鍋", "expected_shop_ids": [10009, 10022], "rationale": "category only"}
-{"query": "中山區豆漿", "expected_shop_ids": [], "rationale": "negative case; no 豆漿 shop in 中山區 seeded data"}
+{"query": "信義區麻辣火鍋", "expected_shop_ids": [10115, 10102], "rationale": "district + mala hot pot brand match"}
+{"query": "想吃一蘭拉麵", "expected_shop_ids": [10099, 10100], "rationale": "exact brand match, 2 stores"}
+{"query": "鼎泰豐小籠包", "expected_shop_ids": [10101, 10111, 10114], "rationale": "brand + dish match, 3 stores"}
+{"query": "適合約會的鐵板燒", "expected_shop_ids": [10125, 10149], "rationale": "atmosphere=約會 + teppanyaki category"}
+{"query": "壽喜燒吃到飽", "expected_shop_ids": [10156, 10166], "rationale": "dish + buffet format keyword in name and summary"}
+{"query": "一個人可以吃的燒肉", "expected_shop_ids": [10171], "rationale": "atmosphere=一人 + personal yakiniku concept"}
+{"query": "中山區熱炒聚餐", "expected_shop_ids": [10121, 10129], "rationale": "district + stir-fry casual dining"}
+{"query": "米其林必比登推薦台式料理", "expected_shop_ids": [10119, 10120, 10122, 10124, 10126], "rationale": "michelin keyword in ai_summary of 5 shops"}
+{"query": "帶小孩去的親子餐廳", "expected_shop_ids": [10158, 10136, 10128], "rationale": "atmosphere=親子 in metadata"}
+{"query": "高級日式吃到飽", "expected_shop_ids": [10103, 10104], "rationale": "premium + buffet + japanese keyword match"}
+{"query": "跟客戶談生意的高檔餐廳", "expected_shop_ids": [10135, 10160], "rationale": "atmosphere=商務 in metadata — only 2 shops have this tag"}
+{"query": "晚上想吃辣的", "expected_shop_ids": [10115, 10109, 10116], "rationale": "辣/麻辣 appears in signature_dishes or ai_summary — indirect keyword"}
+{"query": "信義區一人快速用餐", "expected_shop_ids": [10099, 10100], "rationale": "atmosphere=一人 + 信義 district + solo booth concept in summary"}
+{"query": "中山國小附近吃台式料理", "expected_shop_ids": [10119, 10118, 10126], "rationale": "mrt=中山國小 + Taiwanese cuisine — location + category multi-dim"}
+{"query": "人均超過千元的約會餐廳", "expected_shop_ids": [10125, 10149, 10144], "rationale": "atmosphere=約會 + price_per_person >1000 — price in ai_summary text only"}
