@@ -34,7 +34,7 @@ EXTRACT_PROMPT = """你是餐廳資料分析師。根據以下 Google 評論、�
 class Extractor:
     def __init__(self) -> None:
         self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-        self.model = os.getenv("GEMINI_CHAT_MODEL", "gemini-2.5-flash-lite")
+        self.model = os.getenv("GEMINI_CHAT_MODEL", "gemini-3.1-flash-lite")
 
     @retry(
         stop=stop_after_attempt(3),

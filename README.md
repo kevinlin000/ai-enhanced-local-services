@@ -31,7 +31,7 @@
 | 類別 | 技術 |
 |------|------|
 | 語言 / 框架 | Python 3.12 · FastAPI · uv |
-| LLM | Gemini 2.5 Flash · Function Calling |
+| LLM | Gemini 3.1 Flash Lite · Function Calling |
 | Embedding | Gemini Embedding 001 (768d) |
 | 向量庫 | Qdrant 1.13 |
 | 監控 | prometheus-client · token tracking |
@@ -154,6 +154,14 @@ pnpm dev
 ```
 
 訪問 http://localhost:3000
+
+## Gemini Quota 注意
+
+Google 從 2025/12 大幅砍 free tier：
+- gemini-2.5-flash / 2.5-flash-lite: **20 RPD**（過小、不堪用）
+- gemini-3.1-flash-lite: **500 RPD**（推薦）
+
+預設值已設為 `gemini-3.1-flash-lite`、不要改回 2.5 系列。
 
 ## 規劃路線
 
