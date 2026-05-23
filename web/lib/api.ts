@@ -16,10 +16,13 @@ export type Shop = {
   images?: string;
   avgPrice?: number;
   score?: number;
+  comments?: number;
   district?: string;
   mrtStation?: string;
   priceRange?: number;
   businessHours?: string;
+  x?: number;
+  y?: number;
 };
 
 export type Category = {
