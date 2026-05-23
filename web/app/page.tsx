@@ -3,7 +3,10 @@ import { Button } from "@/components/ui/button";
 import { aiApi, javaApi, type Category, type Shop } from "@/lib/api";
 import { getCategoryStyle, getStyleByTypeId } from "@/lib/categoryStyle";
 
-const HOT_STATIONS = ["市政府", "中山", "信義安和"];
+const HOT_STATIONS = [
+  "信義安和", "台北101/世貿", "市政府", "象山",
+  "中山國小", "雙連", "行天宮", "中山",
+];
 
 export default async function Home() {
   let categories: Category[] = [];
@@ -31,6 +34,11 @@ export default async function Home() {
       javaApi.popularShopsByMrt(station).catch(() => ({ data: [] as Shop[] })),
     ),
   );
+
+  const stationsWithShops = HOT_STATIONS
+    .map((name, idx) => ({ name, shops: stationShops[idx]?.data ?? [] }))
+    .filter((s) => s.shops.length > 0)
+    .sort((a, b) => b.shops.length - a.shops.length);
 
   return (
     <main>
@@ -81,12 +89,10 @@ export default async function Home() {
 
       <section className="mx-auto max-w-5xl px-4 py-12 md:px-8">
         <h2 className="mb-1 text-2xl font-semibold">捷運站熱門</h2>
-        <p className="text-muted-foreground mb-6 text-sm">依評分排序、台北 3 個熱門站點</p>
+        <p className="text-muted-foreground mb-6 text-sm">8 個捷運站、依店數排序、空站自動隱藏</p>
 
         <div className="space-y-8">
-          {HOT_STATIONS.map((station, idx) => {
-            const shops = stationShops[idx]?.data || [];
-            if (shops.length === 0) return null;
+          {stationsWithShops.map(({ name: station, shops }) => {
             return (
               <div key={station}>
                 <div className="mb-3 flex items-baseline justify-between">
