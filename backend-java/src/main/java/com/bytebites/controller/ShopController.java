@@ -5,8 +5,11 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.bytebites.dto.Result;
 import com.bytebites.entity.Shop;
+import com.bytebites.entity.jpa.ShopAiMetadataJpa;
+import com.bytebites.repository.ShopAiMetadataJpaRepository;
 import com.bytebites.service.IShopService;
 import com.bytebites.utils.SystemConstants;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.annotation.Resource;
@@ -25,6 +28,9 @@ public class ShopController {
 
     @Resource
     public IShopService shopService;
+
+    @Autowired
+    private ShopAiMetadataJpaRepository aiMetadataRepo;
 
     /**
      * 根据id查询商铺信息
@@ -101,5 +107,12 @@ public class ShopController {
         Page<Shop> page = shopService.query()
                 .page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
         return Result.ok(page.getRecords());
+    }
+
+    @GetMapping("/{id}/ai-metadata")
+    public Result aiMetadata(@PathVariable("id") Long id) {
+        return aiMetadataRepo.findById(id)
+                .map(Result::ok)
+                .orElse(Result.ok(null));
     }
 }

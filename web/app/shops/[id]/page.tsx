@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { javaApi, type Shop } from "@/lib/api";
+import { javaApi, type Shop, type ShopAiMetadata } from "@/lib/api";
 import { getStyleByTypeId } from "@/lib/categoryStyle";
 
 export default async function ShopDetailPage({
@@ -16,9 +16,14 @@ export default async function ShopDetailPage({
   const { id } = await params;
 
   let shop: Shop | undefined;
+  let ai: ShopAiMetadata | null = null;
   try {
-    const res = await javaApi.shopDetail(Number(id));
-    shop = res.data;
+    const [shopRes, aiRes] = await Promise.all([
+      javaApi.shopDetail(Number(id)),
+      javaApi.shopAiMetadata(id).catch(() => ({ success: false, data: null })),
+    ]);
+    shop = shopRes.data;
+    ai = aiRes?.data ?? null;
     if (!shop) return notFound();
   } catch {
     return notFound();
@@ -39,6 +44,15 @@ export default async function ShopDetailPage({
     fri: "週五",
     sat: "週六",
     sun: "週日",
+  };
+
+  const parseTags = (raw: string | undefined): string[] => {
+    if (!raw) return [];
+    try {
+      return typeof raw === "string" ? JSON.parse(raw) : raw;
+    } catch {
+      return [];
+    }
   };
 
   return (
@@ -91,7 +105,7 @@ export default async function ShopDetailPage({
       </Card>
 
       {Object.keys(hours).length > 0 ? (
-        <Card>
+        <Card className="mb-4">
           <CardContent className="p-6">
             <h2 className="mb-3 font-semibold">營業時間</h2>
             <Separator className="mb-3" />
@@ -106,6 +120,71 @@ export default async function ShopDetailPage({
           </CardContent>
         </Card>
       ) : null}
+
+      {ai && (
+        <div className="mt-6 space-y-6">
+          {ai.aiSummary && (
+            <section>
+              <h2 className="text-lg font-semibold mb-2">關於這家店</h2>
+              <p className="text-foreground/80 leading-relaxed">{ai.aiSummary}</p>
+            </section>
+          )}
+
+          {ai.highlightReview && (
+            <section className="bg-primary/5 border-l-4 border-primary p-4 rounded-r">
+              <p className="text-sm italic">「{ai.highlightReview}」</p>
+              <p className="text-xs text-muted-foreground mt-1">— AI 摘自評論</p>
+            </section>
+          )}
+
+          {parseTags(ai.signatureDishes).length > 0 && (
+            <section>
+              <h2 className="text-lg font-semibold mb-2">招牌菜</h2>
+              <div className="flex flex-wrap gap-2">
+                {parseTags(ai.signatureDishes).map((d) => (
+                  <span key={d} className="px-3 py-1 rounded-full bg-muted text-sm">
+                    {d}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {parseTags(ai.atmosphereTags).length > 0 && (
+            <section>
+              <h2 className="text-lg font-semibold mb-2">適合場景</h2>
+              <div className="flex flex-wrap gap-2">
+                {parseTags(ai.atmosphereTags).map((t) => (
+                  <span key={t} className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {ai.bookingDifficulty && (
+              <div>
+                <div className="text-muted-foreground">預約難度</div>
+                <div className="font-medium">{ai.bookingDifficulty}</div>
+              </div>
+            )}
+            {ai.pricePerPerson && (
+              <div>
+                <div className="text-muted-foreground">參考價位</div>
+                <div className="font-medium">{ai.pricePerPerson}</div>
+              </div>
+            )}
+            {ai.phone && (
+              <div>
+                <div className="text-muted-foreground">電話</div>
+                <div className="font-medium font-mono">{ai.phone}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

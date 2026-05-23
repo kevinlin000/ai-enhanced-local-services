@@ -36,6 +36,20 @@ export type SearchHit = {
   score: number;
 };
 
+export type ShopAiMetadata = {
+  shopId: number;
+  aiSummary?: string;
+  highlightReview?: string;
+  signatureDishes?: string;
+  atmosphereTags?: string;
+  bookingDifficulty?: string;
+  pricePerPerson?: string;
+  phone?: string;
+  openingHours?: string;
+  extractedAt?: string;
+  modelVersion?: string;
+};
+
 export const javaApi = {
   listCategories: () =>
     fetchJson<{ success: boolean; data: Category[] }>(
@@ -55,6 +69,10 @@ export const javaApi = {
     ),
   shopDetail: (id: number) =>
     fetchJson<{ success: boolean; data: Shop }>(`${JAVA_API}/api/shop/${id}`),
+  shopAiMetadata: (id: string | number) =>
+    fetchJson<{ success: boolean; data: ShopAiMetadata | null }>(
+      `${JAVA_API}/api/shop/${id}/ai-metadata`,
+    ),
 };
 
 export const aiApi = {
