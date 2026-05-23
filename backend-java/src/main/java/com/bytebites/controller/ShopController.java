@@ -2,6 +2,7 @@ package com.bytebites.controller;
 
 
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.bytebites.dto.Result;
 import com.bytebites.entity.Shop;
@@ -107,6 +108,12 @@ public class ShopController {
         Page<Shop> page = shopService.query()
                 .page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
         return Result.ok(page.getRecords());
+    }
+
+    @GetMapping("/count")
+    public Result countActiveShops() {
+        long count = shopService.count(new QueryWrapper<Shop>().eq("is_active", 1));
+        return Result.ok(count);
     }
 
     @GetMapping("/{id}/ai-metadata")

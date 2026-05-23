@@ -62,6 +62,8 @@ export const javaApi = {
     fetchJson<{ success: boolean; data: unknown[] }>(
       `${JAVA_API}/api/mrt/stations`,
     ),
+  shopCount: () =>
+    fetchJson<{ success: boolean; data: number }>(`${JAVA_API}/api/shop/count`),
   popularShopsByMrt: (station: string) =>
     fetchJson<{ success: boolean; data: Shop[] }>(
       `${JAVA_API}/api/mrt/${encodeURIComponent(station)}/popular-shops`,

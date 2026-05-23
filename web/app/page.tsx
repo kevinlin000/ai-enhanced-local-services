@@ -10,24 +10,20 @@ const HOT_STATIONS = [
 
 export default async function Home() {
   let categories: Category[] = [];
-  let mrt: unknown[] = [];
   let aiOk = false;
   let stationShops: { data: Shop[] }[] = [];
+  let totalShops = 0;
+  let stationsWithShops: { name: string; shops: Shop[] }[] = [];
 
-  try {
-    const c = await javaApi.listCategories();
-    categories = (c.data ?? []) as Category[];
-  } catch {}
+  const [categoriesRes, shopCountRes, aiHealthRes] = await Promise.all([
+    javaApi.listCategories().catch(() => ({ data: [] as Category[] })),
+    javaApi.shopCount().catch(() => ({ data: 0 })),
+    aiApi.health().catch(() => ({ status: "off" })),
+  ]);
 
-  try {
-    const m = await javaApi.listMrtStations();
-    mrt = m.data ?? [];
-  } catch {}
-
-  try {
-    const a = await aiApi.health();
-    aiOk = a.status === "ok";
-  } catch {}
+  categories = (categoriesRes.data ?? []) as Category[];
+  totalShops = shopCountRes.data ?? 0;
+  aiOk = aiHealthRes.status === "ok";
 
   stationShops = await Promise.all(
     HOT_STATIONS.map((station) =>
@@ -35,7 +31,7 @@ export default async function Home() {
     ),
   );
 
-  const stationsWithShops = HOT_STATIONS
+  stationsWithShops = HOT_STATIONS
     .map((name, idx) => ({ name, shops: stationShops[idx]?.data ?? [] }))
     .filter((s) => s.shops.length > 0)
     .sort((a, b) => b.shops.length - a.shops.length);
@@ -74,12 +70,12 @@ export default async function Home() {
           <div className="text-muted-foreground mt-1">在地分類</div>
         </div>
         <div>
-          <div className="font-mono text-3xl font-bold">{mrt.length || "—"}</div>
+          <div className="font-mono text-3xl font-bold">{stationsWithShops.length || "—"}</div>
           <div className="text-muted-foreground mt-1">捷運站</div>
         </div>
         <div>
-          <div className="font-mono text-3xl font-bold">25</div>
-          <div className="text-muted-foreground mt-1">精選店家</div>
+          <div className="font-mono text-3xl font-bold">{totalShops || "—"}</div>
+          <div className="text-muted-foreground mt-1">在地店家</div>
         </div>
         <div>
           <div className="font-mono text-3xl font-bold">{aiOk ? "ON" : "OFF"}</div>
