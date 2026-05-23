@@ -25,10 +25,10 @@ public class VoucherOrderJpa {
 
     @Column(name = "pay_type")
     @JdbcTypeCode(SqlTypes.TINYINT)
-    private Integer payType;
+    private Integer payType = 1;
 
     @JdbcTypeCode(SqlTypes.TINYINT)
-    private Integer status;
+    private Integer status = 1;
 
     @Column(name = "create_time", insertable = false, updatable = false)
     private LocalDateTime createTime;

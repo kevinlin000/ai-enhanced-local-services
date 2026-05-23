@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/shop/**", "/shop-type/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shop/**", "/api/shop-type/**").permitAll()
                         .requestMatchers("/upload/**", "/voucher/**", "/voucher/list/**", "/blog/hot").permitAll()
+                        .requestMatchers("/voucher-order/seckill/**", "/api/voucher-order/seckill/**").permitAll()
                         .requestMatchers("/user/login", "/user/code", "/error", "/actuator/**").permitAll()
                         .anyRequest().authenticated()
                 )

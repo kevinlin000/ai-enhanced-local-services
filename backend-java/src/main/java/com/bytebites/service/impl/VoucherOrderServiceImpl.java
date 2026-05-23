@@ -237,6 +237,8 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             //7.創建訂單
             VoucherOrderJpa jpaOrder = new VoucherOrderJpa();
             BeanUtil.copyProperties(voucherOrder, jpaOrder);
+            if (jpaOrder.getPayType() == null) jpaOrder.setPayType(1);
+            if (jpaOrder.getStatus() == null) jpaOrder.setStatus(1);
             voucherOrderJpaRepo.save(jpaOrder);
         }
     }
