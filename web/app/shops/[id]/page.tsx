@@ -188,7 +188,7 @@ export default async function ShopDetailPage({
           <h2 className="text-lg font-semibold mb-3">地圖位置</h2>
           <div className="rounded-xl overflow-hidden border h-72">
             <iframe
-              src={`https://maps.google.com/maps?q=${shop.y},${shop.x}&z=16&output=embed`}
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(shop.name + " " + (shop.address ?? ""))}&z=16&output=embed`}
               width="100%"
               height="100%"
               style={{ border: 0 }}
@@ -200,7 +200,7 @@ export default async function ShopDetailPage({
       )}
 
       {/* Fixed booking CTA */}
-      <div className="fixed bottom-0 inset-x-0 z-30 border-t bg-background/95 backdrop-blur">
+      <div className="fixed bottom-0 left-0 right-0 w-full z-30 border-t bg-background/95 backdrop-blur">
         <div className="max-w-4xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
           <div className="text-sm">
             <div className="font-medium">{shop.name}</div>
