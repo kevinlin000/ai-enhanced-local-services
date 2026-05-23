@@ -82,6 +82,19 @@ def call_llm(prompt: str) -> str:
     return response.text
 
 
+async def _fetch_hot_seat_vouchers(shop_ids: list[int]) -> dict[int, list]:
+    """Return {shop_id: [{id, title, pay_value, actual_value, stock}]}. N+1 ok for demo."""
+    out: dict[int, list] = {}
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        for sid in shop_ids:
+            try:
+                r = await client.get(f"{settings.java_backend_url}/api/shop/{sid}/hot-seat-vouchers")
+                out[sid] = r.json().get("data", []) if r.status_code == 200 else []
+            except Exception:
+                out[sid] = []
+    return out
+
+
 async def tool_search_by_mrt(station: str, radius: int = 500) -> dict:
     async with httpx.AsyncClient(timeout=5.0) as client:
         response = await client.get(
@@ -107,17 +120,111 @@ async def tool_semantic_search(query: str) -> dict:
         query=emb_resp.embeddings[0].values,
         limit=5,
     ).points
+
+    hits = [
+        {
+            "shop_id": r.payload.get("shop_id"),
+            "name": r.payload.get("name"),
+            "district": r.payload.get("district"),
+            "mrt_station": r.payload.get("mrt_station"),
+            "score": r.payload.get("score"),
+        }
+        for r in results
+    ]
+
+    shop_ids = [h["shop_id"] for h in hits if h["shop_id"]]
+    voucher_map = await _fetch_hot_seat_vouchers(shop_ids)
+    for h in hits:
+        h["hot_seat_vouchers"] = voucher_map.get(h["shop_id"], [])
+
+    return {"shops": hits}
+
+
+async def tool_create_hot_seat_order(voucher_id: int) -> dict:
+    """Call Java seckill endpoint with X-Demo-Mode header."""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        r = await client.post(
+            f"{settings.java_backend_url}/voucher-order/seckill/{voucher_id}",
+            headers={"X-Demo-Mode": "true"},
+        )
+    if r.status_code != 200:
+        return {"success": False, "error": f"HTTP {r.status_code}", "body": r.text[:200]}
+    data = r.json()
+    if not data.get("success"):
+        return {"success": False, "error": data.get("errorMsg", "unknown")}
     return {
-        "shops": [
+        "success": True,
+        "voucher_order_id": data.get("data"),
+        "message": "已為您搶到熱座 voucher，可在「我的訂單」查看",
+    }
+
+
+TOOL_DISPATCH = {
+    "search_shops_by_mrt": tool_search_by_mrt,
+    "semantic_shop_search": tool_semantic_search,
+    "create_hot_seat_order": tool_create_hot_seat_order,
+}
+
+TOOLS = [
+    {
+        "function_declarations": [
             {
-                "name": result.payload.get("name"),
-                "district": result.payload.get("district"),
-                "mrt_station": result.payload.get("mrt_station"),
-                "score": result.payload.get("score"),
-            }
-            for result in results
+                "name": "search_shops_by_mrt",
+                "description": "查詢指定捷運站附近的店家。當使用者提到特定捷運站名（如「市政府」「中山」「信義安和」）時使用。",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "station": {
+                            "type": "STRING",
+                            "description": "捷運站名，例如「市政府」「中山」",
+                        },
+                        "radius": {
+                            "type": "INTEGER",
+                            "description": "搜尋半徑（公尺），預設 500",
+                        },
+                    },
+                    "required": ["station"],
+                },
+            },
+            {
+                "name": "semantic_shop_search",
+                "description": "語意搜尋店家。當使用者描述抽象需求（如「想吃手搖飲」「適合約會」「有沒有秒殺優惠」），用此 tool。回應含 hot_seat_vouchers 欄位。",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "query": {"type": "STRING"},
+                    },
+                    "required": ["query"],
+                },
+            },
+            {
+                "name": "create_hot_seat_order",
+                "description": """為用戶搶熱座（秒殺）voucher。當用戶明確說想訂位、想搶位、想下訂某個 voucher 時呼叫。
+回應含 voucher_order_id。僅支援已啟動秒殺的 voucher。
+若用戶尚未指定 voucher_id，應先呼叫 semantic_shop_search 找店，再從回應的 hot_seat_vouchers 挑一個。""",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "voucher_id": {
+                            "type": "INTEGER",
+                            "description": "秒殺 voucher ID（從 search 結果 hot_seat_vouchers 取得，不要瞎猜）",
+                        },
+                    },
+                    "required": ["voucher_id"],
+                },
+            },
         ]
     }
+]
+
+AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問題，選擇合適的 tool 查詢資料，然後用繁體中文簡潔回答。
+
+訂位規則：
+- 當用戶說「幫我訂」「想訂位」「幫我搶」「搶位」，呼叫 create_hot_seat_order
+- 不要主動下單，除非用戶明確要訂
+- 若不知道 voucher_id，先呼叫 semantic_shop_search 找到 hot_seat_vouchers，再取其中一個 id
+- 訂單成功後，回應要包含 voucher_order_id，並提示用戶到「我的訂單」查看
+- 一個 query 最多訂 1 個 voucher，不要一次訂多個"""
 
 
 class SearchRequest(BaseModel):
@@ -146,43 +253,6 @@ class RecommendResponse(BaseModel):
 
 class AgentRequest(BaseModel):
     query: str
-
-
-TOOLS = [
-    {
-        "function_declarations": [
-            {
-                "name": "search_shops_by_mrt",
-                "description": "查詢指定捷運站附近的店家。當使用者提到特定捷運站名（如「市政府」「中山」「信義安和」）時使用。",
-                "parameters": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "station": {
-                            "type": "STRING",
-                            "description": "捷運站名，例如「市政府」「中山」",
-                        },
-                        "radius": {
-                            "type": "INTEGER",
-                            "description": "搜尋半徑（公尺），預設 500",
-                        },
-                    },
-                    "required": ["station"],
-                },
-            },
-            {
-                "name": "semantic_shop_search",
-                "description": "語意搜尋店家。當使用者描述抽象需求（如「想吃手搖飲」「適合約會」），用此 tool。",
-                "parameters": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "query": {"type": "STRING"},
-                    },
-                    "required": ["query"],
-                },
-            },
-        ]
-    }
-]
 
 
 @app.get("/health")
@@ -320,7 +390,7 @@ async def recommend(req: RecommendRequest):
 
 @app.post("/api/ai/agent")
 async def agent(req: AgentRequest):
-    """LLM with function calling - picks tool, executes, then synthesizes answer."""
+    """Multi-turn function calling agent. Loops up to 3 tool calls before synthesizing."""
     try:
         check_input(req.query)
     except GuardrailViolation as exc:
@@ -328,42 +398,48 @@ async def agent(req: AgentRequest):
 
     ai_requests.labels(endpoint="agent").inc()
     with ai_latency.labels(endpoint="agent").time():
-        gemini = get_gemini()
+        contents: list = [req.query]
+        tools_used: list[str] = []
+        last_tool_result: dict = {}
 
-        first = generate(
-            settings.gemini_chat_model,
-            req.query,
-            types.GenerateContentConfig(
-                tools=TOOLS,
-                system_instruction="你是台灣店家推薦助手。根據使用者的問題，選擇合適的 tool 查詢資料，然後用繁體中文簡潔回答。",
-            ),
-        )
+        for _ in range(3):
+            response = generate(
+                settings.gemini_chat_model,
+                contents,
+                types.GenerateContentConfig(
+                    tools=TOOLS,
+                    system_instruction=AGENT_SYSTEM_PROMPT,
+                ),
+            )
 
-        candidate = first.candidates[0]
-        function_call = None
-        for part in candidate.content.parts:
-            if hasattr(part, "function_call") and part.function_call:
-                function_call = part.function_call
-                break
+            candidate = response.candidates[0]
+            function_call = None
+            for part in candidate.content.parts:
+                if hasattr(part, "function_call") and part.function_call:
+                    function_call = part.function_call
+                    break
 
-        if not function_call:
-            return {"query": req.query, "answer": filter_output(first.text), "tool_used": None}
+            if not function_call:
+                return {
+                    "query": req.query,
+                    "answer": filter_output(response.text),
+                    "tools_used": tools_used,
+                    "tool_result": last_tool_result,
+                }
 
-        tool_name = function_call.name
-        tool_args = dict(function_call.args)
+            tool_name = function_call.name
+            tool_args = dict(function_call.args)
 
-        if tool_name == "search_shops_by_mrt":
-            tool_result = await tool_search_by_mrt(**tool_args)
-        elif tool_name == "semantic_shop_search":
-            tool_result = await tool_semantic_search(**tool_args)
-        else:
-            raise HTTPException(500, f"unknown tool: {tool_name}")
+            tool_fn = TOOL_DISPATCH.get(tool_name)
+            if tool_fn is None:
+                raise HTTPException(500, f"unknown tool: {tool_name}")
 
-        second = generate(
-            settings.gemini_chat_model,
-            [
-                req.query,
-                candidate.content,
+            tool_result = await tool_fn(**tool_args)
+            tools_used.append(tool_name)
+            last_tool_result = tool_result
+
+            contents.append(candidate.content)
+            contents.append(
                 types.Content(
                     role="tool",
                     parts=[
@@ -372,17 +448,21 @@ async def agent(req: AgentRequest):
                             response=tool_result,
                         )
                     ],
-                ),
-            ],
+                )
+            )
+
+        # Max iterations reached — synthesize without tools
+        final = generate(
+            settings.gemini_chat_model,
+            contents,
             types.GenerateContentConfig(
-                system_instruction="根據查詢結果，用 2-3 句繁體中文推薦最合適的 1-2 家店。",
+                system_instruction="根據以上工具查詢結果，用 2-3 句繁體中文給出最終回答。",
             ),
         )
 
     return {
         "query": req.query,
-        "answer": filter_output(second.text),
-        "tool_used": tool_name,
-        "tool_args": tool_args,
-        "tool_result_count": len(tool_result.get("shops", [])),
+        "answer": filter_output(final.text),
+        "tools_used": tools_used,
+        "tool_result": last_tool_result,
     }

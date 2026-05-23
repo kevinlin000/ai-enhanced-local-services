@@ -2,18 +2,29 @@ package com.bytebites.controller;
 
 
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.bytebites.dto.Result;
+import com.bytebites.entity.SeckillVoucher;
 import com.bytebites.entity.Shop;
+import com.bytebites.entity.Voucher;
 import com.bytebites.entity.jpa.ShopAiMetadataJpa;
 import com.bytebites.repository.ShopAiMetadataJpaRepository;
+import com.bytebites.service.ISeckillVoucherService;
 import com.bytebites.service.IShopService;
+import com.bytebites.service.IVoucherService;
 import com.bytebites.utils.SystemConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.annotation.Resource;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -32,6 +43,12 @@ public class ShopController {
 
     @Autowired
     private ShopAiMetadataJpaRepository aiMetadataRepo;
+
+    @Resource
+    private IVoucherService voucherService;
+
+    @Resource
+    private ISeckillVoucherService seckillVoucherService;
 
     /**
      * 根据id查询商铺信息
@@ -121,5 +138,42 @@ public class ShopController {
         return aiMetadataRepo.findById(id)
                 .map(Result::ok)
                 .orElse(Result.ok(null));
+    }
+
+    @GetMapping("/{id}/hot-seat-vouchers")
+    public Result hotSeatVouchers(@PathVariable("id") Long id) {
+        List<Voucher> vouchers = voucherService.list(
+                new LambdaQueryWrapper<Voucher>()
+                        .eq(Voucher::getShopId, id)
+                        .eq(Voucher::getType, 1)
+                        .eq(Voucher::getStatus, 1)
+        );
+        if (vouchers.isEmpty()) return Result.ok(Collections.emptyList());
+
+        List<Long> voucherIds = vouchers.stream().map(Voucher::getId).toList();
+        List<SeckillVoucher> seckillList = seckillVoucherService.list(
+                new LambdaQueryWrapper<SeckillVoucher>()
+                        .in(SeckillVoucher::getVoucherId, voucherIds)
+                        .gt(SeckillVoucher::getStock, 0)
+        );
+
+        Map<Long, Integer> stockMap = seckillList.stream()
+                .collect(Collectors.toMap(SeckillVoucher::getVoucherId, SeckillVoucher::getStock));
+
+        Set<Long> activeIds = stockMap.keySet();
+        List<Map<String, Object>> result = vouchers.stream()
+                .filter(v -> activeIds.contains(v.getId()))
+                .map(v -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", v.getId());
+                    m.put("title", v.getTitle());
+                    m.put("pay_value", v.getPayValue());
+                    m.put("actual_value", v.getActualValue());
+                    m.put("stock", stockMap.getOrDefault(v.getId(), 0));
+                    return m;
+                })
+                .toList();
+
+        return Result.ok(result);
     }
 }
