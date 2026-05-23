@@ -4,6 +4,7 @@ import { ArrowLeft, Star, MessageSquare, DollarSign, MapPin, Phone } from "lucid
 import { Button } from "@/components/ui/button";
 import { javaApi, type ShopAiMetadata } from "@/lib/api";
 import { getStyleByTypeId } from "@/lib/categoryStyle";
+import { BookingButton } from "@/components/BookingButton";
 
 export default async function ShopDetailPage({
   params,
@@ -201,16 +202,14 @@ export default async function ShopDetailPage({
 
       {/* Fixed booking CTA */}
       <div className="fixed bottom-0 left-0 right-0 w-full z-30 border-t bg-background/95 backdrop-blur">
-        <div className="max-w-4xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
+        <div className="relative max-w-4xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
           <div className="text-sm">
             <div className="font-medium">{shop.name}</div>
             <div className="text-muted-foreground text-xs">
               {ai?.bookingDifficulty === "預約困難" ? "熱門時段需提前預約" : "可線上訂位"}
             </div>
           </div>
-          <Button size="lg" className="bg-primary hover:bg-primary/90">
-            立即訂位
-          </Button>
+          <BookingButton shopName={shop.name} />
         </div>
       </div>
     </div>

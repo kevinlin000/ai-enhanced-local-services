@@ -78,6 +78,19 @@ export const javaApi = {
     fetchJson<{ success: boolean; data: ShopAiMetadata | null }>(
       `${JAVA_API}/api/shop/${id}/ai-metadata`,
     ),
+  paymentMethods: () =>
+    fetchJson<{ success: boolean; data: { code: number; label: string }[] }>(
+      `${JAVA_API}/api/payment/methods`,
+    ),
+  tappayMockCallback: (body: { orderId: number; payType: number; amount: number }) =>
+    fetchJson<{ success: boolean; data: { status: string; rec_trade_id: string; pay_type: number; label: string; amount: number } }>(
+      `${JAVA_API}/api/payment/tappay/mock-callback`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    ),
 };
 
 export const aiApi = {
