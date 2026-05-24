@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans_TC } from "next/font/google";
 import { AiConcierge } from "@/components/AiConcierge";
 import { Navbar } from "@/components/Navbar";
+import Script from "next/script";
 import "./globals.css";
 
 const geist = Geist({
@@ -38,6 +39,10 @@ export default function RootLayout({
         <Navbar />
         {children}
         <AiConcierge />
+        <Script
+          src="https://js.tappaysdk.com/sdk/tpdirect/v5.19.4"
+          strategy="beforeInteractive"
+        />
       </body>
     </html>
   );

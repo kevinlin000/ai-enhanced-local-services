@@ -77,3 +77,8 @@ line:
 jwt:
   secret: ${JWT_SECRET:change-me-in-production-this-is-only-for-dev-environment-must-be-at-least-256-bits}
   ttl-hours: 2
+
+tappay:
+  partner-key: ${TAPPAY_PARTNER_KEY}
+  api-base: ${TAPPAY_API_BASE:https://sandbox.tappaysdk.com}
+  merchant-credit-card: ${TAPPAY_MERCHANT_CREDITCARD}

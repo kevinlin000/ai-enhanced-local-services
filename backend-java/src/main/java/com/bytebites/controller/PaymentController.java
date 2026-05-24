@@ -2,7 +2,9 @@ package com.bytebites.controller;
 
 import com.bytebites.dto.Result;
 import com.bytebites.enums.PayType;
+import com.bytebites.service.TapPayService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -14,11 +16,43 @@ import java.util.UUID;
 @RequestMapping({"/payment", "/api/payment"})
 public class PaymentController {
 
+    @Autowired
+    TapPayService tapPay;
+
+    /**
+     * 真實 TapPay Sandbox Pay by Prime 串接。
+     * 前端先呼叫 TapPay JS SDK 取得 prime，再 POST 到此 endpoint。
+     */
+    @PostMapping("/tappay/pay-by-prime")
+    public Result payByPrime(@RequestBody Map<String, Object> body) {
+        String prime = (String) body.get("prime");
+        if (prime == null || prime.isBlank()) return Result.fail("prime 必填");
+
+        Long orderId = Long.valueOf(body.get("orderId").toString());
+        Long amount = Long.valueOf(body.getOrDefault("amount", 1280).toString());
+
+        Map<String, Object> r = tapPay.payByPrime(prime, amount, orderId);
+        Integer status = (Integer) r.get("status");
+
+        if (status != null && status == 0) {
+            return Result.ok(Map.of(
+                    "status", "PAID",
+                    "rec_trade_id", r.get("rec_trade_id"),
+                    "amount", amount,
+                    "tappay_status", status,
+                    "msg", r.getOrDefault("msg", "成功")
+            ));
+        }
+        return Result.fail("TapPay: " + r.get("msg") + " (status=" + status + ")");
+    }
+
     /**
      * Mock TapPay callback。
-     * Production: TapPay SDK POST 過來，含 prime token、status、rec_trade_id。
-     * Demo: 直接回成功，生成 fake rec_trade_id。
+     *
+     * @deprecated 使用 /tappay/pay-by-prime 替代（真實 TapPay Sandbox 串接）。
+     *             此 endpoint 保留供本地 demo / 非信用卡支付方式使用。
      */
+    @Deprecated
     @PostMapping("/tappay/mock-callback")
     public Result mockCallback(@RequestBody Map<String, Object> body) {
         Long orderId = Long.valueOf(body.get("orderId").toString());
