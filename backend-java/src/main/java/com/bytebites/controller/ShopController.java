@@ -11,6 +11,7 @@ import com.bytebites.entity.Shop;
 import com.bytebites.entity.Voucher;
 import com.bytebites.entity.jpa.ShopAiMetadataJpa;
 import com.bytebites.repository.ShopAiMetadataJpaRepository;
+import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.ISeckillVoucherService;
 import com.bytebites.service.IShopService;
 import com.bytebites.service.IVoucherService;
@@ -50,6 +51,9 @@ public class ShopController {
     @Resource
     private ISeckillVoucherService seckillVoucherService;
 
+    @Autowired
+    private DepositPolicy depositPolicy;
+
     /**
      * 根据id查询商铺信息
      * @param id 商铺id
@@ -59,6 +63,29 @@ public class ShopController {
     public Result queryShopById(@PathVariable("id") Long id) {
 
         return shopService.queryById(id);
+    }
+
+    /**
+     * 查詢店家訂金政策（依分類與評分決定是否需要預付訂金）。
+     * 前端 BookingButton 開啟 form 時呼叫。
+     */
+    @GetMapping("/{id}/booking-policy")
+    public Result bookingPolicy(@PathVariable("id") Long id) {
+        Shop shop = shopService.getById(id);
+        if (shop == null) return Result.fail("店家不存在");
+
+        Integer typeId = shop.getTypeId() != null ? shop.getTypeId().intValue() : null;
+        Integer score = shop.getScore();
+
+        boolean needs = depositPolicy.needsDeposit(typeId, score);
+        int perPerson = depositPolicy.depositPerPerson(typeId);
+        String reason = depositPolicy.reason(typeId, score);
+
+        return Result.ok(java.util.Map.of(
+                "needsDeposit", needs,
+                "depositPerPerson", perPerson,
+                "reason", reason
+        ));
     }
 
     /**

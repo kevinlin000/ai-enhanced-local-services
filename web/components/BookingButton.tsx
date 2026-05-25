@@ -6,7 +6,15 @@ declare global {
   interface Window { TPDirect: any }
 }
 
+const JAVA_API = "/api/java";
+
 type Step = "idle" | "form" | "select-pay" | "card-input" | "processing" | "done";
+
+interface BookingPolicy {
+  needsDeposit: boolean;
+  depositPerPerson: number;
+  reason: string;
+}
 
 const TAIWAN_PAY = [
   { code: 1, label: "信用卡", emoji: "💳", real: true },
@@ -29,9 +37,9 @@ const TIME_SLOTS = [
 ];
 
 const TABLE_TYPES = [
-  { label: "一般座位", value: "normal", multiplier: 1.0 },
-  { label: "吧台座位", value: "bar", multiplier: 0.9 },
-  { label: "包廂", value: "private", multiplier: 1.2 },
+  { label: "一般", value: "normal" },
+  { label: "吧台", value: "bar" },
+  { label: "包廂", value: "private" },
 ];
 
 function next14Days() {
@@ -61,6 +69,7 @@ export function BookingButton({
   const [sdkReady, setSdkReady] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<any>(null);
+  const [policy, setPolicy] = useState<BookingPolicy | null>(null);
 
   // 訂位 form state
   const [people, setPeople] = useState(2);
@@ -68,9 +77,21 @@ export function BookingButton({
   const [time, setTime] = useState("18:30");
   const [tableType, setTableType] = useState("normal");
 
-  const basePrice = shop.avgPrice || 1280;
-  const multiplier = TABLE_TYPES.find((t) => t.value === tableType)?.multiplier ?? 1;
-  const totalAmount = Math.round(basePrice * people * multiplier);
+  const depositTotal = policy?.needsDeposit
+    ? policy.depositPerPerson * people
+    : 0;
+
+  // 開啟 form 時查訂金政策（只查一次）
+  useEffect(() => {
+    if (step !== "form" || policy !== null) return;
+    fetch(`${JAVA_API}/api/shop/${shop.id}/booking-policy`)
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setPolicy(d.data); })
+      .catch(() => {
+        // 查詢失敗 → 預設免訂金，不擋主流程
+        setPolicy({ needsDeposit: false, depositPerPerson: 0, reason: "免訂金" });
+      });
+  }, [step, shop.id, policy]);
 
   // Init TapPay SDK
   useEffect(() => {
@@ -94,14 +115,11 @@ export function BookingButton({
     }
   }, []);
 
-  // Setup card fields when entering card-input step
+  // Setup TapPay card fields when entering card-input
   useEffect(() => {
     if (step !== "card-input" || !sdkReady) return;
     const tryMount = () => {
-      const n = document.getElementById("tappay-number");
-      const e = document.getElementById("tappay-expiry");
-      const c = document.getElementById("tappay-ccv");
-      if (!n || !e || !c) return false;
+      if (!document.getElementById("tappay-number")) return false;
       try {
         window.TPDirect.card.setup({
           fields: {
@@ -126,6 +144,31 @@ export function BookingButton({
     }
   }, [step, sdkReady]);
 
+  // 免訂金流程：直接呼叫 /api/booking/reserve
+  const handleNoDepositConfirm = () => {
+    setStep("processing");
+    fetch(`${JAVA_API}/api/booking/reserve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopId: shop.id, people, date, time, tableType }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) {
+          setResult({ bookingId: data.data.bookingId, payLabel: "免訂金訂位" });
+          setStep("done");
+        } else {
+          setError(data.errorMsg || "訂位失敗");
+          setStep("form");
+        }
+      })
+      .catch((e) => {
+        setError("網路錯誤: " + e.message);
+        setStep("form");
+      });
+  };
+
+  // 有訂金流程：TapPay credit card
   const handleCardSubmit = () => {
     setError("");
     const status = window.TPDirect.card.getTappayFieldsStatus();
@@ -141,19 +184,19 @@ export function BookingButton({
         return;
       }
       setStep("processing");
-      fetch("/api/java/api/payment/tappay/pay-by-prime", {
+      fetch(`${JAVA_API}/api/payment/tappay/pay-by-prime`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prime: r.card.prime,
           orderId: Math.floor(Math.random() * 100000),
-          amount: totalAmount,
+          amount: depositTotal,
         }),
       })
         .then((res) => res.json())
         .then((data) => {
           if (data.success) {
-            setResult({ ...data.data, payLabel: "信用卡" });
+            setResult({ ...data.data, payLabel: "信用卡訂金", depositPaid: true });
             setStep("done");
           } else {
             setError(data.errorMsg || "支付失敗");
@@ -170,7 +213,8 @@ export function BookingButton({
   const handleDemoPay = (label: string) => {
     setResult({
       rec_trade_id: "DEMO-" + Math.random().toString(36).slice(2, 10).toUpperCase(),
-      payLabel: label,
+      payLabel: label + " 訂金",
+      depositPaid: true,
       note: "demo 不串、production 才接 TapPay",
     });
     setStep("done");
@@ -180,6 +224,7 @@ export function BookingButton({
     setStep("idle");
     setResult(null);
     setError("");
+    setPolicy(null);
   };
 
   if (step === "idle") {
@@ -192,29 +237,30 @@ export function BookingButton({
 
   return (
     <div className="absolute right-4 bottom-16 bg-background border rounded-xl shadow-2xl p-5 w-96 z-50 max-h-[80vh] overflow-y-auto">
+
       {/* ── Step: form ── */}
       {step === "form" && (
         <>
           <p className="text-base font-medium mb-1">訂位資訊</p>
           <p className="text-xs text-muted-foreground mb-4">{shop.name}</p>
 
-          {/* 人數 */}
-          <div className="mb-3">
+          {/* 人數 stepper */}
+          <div className="mb-4">
             <label className="text-xs text-muted-foreground">人數</label>
-            <div className="flex gap-1.5 mt-1 flex-wrap">
-              {[1, 2, 3, 4, 5, 6, 8, 10].map((n) => (
-                <button
-                  key={n}
-                  onClick={() => setPeople(n)}
-                  className={`px-3 py-1 rounded text-sm border transition-colors ${
-                    people === n
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background hover:bg-muted"
-                  }`}
-                >
-                  {n}
-                </button>
-              ))}
+            <div className="flex items-center gap-3 mt-1">
+              <button
+                onClick={() => setPeople(Math.max(1, people - 1))}
+                className="w-9 h-9 rounded-full border flex items-center justify-center hover:bg-muted text-lg"
+              >
+                −
+              </button>
+              <div className="flex-1 text-center text-lg font-medium">{people} 人</div>
+              <button
+                onClick={() => setPeople(Math.min(12, people + 1))}
+                className="w-9 h-9 rounded-full border flex items-center justify-center hover:bg-muted text-lg"
+              >
+                +
+              </button>
             </div>
           </div>
 
@@ -227,9 +273,7 @@ export function BookingButton({
               className="w-full mt-1 border rounded px-2 py-1.5 text-sm bg-background"
             >
               {next14Days().map((d) => (
-                <option key={d.value} value={d.value}>
-                  {d.label}
-                </option>
+                <option key={d.value} value={d.value}>{d.label}</option>
               ))}
             </select>
           </div>
@@ -243,16 +287,14 @@ export function BookingButton({
               className="w-full mt-1 border rounded px-2 py-1.5 text-sm bg-background"
             >
               {TIME_SLOTS.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
+                <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
           </div>
 
-          {/* 桌型 */}
+          {/* 座位偏好 */}
           <div className="mb-4">
-            <label className="text-xs text-muted-foreground">桌型</label>
+            <label className="text-xs text-muted-foreground">座位偏好</label>
             <div className="flex gap-2 mt-1">
               {TABLE_TYPES.map((t) => (
                 <button
@@ -270,29 +312,67 @@ export function BookingButton({
             </div>
           </div>
 
-          {/* 金額小計 */}
-          <div className="bg-muted/50 rounded p-3 mb-4">
-            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-              <span>人均 × 人數 × 桌型</span>
-              <span>
-                ${basePrice} × {people} × {multiplier}
-              </span>
+          {/* 訂金 / 免訂金 banner */}
+          {policy ? (
+            <div
+              className={`rounded p-3 mb-4 ${
+                policy.needsDeposit
+                  ? "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800"
+                  : "bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800"
+              }`}
+            >
+              {policy.needsDeposit ? (
+                <>
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>{policy.reason}</span>
+                    <span>NT${policy.depositPerPerson} × {people} 人</span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-sm font-medium">訂金</span>
+                    <span className="text-2xl font-bold">
+                      NT$ {depositTotal.toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    用餐當日全額折抵消費
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                    ✓ 此餐廳免訂金
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {policy.reason}，確認即完成訂位
+                  </p>
+                </>
+              )}
             </div>
-            <div className="flex justify-between items-baseline">
-              <span className="text-sm">總金額</span>
-              <span className="text-2xl font-bold text-primary">
-                NT$ {totalAmount.toLocaleString()}
-              </span>
+          ) : (
+            <div className="rounded p-3 mb-4 bg-muted/30 text-xs text-muted-foreground animate-pulse">
+              載入訂金政策中...
             </div>
-          </div>
+          )}
 
-          <Button onClick={() => setStep("select-pay")} className="w-full">
-            下一步 · 選擇支付
-          </Button>
+          {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
+
+          {policy?.needsDeposit ? (
+            <Button onClick={() => setStep("select-pay")} className="w-full">
+              下一步 · 選擇支付
+            </Button>
+          ) : (
+            <Button
+              onClick={handleNoDepositConfirm}
+              className="w-full"
+              disabled={!policy}
+            >
+              {policy ? "確認訂位" : "載入中..."}
+            </Button>
+          )}
         </>
       )}
 
-      {/* ── Step: select-pay ── */}
+      {/* ── Step: select-pay（有訂金） ── */}
       {step === "select-pay" && (
         <>
           <button
@@ -303,11 +383,10 @@ export function BookingButton({
           </button>
           <p className="text-sm font-medium mb-1">確認訂位</p>
           <p className="text-xs text-muted-foreground mb-3">
-            {shop.name} · {date} {time} · {people} 人 ·{" "}
-            {TABLE_TYPES.find((t) => t.value === tableType)?.label}
+            {shop.name} · {date} {time} · {people} 人
           </p>
           <p className="text-lg font-bold text-primary mb-4">
-            NT$ {totalAmount.toLocaleString()}
+            訂金 NT$ {depositTotal.toLocaleString()}
           </p>
 
           <p className="text-sm font-medium mb-2">選擇支付方式</p>
@@ -320,14 +399,10 @@ export function BookingButton({
                 }
                 className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted text-sm flex items-center justify-between border"
               >
-                <span>
-                  {p.emoji} {p.label}
-                </span>
+                <span>{p.emoji} {p.label}</span>
                 <span
                   className={`text-xs ${
-                    p.real
-                      ? "text-primary font-semibold"
-                      : "text-muted-foreground"
+                    p.real ? "text-primary font-semibold" : "text-muted-foreground"
                   }`}
                 >
                   {p.real ? "真實串接" : "demo"}
@@ -370,7 +445,7 @@ export function BookingButton({
           </div>
           {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
           <Button onClick={handleCardSubmit} className="w-full">
-            確認支付 NT$ {totalAmount.toLocaleString()}
+            支付訂金 NT$ {depositTotal.toLocaleString()}
           </Button>
         </>
       )}
@@ -379,14 +454,16 @@ export function BookingButton({
       {step === "processing" && (
         <div className="text-center py-6">
           <p className="text-sm">處理中...</p>
-          <p className="text-xs text-muted-foreground mt-2">正在與 TapPay 通訊</p>
+          <p className="text-xs text-muted-foreground mt-2">請稍候</p>
         </div>
       )}
 
       {/* ── Step: done ── */}
       {step === "done" && (
         <>
-          <p className="text-base font-medium text-primary mb-3">✓ 訂位完成</p>
+          <p className="text-base font-medium text-primary mb-3">
+            ✓ {result?.depositPaid ? "訂位 + 訂金完成" : "訂位完成"}
+          </p>
 
           <div className="bg-muted/30 rounded p-3 mb-3 text-sm space-y-1.5">
             <div className="flex justify-between">
@@ -395,30 +472,41 @@ export function BookingButton({
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">日期</span>
-              <span>
-                {date} {time}
-              </span>
+              <span>{date} {time}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">人數</span>
               <span>{people} 人</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">桌型</span>
+              <span className="text-muted-foreground">座位</span>
               <span>{TABLE_TYPES.find((t) => t.value === tableType)?.label}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">金額</span>
-              <span className="font-bold">NT$ {totalAmount.toLocaleString()}</span>
-            </div>
+            {result?.depositPaid && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">訂金</span>
+                <span className="font-bold">NT$ {depositTotal.toLocaleString()}</span>
+              </div>
+            )}
           </div>
 
           <div className="text-xs space-y-1">
             <p className="text-muted-foreground">
-              支付方式：<span className="text-foreground">{result?.payLabel}</span>
+              {result?.depositPaid ? "支付方式" : "訂位類型"}：
+              <span className="text-foreground">{result?.payLabel}</span>
             </p>
-            <p className="text-muted-foreground">交易編號：</p>
-            <p className="font-mono break-all">{result?.rec_trade_id}</p>
+            {result?.depositPaid && result?.rec_trade_id && (
+              <>
+                <p className="text-muted-foreground">交易編號：</p>
+                <p className="font-mono break-all">{result.rec_trade_id}</p>
+              </>
+            )}
+            {result?.bookingId && (
+              <>
+                <p className="text-muted-foreground">訂位編號：</p>
+                <p className="font-mono break-all">{result.bookingId}</p>
+              </>
+            )}
             {result?.note && (
               <p className="text-muted-foreground italic mt-1">{result.note}</p>
             )}
