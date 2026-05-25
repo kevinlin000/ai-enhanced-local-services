@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { javaApi } from "@/lib/api";
 import { getStyleByTypeId } from "@/lib/categoryStyle";
 import { MapPin, Search, X } from "lucide-react";
+
+// AI search via Python service proxy (avoids HTTPS→HTTP mixed content)
+const CLIENT_AI_API = "/api/python";
 
 interface Shop {
   id: number;
@@ -38,6 +41,14 @@ export default function ShopsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  // search mode
+  const [searchMode, setSearchMode] = useState<"text" | "ai">("text");
+  const [aiHitIds, setAiHitIds] = useState<number[] | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  // all shops cache for AI mode ordering
+  const allShopsRef = useRef<Shop[]>([]);
+
   // filter state
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -46,10 +57,13 @@ export default function ShopsPage() {
   const [selectedMrt, setSelectedMrt] = useState<Set<string>>(new Set());
   const [minScore, setMinScore] = useState<number | null>(null);
 
-  // load filter options once
+  // load filter options + all-shops cache once
   useEffect(() => {
     javaApi.shopFilterOptions().then((r) => {
       if (r?.success) setOptions(r.data);
+    });
+    javaApi.shopSearch({ size: 100 }).then((r) => {
+      if (r?.success) allShopsRef.current = r.data.records ?? [];
     });
   }, []);
 
@@ -59,14 +73,16 @@ export default function ShopsPage() {
     return () => clearTimeout(t);
   }, [q]);
 
-  // search whenever filters change
+  // ── Text mode search ──
   useEffect(() => {
+    if (searchMode !== "text") return;
     setLoading(true);
     javaApi
       .shopSearch({
         q: debouncedQ || undefined,
         typeIds: selectedTypes.size > 0 ? Array.from(selectedTypes) : undefined,
-        districts: selectedDistricts.size > 0 ? Array.from(selectedDistricts) : undefined,
+        districts:
+          selectedDistricts.size > 0 ? Array.from(selectedDistricts) : undefined,
         mrtStations: selectedMrt.size > 0 ? Array.from(selectedMrt) : undefined,
         minScore: minScore ?? undefined,
         page: 1,
@@ -79,9 +95,71 @@ export default function ShopsPage() {
         }
       })
       .finally(() => setLoading(false));
-  }, [debouncedQ, selectedTypes, selectedDistricts, selectedMrt, minScore]);
+  }, [searchMode, debouncedQ, selectedTypes, selectedDistricts, selectedMrt, minScore]);
+
+  // ── AI mode: call Python search ──
+  useEffect(() => {
+    if (searchMode !== "ai") return;
+    if (!debouncedQ.trim()) {
+      setAiHitIds(null);
+      // show all shops when query cleared
+      setShops(allShopsRef.current);
+      setTotal(allShopsRef.current.length);
+      return;
+    }
+    setAiLoading(true);
+    fetch(`${CLIENT_AI_API}/api/ai/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: debouncedQ, top_k: 10 }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        const ids: number[] = data?.hits?.map((h: { shop_id: number }) => h.shop_id) ?? [];
+        setAiHitIds(ids);
+      })
+      .catch(() => setAiHitIds([]))
+      .finally(() => setAiLoading(false));
+  }, [searchMode, debouncedQ]);
+
+  // ── AI mode: order shops by hit order ──
+  useEffect(() => {
+    if (searchMode !== "ai" || aiHitIds === null) return;
+    if (aiHitIds.length === 0) {
+      setShops([]);
+      setTotal(0);
+      return;
+    }
+    const map = new Map(allShopsRef.current.map((s) => [s.id, s]));
+    const ordered = aiHitIds
+      .map((id) => map.get(id))
+      .filter((s): s is Shop => s !== undefined);
+    setShops(ordered);
+    setTotal(ordered.length);
+  }, [searchMode, aiHitIds]);
+
+  // switch to text mode: reset AI state, keep filter state
+  const switchToText = () => {
+    setSearchMode("text");
+    setAiHitIds(null);
+    setQ("");
+  };
+
+  // switch to AI mode: reset filter state
+  const switchToAi = () => {
+    setSearchMode("ai");
+    setSelectedTypes(new Set());
+    setSelectedDistricts(new Set());
+    setSelectedMrt(new Set());
+    setMinScore(null);
+    setQ("");
+    // show all while waiting
+    setShops(allShopsRef.current);
+    setTotal(allShopsRef.current.length);
+  };
 
   const activeFilterCount = useMemo(() => {
+    if (searchMode === "ai") return 0;
     let c = 0;
     if (debouncedQ) c++;
     c += selectedTypes.size;
@@ -89,7 +167,7 @@ export default function ShopsPage() {
     c += selectedMrt.size;
     if (minScore) c++;
     return c;
-  }, [debouncedQ, selectedTypes, selectedDistricts, selectedMrt, minScore]);
+  }, [searchMode, debouncedQ, selectedTypes, selectedDistricts, selectedMrt, minScore]);
 
   const clearAll = () => {
     setQ("");
@@ -106,14 +184,40 @@ export default function ShopsPage() {
     setter(next);
   };
 
+  const isLoading = loading || aiLoading;
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="text-2xl md:text-3xl font-bold">探索店家</h1>
         <p className="text-sm text-muted-foreground mt-1">
           73 家台北中高價餐廳、含 AI 評論摘要
         </p>
+      </div>
+
+      {/* Mode toggle */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={switchToText}
+          className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+            searchMode === "text"
+              ? "bg-foreground text-background border-foreground"
+              : "bg-background hover:bg-muted"
+          }`}
+        >
+          🔍 字串搜尋
+        </button>
+        <button
+          onClick={switchToAi}
+          className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+            searchMode === "ai"
+              ? "bg-primary text-primary-foreground border-primary"
+              : "bg-background hover:bg-muted"
+          }`}
+        >
+          ✨ AI 語意搜尋
+        </button>
       </div>
 
       {/* Search bar */}
@@ -123,8 +227,16 @@ export default function ShopsPage() {
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="搜尋店名、地址、區域..."
-          className="w-full pl-10 pr-10 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+          placeholder={
+            searchMode === "ai"
+              ? "用自然語言描述、例如「適合約會的鐵板燒」"
+              : "搜尋店名、地址、區域..."
+          }
+          className={`w-full pl-10 pr-10 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 bg-background ${
+            searchMode === "ai"
+              ? "focus:ring-primary border-primary/40"
+              : "focus:ring-primary"
+          }`}
         />
         {q && (
           <button
@@ -138,7 +250,11 @@ export default function ShopsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
         {/* ── Left filter sidebar ── */}
-        <aside className="space-y-5 md:sticky md:top-6 md:self-start md:max-h-[calc(100vh-3rem)] md:overflow-y-auto">
+        <aside
+          className={`space-y-5 md:sticky md:top-6 md:self-start md:max-h-[calc(100vh-3rem)] md:overflow-y-auto transition-opacity ${
+            searchMode === "ai" ? "opacity-40 pointer-events-none select-none" : ""
+          }`}
+        >
           {activeFilterCount > 0 && (
             <button
               onClick={clearAll}
@@ -189,9 +305,7 @@ export default function ShopsPage() {
                       className="accent-primary"
                     />
                     <span className="flex-1">{t.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {t.count}
-                    </span>
+                    <span className="text-xs text-muted-foreground">{t.count}</span>
                   </label>
                 ))}
               </div>
@@ -217,9 +331,7 @@ export default function ShopsPage() {
                       className="accent-primary"
                     />
                     <span className="flex-1">{d.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {d.count}
-                    </span>
+                    <span className="text-xs text-muted-foreground">{d.count}</span>
                   </label>
                 ))}
               </div>
@@ -245,9 +357,7 @@ export default function ShopsPage() {
                       className="accent-primary"
                     />
                     <span className="flex-1">{m.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {m.count}
-                    </span>
+                    <span className="text-xs text-muted-foreground">{m.count}</span>
                   </label>
                 ))}
               </div>
@@ -257,18 +367,27 @@ export default function ShopsPage() {
 
         {/* ── Right results ── */}
         <div>
-          <div className="flex items-baseline justify-between mb-4">
+          <div className="flex items-baseline justify-between mb-3">
             <p className="text-sm text-muted-foreground">
-              {loading ? "搜尋中..." : `共 ${total} 家`}
+              {isLoading ? "搜尋中..." : `共 ${total} 家`}
               {activeFilterCount > 0 && (
                 <span> · {activeFilterCount} 個篩選</span>
               )}
             </p>
           </div>
 
-          {shops.length === 0 && !loading && (
+          {/* AI mode hint */}
+          {searchMode === "ai" && debouncedQ && !aiLoading && (
+            <p className="text-xs text-primary mb-3 flex items-center gap-1">
+              ✨ AI 依語意排序、不套用左欄篩選
+            </p>
+          )}
+
+          {shops.length === 0 && !isLoading && (
             <div className="text-center py-12 text-muted-foreground text-sm">
-              沒有符合條件的店家
+              {searchMode === "ai" && debouncedQ
+                ? "AI 未找到相符店家"
+                : "沒有符合條件的店家"}
             </div>
           )}
 

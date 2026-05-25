@@ -1,5 +1,9 @@
 const JAVA_API = process.env.NEXT_PUBLIC_JAVA_API ?? "http://localhost:8081";
 const AI_API = process.env.NEXT_PUBLIC_AI_API ?? "http://localhost:8000";
+// Client-side calls must go through Next.js rewrite proxy to avoid
+// mixed content (HTTPS page → HTTP API). Only use from "use client" components.
+const CLIENT_JAVA_API = "/api/java";
+const CLIENT_AI_API = "/api/python";
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...init, cache: "no-store" });
@@ -91,6 +95,7 @@ export const javaApi = {
         body: JSON.stringify(body),
       },
     ),
+  // shopFilterOptions + shopSearch: client-side only → use proxy to avoid mixed content
   shopFilterOptions: () =>
     fetchJson<{
       success: boolean;
@@ -100,7 +105,7 @@ export const javaApi = {
         mrtStations: { name: string; count: number }[];
         totalShops: number;
       };
-    }>(`${JAVA_API}/api/shop/filter-options`),
+    }>(`${CLIENT_JAVA_API}/api/shop/filter-options`),
   shopSearch: (params: {
     q?: string;
     typeIds?: number[];
@@ -119,7 +124,7 @@ export const javaApi = {
     if (params.page) sp.set("page", String(params.page));
     if (params.size) sp.set("size", String(params.size));
     return fetchJson<{ success: boolean; data: { records: Shop[]; total: number } }>(
-      `${JAVA_API}/api/shop/search?${sp.toString()}`,
+      `${CLIENT_JAVA_API}/api/shop/search?${sp.toString()}`,
     );
   },
 };

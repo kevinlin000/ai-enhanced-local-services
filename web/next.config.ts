@@ -14,6 +14,11 @@ const nextConfig: NextConfig = {
         source: "/api/java/:path*",
         destination: "http://localhost:8081/:path*",
       },
+      {
+        // /api/python/api/ai/search → http://localhost:8000/api/ai/search
+        source: "/api/python/:path*",
+        destination: "http://localhost:8000/:path*",
+      },
     ];
   },
 };
