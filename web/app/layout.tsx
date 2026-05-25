@@ -39,9 +39,11 @@ export default function RootLayout({
         <Navbar />
         {children}
         <AiConcierge />
+        {/* 開發環境: 透過 server proxy 載入，繞過 localhost Referer 限制 */}
+        {/* Production: 換回 https://js.tappaysdk.com/sdk/tpdirect/v5.17.1 並在 portal 加 domain */}
         <Script
-          src="https://js.tappaysdk.com/sdk/tpdirect/v5.19.4"
-          strategy="beforeInteractive"
+          src="/api/tappay-sdk"
+          strategy="afterInteractive"
         />
       </body>
     </html>
