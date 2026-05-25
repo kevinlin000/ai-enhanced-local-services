@@ -41,7 +41,7 @@ public class BookingJpa {
      * 2 = 已付款（TapPay 交易成功）
      * 3 = 已確認（免訂金直接確認）
      */
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "tinyint")
     private Integer status;
 
     @Column(name = "needs_deposit", nullable = false)

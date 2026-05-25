@@ -12,18 +12,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 訂金政策：從 price_per_person 用 regex 抽最大金額，依階梯決定訂金。
- * 抽不到時 fallback 到 type_id（高級/無菜單一律收）。
+ * 訂金政策。優先順序：
+ *   1. tb_shop.avg_price（Google 資料、最可靠）
+ *   2. ai_metadata.price_per_person（LLM 抽、雜訊多）
+ *   3. type_id fallback（高級/無菜單類型）
  *
  * 價格階梯：
- *   maxPrice >= 2000 → 訂金 500/人
- *   maxPrice >= 1000 → 訂金 300/人
- *   maxPrice >= 500  → 訂金 100/人
- *   maxPrice <  500  → 免訂金
- *
- * Fallback（price 抽不到）：
- *   type_id 2011(高級餐廳) / 2005(無菜單) → 訂金 500/人
- *   其他 → 免訂金
+ *   price >= 2000 → 訂金 500/人
+ *   price >= 1000 → 訂金 300/人
+ *   price >= 500  → 訂金 100/人
+ *   price <  500  → 免訂金
  */
 @Slf4j
 @Service
@@ -34,19 +32,11 @@ public class DepositPolicy {
 
     private static final Set<Integer> ALWAYS_DEPOSIT_FALLBACK = Set.of(2011, 2005);
 
-    /**
-     * 抽 price_per_person 字串中的「最大數字」作為人均上限。
-     * 範例：
-     *   "$800-1200"   → 1200
-     *   "$1000-$1500" → 1500
-     *   "$768-868+"   → 868
-     *   "$310"        → 310
-     *   "1200元以上"   → 1200
-     *   "$400起"      → 400
-     *   "未提及"       → null
-     */
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
 
+    /**
+     * 抽 price_per_person 字串中的最大數字（過濾雜訊 < 50 或 > 50000）。
+     */
     public Integer extractMaxPrice(String pricePerPerson) {
         if (pricePerPerson == null || pricePerPerson.isBlank()
                 || pricePerPerson.contains("未提及") || pricePerPerson.contains("未知")) {
@@ -57,7 +47,7 @@ public class DepositPolicy {
         while (m.find()) {
             try {
                 int n = Integer.parseInt(m.group());
-                if (n < 50 || n > 50000) continue; // 過濾雜訊
+                if (n < 50 || n > 50000) continue;
                 if (max == null || n > max) max = n;
             } catch (NumberFormatException ignore) {
             }
@@ -65,31 +55,43 @@ public class DepositPolicy {
         return max;
     }
 
-    public Result evaluate(Long shopId, Integer typeId, Integer score) {
+    /**
+     * 評估訂金政策。
+     *
+     * @param shopId   店家 ID（用於查 AI metadata）
+     * @param typeId   商店類型 ID（fallback 用）
+     * @param score    評分（保留、供未來規則擴充）
+     * @param avgPrice tb_shop.avg_price（人均，可為 null）
+     */
+    public Result evaluate(Long shopId, Integer typeId, Integer score, Integer avgPrice) {
+        // Priority 1: tb_shop.avg_price（Google 資料）
+        if (avgPrice != null && avgPrice > 0) {
+            log.debug("[DepositPolicy] shop={} using avg_price={}", shopId, avgPrice);
+            return decideByPrice(avgPrice, "Google 顯示人均 NT$ " + avgPrice);
+        }
+
+        // Priority 2: ai_metadata.price_per_person（LLM 抽）
         ShopAiMetadataJpa ai = aiRepo.findById(shopId).orElse(null);
         String pricePerPerson = ai == null ? null : ai.getPricePerPerson();
         Integer maxPrice = extractMaxPrice(pricePerPerson);
-
-        log.debug("[DepositPolicy] shop={} pricePerPerson={} maxPrice={}", shopId, pricePerPerson, maxPrice);
-
         if (maxPrice != null) {
-            if (maxPrice >= 2000) {
-                return new Result(true, 500, "人均 NT$ " + maxPrice + "、屬高價餐廳", maxPrice);
-            }
-            if (maxPrice >= 1000) {
-                return new Result(true, 300, "人均 NT$ " + maxPrice + "、收取訂金", maxPrice);
-            }
-            if (maxPrice >= 500) {
-                return new Result(true, 100, "人均 NT$ " + maxPrice + "、收取小額訂金", maxPrice);
-            }
-            return new Result(false, 0, "人均 NT$ " + maxPrice + "、免訂金", maxPrice);
+            log.debug("[DepositPolicy] shop={} using ai_price_per_person={} → maxPrice={}", shopId, pricePerPerson, maxPrice);
+            return decideByPrice(maxPrice, "AI 從評論推估人均 NT$ " + maxPrice);
         }
 
-        // fallback: 抽不到價格時依 type_id
+        // Priority 3: type_id fallback
+        log.debug("[DepositPolicy] shop={} fallback typeId={}", shopId, typeId);
         if (typeId != null && ALWAYS_DEPOSIT_FALLBACK.contains(typeId)) {
             return new Result(true, 500, "高級類型、收取訂金", null);
         }
         return new Result(false, 0, "免訂金", null);
+    }
+
+    private Result decideByPrice(int price, String reason) {
+        if (price >= 2000) return new Result(true, 500,  reason + "、屬高價", price);
+        if (price >= 1000) return new Result(true, 300,  reason + "、收取訂金", price);
+        if (price >= 500)  return new Result(true, 100,  reason + "、小額訂金", price);
+        return new Result(false, 0, reason + "、免訂金", price);
     }
 
     @Value

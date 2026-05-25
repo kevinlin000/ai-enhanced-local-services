@@ -45,7 +45,7 @@ const TABLE_TYPES = [
 function next14Days() {
   const days = [];
   const now = new Date();
-  for (let i = 0; i < 14; i++) {
+  for (let i = 1; i <= 14; i++) {   // 從明天起，不含今天
     const d = new Date(now);
     d.setDate(now.getDate() + i);
     const yyyy = d.getFullYear();
@@ -54,7 +54,7 @@ function next14Days() {
     const wd = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
     days.push({
       value: `${yyyy}-${mm}-${dd}`,
-      label: i === 0 ? "今天" : i === 1 ? "明天" : `${mm}/${dd}(${wd})`,
+      label: i === 1 ? `明天 ${mm}/${dd}(${wd})` : `${mm}/${dd}(${wd})`,
     });
   }
   return days;

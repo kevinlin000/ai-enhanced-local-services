@@ -43,9 +43,10 @@ public class BookingController {
 
         // 查訂金政策
         var shop      = shopService.getById(shopId);
-        Integer typeId = shop != null && shop.getTypeId() != null ? shop.getTypeId().intValue() : null;
-        Integer score  = shop != null ? shop.getScore() : null;
-        DepositPolicy.Result pol = depositPolicy.evaluate(shopId, typeId, score);
+        Integer typeId   = shop != null && shop.getTypeId() != null ? shop.getTypeId().intValue() : null;
+        Integer score    = shop != null ? shop.getScore() : null;
+        Integer avgPrice = shop != null && shop.getAvgPrice() != null ? shop.getAvgPrice().intValue() : null;
+        DepositPolicy.Result pol = depositPolicy.evaluate(shopId, typeId, score, avgPrice);
 
         // 建 booking 記錄
         BookingJpa booking = new BookingJpa();
