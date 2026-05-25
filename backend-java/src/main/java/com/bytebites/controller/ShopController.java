@@ -80,11 +80,11 @@ public class ShopController {
         Shop shop = shopService.getById(id);
         if (shop == null) return Result.fail("店家不存在");
 
-        Integer typeId    = shop.getTypeId() != null ? shop.getTypeId().intValue() : null;
-        Integer score     = shop.getScore();
-        Integer avgPrice  = shop.getAvgPrice() != null ? shop.getAvgPrice().intValue() : null;
+        Integer typeId   = shop.getTypeId() != null ? shop.getTypeId().intValue() : null;
+        Integer score    = shop.getScore();
+        Integer avgPrice = shop.getAvgPrice() != null ? shop.getAvgPrice().intValue() : null;
 
-        DepositPolicy.Result r = depositPolicy.evaluate(id, typeId, score, avgPrice);
+        DepositPolicy.Result r = depositPolicy.evaluate(id, shop.getName(), typeId, score, avgPrice);
 
         return Result.ok(java.util.Map.of(
                 "needsDeposit", r.isNeedsDeposit(),

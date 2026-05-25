@@ -46,7 +46,8 @@ public class BookingController {
         Integer typeId   = shop != null && shop.getTypeId() != null ? shop.getTypeId().intValue() : null;
         Integer score    = shop != null ? shop.getScore() : null;
         Integer avgPrice = shop != null && shop.getAvgPrice() != null ? shop.getAvgPrice().intValue() : null;
-        DepositPolicy.Result pol = depositPolicy.evaluate(shopId, typeId, score, avgPrice);
+        String  shopName = shop != null ? shop.getName() : null;
+        DepositPolicy.Result pol = depositPolicy.evaluate(shopId, shopName, typeId, score, avgPrice);
 
         // 建 booking 記錄
         BookingJpa booking = new BookingJpa();
