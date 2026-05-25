@@ -91,6 +91,37 @@ export const javaApi = {
         body: JSON.stringify(body),
       },
     ),
+  shopFilterOptions: () =>
+    fetchJson<{
+      success: boolean;
+      data: {
+        types: { id: number; name: string; count: number }[];
+        districts: { name: string; count: number }[];
+        mrtStations: { name: string; count: number }[];
+        totalShops: number;
+      };
+    }>(`${JAVA_API}/api/shop/filter-options`),
+  shopSearch: (params: {
+    q?: string;
+    typeIds?: number[];
+    districts?: string[];
+    mrtStations?: string[];
+    minScore?: number;
+    page?: number;
+    size?: number;
+  }) => {
+    const sp = new URLSearchParams();
+    if (params.q) sp.set("q", params.q);
+    params.typeIds?.forEach((id) => sp.append("typeIds", String(id)));
+    params.districts?.forEach((d) => sp.append("districts", d));
+    params.mrtStations?.forEach((m) => sp.append("mrtStations", m));
+    if (params.minScore != null) sp.set("minScore", String(params.minScore));
+    if (params.page) sp.set("page", String(params.page));
+    if (params.size) sp.set("size", String(params.size));
+    return fetchJson<{ success: boolean; data: { records: Shop[]; total: number } }>(
+      `${JAVA_API}/api/shop/search?${sp.toString()}`,
+    );
+  },
 };
 
 export const aiApi = {
