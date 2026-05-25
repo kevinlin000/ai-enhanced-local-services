@@ -66,7 +66,8 @@ public class ShopController {
     }
 
     /**
-     * 查詢店家訂金政策（依分類與評分決定是否需要預付訂金）。
+     * 查詢店家訂金政策。
+     * 優先從 price_per_person 用 regex 抽最大金額，抽不到時 fallback 到 type_id。
      * 前端 BookingButton 開啟 form 時呼叫。
      */
     @GetMapping("/{id}/booking-policy")
@@ -77,14 +78,13 @@ public class ShopController {
         Integer typeId = shop.getTypeId() != null ? shop.getTypeId().intValue() : null;
         Integer score = shop.getScore();
 
-        boolean needs = depositPolicy.needsDeposit(typeId, score);
-        int perPerson = depositPolicy.depositPerPerson(typeId);
-        String reason = depositPolicy.reason(typeId, score);
+        DepositPolicy.Result r = depositPolicy.evaluate(id, typeId, score);
 
         return Result.ok(java.util.Map.of(
-                "needsDeposit", needs,
-                "depositPerPerson", perPerson,
-                "reason", reason
+                "needsDeposit", r.isNeedsDeposit(),
+                "depositPerPerson", r.getDepositPerPerson(),
+                "reason", r.getReason(),
+                "extractedPrice", r.getExtractedPrice() == null ? "" : r.getExtractedPrice()
         ));
     }
 
