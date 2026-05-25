@@ -209,7 +209,7 @@ export default async function ShopDetailPage({
               {ai?.bookingDifficulty === "預約困難" ? "熱門時段需提前預約" : "可線上訂位"}
             </div>
           </div>
-          <BookingButton shopName={shop.name} />
+          <BookingButton shop={{ id: shop.id, name: shop.name, avgPrice: shop.avgPrice }} />
         </div>
       </div>
     </div>
