@@ -70,6 +70,7 @@ export function BookingButton({
   const [error, setError] = useState("");
   const [result, setResult] = useState<any>(null);
   const [policy, setPolicy] = useState<BookingPolicy | null>(null);
+  const [bookingCode, setBookingCode] = useState<string | null>(null);
 
   // 訂位 form state
   const [people, setPeople] = useState(2);
@@ -155,7 +156,7 @@ export function BookingButton({
       .then((r) => r.json())
       .then((data) => {
         if (data.success) {
-          setResult({ bookingId: data.data.bookingId, payLabel: "免訂金訂位" });
+          setResult({ bookingCode: data.data.bookingCode, payLabel: "免訂金訂位" });
           setStep("done");
         } else {
           setError(data.errorMsg || "訂位失敗");
@@ -166,6 +167,27 @@ export function BookingButton({
         setError("網路錯誤: " + e.message);
         setStep("form");
       });
+  };
+
+  // 有訂金流程第一步：先建訂位 DB 記錄，再進 select-pay
+  const handleProceedToPay = async () => {
+    setError("");
+    try {
+      const res = await fetch(`${JAVA_API}/api/booking/reserve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopId: shop.id, people, date, time, tableType }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBookingCode(data.data.bookingCode);
+        setStep("select-pay");
+      } else {
+        setError(data.errorMsg || "建立訂位失敗");
+      }
+    } catch (e: any) {
+      setError("網路錯誤: " + e.message);
+    }
   };
 
   // 有訂金流程：TapPay credit card
@@ -191,6 +213,7 @@ export function BookingButton({
           prime: r.card.prime,
           orderId: Math.floor(Math.random() * 100000),
           amount: depositTotal,
+          bookingCode,           // 回寫 rec_trade_id 到訂位記錄
         }),
       })
         .then((res) => res.json())
@@ -210,8 +233,10 @@ export function BookingButton({
     });
   };
 
+  // Demo 支付（Line Pay / Apple Pay / 街口）：bookingCode 已在 handleProceedToPay 建立
   const handleDemoPay = (label: string) => {
     setResult({
+      bookingCode,
       rec_trade_id: "DEMO-" + Math.random().toString(36).slice(2, 10).toUpperCase(),
       payLabel: label + " 訂金",
       depositPaid: true,
@@ -225,6 +250,7 @@ export function BookingButton({
     setResult(null);
     setError("");
     setPolicy(null);
+    setBookingCode(null);
   };
 
   if (step === "idle") {
@@ -357,7 +383,7 @@ export function BookingButton({
           {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
 
           {policy?.needsDeposit ? (
-            <Button onClick={() => setStep("select-pay")} className="w-full">
+            <Button onClick={handleProceedToPay} className="w-full">
               下一步 · 選擇支付
             </Button>
           ) : (
@@ -501,10 +527,10 @@ export function BookingButton({
                 <p className="font-mono break-all">{result.rec_trade_id}</p>
               </>
             )}
-            {result?.bookingId && (
+            {(result?.bookingCode || bookingCode) && (
               <>
                 <p className="text-muted-foreground">訂位編號：</p>
-                <p className="font-mono break-all">{result.bookingId}</p>
+                <p className="font-mono break-all">{result?.bookingCode ?? bookingCode}</p>
               </>
             )}
             {result?.note && (

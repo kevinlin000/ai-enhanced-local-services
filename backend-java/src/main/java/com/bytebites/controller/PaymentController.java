@@ -1,7 +1,9 @@
 package com.bytebites.controller;
 
 import com.bytebites.dto.Result;
+import com.bytebites.entity.jpa.BookingJpa;
 import com.bytebites.enums.PayType;
+import com.bytebites.repository.BookingJpaRepository;
 import com.bytebites.service.TapPayService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -19,6 +22,9 @@ public class PaymentController {
     @Autowired
     TapPayService tapPay;
 
+    @Autowired
+    BookingJpaRepository bookingRepo;
+
     /**
      * 真實 TapPay Sandbox Pay by Prime 串接。
      * 前端先呼叫 TapPay JS SDK 取得 prime，再 POST 到此 endpoint。
@@ -28,19 +34,37 @@ public class PaymentController {
         String prime = (String) body.get("prime");
         if (prime == null || prime.isBlank()) return Result.fail("prime 必填");
 
-        Long orderId = Long.valueOf(body.get("orderId").toString());
-        Long amount = Long.valueOf(body.getOrDefault("amount", 1280).toString());
+        Long orderId  = Long.valueOf(body.get("orderId").toString());
+        Long amount   = Long.valueOf(body.getOrDefault("amount", 1280).toString());
+        String bookingCode = (String) body.get("bookingCode");   // 可為 null（舊流程相容）
 
         Map<String, Object> r = tapPay.payByPrime(prime, amount, orderId);
         Integer status = (Integer) r.get("status");
 
         if (status != null && status == 0) {
+            String recTradeId = (String) r.get("rec_trade_id");
+
+            // 回寫訂位記錄：status=2(已付款), payment_trans_id=rec_trade_id
+            if (bookingCode != null && !bookingCode.isBlank()) {
+                Optional<BookingJpa> opt = bookingRepo.findByBookingCode(bookingCode);
+                opt.ifPresentOrElse(
+                        bk -> {
+                            bk.setStatus(2);
+                            bk.setPaymentTransId(recTradeId);
+                            bookingRepo.save(bk);
+                            log.info("[Payment] bookingCode={} → status=2, trans={}", bookingCode, recTradeId);
+                        },
+                        () -> log.warn("[Payment] bookingCode={} 找不到訂位記錄", bookingCode)
+                );
+            }
+
             return Result.ok(Map.of(
-                    "status", "PAID",
-                    "rec_trade_id", r.get("rec_trade_id"),
-                    "amount", amount,
+                    "status",       "PAID",
+                    "rec_trade_id", recTradeId,
+                    "bookingCode",  bookingCode != null ? bookingCode : "",
+                    "amount",       amount,
                     "tappay_status", status,
-                    "msg", r.getOrDefault("msg", "成功")
+                    "msg",          r.getOrDefault("msg", "成功")
             ));
         }
         return Result.fail("TapPay: " + r.get("msg") + " (status=" + status + ")");

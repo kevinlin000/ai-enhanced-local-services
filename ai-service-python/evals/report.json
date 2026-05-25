@@ -1,109 +1,99 @@
 {
-  "timestamp": "2026-05-21T18:43:23.756184",
+  "timestamp": "2026-05-23T23:29:40.243864",
   "total_cases": 10,
-  "hits": 8,
-  "hit_rate_at_k": 0.8,
+  "hits": 0,
+  "hit_rate_at_k": 0.0,
   "top_k": 5,
   "cases": [
     {
       "query": "中山站附近的咖啡店",
       "rationale": "mrt + cafe",
       "hit_ids": [
-        10018,
-        10016,
-        10023,
-        10022,
-        10019
+        10150,
+        10125,
+        10129,
+        10133,
+        10121
       ],
       "expected": [
         10018
       ],
-      "matched": [
-        10018
-      ],
-      "hit_at_k": true
+      "matched": [],
+      "hit_at_k": false
     },
     {
       "query": "想吃春水堂",
       "rationale": "exact brand match",
       "hit_ids": [
-        10003,
-        10022,
-        10016,
-        10007,
-        10012
+        10157,
+        10117,
+        10170,
+        10122,
+        10115
       ],
       "expected": [
         10003
       ],
-      "matched": [
-        10003
-      ],
-      "hit_at_k": true
+      "matched": [],
+      "hit_at_k": false
     },
     {
       "query": "市政府站旁的牛肉麵",
       "rationale": "mrt + category",
       "hit_ids": [
-        10001,
-        10014,
-        10015,
-        10013,
-        10002
+        10157,
+        10154,
+        10133,
+        10171,
+        10132
       ],
       "expected": [
         10001
       ],
-      "matched": [
-        10001
-      ],
-      "hit_at_k": true
+      "matched": [],
+      "hit_at_k": false
     },
     {
       "query": "信義區的滷味",
       "rationale": "district + category",
       "hit_ids": [
-        10002,
-        10007,
-        10008,
-        10001,
-        10004
+        10109,
+        10116,
+        10154,
+        10111,
+        10107
       ],
       "expected": [
         10002
       ],
-      "matched": [
-        10002
-      ],
-      "hit_at_k": true
+      "matched": [],
+      "hit_at_k": false
     },
     {
       "query": "中山區的手搖飲",
       "rationale": "district + category",
       "hit_ids": [
-        10022,
-        10016,
-        10018,
-        10023,
-        10020
+        10125,
+        10157,
+        10122,
+        10121,
+        10168
       ],
       "expected": [
         10016
       ],
-      "matched": [
-        10016
-      ],
-      "hit_at_k": true
+      "matched": [],
+      "hit_at_k": false
     },
     {
       "query": "象山站的咖啡店",
       "rationale": "negative case; no coffee shop at 象山 in seeded data",
       "hit_ids": [
-        10011,
-        10010,
-        10005,
-        10018,
-        10012
+        10133,
+        10150,
+        10168,
+        10108,
+        10149
       ],
       "expected": [],
       "matched": [],
@@ -113,73 +103,63 @@
       "query": "雙連站附近",
       "rationale": "mrt only",
       "hit_ids": [
-        10015,
-        10017,
-        10025,
-        10024,
-        10018
+        10130,
+        10122,
+        10143,
+        10129,
+        10124
       ],
       "expected": [
         10024,
         10017,
         10015
       ],
-      "matched": [
-        10015,
-        10017,
-        10024
-      ],
-      "hit_at_k": true
+      "matched": [],
+      "hit_at_k": false
     },
     {
       "query": "想吃日式料理",
       "rationale": "category only",
       "hit_ids": [
-        10019,
-        10021,
-        10006,
-        10017,
-        10011
+        10103,
+        10125,
+        10144,
+        10156,
+        10149
       ],
       "expected": [
         10019,
         10006
       ],
-      "matched": [
-        10019,
-        10006
-      ],
-      "hit_at_k": true
+      "matched": [],
+      "hit_at_k": false
     },
     {
       "query": "晚餐想吃火鍋",
       "rationale": "category only",
       "hit_ids": [
-        10009,
-        10007,
-        10003,
-        10021,
-        10022
+        10144,
+        10137,
+        10115,
+        10102,
+        10127
       ],
       "expected": [
         10009,
         10022
       ],
-      "matched": [
-        10009,
-        10022
-      ],
-      "hit_at_k": true
+      "matched": [],
+      "hit_at_k": false
     },
     {
       "query": "中山區豆漿",
       "rationale": "negative case; no 豆漿 shop in 中山區 seeded data",
       "hit_ids": [
-        10010,
-        10018,
-        10016,
-        10022,
-        10025
+        10122,
+        10124,
+        10118,
+        10121,
+        10123
       ],
       "expected": [],
       "matched": [],
