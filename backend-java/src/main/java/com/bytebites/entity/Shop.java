@@ -89,6 +89,16 @@ public class Shop implements Serializable {
     private Integer score;
 
     /**
+     * 資料來源：google_places / legacy
+     */
+    private String source;
+
+    /**
+     * 軟刪除：1=啟用、0=停用
+     */
+    private Integer isActive;
+
+    /**
      * 营业时间，例如 10:00-22:00
      */
     private String openHours;

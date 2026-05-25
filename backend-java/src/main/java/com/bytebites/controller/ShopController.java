@@ -11,9 +11,11 @@ import com.bytebites.entity.Shop;
 import com.bytebites.entity.Voucher;
 import com.bytebites.entity.jpa.ShopAiMetadataJpa;
 import com.bytebites.repository.ShopAiMetadataJpaRepository;
+import com.bytebites.entity.ShopType;
 import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.ISeckillVoucherService;
 import com.bytebites.service.IShopService;
+import com.bytebites.service.IShopTypeService;
 import com.bytebites.service.IVoucherService;
 import com.bytebites.utils.SystemConstants;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +56,9 @@ public class ShopController {
     @Autowired
     private DepositPolicy depositPolicy;
 
+    @Resource
+    private IShopTypeService shopTypeService;
+
     /**
      * 根据id查询商铺信息
      * @param id 商铺id
@@ -85,6 +90,116 @@ public class ShopController {
                 "depositPerPerson", r.getDepositPerPerson(),
                 "reason", r.getReason(),
                 "extractedPrice", r.getExtractedPrice() == null ? "" : r.getExtractedPrice()
+        ));
+    }
+
+    /**
+     * 全文 + 多條件搜尋。
+     * q: 店名/地址/區域模糊搜尋
+     * typeIds: 分類（可複選）
+     * districts: 行政區（可複選）
+     * mrtStations: 捷運站（可複選）
+     * minScore: 最低評分（整數 ×10，e.g. 45 = 4.5 星）
+     */
+    @GetMapping("/search")
+    public Result search(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) List<Integer> typeIds,
+            @RequestParam(required = false) List<String> districts,
+            @RequestParam(required = false) List<String> mrtStations,
+            @RequestParam(required = false) Integer minScore,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "30") Integer size
+    ) {
+        LambdaQueryWrapper<Shop> w = new LambdaQueryWrapper<>();
+        w.eq(Shop::getIsActive, 1);
+        w.eq(Shop::getSource, "google_places");
+
+        if (q != null && !q.isBlank()) {
+            w.and(qw -> qw
+                    .like(Shop::getName, q)
+                    .or().like(Shop::getAddress, q)
+                    .or().like(Shop::getDistrict, q)
+            );
+        }
+        if (typeIds != null && !typeIds.isEmpty()) {
+            w.in(Shop::getTypeId, typeIds);
+        }
+        if (districts != null && !districts.isEmpty()) {
+            w.in(Shop::getDistrict, districts);
+        }
+        if (mrtStations != null && !mrtStations.isEmpty()) {
+            w.in(Shop::getMrtStation, mrtStations);
+        }
+        if (minScore != null) {
+            w.ge(Shop::getScore, minScore);
+        }
+        w.orderByDesc(Shop::getScore);
+
+        Page<Shop> p = shopService.page(new Page<>(page, size), w);
+
+        return Result.ok(java.util.Map.of(
+                "records", p.getRecords(),
+                "total", p.getTotal(),
+                "current", p.getCurrent(),
+                "size", p.getSize()
+        ));
+    }
+
+    /**
+     * Filter 左欄聚合：回傳每個 filter 選項與對應店家數量。
+     * 前端 ShopSearchPage 初始化時呼叫一次。
+     */
+    @GetMapping("/filter-options")
+    public Result filterOptions() {
+        LambdaQueryWrapper<Shop> w = new LambdaQueryWrapper<>();
+        w.eq(Shop::getIsActive, 1);
+        w.eq(Shop::getSource, "google_places");
+        List<Shop> all = shopService.list(w);
+
+        // type_id → count
+        java.util.Map<Integer, Long> typeCounts = all.stream()
+                .filter(s -> s.getTypeId() != null)
+                .collect(Collectors.groupingBy(s -> s.getTypeId().intValue(), Collectors.counting()));
+
+        // district → count
+        java.util.Map<String, Long> districtCounts = all.stream()
+                .filter(s -> s.getDistrict() != null && !s.getDistrict().isBlank())
+                .collect(Collectors.groupingBy(Shop::getDistrict, Collectors.counting()));
+
+        // mrt_station → count
+        java.util.Map<String, Long> mrtCounts = all.stream()
+                .filter(s -> s.getMrtStation() != null && !s.getMrtStation().isBlank())
+                .collect(Collectors.groupingBy(Shop::getMrtStation, Collectors.counting()));
+
+        // type names
+        java.util.Map<Integer, String> typeNames = shopTypeService.list().stream()
+                .collect(Collectors.toMap(t -> t.getId().intValue(), ShopType::getName, (a, b) -> a));
+
+        List<java.util.Map<String, Object>> typeOptions = typeCounts.entrySet().stream()
+                .map(e -> java.util.Map.<String, Object>of(
+                        "id", e.getKey(),
+                        "name", typeNames.getOrDefault(e.getKey(), "未知"),
+                        "count", e.getValue()
+                ))
+                .sorted((a, b) -> Long.compare((Long) b.get("count"), (Long) a.get("count")))
+                .toList();
+
+        List<java.util.Map<String, Object>> districtOptions = districtCounts.entrySet().stream()
+                .map(e -> java.util.Map.<String, Object>of("name", e.getKey(), "count", e.getValue()))
+                .sorted((a, b) -> Long.compare((Long) b.get("count"), (Long) a.get("count")))
+                .toList();
+
+        List<java.util.Map<String, Object>> mrtOptions = mrtCounts.entrySet().stream()
+                .map(e -> java.util.Map.<String, Object>of("name", e.getKey(), "count", e.getValue()))
+                .sorted((a, b) -> Long.compare((Long) b.get("count"), (Long) a.get("count")))
+                .toList();
+
+        return Result.ok(java.util.Map.of(
+                "types", typeOptions,
+                "districts", districtOptions,
+                "mrtStations", mrtOptions,
+                "totalShops", all.size()
         ));
     }
 
