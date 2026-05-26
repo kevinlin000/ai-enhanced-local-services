@@ -8,9 +8,9 @@
 
 ## 三大差異化
 
-- **Java + Python 雙服務**：Java 處理核心業務（用戶、店家、訂單、秒殺），Python 負責 AI（RAG、Agent、Eval）
+- **Java + Python 雙服務**：Java 處理核心業務（用戶、店家、訂位、Hot Seat 限時搶位），Python 負責 AI（RAG、Agent、Eval）
 - **LINE Login + 台北捷運 GEO**：對齊台灣使用情境，非 Google OAuth、非縣市行政區
-- **Strangler Fig 漸進遷移**：MyBatis-Plus 與 Spring Data JPA 並存，秒殺路徑保留 MyBatis 因 AOP 整合穩定，是有意的工程取捨
+- **Strangler Fig 漸進遷移**：MyBatis-Plus 與 Spring Data JPA 並存，Hot Seat 搶位路徑保留 MyBatis 因 AOP 整合穩定，是有意的工程取捨
 
 ## 技術棧
 
@@ -51,7 +51,7 @@
 - Spring Boot 3.2.5 + Java 17 + Jakarta 遷移完成，底座已升到現代 Spring 生態。
 - Flyway 接管 schema，完成 V1-V7 migration、12 個在地分類、25 家台北店家與捷運站種子資料。
 - LINE Login OAuth 2.0、Spring Security、JWT 驗證鏈打通，登入流程已對齊實際台灣使用情境。
-- JPA 遷移已切完 User、ShopType、Shop、Review、Voucher 系列，保留秒殺高風險路徑的漸進式切換。
+- JPA 遷移已切完 User、ShopType、Shop、Review、Voucher 系列，保留 Hot Seat 高風險搶位路徑的漸進式切換。
 - Python AI 服務已完成 Qdrant ingest、語意搜尋、RAG 推薦、Function Calling Agent、輕量 eval、guardrail、Prometheus。
 - Next.js 前端已完成商家瀏覽、AI 搜尋頁、AI Concierge 浮窗、首頁視覺 polish 與手機版調整。
 
@@ -97,7 +97,7 @@
 | GET | `/api/mrt/stations/nearby` | GEO 半徑搜尋 |
 | GET | `/api/mrt/{station}/popular-shops` | 捷運站附近熱門 |
 | GET | `/api/shop/nearby-mrt/{station}` | 該站附近店家 |
-| POST | `/voucher-order/seckill/{id}` | 秒殺（限流 + 冪等） |
+| POST | `/voucher-order/seckill/{id}` | Hot Seat 限時搶位（限流 + 冪等） |
 | POST | `/api/demo/mq-outbox` | Outbox demo |
 
 ### Python AI Service (8000)

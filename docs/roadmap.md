@@ -48,13 +48,15 @@
 - 📋 Guardrail（prompt injection 防禦）
 
 ### 前端
-- 📋 Vue 3 + Vite + Pinia + Element Plus 重寫（取代原版 Vue 2 手機版）
+- ✅ Next.js 15 + React 19 + TypeScript 前端已上線，首頁 / 店家列表 / 店家詳情 / AI 搜尋頁已完成
+- 🚧 Inline-like 主流程收斂（找店 → 看懂店 → 願意訂位）
+- 🚧 AI Chat SSE 串流體驗
 
 ### 部署與可觀測性
-- 📋 Docker Compose 本地一鍵啟動
+- ✅ Docker Compose 本地一鍵啟動
+- ✅ Prometheus + Grafana（Java / Python / RabbitMQ / business / token metrics）
+- 🚧 結構化日誌
 - 📋 AWS 部署（EC2 + S3 + CloudFront）
-- 📋 Prometheus + Grafana（業務指標 + token cost + API latency）
-- 📋 結構化日誌
 - 📋 Technical Report + Demo 影片
 
 ---
@@ -81,6 +83,25 @@
 - 📋 **跨縣市擴充**：高雄、台中店家資料
 - 📋 **店家後台**：商家管理界面（目前僅展示用戶端）
 - 📋 **自動化爬蟲 Pipeline**：定期從 Google Maps 同步店家更新
+
+---
+
+## 目前 gate
+
+> 2026-05 現階段判斷：`Phase 2` 先不開做，先收斂 `v1.0` 主線。
+
+### v1.0 現在最該補的不是什麼？
+
+- 不是先上 AWS
+- 不是先錄 demo 影片
+- 不是先擴到 150+ 家店
+
+### v1.0 現在最該補的是什麼？
+
+- HotSeat / 訂位 / 支付 demo 的業務語意一致
+- ETL 評論抽取 → AI metadata → 檢索 / rerank / 展示閉環
+- Inline-like 主流程體驗
+- 文件真實性與面試敘事一致性
 
 ---
 
