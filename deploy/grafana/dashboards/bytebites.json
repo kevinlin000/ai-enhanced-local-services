@@ -88,7 +88,7 @@
       },
       "targets": [
         {
-          "expr": "rabbitmq_queue_messages{vhost=\"/\"}",
+          "expr": "rabbitmq_queue_messages",
           "legendFormat": "{{queue}}",
           "refId": "A"
         }
@@ -236,7 +236,7 @@
     {
       "id": 33,
       "type": "timeseries",
-      "title": "Python HTTP Request Rate (starlette)",
+      "title": "AI Tool Dispatch Rate (req/s)",
       "gridPos": { "x": 0, "y": 32, "w": 12, "h": 7 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
@@ -245,8 +245,8 @@
       },
       "targets": [
         {
-          "expr": "rate(starlette_requests_total[1m])",
-          "legendFormat": "{{method}} {{path_template}} {{status_code}}",
+          "expr": "rate(bytebites_ai_requests_total[1m])",
+          "legendFormat": "{{endpoint}}",
           "refId": "A"
         }
       ]
