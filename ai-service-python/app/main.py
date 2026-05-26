@@ -1,3 +1,5 @@
+import json
+import logging
 import httpx
 from app import session_store
 from fastapi import FastAPI, HTTPException, Response
@@ -37,6 +39,90 @@ _qdrant_client: QdrantClient | None = None
 ai_requests = PromCounter("bytebites_ai_requests_total", "AI endpoint requests", ["endpoint"])
 ai_tokens = PromCounter("bytebites_ai_tokens_total", "Gemini token usage", ["model", "kind"])
 ai_latency = Histogram("bytebites_ai_latency_seconds", "AI endpoint latency", ["endpoint"])
+logger = logging.getLogger("bytebites.ai")
+
+TYPE_ID_TO_CATEGORY = {
+    2001: "hotpot",
+    2002: "yakiniku",
+    2003: "izakaya",
+    2004: "japanese",
+    2005: "omakase",
+    2006: "steakhouse",
+    2007: "european",
+    2008: "chinese",
+    2009: "korean",
+    2010: "brunch",
+    2011: "fine-dining",
+    2012: "cafe-premium",
+}
+
+INTENT_HINTS = {
+    "約會": {"約會", "浪漫", "紀念日", "慶生"},
+    "商務": {"商務", "請客", "正式", "聚會"},
+    "聚餐": {"聚餐", "朋友", "多人", "聚會"},
+    "一人": {"一個人", "自己吃", "獨食", "單人"},
+    "親子": {"親子", "小孩", "家庭"},
+    "寵物友善": {"寵物", "毛孩"},
+}
+
+CATEGORY_HINTS = {
+    "hotpot": {"火鍋", "鍋物", "麻辣鍋", "涮涮鍋", "shabu"},
+    "yakiniku": {"燒肉", "烤肉", "yakiniku"},
+    "izakaya": {"居酒屋", "串燒", "宵夜", "下酒"},
+    "japanese": {"日料", "日本料理", "壽司", "拉麵", "懷石"},
+    "omakase": {"無菜單", "omakase"},
+    "steakhouse": {"牛排", "排餐", "steak"},
+    "european": {"義式", "法式", "義法", "歐陸", "義大利麵"},
+    "chinese": {"中菜", "中式", "台菜", "熱炒", "烤鴨", "港式", "粵菜"},
+    "korean": {"韓式", "韓國料理", "豆腐鍋"},
+    "brunch": {"brunch", "早午餐", "美式", "漢堡"},
+    "fine-dining": {"高級餐廳", "高檔餐廳", "fine dining", "精緻料理", "鐵板燒"},
+    "cafe-premium": {"咖啡", "咖啡廳", "下午茶", "甜點"},
+}
+
+CATEGORY_FALLBACK_KEYWORDS = {
+    "hotpot": {"火鍋", "鍋物", "麻辣鍋", "酸菜白肉鍋", "涮涮屋", "涮涮鍋", "壽喜燒", "羊肉爐", "湯頭", "鴛鴦鍋", "鍋底"},
+    "yakiniku": {"燒肉", "烤肉", "牛舌", "和牛燒肉"},
+    "izakaya": {"居酒屋", "串燒", "烤串", "酒場"},
+    "japanese": {"壽司", "生魚片", "拉麵", "天婦羅", "鰻魚飯"},
+    "omakase": {"無菜單", "板前", "omakase"},
+    "steakhouse": {"牛排", "肋眼", "菲力", "排餐"},
+    "european": {"義大利麵", "燉飯", "牛小排燉飯", "法式", "歐陸"},
+    "chinese": {"台菜", "熱炒", "烤鴨", "粵菜", "港點", "中菜"},
+    "korean": {"韓式", "豆腐鍋", "炸雞", "石鍋拌飯"},
+    "brunch": {"早午餐", "brunch", "漢堡", "班尼迪克蛋"},
+    "fine-dining": {"fine dining", "高級餐廳", "高檔餐廳", "套餐", "品酒", "鐵板燒"},
+    "cafe-premium": {"咖啡", "拿鐵", "手沖", "甜點"},
+}
+
+STATION_HINTS = {
+    "中山站": {"中山", "中山站"},
+    "雙連站": {"雙連", "雙連站"},
+    "行天宮站": {"行天宮", "行天宮站"},
+    "市政府站": {"市政府", "市政府站"},
+    "信義安和站": {"信義安和", "信義安和站", "大安站"},
+    "象山站": {"象山", "象山站"},
+}
+
+DISTRICT_HINTS = {
+    "中山": {"中山區", "中山"},
+    "信義": {"信義區", "信義"},
+    "大安": {"大安區", "大安"},
+    "松山": {"松山區", "松山"},
+}
+
+STATION_NEIGHBORHOODS = {
+    "中山": {"中山": 1.0, "雙連": 0.75, "中山國小": 0.45},
+    "雙連": {"雙連": 1.0, "中山": 0.75, "中山國小": 0.45},
+    "市政府": {"市政府": 1.0, "信義安和": 0.55, "象山": 0.45},
+    "信義安和": {"信義安和": 1.0, "市政府": 0.55, "象山": 0.35},
+    "行天宮": {"行天宮": 1.0, "中山國小": 0.45, "雙連": 0.3},
+    "象山": {"象山": 1.0, "市政府": 0.45, "信義安和": 0.35},
+}
+
+LUXURY_HINTS = {"高級", "精緻", "約會大餐", "請客", "慶生", "高檔", "高價"}
+HOTPOT_STRONG_HINTS = {"火鍋", "鍋物", "麻辣鍋", "酸菜白肉鍋", "涮涮鍋", "涮涮屋", "壽喜燒", "羊肉爐", "鴛鴦鍋"}
+HOTPOT_BLOCK_HINTS = {"拉麵", "鐵板燒", "韓式烤肉", "燒肉", "串燒"}
 
 
 def get_gemini() -> genai.Client:
@@ -83,6 +169,594 @@ def call_llm(prompt: str) -> str:
     return response.text
 
 
+def _parse_json_list(raw) -> list[str]:
+    if not raw:
+        return []
+    if isinstance(raw, list):
+        return [str(item) for item in raw if item]
+    if isinstance(raw, str):
+        try:
+            loaded = json.loads(raw)
+            if isinstance(loaded, list):
+                return [str(item) for item in loaded if item]
+        except Exception:
+            return [raw]
+    return []
+
+
+def _payload_text(payload: dict) -> str:
+    parts: list[str] = [
+        payload.get("name", ""),
+        payload.get("district", ""),
+        payload.get("mrt_station", ""),
+        payload.get("category", ""),
+        payload.get("ai_summary", ""),
+        payload.get("booking_difficulty", ""),
+        payload.get("price_per_person", ""),
+    ]
+    parts.extend(_parse_json_list(payload.get("signature_dishes")))
+    parts.extend(_parse_json_list(payload.get("atmosphere_tags")))
+    return " ".join(str(part) for part in parts if part).lower()
+
+
+def _extract_query_constraints(query: str) -> dict:
+    query_lower = query.lower()
+    stations = []
+    for canonical, keywords in STATION_HINTS.items():
+        if any(keyword.lower() in query_lower for keyword in keywords):
+            stations.append(canonical.replace("站", ""))
+
+    districts = []
+    for canonical, keywords in DISTRICT_HINTS.items():
+        if any(keyword.lower() in query_lower for keyword in keywords):
+            districts.append(canonical)
+
+    categories = []
+    for category, keywords in CATEGORY_HINTS.items():
+        if any(keyword.lower() in query_lower for keyword in keywords):
+            categories.append(category)
+
+    wants_hot_seat = any(keyword in query_lower for keyword in ("hot seat", "熱座", "搶位", "限量", "秒殺"))
+    wants_nearby = any(keyword in query_lower for keyword in ("附近", "nearby"))
+    wants_luxury = any(keyword in query_lower for keyword in LUXURY_HINTS)
+
+    has_primary_food_category = any(category != "fine-dining" for category in categories)
+    if wants_luxury and has_primary_food_category:
+        categories = [category for category in categories if category != "fine-dining"]
+    elif wants_luxury and not categories:
+        categories.append("fine-dining")
+
+    return {
+        "stations": stations,
+        "districts": districts,
+        "categories": categories,
+        "wants_hot_seat": wants_hot_seat,
+        "wants_nearby": wants_nearby,
+        "wants_luxury": wants_luxury,
+    }
+
+
+def _category_slug_from_payload(payload: dict) -> str:
+    explicit_slug = str(payload.get("category_slug") or "").lower()
+    if explicit_slug:
+        return explicit_slug
+
+    text = _payload_text(payload)
+    if any(keyword.lower() in text for keyword in {"鐵板燒", "fine dining", "高級餐廳", "高檔餐廳"}):
+        return "fine-dining"
+    if any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["hotpot"]):
+        return "hotpot"
+    if any(keyword.lower() in text for keyword in {"拉麵", "壽司", "生魚片", "鰻魚飯", "天婦羅"}):
+        return "japanese"
+    if any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["yakiniku"]):
+        return "yakiniku"
+    if any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["izakaya"]):
+        return "izakaya"
+
+    category = str(payload.get("category") or "").lower()
+    if "火鍋" in category:
+        return "hotpot"
+    if "燒肉" in category:
+        return "yakiniku"
+    if "居酒屋" in category:
+        return "izakaya"
+    if "日式料理" in category:
+        return "japanese"
+    if "無菜單" in category:
+        return "omakase"
+    if "牛排" in category:
+        return "steakhouse"
+    if "義法" in category:
+        return "european"
+    if "中式" in category:
+        return "chinese"
+    if "韓式" in category:
+        return "korean"
+    if "brunch" in category or "美式" in category:
+        return "brunch"
+    if "高級" in category:
+        return "fine-dining"
+    if "咖啡" in category:
+        return "cafe-premium"
+    return ""
+
+
+def _semantic_category_slug(payload: dict) -> str:
+    text = _payload_text(payload)
+    if any(keyword.lower() in text for keyword in {"鐵板燒", "fine dining", "高級餐廳", "高檔餐廳"}):
+        return "fine-dining"
+    if _has_hotpot_semantics(payload):
+        return "hotpot"
+    if any(keyword.lower() in text for keyword in {"拉麵", "壽司", "生魚片", "鰻魚飯", "天婦羅"}):
+        return "japanese"
+    if any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["yakiniku"]):
+        return "yakiniku"
+    if any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["izakaya"]):
+        return "izakaya"
+    return _category_slug_from_payload(payload)
+
+
+def _station_proximity_score(constraints: dict, payload: dict) -> float:
+    mrt_station = str(payload.get("mrt_station") or "")
+    if not constraints["stations"] or not mrt_station:
+        return 0.0
+
+    score = 0.0
+    for target in constraints["stations"]:
+        score = max(score, STATION_NEIGHBORHOODS.get(target, {}).get(mrt_station, 0.0))
+    return score
+
+
+def _has_hotpot_semantics(payload: dict) -> bool:
+    text = _payload_text(payload)
+    has_strong_hint = any(keyword.lower() in text for keyword in HOTPOT_STRONG_HINTS)
+    has_block_hint = any(keyword.lower() in text for keyword in HOTPOT_BLOCK_HINTS)
+    if has_strong_hint:
+        return True
+    if has_block_hint:
+        return False
+    return any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["hotpot"])
+
+
+def _premium_hotpot_key(constraints: dict, hit: dict) -> tuple[int, int, float, int, int, int, int, float]:
+    avg_price = hit.get("avg_price") or 0
+    booking = str(hit.get("booking_difficulty") or "")
+    tags = set(hit.get("atmosphere_tags") or [])
+    text = _payload_text(hit)
+    station_score = _station_proximity_score(constraints, hit)
+    district_match = 1 if any(
+        target.lower() == str(hit.get("district") or "").lower()
+        for target in constraints["districts"]
+    ) else 0
+    has_premium_cues = 1 if any(
+        keyword in text for keyword in ("和牛", "a5", "套餐", "預約困難", "提前訂位", "無菜單", "松葉蟹", "龍蝦")
+    ) else 0
+    premium_price = 1 if avg_price >= 1000 else 0
+    mid_price = 1 if avg_price >= 800 else 0
+    hard_to_book = 1 if ("困難" in booking or "提前" in booking) else 0
+    date_night = 1 if ({"約會", "商務"} & tags) else 0
+    nearby_bucket = 0
+    if constraints["wants_nearby"] or constraints["stations"]:
+        if station_score >= 1.0:
+            nearby_bucket = 3
+        elif station_score >= 0.7:
+            nearby_bucket = 2
+        elif district_match:
+            nearby_bucket = 1
+    return (
+        1 if _semantic_category_slug(hit) == "hotpot" else 0,
+        nearby_bucket,
+        premium_price,
+        station_score,
+        district_match,
+        hard_to_book,
+        has_premium_cues,
+        date_night or mid_price,
+        hit["rerank_score"],
+    )
+
+
+def _metadata_bonus(query: str, payload: dict) -> float:
+    query_lower = query.lower()
+    constraints = _extract_query_constraints(query)
+    bonus = 0.0
+    district = str(payload.get("district") or "").lower()
+    mrt_station = str(payload.get("mrt_station") or "").lower()
+    category = str(payload.get("category") or "").lower()
+    category_slug = _semantic_category_slug(payload)
+    booking_difficulty = str(payload.get("booking_difficulty") or "").lower()
+    price_per_person = str(payload.get("price_per_person") or "").lower()
+    avg_price = payload.get("avg_price") or 0
+    tags = [tag.lower() for tag in _parse_json_list(payload.get("atmosphere_tags"))]
+    dishes = [dish.lower() for dish in _parse_json_list(payload.get("signature_dishes"))]
+    text = _payload_text(payload)
+    fallback_keywords = CATEGORY_FALLBACK_KEYWORDS.get(category_slug, set())
+    category_semantic_match = bool(
+        category_slug in constraints["categories"]
+        or any(keyword.lower() in text for keyword in fallback_keywords)
+    )
+
+    if district and district in query_lower:
+        bonus += 0.18
+    if mrt_station and mrt_station in query_lower:
+        bonus += 0.18
+    if category and category in query_lower:
+        bonus += 0.14
+
+    if constraints["districts"]:
+        if any(target.lower() == district for target in constraints["districts"]):
+            bonus += 0.42
+        else:
+            bonus -= 0.18
+
+    if constraints["stations"]:
+        best_station_score = 0.0
+        for target in constraints["stations"]:
+            neighborhood = STATION_NEIGHBORHOODS.get(target, {})
+            best_station_score = max(best_station_score, neighborhood.get(mrt_station, 0.0))
+
+        if best_station_score >= 1.0:
+            bonus += 0.5
+        elif best_station_score >= 0.7:
+            bonus += 0.28 * best_station_score
+        elif best_station_score > 0:
+            bonus += 0.12 * best_station_score
+        elif constraints["wants_nearby"] and mrt_station:
+            bonus -= 0.32
+        elif constraints["wants_nearby"]:
+            bonus -= 0.18
+
+    if constraints["categories"]:
+        if category_slug in constraints["categories"]:
+            bonus += 0.5
+        elif any(
+            keyword.lower() in text
+            for requested in constraints["categories"]
+            for keyword in CATEGORY_FALLBACK_KEYWORDS.get(requested, set())
+        ):
+            bonus += 0.2
+        else:
+            bonus -= 0.55
+
+    for canonical, keywords in INTENT_HINTS.items():
+        if any(keyword in query_lower for keyword in keywords):
+            if canonical.lower() in tags or canonical.lower() in text:
+                bonus += 0.18
+
+    if any(keyword in query_lower for keyword in ("便宜", "平價", "cp值", "學生")):
+        if avg_price and avg_price <= 300:
+            bonus += 0.15
+    if any(keyword in query_lower for keyword in LUXURY_HINTS):
+        if avg_price and avg_price >= 800:
+            bonus += 0.15
+        if category_slug == "fine-dining":
+            bonus += 0.18
+        if "困難" in booking_difficulty or "提前" in booking_difficulty:
+            bonus += 0.1
+        if "約會" in tags or "商務" in tags:
+            bonus += 0.12
+        if avg_price and avg_price < 500:
+            bonus -= 0.3
+        elif avg_price and avg_price < 800:
+            bonus -= 0.12
+        elif not avg_price and "未提及" in price_per_person:
+            bonus -= 0.08
+    if any(keyword in query_lower for keyword in ("難訂", "熱門", "搶位")):
+        if "困難" in booking_difficulty:
+            bonus += 0.12
+    if any(keyword in query_lower for keyword in ("套餐", "折扣", "優惠", "hot seat", "熱座", "搶位")):
+        if payload.get("hot_seat_vouchers"):
+            bonus += 0.35
+        elif constraints["wants_hot_seat"]:
+            bonus -= 0.25
+
+    for dish in dishes[:5]:
+        if dish and dish in query_lower:
+            bonus += 0.12
+    if price_per_person and any(token in query_lower for token in ("價位", "預算", "人均")):
+        bonus += 0.08
+
+    return bonus
+
+
+def _fallback_keyword_score(query: str, payload: dict) -> float:
+    query_lower = query.lower()
+    text = _payload_text(payload)
+    score = 0.0
+
+    for category, keywords in CATEGORY_HINTS.items():
+        if any(keyword.lower() in query_lower for keyword in keywords):
+            if _semantic_category_slug(payload) == category:
+                score += 0.35
+            elif any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS.get(category, set())):
+                score += 0.18
+
+    for keywords in INTENT_HINTS.values():
+        if any(keyword in query_lower for keyword in keywords):
+            if any(keyword.lower() in text for keyword in keywords):
+                score += 0.12
+
+    for canonical, keywords in STATION_HINTS.items():
+        if any(keyword.lower() in query_lower for keyword in keywords):
+            if canonical.replace("站", "").lower() == str(payload.get("mrt_station") or "").lower():
+                score += 0.35
+
+    for canonical, keywords in DISTRICT_HINTS.items():
+        if any(keyword.lower() in query_lower for keyword in keywords):
+            if canonical.lower() == str(payload.get("district") or "").lower():
+                score += 0.28
+
+    if any(keyword in query_lower for keyword in ("hot seat", "熱座", "搶位", "限量", "秒殺")) and payload.get("hot_seat_vouchers"):
+        score += 0.25
+
+    return score
+
+
+async def _fetch_all_shops_fallback() -> list[dict]:
+    shops = []
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        category_resp = await client.get(f"{settings.java_backend_url}/api/category/list")
+        categories = category_resp.json().get("data", []) if category_resp.status_code == 200 else []
+
+        for category in categories:
+            slug = category.get("slug")
+            if not slug:
+                continue
+            resp = await client.get(
+                f"{settings.java_backend_url}/api/category/{slug}/shops",
+                params={"page": 1, "size": 50},
+            )
+            if resp.status_code == 200:
+                shops.extend(resp.json().get("data", []))
+
+        deduped: dict[int, dict] = {}
+        for shop in shops:
+            deduped[shop["id"]] = shop
+
+        enriched = []
+        for shop in deduped.values():
+            try:
+                meta_resp = await client.get(f"{settings.java_backend_url}/api/shop/{shop['id']}/ai-metadata")
+                metadata = meta_resp.json().get("data") if meta_resp.status_code == 200 else None
+            except Exception:
+                metadata = None
+
+            enriched.append(
+                {
+                    "shop_id": shop["id"],
+                    "name": shop.get("name"),
+                    "district": shop.get("district"),
+                    "mrt_station": shop.get("mrtStation"),
+                    "score": 0.0,
+                    "category": TYPE_ID_TO_CATEGORY.get(shop.get("typeId")),
+                    "category_slug": TYPE_ID_TO_CATEGORY.get(shop.get("typeId")),
+                    "avg_price": shop.get("avgPrice"),
+                    "ai_summary": metadata.get("aiSummary") if metadata else None,
+                    "signature_dishes": _parse_json_list(metadata.get("signatureDishes")) if metadata else [],
+                    "atmosphere_tags": _parse_json_list(metadata.get("atmosphereTags")) if metadata else [],
+                    "booking_difficulty": metadata.get("bookingDifficulty") if metadata else None,
+                    "price_per_person": metadata.get("pricePerPerson") if metadata else None,
+                }
+            )
+    return enriched
+
+
+async def _semantic_hits(query: str, top_k: int) -> list[dict]:
+    gemini = get_gemini()
+    emb_resp = gemini.models.embed_content(
+        model=settings.gemini_embedding_model,
+        contents=query,
+        config=types.EmbedContentConfig(
+            task_type="RETRIEVAL_QUERY",
+            output_dimensionality=768,
+        ),
+    )
+    raw_hits = []
+    try:
+        qdrant = get_qdrant()
+        results = qdrant.query_points(
+            collection_name=settings.qdrant_collection,
+            query=emb_resp.embeddings[0].values,
+            limit=max(top_k * 4, 12),
+        ).points
+
+        for result in results:
+            payload = result.payload
+            raw_hits.append(
+                {
+                    "shop_id": payload.get("shop_id"),
+                    "name": payload.get("name"),
+                    "district": payload.get("district"),
+                    "mrt_station": payload.get("mrt_station"),
+                    "score": float(result.score),
+                    "category": payload.get("category"),
+                    "category_slug": payload.get("category_slug"),
+                    "avg_price": payload.get("avg_price"),
+                    "ai_summary": payload.get("ai_summary"),
+                    "signature_dishes": _parse_json_list(payload.get("signature_dishes")),
+                    "atmosphere_tags": _parse_json_list(payload.get("atmosphere_tags")),
+                    "booking_difficulty": payload.get("booking_difficulty"),
+                    "price_per_person": payload.get("price_per_person"),
+                }
+            )
+    except Exception as exc:
+        logger.warning("qdrant_unavailable_fallback query=%r error=%s", query, exc)
+        raw_hits = await _fetch_all_shops_fallback()
+
+    shop_ids = [hit["shop_id"] for hit in raw_hits if hit["shop_id"]]
+    voucher_map = await _fetch_hot_seat_vouchers(shop_ids)
+    for hit in raw_hits:
+        hit["hot_seat_vouchers"] = voucher_map.get(hit["shop_id"], [])
+        hit["rerank_score"] = hit["score"] + _metadata_bonus(query, hit) + _fallback_keyword_score(query, hit)
+
+    constraints = _extract_query_constraints(query)
+    if constraints["categories"] or constraints["stations"] or constraints["districts"] or constraints["wants_hot_seat"]:
+        logger.warning(
+            "search_constraints query=%r constraints=%s",
+            query,
+            constraints,
+        )
+        for hit in raw_hits[:8]:
+            logger.warning(
+                "search_candidate_pre_sort name=%r category=%r mrt=%r district=%r base=%.4f rerank=%.4f hot_seat=%s",
+                hit.get("name"),
+                _category_slug_from_payload(hit),
+                hit.get("mrt_station"),
+                hit.get("district"),
+                hit.get("score"),
+                hit.get("rerank_score"),
+                bool(hit.get("hot_seat_vouchers")),
+            )
+    raw_hits.sort(key=lambda hit: hit["rerank_score"], reverse=True)
+
+    if constraints["categories"]:
+        def category_match(hit: dict) -> bool:
+            slug = _semantic_category_slug(hit)
+            if slug in constraints["categories"]:
+                return True
+            text = _payload_text(hit)
+            return any(
+                keyword.lower() in text
+                for requested in constraints["categories"]
+                for keyword in CATEGORY_FALLBACK_KEYWORDS.get(requested, set())
+            )
+
+        matching = [
+            hit for hit in raw_hits
+            if category_match(hit)
+        ]
+        non_matching = [
+            hit for hit in raw_hits
+            if not category_match(hit)
+        ]
+        if matching:
+            raw_hits = matching + non_matching
+            logger.warning(
+                "search_category_partition query=%r matching=%s",
+                query,
+                [hit.get("name") for hit in matching[:8]],
+            )
+
+    # Explicit business rule:
+    # For queries like "高級火鍋", "火鍋" is the primary constraint.
+    # Only compare luxury signals after the candidate is already a hotpot-like shop.
+    requested_hotpot = "hotpot" in constraints["categories"]
+    requested_luxury = constraints.get("wants_luxury", False)
+    if requested_hotpot and requested_luxury:
+        def is_hotpot_candidate(hit: dict) -> bool:
+            category_slug = _semantic_category_slug(hit)
+            text = _payload_text(hit)
+            if category_slug == "hotpot" and not any(keyword.lower() in text for keyword in HOTPOT_BLOCK_HINTS):
+                return True
+            return _has_hotpot_semantics(hit)
+
+        hotpot_hits = [hit for hit in raw_hits if is_hotpot_candidate(hit)]
+        other_hits = [hit for hit in raw_hits if not is_hotpot_candidate(hit)]
+        if hotpot_hits:
+            hotpot_hits.sort(key=lambda hit: _premium_hotpot_key(constraints, hit), reverse=True)
+            other_hits.sort(key=lambda hit: hit["rerank_score"], reverse=True)
+            raw_hits = hotpot_hits + other_hits
+            logger.warning(
+                "search_hotpot_partition query=%r hotpot=%s others=%s",
+                query,
+                [hit.get("name") for hit in hotpot_hits[:8]],
+                [hit.get("name") for hit in other_hits[:8]],
+            )
+
+    if any(keyword in query.lower() for keyword in LUXURY_HINTS):
+        def luxury_score(hit: dict) -> tuple[int, int, float, int, int, int, int, float]:
+            if requested_hotpot:
+                return _premium_hotpot_key(constraints, hit)
+
+            avg_price = hit.get("avg_price") or 0
+            booking = str(hit.get("booking_difficulty") or "")
+            tags = set(hit.get("atmosphere_tags") or [])
+            station_score = _station_proximity_score(constraints, hit)
+            district_match = 1 if any(
+                target.lower() == str(hit.get("district") or "").lower()
+                for target in constraints["districts"]
+            ) else 0
+            return (
+                0,
+                1 if avg_price >= 1000 else 0,
+                station_score,
+                district_match,
+                1 if ("困難" in booking or "提前" in booking) else 0,
+                1 if ({"約會", "商務"} & tags) else 0,
+                1 if avg_price >= 800 else 0,
+                hit["rerank_score"],
+            )
+
+        raw_hits.sort(
+            key=lambda hit: (luxury_score(hit), hit["rerank_score"]),
+            reverse=True,
+        )
+        logger.warning(
+            "search_luxury_sorted query=%r ranked=%s",
+            query,
+            [
+                {
+                    "name": hit.get("name"),
+                    "category": _semantic_category_slug(hit),
+                    "luxury": luxury_score(hit),
+                    "rerank": round(hit.get("rerank_score", 0.0), 4),
+                }
+                for hit in raw_hits[:8]
+            ],
+        )
+
+    if requested_hotpot and constraints["wants_nearby"]:
+        def is_hotpot_like(hit: dict) -> bool:
+            return _semantic_category_slug(hit) == "hotpot" or _has_hotpot_semantics(hit)
+
+        def is_nearby_hit(hit: dict) -> bool:
+            return _station_proximity_score(constraints, hit) > 0 or any(
+                target.lower() == str(hit.get("district") or "").lower()
+                for target in constraints["districts"]
+            )
+
+        near_hotpot_hits = [hit for hit in raw_hits if is_hotpot_like(hit) and is_nearby_hit(hit)]
+        far_hotpot_hits = [hit for hit in raw_hits if is_hotpot_like(hit) and not is_nearby_hit(hit)]
+        other_hits = [hit for hit in raw_hits if not is_hotpot_like(hit)]
+        if near_hotpot_hits:
+            raw_hits = near_hotpot_hits + far_hotpot_hits + other_hits
+            logger.warning(
+                "search_nearby_partition query=%r near_hotpot=%s far_hotpot=%s others=%s",
+                query,
+                [hit.get("name") for hit in near_hotpot_hits[:8]],
+                [hit.get("name") for hit in far_hotpot_hits[:8]],
+                [hit.get("name") for hit in other_hits[:8]],
+            )
+
+    if constraints["wants_hot_seat"]:
+        hot_hits = [hit for hit in raw_hits if hit.get("hot_seat_vouchers")]
+        cold_hits = [hit for hit in raw_hits if not hit.get("hot_seat_vouchers")]
+        raw_hits = hot_hits + cold_hits
+        logger.warning(
+            "search_hot_seat_sorted query=%r hot=%s cold=%s",
+            query,
+            [hit.get("name") for hit in hot_hits[:8]],
+            [hit.get("name") for hit in cold_hits[:8]],
+        )
+
+    if constraints["categories"] or constraints["stations"] or constraints["districts"] or constraints["wants_hot_seat"]:
+        logger.warning(
+            "search_final_rank query=%r ranked=%s",
+            query,
+            [
+                {
+                    "name": hit.get("name"),
+                    "category": _semantic_category_slug(hit),
+                    "mrt": hit.get("mrt_station"),
+                    "rerank": round(hit.get("rerank_score", 0.0), 4),
+                }
+                for hit in raw_hits[:8]
+            ],
+        )
+
+    return raw_hits[:top_k]
+
+
 async def _fetch_hot_seat_vouchers(shop_ids: list[int]) -> dict[int, list]:
     """Return {shop_id: [{id, title, pay_value, actual_value, stock}]}. N+1 ok for demo."""
     out: dict[int, list] = {}
@@ -106,38 +780,7 @@ async def tool_search_by_mrt(station: str, radius: int = 500) -> dict:
 
 
 async def tool_semantic_search(query: str) -> dict:
-    gemini = get_gemini()
-    qdrant = get_qdrant()
-    emb_resp = gemini.models.embed_content(
-        model=settings.gemini_embedding_model,
-        contents=query,
-        config=types.EmbedContentConfig(
-            task_type="RETRIEVAL_QUERY",
-            output_dimensionality=768,
-        ),
-    )
-    results = qdrant.query_points(
-        collection_name=settings.qdrant_collection,
-        query=emb_resp.embeddings[0].values,
-        limit=5,
-    ).points
-
-    hits = [
-        {
-            "shop_id": r.payload.get("shop_id"),
-            "name": r.payload.get("name"),
-            "district": r.payload.get("district"),
-            "mrt_station": r.payload.get("mrt_station"),
-            "score": r.payload.get("score"),
-        }
-        for r in results
-    ]
-
-    shop_ids = [h["shop_id"] for h in hits if h["shop_id"]]
-    voucher_map = await _fetch_hot_seat_vouchers(shop_ids)
-    for h in hits:
-        h["hot_seat_vouchers"] = voucher_map.get(h["shop_id"], [])
-
+    hits = await _semantic_hits(query, top_k=5)
     return {"shops": hits}
 
 
@@ -156,7 +799,7 @@ async def tool_create_hot_seat_order(voucher_id: int) -> dict:
     return {
         "success": True,
         "voucher_order_id": data.get("data"),
-        "message": "已為您搶到熱座 voucher，可在「我的訂單」查看",
+        "message": "已為您搶到 Hot Seat 名額，可在「我的訂單」查看",
     }
 
 
@@ -234,7 +877,7 @@ TOOLS = [
             },
             {
                 "name": "semantic_shop_search",
-                "description": "語意搜尋店家。當使用者描述抽象需求（如「想吃手搖飲」「適合約會」「有沒有秒殺優惠」），用此 tool。回應含 hot_seat_vouchers 欄位。",
+                "description": "語意搜尋店家。當使用者描述抽象需求（如「想吃手搖飲」「適合約會」「有沒有 Hot Seat 限時搶位」），用此 tool。回應含 hot_seat_vouchers 欄位。",
                 "parameters": {
                     "type": "OBJECT",
                     "properties": {
@@ -245,15 +888,15 @@ TOOLS = [
             },
             {
                 "name": "create_hot_seat_order",
-                "description": """為用戶搶熱座（秒殺）voucher。當用戶明確說想訂位、想搶位、想下訂某個 voucher 時呼叫。
-回應含 voucher_order_id。僅支援已啟動秒殺的 voucher。
+                "description": """為用戶搶 Hot Seat 限時名額。當用戶明確說想訂位、想搶位、想下訂某個 Hot Seat 時呼叫。
+回應含 voucher_order_id。僅支援已啟動 Hot Seat 的方案。
 若用戶尚未指定 voucher_id，應先呼叫 semantic_shop_search 找店，再從回應的 hot_seat_vouchers 挑一個。""",
                 "parameters": {
                     "type": "OBJECT",
                     "properties": {
                         "voucher_id": {
                             "type": "INTEGER",
-                            "description": "秒殺 voucher ID（從 search 結果 hot_seat_vouchers 取得，不要瞎猜）",
+                            "description": "Hot Seat 方案 ID（從 search 結果 hot_seat_vouchers 取得，不要瞎猜）",
                         },
                     },
                     "required": ["voucher_id"],
@@ -307,11 +950,11 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 - 一次對話最多 1 個 booking，不要重複建立
 - 訂位完成後，回應要包含 bookingCode，若有付款也要包含 rec_trade_id
 
-==== 熱座搶購流程（create_hot_seat_order）====
+==== Hot Seat 搶位流程（create_hot_seat_order）====
 - 用戶說「幫我搶」「搶位」「想搶熱座」→ 呼叫 create_hot_seat_order
 - 若不知道 voucher_id，先 semantic_shop_search 找到 hot_seat_vouchers，再取其中一個 id
 - 訂單成功後，回應要包含 voucher_order_id，並提示用戶到「我的訂單」查看
-- 一個 query 最多訂 1 個 voucher
+- 一個 query 最多訂 1 個 Hot Seat 方案
 
 ==== 通用規則 ====
 - 不要主動下單，除非用戶明確表示要訂
@@ -329,6 +972,13 @@ class SearchHit(BaseModel):
     district: str | None
     mrt_station: str | None
     score: float
+    category: str | None = None
+    avg_price: int | None = None
+    price_per_person: str | None = None
+    booking_difficulty: str | None = None
+    atmosphere_tags: list[str] = []
+    signature_dishes: list[str] = []
+    hot_seat_count: int = 0
 
 
 class RecommendRequest(BaseModel):
@@ -382,36 +1032,26 @@ async def semantic_search(req: SearchRequest):
 
     ai_requests.labels(endpoint="search").inc()
     with ai_latency.labels(endpoint="search").time():
-        gemini = get_gemini()
-        qdrant = get_qdrant()
-
-        emb_resp = gemini.models.embed_content(
-            model=settings.gemini_embedding_model,
-            contents=req.query,
-            config=types.EmbedContentConfig(
-                task_type="RETRIEVAL_QUERY",
-                output_dimensionality=768,
-            ),
-        )
-        query_vec = emb_resp.embeddings[0].values
-
-        results = qdrant.query_points(
-            collection_name=settings.qdrant_collection,
-            query=query_vec,
-            limit=req.top_k,
-        ).points
+        hits = await _semantic_hits(req.query, req.top_k)
 
     return {
         "query": req.query,
         "hits": [
             SearchHit(
-                shop_id=result.payload["shop_id"],
-                name=result.payload.get("name"),
-                district=result.payload.get("district"),
-                mrt_station=result.payload.get("mrt_station"),
-                score=float(result.score),
+                shop_id=hit["shop_id"],
+                name=hit.get("name"),
+                district=hit.get("district"),
+                mrt_station=hit.get("mrt_station"),
+                score=float(hit["rerank_score"]),
+                category=hit.get("category"),
+                avg_price=hit.get("avg_price"),
+                price_per_person=hit.get("price_per_person"),
+                booking_difficulty=hit.get("booking_difficulty"),
+                atmosphere_tags=hit.get("atmosphere_tags") or [],
+                signature_dishes=hit.get("signature_dishes") or [],
+                hot_seat_count=len(hit.get("hot_seat_vouchers") or []),
             )
-            for result in results
+            for hit in hits
         ],
     }
 
@@ -426,31 +1066,17 @@ async def recommend(req: RecommendRequest):
 
     ai_requests.labels(endpoint="recommend").inc()
     with ai_latency.labels(endpoint="recommend").time():
-        gemini = get_gemini()
-        qdrant = get_qdrant()
-
-        emb_resp = gemini.models.embed_content(
-            model=settings.gemini_embedding_model,
-            contents=req.query,
-            config=types.EmbedContentConfig(
-                task_type="RETRIEVAL_QUERY",
-                output_dimensionality=768,
-            ),
-        )
-        query_vec = emb_resp.embeddings[0].values
-
-        results = qdrant.query_points(
-            collection_name=settings.qdrant_collection,
-            query=query_vec,
-            limit=req.top_k,
-        ).points
+        hits = await _semantic_hits(req.query, req.top_k)
 
         context_lines = []
-        for index, result in enumerate(results, 1):
-            payload = result.payload
+        for index, payload in enumerate(hits, 1):
             context_lines.append(
                 f"{index}. {payload.get('name')} | {payload.get('district')} | "
-                f"捷運{payload.get('mrt_station')}站 | 評分 {payload.get('score', 'N/A')}"
+                f"捷運{payload.get('mrt_station')}站 | 評分 {payload.get('score', 'N/A')} | "
+                f"分類 {payload.get('category', 'N/A')} | "
+                f"氛圍 {', '.join(payload.get('atmosphere_tags') or []) or '未提供'} | "
+                f"價位 {payload.get('price_per_person') or payload.get('avg_price') or '未提供'} | "
+                f"預約難度 {payload.get('booking_difficulty') or '未提供'}"
             )
         context = "\n".join(context_lines)
 
@@ -469,13 +1095,20 @@ async def recommend(req: RecommendRequest):
         answer=filter_output(answer),
         hits=[
             SearchHit(
-                shop_id=result.payload["shop_id"],
-                name=result.payload.get("name"),
-                district=result.payload.get("district"),
-                mrt_station=result.payload.get("mrt_station"),
-                score=float(result.score),
+                shop_id=hit["shop_id"],
+                name=hit.get("name"),
+                district=hit.get("district"),
+                mrt_station=hit.get("mrt_station"),
+                score=float(hit["rerank_score"]),
+                category=hit.get("category"),
+                avg_price=hit.get("avg_price"),
+                price_per_person=hit.get("price_per_person"),
+                booking_difficulty=hit.get("booking_difficulty"),
+                atmosphere_tags=hit.get("atmosphere_tags") or [],
+                signature_dishes=hit.get("signature_dishes") or [],
+                hot_seat_count=len(hit.get("hot_seat_vouchers") or []),
             )
-            for result in results
+            for hit in hits
         ],
     )
 

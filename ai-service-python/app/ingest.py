@@ -1,10 +1,11 @@
 """
 One-shot ingest: pull all shops from Java backend,
-embed name + area + address + district + mrt_station via Gemini,
+embed shop core fields + AI metadata via Gemini,
 upsert into Qdrant.
 """
 
 import asyncio
+import json
 
 import httpx
 from google import genai
@@ -15,14 +16,51 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.main import settings
 
+TYPE_ID_TO_CATEGORY = {
+    2001: "hotpot",
+    2002: "yakiniku",
+    2003: "izakaya",
+    2004: "japanese",
+    2005: "omakase",
+    2006: "steakhouse",
+    2007: "european",
+    2008: "chinese",
+    2009: "korean",
+    2010: "brunch",
+    2011: "fine-dining",
+    2012: "cafe-premium",
+}
+
+
+def _parse_json_list(raw) -> list[str]:
+    if not raw:
+        return []
+    if isinstance(raw, list):
+        return [str(item) for item in raw if item]
+    if isinstance(raw, str):
+        try:
+            loaded = json.loads(raw)
+            if isinstance(loaded, list):
+                return [str(item) for item in loaded if item]
+        except Exception:
+            return [raw]
+    return []
+
 
 def get_embedding_text(shop: dict) -> str:
     parts = [
         shop.get("name", ""),
-        shop.get("area", ""),
+        f"分類: {shop.get('categoryName', '')}" if shop.get("categoryName") else "",
+        f"類別代碼: {shop.get('categorySlug', '')}" if shop.get("categorySlug") else "",
         shop.get("address", ""),
         shop.get("district", ""),
         shop.get("mrtStation", ""),
+        f"價位: NT$ {shop.get('avgPrice')}" if shop.get("avgPrice") else "",
+        shop.get("aiSummary", ""),
+        f"招牌菜: {', '.join(_parse_json_list(shop.get('signatureDishes')))}" if shop.get("signatureDishes") else "",
+        f"氛圍: {', '.join(_parse_json_list(shop.get('atmosphereTags')))}" if shop.get("atmosphereTags") else "",
+        f"預約難度: {shop.get('bookingDifficulty')}" if shop.get("bookingDifficulty") else "",
+        f"參考價位區間: {shop.get('pricePerPerson')}" if shop.get("pricePerPerson") else "",
     ]
     return " | ".join(part for part in parts if part)
 
@@ -55,10 +93,31 @@ async def fetch_all_shops() -> list[dict]:
                 params={"page": 1, "size": 50},
             )
             shops.extend(resp.json().get("data", []))
-    seen = {}
-    for shop in shops:
-        seen[shop["id"]] = shop
-    return list(seen.values())
+        deduped: dict[int, dict] = {}
+        for shop in shops:
+            deduped[shop["id"]] = shop
+
+        enriched = []
+        for shop in deduped.values():
+            category_slug = TYPE_ID_TO_CATEGORY.get(shop.get("typeId"))
+            try:
+                meta_resp = await client.get(f"{settings.java_backend_url}/api/shop/{shop['id']}/ai-metadata")
+                metadata = meta_resp.json().get("data") if meta_resp.status_code == 200 else None
+            except Exception:
+                metadata = None
+            enriched.append(
+                {
+                    **shop,
+                    "categoryName": category_slug or shop.get("typeName") or shop.get("categoryName"),
+                    "categorySlug": category_slug,
+                    "aiSummary": metadata.get("aiSummary") if metadata else None,
+                    "signatureDishes": metadata.get("signatureDishes") if metadata else None,
+                    "atmosphereTags": metadata.get("atmosphereTags") if metadata else None,
+                    "bookingDifficulty": metadata.get("bookingDifficulty") if metadata else None,
+                    "pricePerPerson": metadata.get("pricePerPerson") if metadata else None,
+                }
+            )
+    return enriched
 
 
 def ensure_collection(client: QdrantClient, name: str, dim: int):
@@ -103,8 +162,16 @@ async def run():
                     "district": shop.get("district"),
                     "mrt_station": shop.get("mrtStation"),
                     "type_id": shop.get("typeId"),
+                    "category": shop.get("categoryName"),
+                    "category_slug": shop.get("categorySlug"),
                     "price_range": shop.get("priceRange"),
+                    "avg_price": shop.get("avgPrice"),
                     "score": shop.get("score"),
+                    "ai_summary": shop.get("aiSummary"),
+                    "signature_dishes": _parse_json_list(shop.get("signatureDishes")),
+                    "atmosphere_tags": _parse_json_list(shop.get("atmosphereTags")),
+                    "booking_difficulty": shop.get("bookingDifficulty"),
+                    "price_per_person": shop.get("pricePerPerson"),
                     "embed_text": text,
                 },
             )
