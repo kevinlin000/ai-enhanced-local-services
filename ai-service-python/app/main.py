@@ -754,6 +754,37 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             ],
         )
 
+    # Hard nearby filter: when query has "附近/nearby" + explicit station or district,
+    # force candidates from that area into top slots.  Only fill from outside the area
+    # if strict matches are fewer than 5.
+    if constraints["wants_nearby"] and (constraints["stations"] or constraints["districts"]):
+        def _is_strict_nearby(hit: dict) -> bool:
+            mrt = str(hit.get("mrt_station") or "").lower()
+            district = str(hit.get("district") or "").lower()
+            station_match = _station_proximity_score(constraints, hit) > 0 or any(
+                s.lower() in mrt for s in constraints["stations"]
+            )
+            district_match = any(
+                d.lower() in district for d in constraints["districts"]
+            )
+            return station_match or district_match
+
+        strict_nearby = [h for h in raw_hits if _is_strict_nearby(h)]
+        loose_nearby  = [h for h in raw_hits if not _is_strict_nearby(h)]
+
+        MIN_STRICT = 5
+        if len(strict_nearby) >= MIN_STRICT:
+            raw_hits = strict_nearby
+        else:
+            raw_hits = strict_nearby + loose_nearby[: max(0, MIN_STRICT + 3 - len(strict_nearby))]
+
+        logger.warning(
+            "search_strict_nearby_filter query=%r strict=%s loose_added=%s",
+            query,
+            [h.get("name") for h in strict_nearby[:8]],
+            [h.get("name") for h in loose_nearby[: max(0, MIN_STRICT + 3 - len(strict_nearby))]],
+        )
+
     return raw_hits[:top_k]
 
 
