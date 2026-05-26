@@ -159,10 +159,55 @@ async def tool_create_hot_seat_order(voucher_id: int) -> dict:
     }
 
 
+async def tool_create_booking(
+    shop_id: int,
+    people: int,
+    date: str = None,
+    time: str = None,
+    table_type: str = "normal",
+) -> dict:
+    """建立訂位記錄，回 bookingCode + needsDeposit + depositTotal。"""
+    from datetime import date as date_cls, timedelta
+
+    if not date:
+        date = (date_cls.today() + timedelta(days=1)).isoformat()
+    if not time:
+        time = "19:00"
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        r = await client.post(
+            f"{settings.java_backend_url}/api/booking/reserve",
+            json={"shopId": shop_id, "people": people, "date": date, "time": time, "tableType": table_type},
+        )
+    if r.status_code != 200:
+        return {"success": False, "error": f"HTTP {r.status_code}"}
+    data = r.json()
+    if not data.get("success"):
+        return {"success": False, "error": data.get("errorMsg", "unknown")}
+    return {"success": True, **data["data"]}
+
+
+async def tool_pay_booking_with_test_card(booking_code: str) -> dict:
+    """用 TapPay sandbox test prime 為訂位支付訂金，回 rec_trade_id。"""
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        r = await client.post(
+            f"{settings.java_backend_url}/api/booking/pay-test",
+            json={"bookingCode": booking_code},
+        )
+    if r.status_code != 200:
+        return {"success": False, "error": f"HTTP {r.status_code}"}
+    data = r.json()
+    if not data.get("success"):
+        return {"success": False, "error": data.get("errorMsg", "unknown")}
+    return {"success": True, **data["data"]}
+
+
 TOOL_DISPATCH = {
     "search_shops_by_mrt": tool_search_by_mrt,
     "semantic_shop_search": tool_semantic_search,
     "create_hot_seat_order": tool_create_hot_seat_order,
+    "create_booking": tool_create_booking,
+    "pay_booking_with_test_card": tool_pay_booking_with_test_card,
 }
 
 TOOLS = [
@@ -213,18 +258,63 @@ TOOLS = [
                     "required": ["voucher_id"],
                 },
             },
+            {
+                "name": "create_booking",
+                "description": """為用戶建立餐廳訂位。當用戶說「幫我訂位」「我要訂」「訂明天晚上」時呼叫。
+回應含 bookingCode、needsDeposit、depositTotal。
+若用戶沒指定日期預設明天；沒指定時間預設 19:00。
+若尚未取得 shop_id，應先 semantic_shop_search 找到店家再呼叫本 tool。""",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "shop_id":    {"type": "INTEGER", "description": "店家 ID"},
+                        "people":     {"type": "INTEGER", "description": "人數 1-12"},
+                        "date":       {"type": "STRING",  "description": "日期 YYYY-MM-DD，預設明天"},
+                        "time":       {"type": "STRING",  "description": "時間 HH:MM，預設 19:00"},
+                        "table_type": {"type": "STRING",  "description": "normal/bar/private，預設 normal"},
+                    },
+                    "required": ["shop_id", "people"],
+                },
+            },
+            {
+                "name": "pay_booking_with_test_card",
+                "description": """用 TapPay sandbox 測試卡為訂位支付訂金。
+僅在 create_booking 回應 needsDeposit=true 時呼叫。
+回應含 rec_trade_id（TapPay 交易編號）。""",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "booking_code": {
+                            "type": "STRING",
+                            "description": "create_booking 回應的 bookingCode",
+                        },
+                    },
+                    "required": ["booking_code"],
+                },
+            },
         ]
     }
 ]
 
 AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問題，選擇合適的 tool 查詢資料，然後用繁體中文簡潔回答。
 
-訂位規則：
-- 當用戶說「幫我訂」「想訂位」「幫我搶」「搶位」，呼叫 create_hot_seat_order
-- 不要主動下單，除非用戶明確要訂
-- 若不知道 voucher_id，先呼叫 semantic_shop_search 找到 hot_seat_vouchers，再取其中一個 id
+==== 一般訂位流程（create_booking）====
+- 用戶說「幫我訂位」「我要訂」「訂明天晚上」→ 先 semantic_shop_search 確認 shop_id
+- 找到店家後 → create_booking 建立訂位
+- 若回應 needsDeposit=true → 主動呼叫 pay_booking_with_test_card 完成付款
+- 若 needsDeposit=false → 訂位完成、不要付款
+- 一次對話最多 1 個 booking，不要重複建立
+- 訂位完成後，回應要包含 bookingCode，若有付款也要包含 rec_trade_id
+
+==== 熱座搶購流程（create_hot_seat_order）====
+- 用戶說「幫我搶」「搶位」「想搶熱座」→ 呼叫 create_hot_seat_order
+- 若不知道 voucher_id，先 semantic_shop_search 找到 hot_seat_vouchers，再取其中一個 id
 - 訂單成功後，回應要包含 voucher_order_id，並提示用戶到「我的訂單」查看
-- 一個 query 最多訂 1 個 voucher，不要一次訂多個"""
+- 一個 query 最多訂 1 個 voucher
+
+==== 通用規則 ====
+- 不要主動下單，除非用戶明確表示要訂
+- 一個 query 最多執行 1 次訂位動作"""
 
 
 class SearchRequest(BaseModel):
@@ -402,7 +492,7 @@ async def agent(req: AgentRequest):
         tools_used: list[str] = []
         last_tool_result: dict = {}
 
-        for _ in range(3):
+        for _ in range(4):   # max 4 tool calls: search → booking → pay → (opt extra)
             response = generate(
                 settings.gemini_chat_model,
                 contents,
