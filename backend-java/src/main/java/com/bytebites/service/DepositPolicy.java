@@ -19,7 +19,8 @@ import java.util.regex.Pattern;
  *   1. 同品牌 max avg_price（同連鎖不同分店統一定價）
  *   2. 本店 tb_shop.avg_price（Google 資料）
  *   3. ai_metadata.price_per_person（LLM 抽）
- *   4. type_id fallback（高級/無菜單類型）
+ *   4. type_id ∈ {2001,2002,2004,2006} + score >= 46 → 熱門高評分收訂金
+ *   5. type_id fallback（高級/無菜單類型）
  *
  * 價格階梯：
  *   price >= 2000 → 訂金 500/人
@@ -36,6 +37,9 @@ public class DepositPolicy {
     private final IShopService shopService;
 
     private static final Set<Integer> ALWAYS_DEPOSIT_FALLBACK = Set.of(2011, 2005);
+    /** 連鎖熱門類型：高評分時收訂金 */
+    private static final Set<Integer> CONDITIONAL_DEPOSIT = Set.of(2001, 2002, 2004, 2006);
+    private static final int HIGH_SCORE_THRESHOLD = 46; // score 儲存值 = 評分 × 10
 
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
 
@@ -139,7 +143,16 @@ public class DepositPolicy {
             return decideByPrice(maxPrice, "AI 推估人均 NT$ " + maxPrice);
         }
 
-        // Priority 4: type_id fallback
+        // Priority 4: type_id + score 熱門高評分（連鎖常見類型）
+        if (typeId != null && CONDITIONAL_DEPOSIT.contains(typeId)
+                && score != null && score >= HIGH_SCORE_THRESHOLD) {
+            double displayScore = score / 10.0;
+            log.debug("[DepositPolicy] shop={} score-based deposit typeId={} score={}", shopId, typeId, score);
+            return new Result(true, 300,
+                    "熱門高評分餐廳（" + displayScore + " 分）、收取訂金", null);
+        }
+
+        // Priority 5: 高級類型 fallback
         log.debug("[DepositPolicy] shop={} fallback typeId={}", shopId, typeId);
         if (typeId != null && ALWAYS_DEPOSIT_FALLBACK.contains(typeId)) {
             return new Result(true, 500, "高級類型", null);
