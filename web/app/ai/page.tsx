@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Bot, Search, Sparkles, Trash2 } from "lucide-react";
+import { Bot, MapPin, Search, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,9 +22,24 @@ interface Msg {
 }
 
 const PRESETS: Record<Mode, string[]> = {
-  search: ["中山區的店", "市政府站附近", "想喝手搖飲"],
-  recommend: ["中山區想喝手搖飲", "晚上想吃宵夜", "想吃便宜的牛肉麵"],
+  search: ["中山站附近高級火鍋", "信義區熱門日式料理", "有 Hot Seat 的熱門餐廳"],
+  recommend: ["適合約會的高級餐廳", "商務請客台菜", "信義區難訂的餐廳"],
   agent: ["信義區想吃火鍋", "中山站附近推薦", "幫我訂明天晚上 7 點 2 人"],
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  hotpot: "火鍋",
+  yakiniku: "日式燒肉",
+  izakaya: "居酒屋",
+  japanese: "日式料理",
+  omakase: "無菜單料理",
+  steakhouse: "牛排館",
+  european: "義法料理",
+  chinese: "中式料理",
+  korean: "韓式料理",
+  brunch: "美式 / Brunch",
+  "fine-dining": "高級餐廳",
+  "cafe-premium": "特色咖啡",
 };
 
 /** 產生或讀取 localStorage session id */
@@ -136,10 +151,20 @@ export default function AiPage() {
     { key: "agent", label: "AI Chat", icon: Bot, desc: "多輪對話 · Redis session · Function calling" },
   ];
 
+  const renderReason = (hit: SearchHit) => {
+    const parts: string[] = [];
+    if (hit.category) parts.push(CATEGORY_LABELS[hit.category] ?? hit.category);
+    if (hit.booking_difficulty) parts.push(hit.booking_difficulty);
+    if (hit.price_per_person) parts.push(hit.price_per_person);
+    else if (hit.avg_price) parts.push(`NT$ ${hit.avg_price}`);
+    if (hit.hot_seat_count) parts.push(`Hot Seat ${hit.hot_seat_count} 案`);
+    return parts.slice(0, 3).join(" · ");
+  };
+
   return (
     <main className="mx-auto min-h-screen max-w-4xl px-4 py-8 md:px-8">
       <h1 className="mb-2 text-3xl font-bold">AI 搜尋</h1>
-      <p className="text-muted-foreground mb-6">三種 AI 能力 demo</p>
+      <p className="text-muted-foreground mb-6">直接問場景，不用先懂分類。AI 會看語意、價位、預約難度、Hot Seat。</p>
 
       {/* Mode tabs */}
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -180,6 +205,19 @@ export default function AiPage() {
           </Badge>
         ))}
       </div>
+
+      {mode !== "agent" && (
+        <div className="mb-6 rounded-2xl border bg-muted/30 p-4">
+          <p className="text-sm font-medium">推薦問法</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {["適合約會", "高級火鍋", "商務請客", "中山站附近", "有 Hot Seat"].map((tip) => (
+              <span key={tip} className="rounded-full border bg-background px-3 py-1 text-xs text-muted-foreground">
+                {tip}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Agent: chat UI ── */}
       {mode === "agent" ? (
@@ -296,20 +334,65 @@ export default function AiPage() {
             <div>
               <h3 className="mb-3 font-semibold">檢索結果</h3>
               <Separator className="mb-3" />
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {hits.map((h) => (
                   <Link key={h.shop_id} href={`/shops/${h.shop_id}`}>
                     <Card className="cursor-pointer transition hover:shadow">
-                      <CardContent className="flex items-center justify-between p-3">
-                        <div>
-                          <div className="font-medium">{h.name}</div>
-                          <div className="text-muted-foreground text-xs">
-                            {h.district} · 捷運{h.mrt_station}站
+                      <CardContent className="p-4">
+                        {h.hot_seat_count ? (
+                          <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2">
+                            <p className="text-[11px] font-medium text-amber-800">
+                              Hot Seat 限時搶位
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-amber-700">
+                              目前有 {h.hot_seat_count} 個熱門時段方案
+                            </p>
                           </div>
+                        ) : null}
+
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-medium">{h.name}</div>
+                            <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                              {h.district ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {h.district}
+                                </span>
+                              ) : null}
+                              {h.district && h.mrt_station ? <span>·</span> : null}
+                              {h.mrt_station ? <span>捷運{h.mrt_station}</span> : null}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-xs shrink-0">
+                            score {h.score.toFixed(3)}
+                          </Badge>
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          score {h.score.toFixed(3)}
-                        </Badge>
+
+                        {renderReason(h) ? (
+                          <p className="mt-3 text-[11px] font-medium text-foreground/80">
+                            {renderReason(h)}
+                          </p>
+                        ) : null}
+
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {h.category ? (
+                            <Badge variant="secondary" className="text-[11px]">
+                              {CATEGORY_LABELS[h.category] ?? h.category}
+                            </Badge>
+                          ) : null}
+                          {(h.atmosphere_tags ?? []).slice(0, 3).map((tag) => (
+                            <Badge key={`${h.shop_id}-${tag}`} variant="outline" className="text-[11px]">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+
+                        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                          {h.price_per_person ? <p>價位：{h.price_per_person}</p> : null}
+                          {h.booking_difficulty ? <p>預約難度：{h.booking_difficulty}</p> : null}
+                          {h.signature_dishes?.[0] ? <p>招牌菜：{h.signature_dishes[0]}</p> : null}
+                        </div>
                       </CardContent>
                     </Card>
                   </Link>

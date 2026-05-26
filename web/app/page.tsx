@@ -1,12 +1,29 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { aiApi, javaApi, type Category, type Shop } from "@/lib/api";
+import { aiApi, javaApi, type Category, type Shop, type ShopAiMetadata } from "@/lib/api";
 import { getCategoryStyle, getStyleByTypeId } from "@/lib/categoryStyle";
 
 const HOT_STATIONS = [
   "信義安和", "台北101/世貿", "市政府", "象山",
   "中山國小", "雙連", "行天宮", "中山",
 ];
+
+const HOME_AI_QUICK_LINKS = [
+  { label: "高級火鍋", href: "/shops?mode=ai&q=中山站附近高級火鍋" },
+  { label: "約會餐廳", href: "/shops?mode=ai&q=適合約會的高級餐廳" },
+  { label: "Hot Seat", href: "/shops?mode=ai&q=有 Hot Seat 的熱門餐廳" },
+  { label: "商務請客", href: "/shops?mode=ai&q=適合商務請客的台菜" },
+];
+
+function parseTags(raw?: string): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
 
 export default async function Home() {
   let categories: Category[] = [];
@@ -36,6 +53,27 @@ export default async function Home() {
     .filter((s) => s.shops.length > 0)
     .sort((a, b) => b.shops.length - a.shops.length);
 
+  const featuredShops = stationsWithShops.flatMap((station) => station.shops.slice(0, 3));
+  const featuredShopIds = Array.from(new Set(featuredShops.map((shop) => shop.id)));
+
+  const [metadataEntries, hotSeatEntries] = await Promise.all([
+    Promise.all(
+      featuredShopIds.map(async (shopId) => {
+        const res = await javaApi.shopAiMetadata(shopId).catch(() => ({ data: null as ShopAiMetadata | null }));
+        return [shopId, res.data] as const;
+      }),
+    ),
+    Promise.all(
+      featuredShopIds.map(async (shopId) => {
+        const res = await javaApi.hotSeatVouchers(shopId).catch(() => ({ data: [] as { id: number }[] }));
+        return [shopId, res.data?.length ?? 0] as const;
+      }),
+    ),
+  ]);
+
+  const metadataMap = new Map<number, ShopAiMetadata | null>(metadataEntries);
+  const hotSeatMap = new Map<number, number>(hotSeatEntries);
+
   return (
     <main>
       <section className="mx-auto max-w-5xl px-4 py-20 md:px-8">
@@ -48,7 +86,7 @@ export default async function Home() {
           <span className="text-primary">AI 點評平台</span>
         </h1>
         <p className="text-muted-foreground mb-8 max-w-xl text-lg">
-          用自然語言找台北的店家。RAG 檢索、Agent 自動選工具、評論摘要。
+          用自然語言找台北餐廳。看 AI 摘要、預約難度、Hot Seat 熱門時段方案。
         </p>
         <div className="flex flex-wrap gap-3">
           <Link href="/ai">
@@ -61,6 +99,15 @@ export default async function Home() {
               瀏覽店家
             </Button>
           </Link>
+        </div>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {HOME_AI_QUICK_LINKS.map((item) => (
+            <Link key={item.label} href={item.href}>
+              <span className="inline-flex rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary/10">
+                {item.label}
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -116,9 +163,40 @@ export default async function Home() {
                                 </span>
                               ) : null}
                             </div>
+                            {hotSeatMap.get(shop.id) ? (
+                              <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1">
+                                <div className="text-[11px] font-medium text-amber-800">
+                                  Hot Seat {hotSeatMap.get(shop.id)} 案
+                                </div>
+                              </div>
+                            ) : null}
                             {shop.avgPrice ? (
                               <div className="text-muted-foreground font-mono mt-1 text-xs">
                                 NT$ {shop.avgPrice}
+                              </div>
+                            ) : null}
+                            {metadataMap.get(shop.id)?.pricePerPerson ? (
+                              <div className="text-muted-foreground mt-1 text-xs">
+                                價位：{metadataMap.get(shop.id)?.pricePerPerson}
+                              </div>
+                            ) : null}
+                            {metadataMap.get(shop.id)?.bookingDifficulty ? (
+                              <div className="mt-1 text-xs text-foreground/80">
+                                {metadataMap.get(shop.id)?.bookingDifficulty}
+                              </div>
+                            ) : null}
+                            {metadataMap.get(shop.id)?.atmosphereTags ? (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {parseTags(metadataMap.get(shop.id)?.atmosphereTags)
+                                  .slice(0, 2)
+                                  .map((tag: string) => (
+                                    <span
+                                      key={`${shop.id}-${tag}`}
+                                      className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-foreground/80"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
                               </div>
                             ) : null}
                           </div>

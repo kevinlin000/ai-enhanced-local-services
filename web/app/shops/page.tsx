@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import type { SearchHit } from "@/lib/api";
 import { javaApi } from "@/lib/api";
 import { getStyleByTypeId } from "@/lib/categoryStyle";
 import { MapPin, Search, X } from "lucide-react";
@@ -19,6 +21,12 @@ interface Shop {
   typeId?: number;
   mrtStation?: string;
   avgPrice?: number;
+  aiCategory?: string;
+  aiPricePerPerson?: string;
+  aiBookingDifficulty?: string;
+  aiAtmosphereTags?: string[];
+  aiSignatureDishes?: string[];
+  aiHotSeatCount?: number;
 }
 
 interface FilterOptions {
@@ -28,6 +36,29 @@ interface FilterOptions {
   totalShops: number;
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  hotpot: "火鍋",
+  yakiniku: "日式燒肉",
+  izakaya: "居酒屋",
+  japanese: "日式料理",
+  omakase: "無菜單料理",
+  steakhouse: "牛排館",
+  european: "義法料理",
+  chinese: "中式料理",
+  korean: "韓式料理",
+  brunch: "美式 / Brunch",
+  "fine-dining": "高級餐廳",
+  "cafe-premium": "特色咖啡",
+};
+
+const AI_QUICK_QUERIES = [
+  "適合約會的高級餐廳",
+  "中山站附近高級火鍋",
+  "有 Hot Seat 的熱門餐廳",
+  "適合商務請客的台菜",
+  "信義區難訂的日式料理",
+];
+
 const SCORE_OPTIONS = [
   { label: "不限", value: null },
   { label: "4.5+", value: 45 },
@@ -35,15 +66,18 @@ const SCORE_OPTIONS = [
   { label: "3.5+", value: 35 },
 ];
 
-export default function ShopsPage() {
+function ShopsPageContent() {
+  const searchParams = useSearchParams();
   const [options, setOptions] = useState<FilterOptions | null>(null);
   const [shops, setShops] = useState<Shop[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [categorySlugToId, setCategorySlugToId] = useState<Map<string, number>>(new Map());
 
   // search mode
   const [searchMode, setSearchMode] = useState<"text" | "ai">("text");
   const [aiHitIds, setAiHitIds] = useState<number[] | null>(null);
+  const [aiHitMeta, setAiHitMeta] = useState<Map<number, SearchHit>>(new Map());
   const [aiLoading, setAiLoading] = useState(false);
 
   // all shops cache for AI mode ordering
@@ -62,10 +96,38 @@ export default function ShopsPage() {
     javaApi.shopFilterOptions().then((r) => {
       if (r?.success) setOptions(r.data);
     });
+    javaApi.listCategories().then((r) => {
+      const next = new Map<string, number>();
+      (r?.data ?? []).forEach((category) => {
+        next.set(category.slug, category.id);
+      });
+      setCategorySlugToId(next);
+    });
     javaApi.shopSearch({ size: 100 }).then((r) => {
       if (r?.success) allShopsRef.current = r.data.records ?? [];
     });
   }, []);
+
+  useEffect(() => {
+    const categorySlug = searchParams.get("category");
+    const qParam = searchParams.get("q");
+    const modeParam = searchParams.get("mode");
+
+    if (qParam) {
+      setQ(qParam);
+    }
+
+    if (modeParam === "ai") {
+      setSearchMode("ai");
+    }
+
+    if (!categorySlug || !categorySlugToId.size) return;
+    const typeId = categorySlugToId.get(categorySlug);
+    if (!typeId) return;
+
+    setSearchMode("text");
+    setSelectedTypes(new Set([typeId]));
+  }, [searchParams, categorySlugToId]);
 
   // debounce q
   useEffect(() => {
@@ -115,10 +177,15 @@ export default function ShopsPage() {
     })
       .then((r) => r.json())
       .then((data) => {
-        const ids: number[] = data?.hits?.map((h: { shop_id: number }) => h.shop_id) ?? [];
+        const hits: SearchHit[] = data?.hits ?? [];
+        const ids: number[] = hits.map((h) => h.shop_id);
+        setAiHitMeta(new Map(hits.map((hit) => [hit.shop_id, hit])));
         setAiHitIds(ids);
       })
-      .catch(() => setAiHitIds([]))
+      .catch(() => {
+        setAiHitMeta(new Map());
+        setAiHitIds([]);
+      })
       .finally(() => setAiLoading(false));
   }, [searchMode, debouncedQ]);
 
@@ -132,11 +199,25 @@ export default function ShopsPage() {
     }
     const map = new Map(allShopsRef.current.map((s) => [s.id, s]));
     const ordered = aiHitIds
-      .map((id) => map.get(id))
-      .filter((s): s is Shop => s !== undefined);
+      .map((id) => {
+        const base = map.get(id);
+        const meta = aiHitMeta.get(id);
+        if (!base) return null;
+        return {
+          ...base,
+          aiCategory: meta?.category ?? undefined,
+          aiPricePerPerson: meta?.price_per_person ?? undefined,
+          aiBookingDifficulty: meta?.booking_difficulty ?? undefined,
+          aiAtmosphereTags: meta?.atmosphere_tags ?? undefined,
+          aiSignatureDishes: meta?.signature_dishes ?? undefined,
+          aiHotSeatCount: meta?.hot_seat_count ?? undefined,
+          avgPrice: meta?.avg_price ?? base.avgPrice,
+        };
+      })
+      .filter(Boolean) as Shop[];
     setShops(ordered);
     setTotal(ordered.length);
-  }, [searchMode, aiHitIds]);
+  }, [searchMode, aiHitIds, aiHitMeta]);
 
   // switch to text mode: reset AI state, keep filter state
   const switchToText = () => {
@@ -185,6 +266,16 @@ export default function ShopsPage() {
   };
 
   const isLoading = loading || aiLoading;
+
+  const renderAiReason = (shop: Shop) => {
+    const parts: string[] = [];
+    if (shop.aiCategory) parts.push(CATEGORY_LABELS[shop.aiCategory] ?? shop.aiCategory);
+    if (shop.aiBookingDifficulty) parts.push(shop.aiBookingDifficulty);
+    if (shop.aiPricePerPerson) parts.push(shop.aiPricePerPerson);
+    else if (shop.avgPrice) parts.push(`NT$ ${shop.avgPrice}`);
+    if (shop.aiHotSeatCount) parts.push(`Hot Seat ${shop.aiHotSeatCount} 案`);
+    return parts.slice(0, 3).join(" · ");
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
@@ -247,6 +338,30 @@ export default function ShopsPage() {
           </button>
         )}
       </div>
+
+      {searchMode === "ai" && (
+        <div className="mb-6">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-xs font-medium tracking-wide text-primary">
+              AI 快速情境
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              直接搜需求，不用選左邊篩選
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {AI_QUICK_QUERIES.map((item) => (
+              <button
+                key={item}
+                onClick={() => setQ(item)}
+                className="rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary/10"
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
         {/* ── Left filter sidebar ── */}
@@ -378,9 +493,14 @@ export default function ShopsPage() {
 
           {/* AI mode hint */}
           {searchMode === "ai" && debouncedQ && !aiLoading && (
-            <p className="text-xs text-primary mb-3 flex items-center gap-1">
-              ✨ AI 依語意排序、不套用左欄篩選
-            </p>
+            <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+              <p className="text-xs text-primary">
+                AI 依語意排序：先找符合場景，再看價位、預約難度、Hot Seat 與招牌菜。
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                搜尋詞：{debouncedQ}
+              </p>
+            </div>
           )}
 
           {shops.length === 0 && !isLoading && (
@@ -395,6 +515,8 @@ export default function ShopsPage() {
             {shops.map((shop) => {
               const style = getStyleByTypeId(shop.typeId);
               const Icon = style.icon;
+              const topTags = (shop.aiAtmosphereTags ?? []).slice(0, 2);
+              const topDish = shop.aiSignatureDishes?.[0];
               return (
                 <Link
                   key={shop.id}
@@ -411,6 +533,17 @@ export default function ShopsPage() {
                       />
                     </div>
                     <div className="p-3">
+                      {searchMode === "ai" && shop.aiHotSeatCount ? (
+                        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2">
+                          <p className="text-[11px] font-medium text-amber-800">
+                            Hot Seat 限時搶位
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-amber-700">
+                            此店目前有 {shop.aiHotSeatCount} 個熱門時段方案
+                          </p>
+                        </div>
+                      ) : null}
+
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <h3 className="font-medium text-sm leading-tight flex-1">
                           {shop.name}
@@ -433,6 +566,64 @@ export default function ShopsPage() {
                           <span>捷運{shop.mrtStation}</span>
                         )}
                       </div>
+
+                      {searchMode === "ai" && renderAiReason(shop) ? (
+                        <p className="mt-2 text-[11px] font-medium text-foreground/80">
+                          {renderAiReason(shop)}
+                        </p>
+                      ) : null}
+
+                      {searchMode === "ai" && (
+                        <>
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {shop.aiCategory ? (
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground/80">
+                                {CATEGORY_LABELS[shop.aiCategory] ?? shop.aiCategory}
+                              </span>
+                            ) : null}
+                            {topTags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                            {shop.aiHotSeatCount ? (
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] text-amber-800">
+                                Hot Seat {shop.aiHotSeatCount} 案
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                            {shop.aiPricePerPerson ? (
+                              <p>價位：{shop.aiPricePerPerson}</p>
+                            ) : shop.avgPrice ? (
+                              <p>價位：NT$ {shop.avgPrice}</p>
+                            ) : null}
+                            {shop.aiBookingDifficulty ? (
+                              <p>預約難度：{shop.aiBookingDifficulty}</p>
+                            ) : null}
+                            {topDish ? (
+                              <p>招牌菜：{topDish}</p>
+                            ) : null}
+                          </div>
+
+                          {(shop.aiAtmosphereTags?.length || 0) > 0 ? (
+                            <div className="mt-3 flex flex-wrap gap-1.5">
+                              {shop.aiAtmosphereTags?.slice(0, 3).map((tag) => (
+                                <span
+                                  key={`${shop.id}-${tag}`}
+                                  className="rounded-md bg-secondary px-2 py-1 text-[11px] text-secondary-foreground"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </>
+                      )}
                     </div>
                   </div>
                 </Link>
@@ -442,5 +633,13 @@ export default function ShopsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ShopsPage() {
+  return (
+    <Suspense fallback={<div className="max-w-7xl mx-auto px-4 md:px-8 py-6 text-sm text-muted-foreground">載入店家中...</div>}>
+      <ShopsPageContent />
+    </Suspense>
   );
 }

@@ -43,6 +43,13 @@ export type SearchHit = {
   district: string | null;
   mrt_station: string | null;
   score: number;
+  category?: string | null;
+  avg_price?: number | null;
+  price_per_person?: string | null;
+  booking_difficulty?: string | null;
+  atmosphere_tags?: string[];
+  signature_dishes?: string[];
+  hot_seat_count?: number;
 };
 
 export type ShopAiMetadata = {
@@ -57,6 +64,21 @@ export type ShopAiMetadata = {
   openingHours?: string;
   extractedAt?: string;
   modelVersion?: string;
+};
+
+export type VoucherOffer = {
+  id: number;
+  shopId: number;
+  title: string;
+  subTitle?: string;
+  rules?: string;
+  payValue: number;
+  actualValue: number;
+  type: number;
+  status: number;
+  stock?: number;
+  beginTime?: string;
+  endTime?: string;
 };
 
 export const javaApi = {
@@ -84,6 +106,21 @@ export const javaApi = {
     fetchJson<{ success: boolean; data: ShopAiMetadata | null }>(
       `${JAVA_API}/api/shop/${id}/ai-metadata`,
     ),
+  shopVouchers: (shopId: number) =>
+    fetchJson<{ success: boolean; data: VoucherOffer[] }>(
+      `${JAVA_API}/voucher/list/${shopId}`,
+    ),
+  hotSeatVouchers: (shopId: number) =>
+    fetchJson<{
+      success: boolean;
+      data: {
+        id: number;
+        title: string;
+        pay_value: number;
+        actual_value: number;
+        stock: number;
+      }[];
+    }>(`${JAVA_API}/api/shop/${shopId}/hot-seat-vouchers`),
   paymentMethods: () =>
     fetchJson<{ success: boolean; data: { code: number; label: string }[] }>(
       `${JAVA_API}/api/payment/methods`,
