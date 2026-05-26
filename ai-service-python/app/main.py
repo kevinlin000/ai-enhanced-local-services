@@ -1,4 +1,5 @@
 import httpx
+from app import session_store
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from app.guardrail import GuardrailViolation, check_input, filter_output
@@ -343,6 +344,7 @@ class RecommendResponse(BaseModel):
 
 class AgentRequest(BaseModel):
     query: str
+    session_id: str | None = None  # 前端帶入；None = 無狀態單輪
 
 
 @app.get("/health")
@@ -480,17 +482,37 @@ async def recommend(req: RecommendRequest):
 
 @app.post("/api/ai/agent")
 async def agent(req: AgentRequest):
-    """Multi-turn function calling agent. Loops up to 3 tool calls before synthesizing."""
+    """Multi-turn function-calling agent with Redis session history."""
     try:
         check_input(req.query)
     except GuardrailViolation as exc:
         raise HTTPException(400, f"input rejected: {exc}") from exc
 
+    session_id = req.session_id or ""
+
+    # 從 Redis 載入歷史，轉成 Gemini contents list
+    history = session_store.load_history(session_id) if session_id else []
+    contents: list = []
+    for turn in history:
+        role = turn.get("role")
+        text = turn.get("content", "")
+        if role in ("user", "model") and text:
+            contents.append(types.Content(
+                role=role,
+                parts=[types.Part.from_text(text=text)],
+            ))
+
+    # 加上此輪 user query
+    contents.append(types.Content(
+        role="user",
+        parts=[types.Part.from_text(text=req.query)],
+    ))
+
     ai_requests.labels(endpoint="agent").inc()
     with ai_latency.labels(endpoint="agent").time():
-        contents: list = [req.query]
         tools_used: list[str] = []
         last_tool_result: dict = {}
+        final_answer = ""
 
         for _ in range(4):   # max 4 tool calls: search → booking → pay → (opt extra)
             response = generate(
@@ -510,12 +532,8 @@ async def agent(req: AgentRequest):
                     break
 
             if not function_call:
-                return {
-                    "query": req.query,
-                    "answer": filter_output(response.text),
-                    "tools_used": tools_used,
-                    "tool_result": last_tool_result,
-                }
+                final_answer = filter_output(response.text)
+                break
 
             tool_name = function_call.name
             tool_args = dict(function_call.args)
@@ -540,19 +558,36 @@ async def agent(req: AgentRequest):
                     ],
                 )
             )
+        else:
+            # Max iterations reached — synthesize without tools
+            final = generate(
+                settings.gemini_chat_model,
+                contents,
+                types.GenerateContentConfig(
+                    system_instruction="根據以上工具查詢結果，用 2-3 句繁體中文給出最終回答。",
+                ),
+            )
+            final_answer = filter_output(final.text)
 
-        # Max iterations reached — synthesize without tools
-        final = generate(
-            settings.gemini_chat_model,
-            contents,
-            types.GenerateContentConfig(
-                system_instruction="根據以上工具查詢結果，用 2-3 句繁體中文給出最終回答。",
-            ),
-        )
+    # 寫回 Redis（只存純文字輪次，不存 tool turns）
+    if session_id:
+        new_history = history + [
+            {"role": "user",  "content": req.query},
+            {"role": "model", "content": final_answer},
+        ]
+        session_store.save_history(session_id, new_history)
 
     return {
-        "query": req.query,
-        "answer": filter_output(final.text),
+        "query":      req.query,
+        "answer":     final_answer,
         "tools_used": tools_used,
         "tool_result": last_tool_result,
+        "session_id": session_id,
     }
+
+
+@app.delete("/api/ai/session/{session_id}")
+async def clear_chat_session(session_id: str):
+    """清除 Redis 對話歷史。"""
+    session_store.clear_session(session_id)
+    return {"success": True, "session_id": session_id}
