@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { aiApi, type SearchHit } from "@/lib/api";
 import { Loader2, Send, Sparkles } from "lucide-react";
 
@@ -32,6 +31,12 @@ export function AiConcierge() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, loading]);
 
   async function ask(query: string) {
     if (!query.trim() || loading) return;
@@ -78,7 +83,7 @@ export function AiConcierge() {
             </DialogTitle>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 px-6 py-4">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4">
             {messages.length === 0 ? (
               <div className="text-muted-foreground py-12 text-center">
                 <p className="mb-2 text-sm font-medium text-foreground">今晚想吃什麼？</p>
@@ -138,7 +143,7 @@ export function AiConcierge() {
                 </div>
               ) : null}
             </div>
-          </ScrollArea>
+          </div>
 
           <div className="border-t px-6 py-4">
             <div className="flex gap-2">

@@ -55,12 +55,13 @@ export default function AiPage() {
   // agent mode — chat history
   const [messages, setMessages] = useState<Msg[]>([]);
   const [sessionId] = useState<string>(getOrCreateSessionId);
-  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // scroll to bottom on new message
+  // scroll container to bottom whenever messages or loading state changes
   useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, loading]);
 
   async function runSearchOrRecommend(q: string) {
     setLoading(true);
@@ -184,7 +185,7 @@ export default function AiPage() {
       {mode === "agent" ? (
         <div className="flex flex-col gap-3">
           {/* Chat history */}
-          <div className="flex flex-col gap-3 max-h-[28rem] min-h-[12rem] overflow-y-auto rounded-xl border p-4 bg-muted/20">
+          <div ref={scrollRef} className="flex flex-col gap-3 max-h-[28rem] min-h-[12rem] overflow-y-auto rounded-xl border p-4 bg-muted/20">
             {messages.length === 0 && (
               <p className="text-muted-foreground text-sm text-center mt-8">
                 開始對話吧！可以問「信義區想吃火鍋」或「幫我訂明天晚上」
@@ -224,7 +225,6 @@ export default function AiPage() {
                 </div>
               </div>
             )}
-            <div ref={chatBottomRef} />
           </div>
 
           {/* Input row */}
