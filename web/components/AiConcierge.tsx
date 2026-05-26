@@ -11,13 +11,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { aiApi, type SearchHit } from "@/lib/api";
+import { type SearchHit } from "@/lib/api";
 import { Loader2, Send, Sparkles } from "lucide-react";
 
 type Message = {
   role: "user" | "assistant";
   content: string;
   hits?: SearchHit[];
+  toolsUsed?: string[];
 };
 
 const PRESETS = [
@@ -33,6 +34,20 @@ export function AiConcierge() {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // stable session id — shared with /ai page via localStorage
+  const [sessionId] = useState(() => {
+    if (typeof window === "undefined") return "";
+    let id = localStorage.getItem("bytebites_chat_session");
+    if (!id) {
+      id =
+        "sess-" +
+        Math.random().toString(36).slice(2, 12) +
+        Date.now().toString(36);
+      localStorage.setItem("bytebites_chat_session", id);
+    }
+    return id;
+  });
+
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -41,15 +56,26 @@ export function AiConcierge() {
   async function ask(query: string) {
     if (!query.trim() || loading) return;
 
+    const userMsg = query.trim();
     setLoading(true);
-    setMessages((prev) => [...prev, { role: "user", content: query }]);
+    setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
     setInput("");
 
     try {
-      const result = await aiApi.recommend(query);
+      const r = await fetch("/api/ai/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: userMsg, session_id: sessionId }),
+      }).then((res) => res.json());
+
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: result.answer, hits: result.hits },
+        {
+          role: "assistant",
+          content: r.answer || "（無回應）",
+          hits: r.hits,
+          toolsUsed: r.tools_used,
+        },
       ]);
     } catch {
       setMessages((prev) => [
@@ -72,18 +98,20 @@ export function AiConcierge() {
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex h-[90vh] max-w-2xl flex-col gap-0 overflow-hidden border-foreground/10 p-0 md:h-[600px]">
-          <DialogHeader className="bg-muted/50 border-b px-6 py-4">
+        <DialogContent className="flex h-[90vh] max-w-md flex-col gap-0 overflow-hidden border-foreground/10 p-0 md:h-[600px]">
+          {/* Header — shrink-0 so it never gets squeezed */}
+          <DialogHeader className="bg-muted/50 shrink-0 border-b px-6 py-4">
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Sparkles className="text-primary h-5 w-5" />
               AI Concierge
               <Badge variant="outline" className="font-mono ml-1 text-xs">
-                RAG · Gemini
+                Agent · Gemini
               </Badge>
             </DialogTitle>
           </DialogHeader>
 
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4">
+          {/* Scroll area — flex-1 + min-h-0 critical for overflow in flex column */}
+          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
             {messages.length === 0 ? (
               <div className="text-muted-foreground py-12 text-center">
                 <p className="mb-2 text-sm font-medium text-foreground">今晚想吃什麼？</p>
@@ -109,24 +137,35 @@ export function AiConcierge() {
                   key={`${message.role}-${index}`}
                   className={message.role === "user" ? "flex justify-end" : "flex justify-start"}
                 >
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
-                  >
-                    <div className="whitespace-pre-wrap leading-6">{message.content}</div>
-                    {message.hits && message.hits.length > 0 ? (
-                      <div className="mt-3 space-y-1 border-t border-current/10 pt-3">
-                        {message.hits.slice(0, 3).map((hit) => (
-                          <Link
-                            key={hit.shop_id}
-                            href={`/shops/${hit.shop_id}`}
-                            className="block text-xs opacity-80 transition hover:underline"
-                          >
-                            → {hit.name} · {hit.district}
-                          </Link>
+                  <div className="max-w-[80%]">
+                    <div
+                      className={`rounded-2xl px-4 py-3 text-sm ${
+                        message.role === "user"
+                          ? "bg-primary text-primary-foreground rounded-br-sm"
+                          : "bg-muted rounded-bl-sm"
+                      }`}
+                    >
+                      <div className="whitespace-pre-wrap leading-6">{message.content}</div>
+                      {message.hits && message.hits.length > 0 ? (
+                        <div className="mt-3 space-y-1 border-t border-current/10 pt-3">
+                          {message.hits.slice(0, 3).map((hit) => (
+                            <Link
+                              key={hit.shop_id}
+                              href={`/shops/${hit.shop_id}`}
+                              className="block text-xs opacity-80 transition hover:underline"
+                            >
+                              → {hit.name} · {hit.district}
+                            </Link>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                    {message.toolsUsed && message.toolsUsed.length > 0 ? (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {message.toolsUsed.map((t) => (
+                          <Badge key={t} variant="secondary" className="px-1.5 py-0 text-[10px]">
+                            {t}
+                          </Badge>
                         ))}
                       </div>
                     ) : null}
@@ -145,14 +184,15 @@ export function AiConcierge() {
             </div>
           </div>
 
-          <div className="border-t px-6 py-4">
+          {/* Footer — shrink-0 so it never gets pushed out */}
+          <div className="shrink-0 border-t px-6 py-4">
             <div className="flex gap-2">
               <Input
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="輸入你想吃什麼..."
                 onKeyDown={(event) => {
-                  if (event.key === "Enter") ask(input);
+                  if (event.key === "Enter" && !loading) ask(input);
                 }}
                 disabled={loading}
               />
@@ -165,7 +205,7 @@ export function AiConcierge() {
               </Button>
             </div>
             <p className="text-muted-foreground mt-2 text-center text-xs">
-              Powered by Gemini 2.5 Flash · Embedding via Qdrant
+              Powered by Gemini · Redis session · multi-turn
             </p>
           </div>
         </DialogContent>
