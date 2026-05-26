@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { aiApi, type SearchHit } from "@/lib/api";
 
-const AI_API = "/api/python";
+const AI_API = "";
 
 type Mode = "search" | "recommend" | "agent";
 

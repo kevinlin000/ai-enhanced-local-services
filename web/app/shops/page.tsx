@@ -6,8 +6,8 @@ import { javaApi } from "@/lib/api";
 import { getStyleByTypeId } from "@/lib/categoryStyle";
 import { MapPin, Search, X } from "lucide-react";
 
-// AI search via Python service proxy (avoids HTTPS→HTTP mixed content)
-const CLIENT_AI_API = "/api/python";
+// AI search via Next.js rewrite proxy /api/ai/* → http://localhost:8000/api/ai/*
+const CLIENT_AI_API = "";
 
 interface Shop {
   id: number;

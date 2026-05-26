@@ -19,6 +19,12 @@ const nextConfig: NextConfig = {
         source: "/api/python/:path*",
         destination: "http://localhost:8000/:path*",
       },
+      {
+        // /api/ai/search → http://localhost:8000/api/ai/search
+        // Cleaner proxy: AI calls use /api/ai/* directly (no double-prefix)
+        source: "/api/ai/:path*",
+        destination: "http://localhost:8000/api/ai/:path*",
+      },
     ];
   },
 };

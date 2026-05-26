@@ -1,9 +1,11 @@
 const JAVA_API = process.env.NEXT_PUBLIC_JAVA_API ?? "http://localhost:8081";
-const AI_API = process.env.NEXT_PUBLIC_AI_API ?? "http://localhost:8000";
+// AI calls use relative /api/ai/* — proxied through Next.js rewrite to http://localhost:8000
+// This avoids mixed content (HTTPS page → HTTP direct). Never use http://localhost:8000 directly.
+const AI_API = "";
 // Client-side calls must go through Next.js rewrite proxy to avoid
 // mixed content (HTTPS page → HTTP API). Only use from "use client" components.
 const CLIENT_JAVA_API = "/api/java";
-const CLIENT_AI_API = "/api/python";
+const CLIENT_AI_API = "/api/ai";
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...init, cache: "no-store" });
@@ -130,7 +132,7 @@ export const javaApi = {
 };
 
 export const aiApi = {
-  health: () => fetchJson<{ status: string }>(`${AI_API}/health`),
+  health: () => fetchJson<{ status: string }>(`/api/python/health`),
   search: (query: string, top_k = 5) =>
     fetchJson<{ query: string; hits: SearchHit[] }>(`${AI_API}/api/ai/search`, {
       method: "POST",
