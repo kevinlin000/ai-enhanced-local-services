@@ -91,3 +91,18 @@ docs/code-review-request.md
 docs/code-review-report.md
 docs/codex-task-*.md
 docs/cc-task-*.md
+
+# Reviews scraper tooling (data + secrets out; scripts in)
+tools/reviews-scraper/reviews.db
+tools/reviews-scraper/reviews.db-*
+tools/reviews-scraper/google_reviews.json
+tools/reviews-scraper/review_images/
+tools/reviews-scraper/logs/
+tools/reviews-scraper/config.yaml
+tools/reviews-scraper/config_single.yaml
+tools/reviews-scraper/.venv/
+tools/reviews-scraper/__pycache__/
+tools/reviews-scraper/*.egg-info/
+
+# ETL extended reviews (raw data, not for repo)
+etl-pipeline/data/reviews_extended/

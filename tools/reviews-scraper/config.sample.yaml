@@ -1,0 +1,236 @@
+# =============================================================================
+# Google Maps Reviews Scraper Pro - Configuration
+# =============================================================================
+# Copy this file to config.yaml and adjust values to your needs.
+# All settings below show their default values unless noted otherwise.
+
+# -----------------------------------------------------------------------------
+# API Server (optional - only needed when running api_server.py)
+# -----------------------------------------------------------------------------
+api:
+  allowed_origins: "*"          # Comma-separated CORS origins (env var ALLOWED_ORIGINS takes precedence)
+  # API keys are managed via SQLite: python start.py api-key-create "my-key"
+
+# -----------------------------------------------------------------------------
+# Scraper
+# -----------------------------------------------------------------------------
+headless: true                  # Run Chrome without visible browser window
+sort_by: "newest"               # Options: newest, highest, lowest, relevance
+
+# Scrape mode — controls how reviews are processed:
+#   "new_only"  — only insert new reviews, skip existing entirely
+#   "update"    — insert new + update changed reviews (default)
+#   "full"      — re-process all reviews through upsert pipeline
+scrape_mode: "update"
+
+# Early stop — stop after N consecutive fully-matched scroll batches.
+# A "batch" = all reviews discovered in one scroll iteration.
+# A batch is "matched" when EVERY review in it is unchanged in the DB.
+# Set to 0 to disable early stop (scroll until exhaustion).
+stop_threshold: 3
+
+# Scroll limits
+max_reviews: 0                  # 0 = unlimited
+max_scroll_attempts: 50         # Max scroll iterations
+scroll_idle_limit: 15           # Max idle iterations with zero new cards
+
+# -----------------------------------------------------------------------------
+# Database (SQLite - primary storage)
+# -----------------------------------------------------------------------------
+# Created automatically on first run. Reviews are isolated per place_id.
+db_path: "reviews.db"
+
+# -----------------------------------------------------------------------------
+# Data Processing
+# -----------------------------------------------------------------------------
+convert_dates: true             # Convert relative dates to ISO format
+
+# -----------------------------------------------------------------------------
+# Images
+# -----------------------------------------------------------------------------
+# Images are stored per-business: {image_dir}/{place_id}/profiles/ and /reviews/
+download_images: true
+image_dir: "review_images"
+download_threads: 4
+max_width: 1200
+max_height: 1200
+
+# -----------------------------------------------------------------------------
+# MongoDB Sync (optional - global defaults)
+# -----------------------------------------------------------------------------
+# All reviews stored in one collection with place_id for filtering.
+# Only changed reviews are synced (new, updated, restored) by default.
+use_mongodb: false
+mongodb:
+  uri: "mongodb://localhost:27017"
+  database: "reviews"
+  collection: "google_reviews"
+  # Set to true if using self-signed certificates or local MongoDB without valid TLS
+  tls_allow_invalid_certs: false
+  # Sync mode — controls how reviews are written to MongoDB.
+  # Works independently from the scraper — always receives ALL reviews
+  # from SQLite and decides what to write based on MongoDB state:
+  #   "new_only"  — check MongoDB, only insert reviews that don't exist there
+  #   "update"    — upsert all: insert missing + update existing (default)
+  #   "full"      — same as "update"
+  sync_mode: "update"
+
+# -----------------------------------------------------------------------------
+# S3 Upload (optional - global defaults)
+# -----------------------------------------------------------------------------
+# Images uploaded per-business: {prefix}/{place_id}/profiles/ and /reviews/
+# Supports AWS S3, MinIO, and Cloudflare R2 via provider presets.
+use_s3: false
+s3:
+  # Provider presets: "aws" (default), "minio", "r2"
+  # Each preset applies sensible defaults; explicit keys always override.
+  provider: "aws"
+  aws_access_key_id: ""
+  aws_secret_access_key: ""
+  region_name: "us-east-1"
+  bucket_name: "my-bucket"
+  prefix: "google_reviews/"
+  profiles_folder: "profiles/"
+  reviews_folder: "reviews/"
+  delete_local_after_upload: false
+  s3_base_url: ""               # Custom base URL (empty = auto-generated)
+  # endpoint_url: ""            # Custom endpoint (MinIO/R2 require this)
+  # path_style: false           # Path-style addressing (MinIO requires true)
+  # acl: "public-read"          # ACL for uploads (empty = skip ACL entirely)
+  # Sync mode — controls how images are uploaded to S3:
+  #   "new_only"  — list existing S3 keys, skip files already uploaded
+  #   "update"    — upload all local files, overwrite if exists (default)
+  #   "full"      — same as "update"
+  sync_mode: "update"
+
+  # --- MinIO example ---
+  # provider: "minio"
+  # endpoint_url: "http://localhost:9000"
+  # aws_access_key_id: "minioadmin"
+  # aws_secret_access_key: "minioadmin"
+  # bucket_name: "reviews"
+  # # path_style and acl are auto-set by "minio" preset
+
+  # --- Cloudflare R2 example ---
+  # provider: "r2"
+  # endpoint_url: "https://<account-id>.r2.cloudflarestorage.com"
+  # aws_access_key_id: "<R2-access-key>"
+  # aws_secret_access_key: "<R2-secret-key>"
+  # bucket_name: "reviews"
+  # s3_base_url: "https://pub-<hash>.r2.dev"  # Public R2 bucket URL
+  # # region_name and acl are auto-set by "r2" preset
+
+# -----------------------------------------------------------------------------
+# Logging
+# -----------------------------------------------------------------------------
+# Rich colored output → stderr, JSON log files → logs/ directory.
+# log_level: "INFO"             # DEBUG, INFO, WARNING, ERROR, CRITICAL
+# log_dir: "logs"               # Directory for rotating JSON log files
+# log_file: "scraper.log"       # Log file name (inside log_dir)
+
+# -----------------------------------------------------------------------------
+# URL Replacement (optional)
+# -----------------------------------------------------------------------------
+# Replace original Google image URLs with custom CDN/S3 URLs in documents.
+replace_urls: false
+custom_url_base: ""
+custom_url_profiles: "/profiles/"
+custom_url_reviews: "/reviews/"
+preserve_original_urls: true    # Keep originals in original_* fields
+store_local_paths: true         # Store local filenames in local_images/local_profile_picture fields
+
+# -----------------------------------------------------------------------------
+# JSON Backup (optional)
+# -----------------------------------------------------------------------------
+# Full snapshot exported after each scrape.
+backup_to_json: true
+json_path: "google_reviews.json"
+
+# -----------------------------------------------------------------------------
+# Date-Range Filter (optional, v1.2.2+)
+# -----------------------------------------------------------------------------
+# Only keep reviews whose parsed date falls inside [after, before].
+# Leave after/before empty to disable (default).
+#
+# Modes:
+#   "post_filter" — filter at write time; scrolls the whole feed, drops
+#                   out-of-range reviews before MongoDB/JSON/S3. Works with any sort.
+#   "early_stop"  — stop scrolling when 3 consecutive reviews are older than
+#                   `after`. Requires sort_by: newest. Faster.
+#
+# date_filter:
+#   after: "2025-06-01"             # ISO date or ISO datetime
+#   before: "2025-09-30"             # optional upper bound
+#   mode: "post_filter"              # post_filter | early_stop
+#   on_unparseable_date: "include"   # include | exclude
+
+# -----------------------------------------------------------------------------
+# Resilience (optional, v1.2.2+)
+# -----------------------------------------------------------------------------
+# Driver crash recovery + Google rate-limit cooldown.
+# Defaults below are applied even without this block — shown for visibility.
+#
+# resilience:
+#   retry_on_session_death: 1            # Restart with a fresh driver on Chrome crash
+#   retry_backoff_base_seconds: 3        # Exponential: 3s, 9s, 27s...
+#   rate_limit_cooldown_seconds: 60      # Sleep when Google redirects to /sorry/ or CAPTCHA
+
+# -----------------------------------------------------------------------------
+# Health Probe (optional, v1.2.2+)
+# -----------------------------------------------------------------------------
+# URL used by `python start.py health` and as a known-good reference for the
+# `/health/scrape` API endpoint.
+#
+# health:
+#   synthetic_url: "https://maps.app.goo.gl/KNOWN_GOOD_PLACE"
+
+# -----------------------------------------------------------------------------
+# Audit Log Retention (optional, v1.2.2+)
+# -----------------------------------------------------------------------------
+# API audit_log rows older than this are pruned on API server startup.
+# Set to 0 to keep forever.
+#
+# audit:
+#   retention_days: 90
+
+# -----------------------------------------------------------------------------
+# Adaptive Tuning (advanced, v1.2.2+)
+# -----------------------------------------------------------------------------
+# Threshold for accepting a tab as the Reviews tab (weighted multi-signal score).
+# Lower = looser (accepts more). 0.0 reverts to pre-v1.2.2 behavior.
+# Don't touch unless Google changes their tab layout in a way our defaults miss.
+#
+# adaptive:
+#   tab_detection_threshold: 1.5
+
+# -----------------------------------------------------------------------------
+# Businesses
+# -----------------------------------------------------------------------------
+# Each entry requires a url. All other fields are optional overrides
+# that replace the global defaults above for that specific business.
+#
+# Simple setup (just URLs, uses all global defaults):
+#   businesses:
+#     - url: "https://maps.app.goo.gl/PLACE_1"
+#     - url: "https://maps.app.goo.gl/PLACE_2"
+#
+# Advanced setup (per-business overrides):
+businesses:
+  - url: "https://maps.app.goo.gl/PLACE_1"
+    custom_params:
+      company: "Company A"
+      source: "Google Maps"
+
+  - url: "https://maps.app.goo.gl/PLACE_2"
+    custom_params:
+      company: "Company B"
+      source: "Google Maps"
+    # Override MongoDB for this business (different server/database)
+    # mongodb:
+    #   uri: "mongodb://other-server:27017"
+    #   database: "company_b"
+    #   collection: "reviews"
+    # Override S3 for this business (different bucket)
+    # s3:
+    #   bucket_name: "company-b-bucket"
+    #   prefix: "reviews/"

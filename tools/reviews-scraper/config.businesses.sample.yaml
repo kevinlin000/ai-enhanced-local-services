@@ -1,0 +1,205 @@
+# =============================================================================
+# Businesses Configuration Examples
+# =============================================================================
+# Add a "businesses" section to your config.yaml.
+# Global settings (mongodb, s3, etc.) serve as defaults.
+# Each business can override any global setting.
+
+# =============================================================================
+# Example 1: Simple — all businesses share the same global settings
+# =============================================================================
+
+# businesses:
+#   - url: "https://maps.app.goo.gl/PLACE_1"
+#   - url: "https://maps.app.goo.gl/PLACE_2"
+#   - url: "https://maps.app.goo.gl/PLACE_3"
+
+# =============================================================================
+# Example 2: Per-business custom_params
+# =============================================================================
+
+# businesses:
+#   - url: "https://maps.app.goo.gl/PLACE_1"
+#     custom_params:
+#       company: "Hotel Sunrise"
+#       source: "Google Maps"
+#
+#   - url: "https://maps.app.goo.gl/PLACE_2"
+#     custom_params:
+#       company: "Hotel Moonlight"
+#       source: "Google Maps"
+
+# =============================================================================
+# Example 3: Different MongoDB per business
+# =============================================================================
+
+# businesses:
+#   - url: "https://maps.app.goo.gl/PLACE_1"
+#     custom_params:
+#       company: "Client A"
+#     mongodb:
+#       uri: "mongodb://server-a:27017"
+#       database: "client_a"
+#       collection: "reviews"
+#
+#   - url: "https://maps.app.goo.gl/PLACE_2"
+#     custom_params:
+#       company: "Client B"
+#     mongodb:
+#       uri: "mongodb://server-b:27017"
+#       database: "client_b"
+#       collection: "reviews"
+
+# =============================================================================
+# Example 4: Different S3 buckets per business
+# =============================================================================
+
+# businesses:
+#   - url: "https://maps.app.goo.gl/PLACE_1"
+#     custom_params:
+#       company: "Brand A"
+#     s3:
+#       provider: "aws"
+#       aws_access_key_id: "AKIA..."
+#       aws_secret_access_key: "secret..."
+#       region_name: "us-east-1"
+#       bucket_name: "brand-a-reviews"
+#       prefix: "google/"
+#
+#   - url: "https://maps.app.goo.gl/PLACE_2"
+#     custom_params:
+#       company: "Brand B"
+#     s3:
+#       provider: "minio"
+#       endpoint_url: "http://minio.internal:9000"
+#       aws_access_key_id: "minioadmin"
+#       aws_secret_access_key: "minioadmin"
+#       bucket_name: "brand-b-reviews"
+#       prefix: "google/"
+#
+#   - url: "https://maps.app.goo.gl/PLACE_3"
+#     custom_params:
+#       company: "Brand C"
+#     s3:
+#       provider: "r2"
+#       endpoint_url: "https://ACCOUNT_ID.r2.cloudflarestorage.com"
+#       aws_access_key_id: "R2_ACCESS_KEY"
+#       aws_secret_access_key: "R2_SECRET_KEY"
+#       bucket_name: "brand-c-reviews"
+#       s3_base_url: "https://pub-HASH.r2.dev"
+#       prefix: "google/"
+
+# =============================================================================
+# Example 5: Full override — each business has its own everything
+# =============================================================================
+
+businesses:
+  - url: "https://maps.app.goo.gl/PLACE_1"
+    custom_params:
+      company: "Enterprise Client"
+      source: "Google Maps"
+    sort_by: "newest"
+    scrape_mode: "update"
+    stop_threshold: 5
+    max_reviews: 0
+    max_scroll_attempts: 50
+    scroll_idle_limit: 15
+    convert_dates: true
+    download_images: true
+    image_dir: "review_images"
+    download_threads: 8
+    max_width: 1200
+    max_height: 1200
+    use_mongodb: true
+    mongodb:
+      uri: "mongodb://prod-mongo.enterprise.com:27017"
+      database: "enterprise_reviews"
+      collection: "google"
+      tls_allow_invalid_certs: false
+      sync_mode: "update"
+    use_s3: true
+    s3:
+      provider: "aws"              # "aws", "minio", or "r2"
+      aws_access_key_id: "AKIA..."
+      aws_secret_access_key: "secret..."
+      region_name: "eu-west-1"
+      bucket_name: "enterprise-media"
+      prefix: "reviews/google/"
+      profiles_folder: "profiles/"
+      reviews_folder: "reviews/"
+      delete_local_after_upload: true
+      s3_base_url: "https://cdn.enterprise.com/reviews/google"
+      # endpoint_url: ""           # Set for MinIO/R2
+      # path_style: false          # Set true for MinIO
+      # acl: "public-read"         # Empty = skip ACL (R2)
+      sync_mode: "update"
+    replace_urls: true
+    store_local_paths: true
+    custom_url_base: "https://cdn.enterprise.com/reviews/google"
+    custom_url_profiles: "/profiles/"
+    custom_url_reviews: "/reviews/"
+    preserve_original_urls: true
+    backup_to_json: true
+    json_path: "enterprise_reviews.json"
+
+  - url: "https://maps.app.goo.gl/PLACE_2"
+    custom_params:
+      company: "Startup Client"
+      source: "Google Maps"
+    sort_by: "relevance"
+    scrape_mode: "update"
+    stop_threshold: 3
+    convert_dates: true
+    download_images: true
+    image_dir: "review_images"
+    download_threads: 4
+    max_width: 800
+    max_height: 800
+    use_mongodb: true
+    mongodb:
+      uri: "mongodb://localhost:27017"
+      database: "startup_reviews"
+      collection: "google"
+    use_s3: false
+    replace_urls: false
+    preserve_original_urls: true
+    backup_to_json: true
+    json_path: "startup_reviews.json"
+
+# =============================================================================
+# Available override keys per business:
+#
+#   url                    (required)
+#   custom_params          company, source, or any custom fields
+#   sort_by                newest, highest, lowest, relevance
+#   scrape_mode            new_only, update, full
+#   stop_threshold         integer (0 = disabled)
+#   max_reviews            integer (0 = unlimited)
+#   max_scroll_attempts    integer
+#   scroll_idle_limit      integer
+#   convert_dates          true/false
+#   download_images        true/false
+#   image_dir              directory path
+#   download_threads       integer
+#   max_width              integer
+#   max_height             integer
+#   use_mongodb            true/false
+#   mongodb                uri, database, collection, sync_mode,
+#                          tls_allow_invalid_certs
+#   use_s3                 true/false
+#   s3                     provider (aws/minio/r2),
+#                          aws_access_key_id, aws_secret_access_key,
+#                          region_name, bucket_name, prefix,
+#                          endpoint_url, path_style, acl,
+#                          profiles_folder, reviews_folder,
+#                          delete_local_after_upload, s3_base_url,
+#                          sync_mode
+#   replace_urls           true/false
+#   custom_url_base        URL string
+#   custom_url_profiles    path string
+#   custom_url_reviews     path string
+#   preserve_original_urls true/false
+#   store_local_paths      true/false
+#   backup_to_json         true/false
+#   json_path              file path
+# =============================================================================
