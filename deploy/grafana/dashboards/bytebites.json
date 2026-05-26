@@ -107,13 +107,18 @@
       "targets": [
         {
           "expr": "rate(rabbitmq_channel_messages_published_total[1m])",
-          "legendFormat": "published",
+          "legendFormat": "published (plugin)",
           "refId": "A"
         },
         {
-          "expr": "rate(rabbitmq_channel_messages_delivered_total[1m])",
-          "legendFormat": "delivered",
+          "expr": "rate(rabbitmq_published_total{application=\"bytebites-java\"}[1m])",
+          "legendFormat": "published (spring)",
           "refId": "B"
+        },
+        {
+          "expr": "rate(rabbitmq_channel_messages_delivered_total[1m])",
+          "legendFormat": "delivered (plugin)",
+          "refId": "C"
         }
       ]
     },
@@ -146,7 +151,7 @@
     {
       "id": 22,
       "type": "stat",
-      "title": "Active HTTP Connections",
+      "title": "JVM Runnable Threads",
       "gridPos": { "x": 6, "y": 17, "w": 6, "h": 4 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
@@ -156,8 +161,8 @@
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "value", "colorMode": "background" },
       "targets": [
         {
-          "expr": "tomcat_connections_current_connections{application=\"bytebites-java\"}",
-          "legendFormat": "connections",
+          "expr": "jvm_threads_states_threads{application=\"bytebites-java\",state=\"runnable\"}",
+          "legendFormat": "runnable threads",
           "refId": "A"
         }
       ]
@@ -199,7 +204,7 @@
       },
       "targets": [
         {
-          "expr": "rate(ai_requests_total[1m])",
+          "expr": "rate(bytebites_ai_requests_total[1m])",
           "legendFormat": "{{endpoint}}",
           "refId": "A"
         }
@@ -217,12 +222,12 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, rate(ai_latency_seconds_bucket[1m]))",
+          "expr": "histogram_quantile(0.50, rate(bytebites_ai_latency_seconds_bucket[1m]))",
           "legendFormat": "p50 {{endpoint}}",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, rate(ai_latency_seconds_bucket[1m]))",
+          "expr": "histogram_quantile(0.99, rate(bytebites_ai_latency_seconds_bucket[1m]))",
           "legendFormat": "p99 {{endpoint}}",
           "refId": "B"
         }
@@ -259,8 +264,65 @@
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "value", "colorMode": "background" },
       "targets": [
         {
-          "expr": "sum(ai_requests_total)",
+          "expr": "sum(bytebites_ai_requests_total)",
           "legendFormat": "total",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "type": "timeseries",
+      "title": "Gemini Tokens Consumed (cumulative)",
+      "gridPos": { "x": 0, "y": 36, "w": 12, "h": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "expr": "bytebites_ai_tokens_total",
+          "legendFormat": "{{kind}} ({{model}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "type": "stat",
+      "title": "Gemini Prompt Tokens (total)",
+      "gridPos": { "x": 12, "y": 36, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "fixedColor": "orange", "mode": "fixed" } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "value_and_name", "colorMode": "background" },
+      "targets": [
+        {
+          "expr": "bytebites_ai_tokens_total{kind=\"prompt\"}",
+          "legendFormat": "prompt",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "type": "stat",
+      "title": "Gemini Output Tokens (total)",
+      "gridPos": { "x": 18, "y": 36, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "fixedColor": "semi-dark-orange", "mode": "fixed" } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "value_and_name", "colorMode": "background" },
+      "targets": [
+        {
+          "expr": "bytebites_ai_tokens_total{kind=\"output\"}",
+          "legendFormat": "output",
           "refId": "A"
         }
       ]
