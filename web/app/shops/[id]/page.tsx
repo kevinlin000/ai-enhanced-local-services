@@ -147,49 +147,49 @@ function buildFeatureHighlights({
   const serviceSnippet = findReviewSnippet(positiveReviews, /服務|店員|親切|細心|專業|桌邊|介紹|照顧|貼心/);
   const groupLikeTags = tags.filter((tag) => ["聚餐", "約會", "親子", "商務", "慶生", "一人"].includes(tag));
 
-  if (dishes.length > 0 || foodSnippet) {
+  if (foodSnippet || dishes.length >= 2) {
     const dishText = dishes.slice(0, 3).join("、");
     rows.push({
-      label: "料理亮點",
+      label: "招牌菜色",
       detail:
         variant === 0
-          ? `${dishText ? `${dishText}是最常被點名的幾道代表菜，` : ""}${foodSnippet ? `像「${foodSnippet}」這種具體描述，` : ""}通常最能直接看出這家${styleLabel}真正讓人留下印象的地方。`
+          ? `${dishText ? `${dishText}通常會最先被客人提起，` : ""}${foodSnippet ? `而像「${foodSnippet}」這類說法，也更能直接看出這家${styleLabel}真正被記住的是哪一口。` : `多數人第一次來，通常也會先從這幾道看它的基本盤。`}`
           : variant === 1
-            ? `${foodSnippet ? `不少好評會直接寫到「${foodSnippet}」，` : ""}${dishText ? `而${dishText}也因此常被視為第一次來訪最值得先鎖定的菜色。` : "這類描述通常最能反映這家店被記住的原因。"}`
-            : `${dishText ? `${dishText}通常會最先被拿出來討論，` : ""}${foodSnippet ? `再加上「${foodSnippet}」這種具體回饋，` : ""}讓人更容易理解這家店的招牌重心到底落在哪裡。`,
+            ? `${foodSnippet ? `不少好評會直接寫到「${foodSnippet}」，` : ""}${dishText ? `因此像${dishText}這幾道，也常被當成這家店最能代表自己的菜。` : "這種具體吃法與口感描述，通常最能反映它真正的強項。"}`
+            : `${dishText ? `${dishText}大多會被放在同一輪討論裡，` : ""}${foodSnippet ? `再配上「${foodSnippet}」這種具體回饋，` : ""}比起單純說好吃，更能知道這家店厲害在哪裡。`,
     });
   }
 
-  if (environmentSnippet || groupLikeTags.length > 0) {
+  if (environmentSnippet) {
     const sceneText = groupLikeTags.includes("一人")
       ? "一個人安靜吃一餐"
       : groupLikeTags.length > 0
         ? groupLikeTags.slice(0, 2).join("、")
         : `${district}一帶的完整正餐場合`;
     rows.push({
-      label: "空間氛圍",
+      label: "空間感受",
       detail:
         variant === 0
-          ? `${environmentSnippet ? `像「${environmentSnippet}」這類描述，` : ""}讓人比較能想像這裡不只是吃完就走的地方，而是適合安排${sceneText}這種需要坐得住的場合。`
+          ? `像「${environmentSnippet}」這類描述，通常能幫你想像現場的空間體感；也因為如此，它常被放進${sceneText}這種需要坐得住的場合。`
           : variant === 1
-            ? `${environmentSnippet ? `不少人會直接提到「${environmentSnippet}」，` : ""}再加上它常被拿來安排${sceneText}這類情境，表示環境體感通常不只是配角。`
-            : `${sceneText}是這家店很常出現的使用情境；${environmentSnippet ? `而從「${environmentSnippet}」這類說法來看，` : ""}空間與現場氛圍通常也有把整體體驗撐住。`,
+            ? `不少人會直接提到「${environmentSnippet}」，再加上它常被拿來安排${sceneText}這類情境，表示空間感並不是可有可無的背景。`
+            : `${sceneText}是它很常出現的使用方式；而從「${environmentSnippet}」這類說法來看，現場氛圍通常也有把整體體驗撐住。`,
     });
   }
 
   if (serviceSnippet) {
     rows.push({
-      label: "服務體感",
+      label: "服務互動",
       detail:
         variant === 0
-          ? `像「${serviceSnippet}」這類回饋，表示這家店被記住的不只是一兩道菜，連現場應對和互動節奏也常被一起提到。`
+          ? `像「${serviceSnippet}」這類回饋，表示客人記住的不只是一兩道菜，連現場應對與互動方式也有被一起留下印象。`
           : variant === 1
-            ? `把好評拆開看，常會看到像「${serviceSnippet}」這樣的描述，代表服務表現不只是背景，而是真的被客人記住。`
-            : `如果只看菜色很容易少看一塊，但像「${serviceSnippet}」這類回饋，其實也在補強整體體驗感。`,
+            ? `把好評拆開看，常會看到像「${serviceSnippet}」這樣的描述，代表這裡的服務並不是背景板，而是真的有被客人提起。`
+            : `如果只看菜色很容易少看一塊，但像「${serviceSnippet}」這類回饋，也在補強整體體驗為什麼會成立。`,
     });
   }
 
-  if (mrt && rows.length < 4) {
+  if (mrt && rows.length >= 2 && rows.length < 4) {
     rows.push({
       label: "位置便利",
       detail:
@@ -201,7 +201,7 @@ function buildFeatureHighlights({
     });
   }
 
-  return rows.slice(0, 4);
+  return rows.length >= 2 ? rows.slice(0, 4) : [];
 }
 
 function parseBusinessHours(value?: string | null): string[] {

@@ -357,27 +357,29 @@ export function ShopDetailTabs(props: Props) {
 
       {activeTab === "reviews" ? (
         <div className="space-y-8 pt-6">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">餐廳特色</h3>
-            <div className="overflow-hidden rounded-2xl border">
-              <table className="w-full text-sm">
-                <thead className="bg-stone-100 text-left">
-                  <tr>
-                    <th className="px-4 py-3 font-medium text-muted-foreground">類別</th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground">重點描述</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {props.featureHighlights.map((item) => (
-                    <tr key={item.label} className="border-t align-top">
-                      <td className="px-4 py-4 font-medium">{item.label}</td>
-                      <td className="px-4 py-4 text-muted-foreground leading-relaxed">{item.detail}</td>
+          {props.featureHighlights.length > 0 ? (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">餐廳特色</h3>
+              <div className="overflow-hidden rounded-2xl border">
+                <table className="w-full text-sm">
+                  <thead className="bg-stone-100 text-left">
+                    <tr>
+                      <th className="px-4 py-3 font-medium text-muted-foreground">類別</th>
+                      <th className="px-4 py-3 font-medium text-muted-foreground">重點描述</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {props.featureHighlights.map((item) => (
+                      <tr key={item.label} className="border-t align-top">
+                        <td className="px-4 py-4 font-medium">{item.label}</td>
+                        <td className="px-4 py-4 text-muted-foreground leading-relaxed">{item.detail}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          ) : null}
 
           {props.advice.length > 0 ? (
             <div className="space-y-4">
