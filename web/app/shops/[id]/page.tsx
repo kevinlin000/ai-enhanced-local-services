@@ -106,6 +106,76 @@ function summarizeReviewTone(text?: string | null) {
   return tones.length ? [...new Set(tones)].slice(0, 2) : null;
 }
 
+function buildFeatureHighlights({
+  shop,
+  styleLabel,
+  dishes,
+  tags,
+  reviewInsights,
+}: {
+  shop: Shop;
+  styleLabel: string;
+  dishes: string[];
+  tags: string[];
+  reviewInsights:
+    | {
+        advice: { label: string; detail: string }[];
+        selectedReviews: { labels: string[]; text: string; rating: number }[];
+      }
+    | null;
+}) {
+  const rows: { label: string; detail: string }[] = [];
+  const district = shop.district ?? shop.area ?? "台北市";
+  const mrt = cleanSentence(shop.mrtStation);
+  const positiveReviews = reviewInsights?.selectedReviews?.filter((review) => review.rating >= 4) ?? [];
+  const environmentMentioned = positiveReviews.some((review) =>
+    /環境|裝潢|氣氛|空間|包廂|景觀|寬敞|明亮/.test(review.text),
+  );
+  const serviceMentioned = positiveReviews.some((review) =>
+    /服務|店員|親切|細心|專業|桌邊|介紹/.test(review.text),
+  );
+  const groupLikeTags = tags.filter((tag) => ["聚餐", "約會", "親子", "商務", "慶生", "一人"].includes(tag));
+
+  if (dishes.length > 0) {
+    rows.push({
+      label: "料理亮點",
+      detail: `${dishes.slice(0, 3).join("、")}是最常被點名的代表菜色，通常也最能把這家${styleLabel}的主軸、口感記憶點與整體完成度交代清楚。`,
+    });
+  }
+
+  rows.push({
+    label: "用餐定位",
+    detail: `${shop.name}在${district}一帶更像一間適合坐下來完整吃一餐的${styleLabel}，不是只靠單一招牌撐場，而是從菜色主題到整體節奏都有明確定位。`,
+  });
+
+  if (environmentMentioned || groupLikeTags.length > 0) {
+    rows.push({
+      label: "空間氛圍",
+      detail: groupLikeTags.length > 0
+        ? `評論裡常把它放在${groupLikeTags.slice(0, 2).join("、")}這類情境來看，表示除了菜色本身，空間感與現場氛圍通常也撐得住聚會需求。`
+        : "不少好評會特別提到環境、裝潢或座位安排，代表這裡帶來的不是單純填飽肚子的節奏，而是比較完整的現場體感。",
+    });
+  }
+
+  if (serviceMentioned) {
+    rows.push({
+      label: "服務節奏",
+      detail: "正面評論裡常會提到服務應對、介紹節奏或桌邊照顧，表示這家店的體驗通常不是只靠菜色，而是連現場互動也能一起撐住。",
+    });
+  }
+
+  if (mrt || district) {
+    rows.push({
+      label: "位置便利",
+      detail: mrt
+        ? `店家位在${district}，離捷運${mrt}不遠，對下班聚餐、週末約吃或想控制移動成本的人來說，抵達上通常算是順手。`
+        : `店家位在${district}一帶，若你本來就在這區安排聚餐或行程，它會是相對容易納入動線的一家店。`,
+    });
+  }
+
+  return rows.slice(0, 5);
+}
+
 function parseBusinessHours(value?: string | null): string[] {
   if (!value) return [];
   const trimmed = value.trim();
@@ -375,12 +445,20 @@ export default async function ShopDetailPage({
   })();
 
   const reviewInsightCards = [
-    overview?.price_overview ? { label: "Google 平均每人", value: overview.price_overview } : null,
     hasValue(ai?.bookingDifficulty) ? { label: "預約難度", value: ai!.bookingDifficulty! } : null,
-    hasValue(ai?.pricePerPerson) ? { label: "參考價位", value: ai!.pricePerPerson! } : null,
+    hasValue(ai?.pricePerPerson) && cleanSentence(ai?.pricePerPerson) !== cleanSentence(overview?.price_overview)
+      ? { label: "參考價位", value: ai!.pricePerPerson! }
+      : null,
     dishes.length > 0 ? { label: "最常被提到", value: dishes.slice(0, 3).join("、") } : null,
     tags.length > 0 ? { label: "常見場景", value: tags.slice(0, 3).join("、") } : null,
   ].filter(Boolean) as { label: string; value: string }[];
+  const featureHighlights = buildFeatureHighlights({
+    shop,
+    styleLabel: style.label,
+    dishes,
+    tags,
+    reviewInsights,
+  });
 
   return (
     <div className="min-h-screen pb-32">
@@ -604,6 +682,7 @@ export default async function ShopDetailPage({
         dishes={dishes}
         tags={tags}
         reviewInsightCards={reviewInsightCards}
+        featureHighlights={featureHighlights}
         advice={reviewInsights?.advice ?? []}
         selectedReviews={reviewInsights?.selectedReviews ?? []}
         reviewTotal={reviewInsights?.totalReviews ?? 0}

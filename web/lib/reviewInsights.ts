@@ -35,6 +35,11 @@ export type AdviceInsight = {
   detail: string;
 };
 
+export type FeatureInsight = {
+  label: string;
+  detail: string;
+};
+
 export type ShopReviewInsights = {
   selectedReviews: ReviewSnippet[];
   advice: AdviceInsight[];
@@ -53,27 +58,32 @@ const RAW_DIR = path.join(
 const ADVICE_RULES: { label: string; detail: string; keywords: string[] }[] = [
   {
     label: "上菜節奏",
-    detail: "部分評論提到上菜較慢或節奏不穩，若是正式聚餐可多預留時間。",
+    detail:
+      "部分評論提到客滿時餐點現做會稍微多等一會，若你後面還有行程，或是安排長輩聚餐、慶生聚會，建議多預留一些用餐時間會更從容。",
     keywords: ["上菜", "太慢", "太久", "等待", "節奏", "久等"],
   },
   {
     label: "價格感受",
-    detail: "有些客人會特別提到價格或套餐份量，建議先確認預算與點餐策略。",
+    detail:
+      "部分客人會特別在意單點價位或套餐份量，若你對預算較敏感，建議先確認套餐內容與份量，再決定要單點還是直接選配好的組合。",
     keywords: ["太貴", "價格", "價位", "cp值", "預算", "套餐"],
   },
   {
     label: "調味偏好",
-    detail: "若你口味較清淡，部分菜色可能會被認為偏鹹或偏重。",
+    detail:
+      "少數評論會提到個別菜色調味偏重；如果你平常口味偏清淡，點餐時可以先問店員推薦較清爽的選項，體感通常會更穩。",
     keywords: ["太鹹", "偏鹹", "口味重", "重鹹", "油"],
   },
   {
     label: "服務溝通",
-    detail: "少數評論會提到服務細節或溝通落差，尖峰時段可多確認需求。",
+    detail:
+      "少數評論提到尖峰時段偶爾會有照顧不周或需求漏接的情況，若你有座位、熟度或客製化需求，建議主動再確認一次會更安心。",
     keywords: ["服務", "店員", "態度", "溝通", "推我", "不理"],
   },
   {
     label: "環境噪音",
-    detail: "如果你偏好安靜聚餐，建議避開尖峰時段或先確認座位安排。",
+    detail:
+      "用餐尖峰時段通常會比較熱絡，若你偏好安靜聊天或商務型聚會，建議避開熱門時段，或訂位時先詢問是否能安排較邊角的位置。",
     keywords: ["吵", "擁擠", "太擠", "空間", "座位"],
   },
 ];

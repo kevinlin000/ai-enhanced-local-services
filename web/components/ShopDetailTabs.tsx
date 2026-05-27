@@ -27,6 +27,11 @@ type AdviceInsight = {
   detail: string;
 };
 
+type FeatureInsight = {
+  label: string;
+  detail: string;
+};
+
 type Props = {
   introText: string;
   address?: string;
@@ -42,6 +47,7 @@ type Props = {
   dishes: string[];
   tags: string[];
   reviewInsightCards: { label: string; value: string }[];
+  featureHighlights: FeatureInsight[];
   advice: AdviceInsight[];
   selectedReviews: ReviewSnippet[];
   reviewTotal: number;
@@ -367,10 +373,10 @@ export function ShopDetailTabs(props: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {props.reviewInsightCards.slice(0, 4).map((card) => (
-                    <tr key={card.label} className="border-t align-top">
-                      <td className="px-4 py-4 font-medium">{card.label}</td>
-                      <td className="px-4 py-4 text-muted-foreground leading-relaxed">{card.value}</td>
+                  {props.featureHighlights.map((item) => (
+                    <tr key={item.label} className="border-t align-top">
+                      <td className="px-4 py-4 font-medium">{item.label}</td>
+                      <td className="px-4 py-4 text-muted-foreground leading-relaxed">{item.detail}</td>
                     </tr>
                   ))}
                 </tbody>
