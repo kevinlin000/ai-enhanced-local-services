@@ -34,12 +34,12 @@ const CATEGORY_LABELS: Record<string, string> = {
   japanese: "日式料理",
   omakase: "無菜單料理",
   steakhouse: "牛排館",
-  european: "義法料理",
+  european: "義法 / 西式",
   chinese: "中式料理",
   korean: "韓式料理",
-  brunch: "美式 / Brunch",
+  brunch: "美式料理",
   "fine-dining": "高級餐廳",
-  "cafe-premium": "特色咖啡",
+  "cafe-premium": "甜點 / 咖啡",
 };
 
 /** 產生或讀取 localStorage session id */

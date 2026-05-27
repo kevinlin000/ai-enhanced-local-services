@@ -117,7 +117,7 @@ const MAP: Record<string, Style> = {
     icon: Utensils,
     gradient: "from-blue-100 to-indigo-50",
     accentBg: "bg-blue-50",
-    label: "義法料理",
+    label: "義法 / 西式",
   },
   chinese: {
     icon: Soup,
@@ -129,7 +129,7 @@ const MAP: Record<string, Style> = {
     icon: Sandwich,
     gradient: "from-green-100 to-emerald-50",
     accentBg: "bg-green-50",
-    label: "美式 / Brunch",
+    label: "美式料理",
   },
   "fine-dining": {
     icon: Star,
@@ -141,7 +141,7 @@ const MAP: Record<string, Style> = {
     icon: Coffee,
     gradient: "from-amber-100 to-yellow-50",
     accentBg: "bg-amber-50",
-    label: "特色咖啡",
+    label: "甜點 / 咖啡",
   },
   default: {
     icon: Utensils,
