@@ -193,19 +193,21 @@ export default async function Home() {
 
         <div className="space-y-8">
           {stationsWithShops.map(({ name: station, shops }) => {
+            const visibleStationShops = prioritizeVisibleShops(shops)
+              .filter((shop) => hasUsablePhoto(shop))
+              .slice(0, 5);
+
+            if (visibleStationShops.length === 0) return null;
             return (
               <div key={station}>
                 <div className="mb-3 flex items-baseline justify-between">
                   <h3 className="font-medium">
                     捷運<span className="text-primary">{station}</span>站
                   </h3>
-                  <span className="text-muted-foreground font-mono text-xs">{shops.length} 家</span>
+                  <span className="text-muted-foreground font-mono text-xs">{visibleStationShops.length} 家</span>
                 </div>
                 <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory">
-                  {prioritizeVisibleShops(shops)
-                    .filter((shop) => hasUsablePhoto(shop))
-                    .slice(0, 5)
-                    .map((shop) => {
+                  {visibleStationShops.map((shop) => {
                     const style = getStyleByTypeId(shop.typeId);
                     const Icon = style.icon;
                     const fallbackImage = shop.images?.startsWith("http")
