@@ -70,6 +70,10 @@ const SCORE_OPTIONS = [
   { label: "3.5+", value: 35 },
 ];
 
+const PAGE_SIZE_OPTIONS = [12, 24, 48, "all"] as const;
+type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
+const SEARCH_FETCH_SIZE = 2000;
+
 function getDisplaySpend(shop: Shop) {
   const overview = getShopOverview(shop.id);
   if (overview?.price_overview) return `平均每人 ${overview.price_overview}`;
@@ -102,7 +106,6 @@ function ShopsPageContent() {
   const searchParams = useSearchParams();
   const [options, setOptions] = useState<FilterOptions | null>(null);
   const [shops, setShops] = useState<Shop[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [categorySlugToId, setCategorySlugToId] = useState<Map<string, number>>(new Map());
 
@@ -122,6 +125,8 @@ function ShopsPageContent() {
   const [selectedDistricts, setSelectedDistricts] = useState<Set<string>>(new Set());
   const [selectedMrt, setSelectedMrt] = useState<Set<string>>(new Set());
   const [minScore, setMinScore] = useState<number | null>(null);
+  const [pageSize, setPageSize] = useState<PageSize>(24);
+  const [page, setPage] = useState(1);
 
   // load filter options + all-shops cache once
   useEffect(() => {
@@ -167,6 +172,10 @@ function ShopsPageContent() {
     return () => clearTimeout(t);
   }, [q]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchMode, debouncedQ, selectedTypes, selectedDistricts, selectedMrt, minScore, pageSize]);
+
   // ── Text mode search ──
   useEffect(() => {
     if (searchMode !== "text") return;
@@ -180,13 +189,12 @@ function ShopsPageContent() {
         mrtStations: selectedMrt.size > 0 ? Array.from(selectedMrt) : undefined,
         minScore: minScore ?? undefined,
         page: 1,
-        size: 60,
+        size: SEARCH_FETCH_SIZE,
       })
       .then((r) => {
         if (r?.success) {
           const filtered = hideLegacySeedShops(r.data.records ?? []);
           setShops(filtered);
-          setTotal(filtered.length);
         }
       })
       .finally(() => setLoading(false));
@@ -199,7 +207,6 @@ function ShopsPageContent() {
       setAiHitIds(null);
       // show all shops when query cleared
       setShops(allShopsRef.current);
-      setTotal(allShopsRef.current.length);
       return;
     }
     setAiLoading(true);
@@ -227,7 +234,6 @@ function ShopsPageContent() {
     if (searchMode !== "ai" || aiHitIds === null) return;
     if (aiHitIds.length === 0) {
       setShops([]);
-      setTotal(0);
       return;
     }
     const map = new Map(allShopsRef.current.map((s) => [s.id, s]));
@@ -250,7 +256,6 @@ function ShopsPageContent() {
       .filter(Boolean) as Shop[];
     const filtered = hideLegacySeedShops(ordered);
     setShops(filtered);
-    setTotal(filtered.length);
   }, [searchMode, aiHitIds, aiHitMeta]);
 
   // switch to text mode: reset AI state, keep filter state
@@ -270,7 +275,6 @@ function ShopsPageContent() {
     setQ("");
     // show all while waiting
     setShops(allShopsRef.current);
-    setTotal(allShopsRef.current.length);
   };
 
   const activeFilterCount = useMemo(() => {
@@ -304,6 +308,19 @@ function ShopsPageContent() {
     () => (searchMode === "text" ? sortVisibleShops(shops) : shops),
     [searchMode, shops],
   );
+  const totalPages = useMemo(() => {
+    if (pageSize === "all") return 1;
+    return Math.max(1, Math.ceil(visibleShops.length / pageSize));
+  }, [pageSize, visibleShops.length]);
+  const pagedShops = useMemo(() => {
+    if (pageSize === "all") return visibleShops;
+    const start = (page - 1) * pageSize;
+    return visibleShops.slice(start, start + pageSize);
+  }, [pageSize, page, visibleShops]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const renderAiReason = (shop: Shop) => {
     const parts: string[] = [];
@@ -522,11 +539,35 @@ function ShopsPageContent() {
         <div>
           <div className="flex items-baseline justify-between mb-3">
             <p className="text-sm text-muted-foreground">
-              {isLoading ? "搜尋中..." : `共 ${total} 家`}
+              {isLoading ? "搜尋中..." : `共 ${visibleShops.length} 家`}
               {activeFilterCount > 0 && (
                 <span> · {activeFilterCount} 個篩選</span>
               )}
             </p>
+            {!isLoading && visibleShops.length > 0 ? (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">每頁顯示</span>
+                <div className="flex items-center gap-1 rounded-lg border bg-background p-1">
+                  {PAGE_SIZE_OPTIONS.map((option) => {
+                    const active = pageSize === option;
+                    const label = option === "all" ? "全部" : String(option);
+                    return (
+                      <button
+                        key={label}
+                        onClick={() => setPageSize(option)}
+                        className={`rounded-md px-2 py-1 transition-colors ${
+                          active
+                            ? "bg-foreground text-background"
+                            : "text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {/* AI mode hint */}
@@ -550,7 +591,7 @@ function ShopsPageContent() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-            {visibleShops.map((shop) => {
+            {pagedShops.map((shop) => {
               const style = getStyleByTypeId(shop.typeId);
               const Icon = style.icon;
                 const coverPhoto = proxyImageUrl(
@@ -685,6 +726,32 @@ function ShopsPageContent() {
               );
             })}
           </div>
+
+          {!isLoading && visibleShops.length > 0 && pageSize !== "all" ? (
+            <div className="mt-6 flex items-center justify-between gap-3 rounded-xl border bg-background px-4 py-3 text-sm">
+              <p className="text-muted-foreground">
+                第 {page} / {totalPages} 頁
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={page === 1}
+                  className="rounded-lg border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  上一頁
+                </button>
+                <button
+                  onClick={() =>
+                    setPage((current) => Math.min(totalPages, current + 1))
+                  }
+                  disabled={page === totalPages}
+                  className="rounded-lg border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  下一頁
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
