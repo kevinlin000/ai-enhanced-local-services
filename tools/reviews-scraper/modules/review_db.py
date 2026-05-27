@@ -23,7 +23,7 @@ from modules.place_id import canonicalize_url
 
 log = logging.getLogger("scraper")
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 _SCHEMA_DDL = """
 -- Schema version tracking (single-row model)
@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS places (
     resolved_url   TEXT,
     latitude       REAL,
     longitude      REAL,
+    overview_metadata TEXT,
     first_seen     TEXT NOT NULL,
     last_scraped   TEXT,
     total_reviews  INTEGER DEFAULT 0
@@ -223,12 +224,29 @@ class ReviewDB:
         else:
             self.backend.execute(
                 "INSERT INTO places (place_id, place_name, original_url, resolved_url, "
-                "latitude, longitude, first_seen, last_scraped, total_reviews) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
+                "latitude, longitude, overview_metadata, first_seen, last_scraped, total_reviews) "
+                "VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, 0)",
                 (place_id, place_name, original_url, canon_url, lat, lng, now, now)
             )
         self.backend.commit()
         return place_id
+
+    def update_place_overview(self, place_id: str, overview: Dict[str, Any]) -> None:
+        """Persist overview metadata JSON for a place."""
+        existing = self.get_place(place_id)
+        merged: Dict[str, Any] = {}
+        if existing and existing.get("overview_metadata"):
+            try:
+                merged.update(json.loads(existing["overview_metadata"]))
+            except Exception:
+                merged = {}
+        merged.update({k: v for k, v in overview.items() if v not in (None, "", [], {})})
+        merged["updated_at"] = _now_utc()
+        self.backend.execute(
+            "UPDATE places SET overview_metadata = ? WHERE place_id = ?",
+            (json.dumps(merged, ensure_ascii=False), place_id),
+        )
+        self.backend.commit()
 
     def resolve_alias(self, place_id: str, resolved_url: str) -> str:
         """
@@ -1082,5 +1100,9 @@ _MIGRATIONS: Dict[int, List[str]] = {
     # get it via the main DDL; existing DBs via this migration. Additive only.
     2: [
         "ALTER TABLE reviews ADD COLUMN sub_ratings TEXT;",
+    ],
+    # v3: per-place overview metadata JSON (overview photos / avg spend / busy times).
+    3: [
+        "ALTER TABLE places ADD COLUMN overview_metadata TEXT;",
     ],
 }

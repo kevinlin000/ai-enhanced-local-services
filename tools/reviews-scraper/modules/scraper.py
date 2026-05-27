@@ -168,6 +168,10 @@ REVIEW_WORDS = {
     "отзиви", "ревюта", "мнения", "коментари", "оценки"
 }
 
+
+def _normalize_text(value: str | None) -> str:
+    return " ".join((value or "").split()).strip()
+
 # Negative-signal keywords — tabs whose presence implies this is NOT the
 # reviews tab. Used to penalize false positives (Menu/Overview/Photos etc.
 # sometimes sit at data-tab-index="1" when Google reorders tabs).
@@ -216,6 +220,35 @@ def _text_contains_any(text: str, words: set) -> bool:
         return False
     low = text.lower()
     return any(w in low for w in words)
+
+
+OVERVIEW_PHOTO_URL_RE = re.compile(r"https://lh\d+\.googleusercontent\.com/[^\"' )]+")
+PRICE_SUMMARY_RE = re.compile(r"平均每人\s*(\$[\d,]+(?:\s*[–-]\s*\$?[\d,]+)?)")
+PRICE_REPORT_COUNT_RE = re.compile(r"(\d+)\s*人回報")
+PRICE_BUCKET_RE = re.compile(r"\$[\d,]+(?:-\$?[\d,]+)")
+POPULAR_HOUR_RE = re.compile(r"(\d{1,2}時)\s*[：:]\s*([^\n]+)")
+VISIT_DURATION_RE = re.compile(r"訪客通常會在此停留\s*([^\n]+)")
+
+
+def _score_overview_photo(url: str) -> int:
+    score = 0
+    if "/a-/" in url:
+        return -100
+    m = re.search(r"=w(\d+)-h(\d+)-", url)
+    if m:
+        w = int(m.group(1))
+        h = int(m.group(2))
+        if w >= 900:
+            score += 5
+        elif w >= 600:
+            score += 3
+        if w > h:
+            score += 5
+        if h > w:
+            score -= 3
+        if h and w / h >= 1.25:
+            score += 4
+    return score
 
 
 class _DriverSessionLost(Exception):
@@ -280,6 +313,21 @@ class GoogleReviewsScraper:
             "last_modified_date": db_review.get("last_modified", ""),
         }
 
+    def _should_skip_low_signal_review(self, raw: RawReview) -> bool:
+        """Drop empty/rating-only reviews before they hit SQLite/Mongo/JSON."""
+        if not self.config.get("skip_blank_reviews", True):
+            return False
+
+        min_chars = int(self.config.get("blank_review_min_text_chars", 4))
+        keep_photo_only = bool(self.config.get("keep_photo_only_reviews", False))
+
+        has_text = len(_normalize_text(raw.text)) >= min_chars
+        has_owner = len(_normalize_text(raw.owner_text)) >= min_chars
+        has_sub_ratings = bool(raw.sub_ratings)
+        has_photos = keep_photo_only and bool(raw.photos)
+
+        return not (has_text or has_owner or has_sub_ratings or has_photos)
+
     def setup_driver(self, headless: bool):
         """
         Set up and configure Chrome driver using SeleniumBase UC Mode.
@@ -331,14 +379,27 @@ class GoogleReviewsScraper:
             try:
                 driver = Driver(
                     uc=True,
-                    headless=headless,
+                    cft=True,
+                    headless2=headless,
+                    chromium_arg="disable-breakpad,disable-crash-reporter,noerrdialogs",
                     page_load_strategy="normal",
                     incognito=True  # Use incognito mode for better stealth
                 )
-                log.info("Successfully created SeleniumBase UC driver")
+                log.info("Successfully created SeleniumBase UC driver with Chrome for Testing")
             except Exception as e:
-                log.error(f"Failed to create SeleniumBase driver: {e}")
-                raise
+                log.warning(f"Failed to create SeleniumBase CFT driver: {e}")
+                try:
+                    driver = Driver(
+                        uc=True,
+                        headless=headless,
+                        chromium_arg="disable-breakpad,disable-crash-reporter,noerrdialogs",
+                        page_load_strategy="normal",
+                        incognito=True
+                    )
+                    log.info("Successfully created SeleniumBase UC driver with system Chrome fallback")
+                except Exception as inner:
+                    log.error(f"Failed to create SeleniumBase driver: {inner}")
+                    raise
 
         # Set page load timeout to avoid hanging
         driver.set_page_load_timeout(30)
@@ -436,6 +497,68 @@ class GoogleReviewsScraper:
         if match:
             return match.group(1), match.group(2)
         return None, None
+
+    def _extract_overview_metadata(self, driver: Chrome) -> Dict[str, Any]:
+        """Best-effort scrape of place overview metadata before opening reviews."""
+        overview: Dict[str, Any] = {}
+        try:
+            page_text = driver.find_element(By.TAG_NAME, "body").text or ""
+        except Exception:
+            page_text = ""
+
+        try:
+            page_source = driver.page_source or ""
+        except Exception:
+            page_source = ""
+
+        price_summary = PRICE_SUMMARY_RE.search(page_text)
+        if price_summary:
+            overview["price_overview"] = price_summary.group(1).replace(" ", "")
+
+        report_count = PRICE_REPORT_COUNT_RE.search(page_text)
+        if report_count:
+            try:
+                overview["price_report_count"] = int(report_count.group(1))
+            except ValueError:
+                pass
+
+        buckets = []
+        seen_buckets = set()
+        for match in PRICE_BUCKET_RE.finditer(page_text):
+            label = match.group(0).replace(" ", "")
+            if label not in seen_buckets:
+                buckets.append(label)
+                seen_buckets.add(label)
+        if buckets:
+            overview["price_buckets"] = buckets[:8]
+
+        popular = POPULAR_HOUR_RE.search(page_text)
+        if popular:
+            overview["popular_time"] = {
+                "hour": popular.group(1),
+                "status": popular.group(2).strip(),
+            }
+
+        visit = VISIT_DURATION_RE.search(page_text)
+        if visit:
+            overview["visit_duration"] = visit.group(1).strip()
+
+        urls = []
+        seen = set()
+        for url in OVERVIEW_PHOTO_URL_RE.findall(page_source):
+            if url in seen:
+                continue
+            seen.add(url)
+            score = _score_overview_photo(url)
+            if score < 0:
+                continue
+            urls.append((url, score))
+        if urls:
+            ranked = [url for url, _ in sorted(urls, key=lambda item: item[1], reverse=True)]
+            overview["overview_photo_urls"] = ranked[:8]
+            overview["overview_cover_url"] = ranked[0]
+
+        return overview
 
     def navigate_to_place(self, driver: Chrome, url: str, wait: WebDriverWait) -> bool:
         """
@@ -1455,7 +1578,7 @@ class GoogleReviewsScraper:
 
         place_id = None
         session_id = None
-        batch_stats = {"new": 0, "updated": 0, "restored": 0, "unchanged": 0}
+        batch_stats = {"new": 0, "updated": 0, "restored": 0, "unchanged": 0, "blank_skipped": 0}
         changed_ids = set()  # Track IDs that actually changed for efficient sync
 
         driver = None
@@ -1484,6 +1607,19 @@ class GoogleReviewsScraper:
             session_id = self.review_db.start_session(place_id, sort_by)
             log.info(f"Registered place: {place_id} ({place_name})")
             self._selector_health = SelectorHealth(self.review_db.backend, session_id)
+
+            overview = self._extract_overview_metadata(driver)
+            if overview:
+                shop_id_meta = self.config.get("custom_params", {}).get("shop_id")
+                if shop_id_meta is not None:
+                    overview["shop_id"] = shop_id_meta
+                self.review_db.update_place_overview(place_id, overview)
+                log.info(
+                    "Captured overview metadata: photos=%s price=%s popular=%s",
+                    len(overview.get("overview_photo_urls", [])),
+                    overview.get("price_overview"),
+                    overview.get("popular_time"),
+                )
 
             # Load seen IDs from DB (empty for full mode to re-process everything)
             if self.scrape_mode == "full":
@@ -1679,6 +1815,19 @@ class GoogleReviewsScraper:
                             batch_stats["parse_errors"] = batch_stats.get("parse_errors", 0) + 1
                             continue
 
+                        if self._should_skip_low_signal_review(raw):
+                            batch_stats["blank_skipped"] = batch_stats.get("blank_skipped", 0) + 1
+                            log.info(
+                                "Skipping low-signal review: id=%s author=%s rating=%s photos=%d owner=%s sub_ratings=%d",
+                                raw.id,
+                                raw.author or "unknown",
+                                raw.rating,
+                                len(raw.photos or []),
+                                bool(_normalize_text(raw.owner_text)),
+                                len(raw.sub_ratings or {}),
+                            )
+                            continue
+
                         review_dict = {
                             "review_id": raw.id,
                             "text": raw.text,
@@ -1824,7 +1973,8 @@ class GoogleReviewsScraper:
             # End session with stats
             total_found = sum(batch_stats.values())
             parse_errors = batch_stats.get("parse_errors", 0)
-            real_found = total_found - parse_errors
+            blank_skipped = batch_stats.get("blank_skipped", 0)
+            real_found = total_found - parse_errors - blank_skipped
             if session_id:
                 # Session status: "empty" if zero reviews extracted,
                 # "degraded" if >30% of cards failed parsing, else "completed".
@@ -1876,9 +2026,10 @@ class GoogleReviewsScraper:
                 self._selector_health.flush()
 
             log.info(
-                "Finished - new: %d, updated: %d, restored: %d, unchanged: %d",
+                "Finished - new: %d, updated: %d, restored: %d, unchanged: %d, blank_skipped: %d",
                 batch_stats["new"], batch_stats["updated"],
                 batch_stats["restored"], batch_stats["unchanged"],
+                batch_stats.get("blank_skipped", 0),
             )
             if batch_stats.get("parse_errors"):
                 log.warning(

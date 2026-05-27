@@ -73,8 +73,14 @@ def first_text(el: WebElement, css: str) -> str:
     """Get text from the first matching element that has non-empty text"""
     for e in try_find(el, css, all=True):
         try:
-            if (t := e.text.strip()):
-                return t
+            candidates = [
+                e.text,
+                e.get_attribute("textContent"),
+                e.get_attribute("innerText"),
+            ]
+            for candidate in candidates:
+                if candidate and (t := " ".join(candidate.split()).strip()):
+                    return t
         except StaleElementReferenceException:
             continue
     return ""

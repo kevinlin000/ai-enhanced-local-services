@@ -22,6 +22,41 @@ from modules.s3_handler import S3Handler
 log = logging.getLogger("scraper")
 
 
+def _normalize_text(value: Any) -> str:
+    if not value:
+        return ""
+    return " ".join(str(value).split()).strip()
+
+
+def _review_has_meaningful_content(review: Dict[str, Any], config: Dict[str, Any]) -> bool:
+    min_chars = int(config.get("blank_review_min_text_chars", 4))
+    keep_photo_only = bool(config.get("keep_photo_only_reviews", False))
+
+    description = review.get("description") or {}
+    text_candidates = []
+    if isinstance(description, dict):
+        text_candidates.extend(description.values())
+    elif isinstance(description, str):
+        text_candidates.append(description)
+
+    if any(len(_normalize_text(text)) >= min_chars for text in text_candidates):
+        return True
+
+    owner_responses = review.get("owner_responses") or {}
+    if isinstance(owner_responses, dict):
+        for payload in owner_responses.values():
+            if isinstance(payload, dict) and len(_normalize_text(payload.get("text"))) >= min_chars:
+                return True
+
+    if review.get("sub_ratings"):
+        return True
+
+    if keep_photo_only and review.get("user_images"):
+        return True
+
+    return False
+
+
 class SyncTask(ABC):
     """Base class for pipeline tasks."""
 
@@ -323,6 +358,23 @@ class PostScrapeRunner:
         if not reviews:
             log.info("PostScrapeRunner: no reviews to process")
             return
+
+        if self.config.get("skip_blank_reviews", True):
+            before_count = len(reviews)
+            filtered_ids = [
+                rid for rid, review in reviews.items()
+                if not _review_has_meaningful_content(review, self.config)
+            ]
+            for rid in filtered_ids:
+                reviews.pop(rid, None)
+            if filtered_ids:
+                log.info(
+                    "PostScrapeRunner: blank_review_filter kept %d/%d reviews",
+                    len(reviews), before_count,
+                )
+            if not reviews:
+                log.info("PostScrapeRunner: all reviews filtered out by blank review filter")
+                return
 
         # Apply date filter (issue #19) BEFORE image/S3/MongoDB tasks so
         # those stages never process excluded reviews. SQLite retains

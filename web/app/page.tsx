@@ -2,6 +2,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { aiApi, javaApi, type Category, type Shop, type ShopAiMetadata } from "@/lib/api";
 import { getCategoryStyle, getStyleByTypeId } from "@/lib/categoryStyle";
+import { isLegacySeedShop } from "@/lib/legacySeedShops";
+import { proxyImageUrl } from "@/lib/photoProxy";
+import { getBestShopCardPhoto, getShopOverview } from "@/lib/shopPhotoManifest";
 
 const HOT_STATIONS = [
   "信義安和", "台北101/世貿", "市政府", "象山",
@@ -23,6 +26,30 @@ function parseTags(raw?: string): string[] {
   } catch {
     return [];
   }
+}
+
+function getDisplaySpend(shop: Shop, meta?: ShopAiMetadata | null) {
+  const overview = getShopOverview(shop.id);
+  if (overview?.price_overview) return `平均每人 ${overview.price_overview}`;
+  if (meta?.pricePerPerson) return `價位：${meta.pricePerPerson}`;
+  if (shop.avgPrice) return `NT$ ${shop.avgPrice}`;
+  return null;
+}
+
+function prioritizeVisibleShops(shops: Shop[]) {
+  return [...shops].sort((a, b) => {
+    const aSeed = isLegacySeedShop(a.id) ? 1 : 0;
+    const bSeed = isLegacySeedShop(b.id) ? 1 : 0;
+    if (aSeed !== bSeed) return aSeed - bSeed;
+    const aPhoto = getBestShopCardPhoto(a.id, a.images) ? 1 : 0;
+    const bPhoto = getBestShopCardPhoto(b.id, b.images) ? 1 : 0;
+    if (bPhoto !== aPhoto) return bPhoto - aPhoto;
+    return (b.score ?? 0) - (a.score ?? 0);
+  });
+}
+
+function hasUsablePhoto(shop: Shop) {
+  return Boolean(getBestShopCardPhoto(shop.id, shop.images));
 }
 
 export default async function Home() {
@@ -53,7 +80,7 @@ export default async function Home() {
     .filter((s) => s.shops.length > 0)
     .sort((a, b) => b.shops.length - a.shops.length);
 
-  const featuredShops = stationsWithShops.flatMap((station) => station.shops.slice(0, 3));
+  const featuredShops = stationsWithShops.flatMap((station) => station.shops.slice(0, 5));
   const featuredShopIds = Array.from(new Set(featuredShops.map((shop) => shop.id)));
 
   const [metadataEntries, hotSeatEntries] = await Promise.all([
@@ -131,8 +158,35 @@ export default async function Home() {
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-12 md:px-8">
+        <h2 className="mb-1 text-2xl font-semibold">12 個在地分類</h2>
+        <p className="text-muted-foreground mb-6 text-sm">
+          從牛肉麵到手搖飲、依台灣口味分
+        </p>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+          {categories.map((category) => {
+            const { icon: Icon, gradient } = getCategoryStyle(category.slug);
+            return (
+              <Link key={category.id} href={`/shops?category=${category.slug}`}>
+                <div
+                  className={`relative flex h-32 flex-col justify-between overflow-hidden rounded-xl border bg-gradient-to-br p-5 transition hover:border-foreground/40 hover:shadow-sm ${gradient}`}
+                >
+                  <Icon className="h-8 w-8 text-foreground/70" strokeWidth={1.5} />
+                  <div>
+                    <div className="font-semibold">{category.name}</div>
+                    <div className="text-muted-foreground/70 font-mono mt-0.5 text-xs">
+                      {category.slug}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 py-12 md:px-8">
         <h2 className="mb-1 text-2xl font-semibold">捷運站熱門</h2>
-        <p className="text-muted-foreground mb-6 text-sm">8 個捷運站、依店數排序、空站自動隱藏</p>
+        <p className="text-muted-foreground mb-6 text-sm">每站最多 5 家，可左右滑看完整名單</p>
 
         <div className="space-y-8">
           {stationsWithShops.map(({ name: station, shops }) => {
@@ -144,15 +198,38 @@ export default async function Home() {
                   </h3>
                   <span className="text-muted-foreground font-mono text-xs">{shops.length} 家</span>
                 </div>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  {shops.slice(0, 3).map((shop) => {
+                <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory">
+                  {prioritizeVisibleShops(shops)
+                    .filter((shop) => hasUsablePhoto(shop))
+                    .slice(0, 5)
+                    .map((shop) => {
                     const style = getStyleByTypeId(shop.typeId);
                     const Icon = style.icon;
+                    const fallbackImage = shop.images?.startsWith("http")
+                      ? shop.images
+                      : null;
+                    const coverPhoto = proxyImageUrl(
+                      getBestShopCardPhoto(shop.id, fallbackImage),
+                    );
+                    const displaySpend = getDisplaySpend(shop, metadataMap.get(shop.id));
+                    const bookingDifficulty = metadataMap.get(shop.id)?.bookingDifficulty;
                     return (
-                      <Link key={shop.id} href={`/shops/${shop.id}`}>
+                      <Link key={shop.id} href={`/shops/${shop.id}`} className="min-w-[280px] max-w-[280px] snap-start shrink-0">
                         <div className="overflow-hidden rounded-xl border transition hover:border-foreground/40 hover:shadow-md">
-                          <div className={`flex h-16 items-center justify-center bg-gradient-to-br ${style.gradient}`}>
-                            <Icon className="h-7 w-7 text-foreground/40" strokeWidth={1.5} />
+                          <div className={`relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br ${style.gradient}`}>
+                            {coverPhoto ? (
+                              <>
+                                <img
+                                  src={coverPhoto}
+                                  alt={`${shop.name}-cover`}
+                                  className="h-full w-full object-cover"
+                                  loading="lazy"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+                              </>
+                            ) : (
+                              <Icon className="h-7 w-7 text-foreground/40" strokeWidth={1.5} />
+                            )}
                           </div>
                           <div className="p-3">
                             <div className="flex items-start justify-between gap-2">
@@ -170,19 +247,14 @@ export default async function Home() {
                                 </div>
                               </div>
                             ) : null}
-                            {shop.avgPrice ? (
-                              <div className="text-muted-foreground font-mono mt-1 text-xs">
-                                NT$ {shop.avgPrice}
-                              </div>
-                            ) : null}
-                            {metadataMap.get(shop.id)?.pricePerPerson ? (
+                            {displaySpend ? (
                               <div className="text-muted-foreground mt-1 text-xs">
-                                價位：{metadataMap.get(shop.id)?.pricePerPerson}
+                                {displaySpend}
                               </div>
                             ) : null}
-                            {metadataMap.get(shop.id)?.bookingDifficulty ? (
+                            {bookingDifficulty && bookingDifficulty !== "未提及" ? (
                               <div className="mt-1 text-xs text-foreground/80">
-                                {metadataMap.get(shop.id)?.bookingDifficulty}
+                                {bookingDifficulty}
                               </div>
                             ) : null}
                             {metadataMap.get(shop.id)?.atmosphereTags ? (
@@ -206,33 +278,6 @@ export default async function Home() {
                   })}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-5xl px-4 py-12 md:px-8">
-        <h2 className="mb-1 text-2xl font-semibold">12 個在地分類</h2>
-        <p className="text-muted-foreground mb-6 text-sm">
-          從牛肉麵到手搖飲、依台灣口味分
-        </p>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          {categories.map((category) => {
-            const { icon: Icon, gradient } = getCategoryStyle(category.slug);
-            return (
-              <Link key={category.id} href={`/shops?category=${category.slug}`}>
-                <div
-                  className={`relative flex h-32 flex-col justify-between overflow-hidden rounded-xl border bg-gradient-to-br p-5 transition hover:border-foreground/40 hover:shadow-sm ${gradient}`}
-                >
-                  <Icon className="h-8 w-8 text-foreground/70" strokeWidth={1.5} />
-                  <div>
-                    <div className="font-semibold">{category.name}</div>
-                    <div className="text-muted-foreground/70 font-mono mt-0.5 text-xs">
-                      {category.slug}
-                    </div>
-                  </div>
-                </div>
-              </Link>
             );
           })}
         </div>

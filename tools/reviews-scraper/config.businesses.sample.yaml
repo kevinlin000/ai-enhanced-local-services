@@ -98,7 +98,7 @@ businesses:
     custom_params:
       company: "Enterprise Client"
       source: "Google Maps"
-    sort_by: "newest"
+    sort_by: "relevance"
     scrape_mode: "update"
     stop_threshold: 5
     max_reviews: 0

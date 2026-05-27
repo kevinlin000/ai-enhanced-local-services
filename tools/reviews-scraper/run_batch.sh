@@ -56,7 +56,7 @@ run_shop() {
 
   cat > "$SCRAPER_DIR/config_single.yaml" << YAML
 headless: true
-sort_by: "newest"
+sort_by: "relevance"
 scrape_mode: "full"
 max_reviews: 20
 max_scroll_attempts: 30

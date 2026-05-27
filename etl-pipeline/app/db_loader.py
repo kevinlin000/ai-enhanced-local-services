@@ -321,12 +321,111 @@ def reclassify_existing():
     log.info("reclassify_done", updated=updated, unchanged=unchanged)
 
 
+def refresh_metadata_existing():
+    raw_dir = Path("data/raw")
+    latest = sorted(raw_dir.glob("places_extracted_*.json"))[-1]
+    log.info("reading_for_metadata_refresh", file=str(latest))
+    data = json.loads(latest.read_text())
+    shops = data["shops"]
+
+    conn = pymysql.connect(
+        host=os.getenv("MYSQL_HOST", "localhost"),
+        port=int(os.getenv("MYSQL_PORT", "3306")),
+        user=os.getenv("MYSQL_USERNAME", "root"),
+        password=os.getenv("MYSQL_PASSWORD", "password"),
+        database=os.getenv("MYSQL_DATABASE", "hmdp"),
+        charset="utf8mb4",
+        autocommit=False,
+    )
+
+    refreshed = 0
+    missing = 0
+
+    try:
+        with conn.cursor() as cur:
+            for shop in shops:
+                place_id = shop["place_id"]
+                ai = shop.get("ai_extracted", {}) or {}
+
+                cur.execute(
+                    "SELECT id, name FROM tb_shop WHERE place_id = %s AND source = 'google_places'",
+                    (place_id,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    missing += 1
+                    continue
+
+                shop_id, name = row
+                avg_price = extract_avg_price(ai.get("price_per_person", ""))
+                score = int((shop.get("rating") or 0) * 10)
+
+                cur.execute(
+                    """
+                    UPDATE tb_shop
+                    SET avg_price = %s,
+                        comments = %s,
+                        score = %s,
+                        district = %s,
+                        price_range = %s,
+                        update_time = NOW()
+                    WHERE id = %s
+                    """,
+                    (
+                        avg_price,
+                        shop.get("user_rating_count", 0),
+                        score,
+                        shop.get("district"),
+                        PRICE_LEVEL_MAP.get(shop.get("price_level")) if shop.get("price_level") else None,
+                        shop_id,
+                    ),
+                )
+
+                cur.execute(
+                    "DELETE FROM tb_shop_ai_metadata WHERE shop_id = %s",
+                    (shop_id,),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO tb_shop_ai_metadata
+                    (shop_id, ai_summary, highlight_review, signature_dishes,
+                     atmosphere_tags, booking_difficulty, price_per_person,
+                     phone, opening_hours, extracted_at, model_version)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        shop_id,
+                        ai.get("ai_summary"),
+                        ai.get("highlight_review"),
+                        json.dumps(ai.get("signature_dishes", []), ensure_ascii=False),
+                        json.dumps(ai.get("atmosphere_tags", []), ensure_ascii=False),
+                        ai.get("booking_difficulty"),
+                        ai.get("price_per_person"),
+                        shop.get("phone"),
+                        json.dumps(shop.get("opening_hours", []), ensure_ascii=False),
+                        datetime.now(),
+                        os.getenv("GEMINI_CHAT_MODEL", "gemini-3.1-flash-lite"),
+                    ),
+                )
+                refreshed += 1
+                log.info("metadata_refreshed", shop_id=shop_id, name=name)
+
+            conn.commit()
+    finally:
+        conn.close()
+
+    log.info("metadata_refresh_done", refreshed=refreshed, missing=missing)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--reclassify", action="store_true", help="reclassify existing google_places shops by latest extracted json")
+    parser.add_argument("--refresh-metadata", action="store_true", help="refresh existing google_places metadata by latest extracted json")
     args = parser.parse_args()
 
     if args.reclassify:
         reclassify_existing()
+    elif args.refresh_metadata:
+        refresh_metadata_existing()
     else:
         load()

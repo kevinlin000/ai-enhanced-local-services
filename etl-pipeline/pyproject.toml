@@ -9,6 +9,7 @@ dependencies = [
     "pydantic>=2.9.0",
     "pydantic-settings>=2.6.0",
     "python-dotenv>=1.0.0",
+    "pymongo>=4.10.0",
     "tenacity>=9.0.0",
     "structlog>=25.0.0",
     "pymysql>=1.2.0",

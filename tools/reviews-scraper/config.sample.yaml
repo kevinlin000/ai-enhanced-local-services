@@ -15,7 +15,7 @@ api:
 # Scraper
 # -----------------------------------------------------------------------------
 headless: true                  # Run Chrome without visible browser window
-sort_by: "newest"               # Options: newest, highest, lowest, relevance
+sort_by: "relevance"            # Options: newest, highest, lowest, relevance
 
 # Scrape mode — controls how reviews are processed:
 #   "new_only"  — only insert new reviews, skip existing entirely
@@ -44,6 +44,9 @@ db_path: "reviews.db"
 # Data Processing
 # -----------------------------------------------------------------------------
 convert_dates: true             # Convert relative dates to ISO format
+skip_blank_reviews: true        # Drop empty / rating-only reviews before storage
+blank_review_min_text_chars: 4  # Keep short but meaningful Chinese reviews
+keep_photo_only_reviews: false  # Set true only if you really want photo-only reviews
 
 # -----------------------------------------------------------------------------
 # Images

@@ -100,6 +100,8 @@ tools/reviews-scraper/review_images/
 tools/reviews-scraper/logs/
 tools/reviews-scraper/config.yaml
 tools/reviews-scraper/config_single.yaml
+tools/reviews-scraper/config.yaml.73shops
+tools/reviews-scraper/config_rescue_*.yaml
 tools/reviews-scraper/.venv/
 tools/reviews-scraper/__pycache__/
 tools/reviews-scraper/*.egg-info/

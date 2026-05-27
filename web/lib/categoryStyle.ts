@@ -184,6 +184,11 @@ export function getCategoryStyle(slug: string): Style {
   return MAP[slug] ?? MAP.default;
 }
 
+export function getSlugByTypeId(typeId?: number): string | null {
+  if (!typeId) return null;
+  return ID_TO_SLUG[typeId] ?? null;
+}
+
 export function getStyleByTypeId(typeId?: number): Style {
   if (!typeId) return getCategoryStyle("default");
   return getCategoryStyle(ID_TO_SLUG[typeId] ?? "default");

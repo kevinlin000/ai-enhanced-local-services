@@ -6,6 +6,9 @@ import { useSearchParams } from "next/navigation";
 import type { SearchHit } from "@/lib/api";
 import { javaApi } from "@/lib/api";
 import { getStyleByTypeId } from "@/lib/categoryStyle";
+import { isLegacySeedShop } from "@/lib/legacySeedShops";
+import { proxyImageUrl } from "@/lib/photoProxy";
+import { getBestShopCardPhoto, getShopOverview } from "@/lib/shopPhotoManifest";
 import { MapPin, Search, X } from "lucide-react";
 
 // AI search via Next.js rewrite proxy /api/ai/* → http://localhost:8000/api/ai/*
@@ -16,6 +19,7 @@ interface Shop {
   name: string;
   district?: string;
   address?: string;
+  images?: string;
   score?: number;
   comments?: number;
   typeId?: number;
@@ -65,6 +69,30 @@ const SCORE_OPTIONS = [
   { label: "4.0+", value: 40 },
   { label: "3.5+", value: 35 },
 ];
+
+function getDisplaySpend(shop: Shop) {
+  const overview = getShopOverview(shop.id);
+  if (overview?.price_overview) return `平均每人 ${overview.price_overview}`;
+  if (shop.aiPricePerPerson && shop.aiPricePerPerson !== "未提及") return `價位：${shop.aiPricePerPerson}`;
+  if (shop.avgPrice) return `NT$ ${shop.avgPrice}`;
+  return null;
+}
+
+function sortVisibleShops(shops: Shop[]) {
+  return [...shops].sort((a, b) => {
+    const aSeed = isLegacySeedShop(a.id) ? 1 : 0;
+    const bSeed = isLegacySeedShop(b.id) ? 1 : 0;
+    if (aSeed !== bSeed) return aSeed - bSeed;
+    const aPhoto = getBestShopCardPhoto(a.id, getFallbackImage(a)) ? 1 : 0;
+    const bPhoto = getBestShopCardPhoto(b.id, getFallbackImage(b)) ? 1 : 0;
+    if (bPhoto !== aPhoto) return bPhoto - aPhoto;
+    return (b.score ?? 0) - (a.score ?? 0);
+  });
+}
+
+function getFallbackImage(shop: Shop) {
+  return shop.images?.startsWith("http") ? shop.images : null;
+}
 
 function ShopsPageContent() {
   const searchParams = useSearchParams();
@@ -266,12 +294,16 @@ function ShopsPageContent() {
   };
 
   const isLoading = loading || aiLoading;
+  const visibleShops = useMemo(
+    () => (searchMode === "text" ? sortVisibleShops(shops) : shops),
+    [searchMode, shops],
+  );
 
   const renderAiReason = (shop: Shop) => {
     const parts: string[] = [];
     if (shop.aiCategory) parts.push(CATEGORY_LABELS[shop.aiCategory] ?? shop.aiCategory);
-    if (shop.aiBookingDifficulty) parts.push(shop.aiBookingDifficulty);
-    if (shop.aiPricePerPerson) parts.push(shop.aiPricePerPerson);
+    if (shop.aiBookingDifficulty && shop.aiBookingDifficulty !== "未提及") parts.push(shop.aiBookingDifficulty);
+    if (shop.aiPricePerPerson && shop.aiPricePerPerson !== "未提及") parts.push(shop.aiPricePerPerson);
     else if (shop.avgPrice) parts.push(`NT$ ${shop.avgPrice}`);
     if (shop.aiHotSeatCount) parts.push(`Hot Seat ${shop.aiHotSeatCount} 案`);
     return parts.slice(0, 3).join(" · ");
@@ -503,7 +535,7 @@ function ShopsPageContent() {
             </div>
           )}
 
-          {shops.length === 0 && !isLoading && (
+          {visibleShops.length === 0 && !isLoading && (
             <div className="text-center py-12 text-muted-foreground text-sm">
               {searchMode === "ai" && debouncedQ
                 ? "AI 未找到相符店家"
@@ -511,10 +543,14 @@ function ShopsPageContent() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {shops.map((shop) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+            {visibleShops.map((shop) => {
               const style = getStyleByTypeId(shop.typeId);
               const Icon = style.icon;
+                const coverPhoto = proxyImageUrl(
+                  getBestShopCardPhoto(shop.id, getFallbackImage(shop)),
+                );
+              const displaySpend = getDisplaySpend(shop);
               const topTags = (shop.aiAtmosphereTags ?? []).slice(0, 2);
               const topDish = shop.aiSignatureDishes?.[0];
               return (
@@ -523,14 +559,26 @@ function ShopsPageContent() {
                   href={`/shops/${shop.id}`}
                   className="block"
                 >
-                  <div className="border rounded-xl overflow-hidden hover:shadow-md transition-shadow h-full">
-                    <div
-                      className={`bg-gradient-to-br ${style.gradient} h-24 flex items-center justify-center`}
-                    >
-                      <Icon
-                        className="h-10 w-10 text-foreground/40"
-                        strokeWidth={1.5}
-                      />
+                  <div className="border rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+                    <div className={`relative aspect-[4/3] overflow-hidden bg-gradient-to-br ${style.gradient}`}>
+                      {coverPhoto ? (
+                        <>
+                          <img
+                            src={coverPhoto}
+                            alt={`${shop.name}-cover`}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+                        </>
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <Icon
+                            className="h-10 w-10 text-foreground/40"
+                            strokeWidth={1.5}
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="p-3">
                       {searchMode === "ai" && shop.aiHotSeatCount ? (
@@ -573,6 +621,12 @@ function ShopsPageContent() {
                         </p>
                       ) : null}
 
+                      {searchMode === "ai" && displaySpend ? (
+                        <p className="mt-2 text-[11px] font-medium text-foreground/80">
+                          {displaySpend}
+                        </p>
+                      ) : null}
+
                       {searchMode === "ai" && (
                         <>
                           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -597,12 +651,7 @@ function ShopsPageContent() {
                           </div>
 
                           <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                            {shop.aiPricePerPerson ? (
-                              <p>價位：{shop.aiPricePerPerson}</p>
-                            ) : shop.avgPrice ? (
-                              <p>價位：NT$ {shop.avgPrice}</p>
-                            ) : null}
-                            {shop.aiBookingDifficulty ? (
+                            {shop.aiBookingDifficulty && shop.aiBookingDifficulty !== "未提及" ? (
                               <p>預約難度：{shop.aiBookingDifficulty}</p>
                             ) : null}
                             {topDish ? (
