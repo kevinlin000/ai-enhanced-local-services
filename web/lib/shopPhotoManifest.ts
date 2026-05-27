@@ -22,13 +22,15 @@ type PhotoPayload = {
 
 const PHOTO_DATA = payload as PhotoPayload;
 const COVER_OVERRIDES: Record<number, { coverIndex?: number; coverUrl?: string; disableReviewPhotos?: boolean }> = {
+  10100: { disableReviewPhotos: true }, // 一蘭別館：目前只有草圖小縮圖
+  10104: { disableReviewPhotos: true }, // 饗饗：目前 overview 仍只有草圖縮圖
   10112: { disableReviewPhotos: true }, // HOOTERS
+  10115: { disableReviewPhotos: true }, // 辛殿：overview 仍是 122x92 縮圖
   10127: { coverIndex: 1 }, // 下港吔：食物比超寬場景穩
   10131: { coverIndex: 3 }, // 詹記：避開過近特寫
   10149: { coverIndex: 2 }, // 夏慕尼南昌：偏料理成品
   10108: { coverIndex: 2 }, // 布納：避開帳單
   10111: { coverIndex: 2 }, // 鼎泰豐A4：避開只拍人手/空盤
-  10115: { coverIndex: 2 }, // 辛殿：避開過近桌邊
   10147: { coverIndex: 3 }, // 泰和樓：避開菜單/店外
   10152: { coverIndex: 0 }, // 和牛涮：目前僅單張，保留
   10158: { coverIndex: 4 }, // 大樹先生的家：避開小孩
