@@ -46,7 +46,7 @@ type Props = {
   visitDuration?: string | null;
   dishes: string[];
   tags: string[];
-  reviewInsightCards: { label: string; value: string }[];
+  reviewInsightCards: { label: string; value: string; hint?: string }[];
   featureHighlights: FeatureInsight[];
   advice: AdviceInsight[];
   selectedReviews: ReviewSnippet[];
@@ -175,69 +175,35 @@ export function ShopDetailTabs(props: Props) {
               <div key={card.label} className="rounded-2xl border bg-background p-5">
                 <div className="text-xs text-muted-foreground">{card.label}</div>
                 <div className="mt-2 text-base font-medium leading-relaxed">{card.value}</div>
+                {card.hint ? <div className="mt-1 text-sm text-muted-foreground">{card.hint}</div> : null}
               </div>
             ))}
           </div>
 
-          {(props.priceOverview || props.popularTime || props.visitDuration) ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {props.priceOverview ? (
-                <div className="rounded-2xl border bg-background p-5">
-                  <div className="text-xs text-muted-foreground">Google 平均每人</div>
-                  <div className="mt-2 text-2xl font-semibold">{props.priceOverview}</div>
-                  {props.priceReportCount ? (
-                    <p className="mt-1 text-sm text-muted-foreground">{props.priceReportCount} 人回報</p>
-                  ) : null}
-                  {priceTone ? (
-                    <div className="mt-3">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${priceTone.chip}`}>
-                        {priceTone.label}
-                      </span>
+          {normalizedPriceBuckets.length > 1 ? (
+            <div className="rounded-2xl border bg-background p-5">
+              <div className="text-xs text-muted-foreground">價位分布</div>
+              <div className="mt-3">
+                {priceTone ? (
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${priceTone.chip}`}>
+                    {priceTone.label}
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-4 space-y-2">
+                {normalizedPriceBuckets.map((bucket) => (
+                  <div key={bucket.label} className="grid grid-cols-[84px_1fr_auto] items-center gap-3 text-sm">
+                    <span className="text-muted-foreground">{bucket.label}</span>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${priceTone?.bar ?? "bg-amber-400"}`}
+                        style={{ width: `${bucket.share ?? 16}%` }}
+                      />
                     </div>
-                  ) : null}
-                  {normalizedPriceBuckets.length > 1 ? (
-                    <div className="mt-4 space-y-2">
-                      {normalizedPriceBuckets.map((bucket) => (
-                        <div key={bucket.label} className="grid grid-cols-[84px_1fr_auto] items-center gap-3 text-sm">
-                          <span className="text-muted-foreground">{bucket.label}</span>
-                          <div className="h-2 rounded-full bg-muted overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${priceTone?.bar ?? "bg-amber-400"}`}
-                              style={{ width: `${bucket.share ?? 16}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-muted-foreground">{bucket.count ?? ""}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : normalizedPriceBuckets.length === 1 ? (
-                    <p className="mt-4 text-sm text-muted-foreground">
-                      目前只抓到單一主要價位區間，先以這個價格帶作為參考。
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {(props.popularTime || props.visitDuration) ? (
-                <div className="rounded-2xl border bg-background p-5">
-                  <div className="text-xs text-muted-foreground">熱門時段</div>
-                  {props.popularTime?.hour || props.popularTime?.status ? (
-                    <div className="mt-2 text-lg font-semibold">
-                      {[props.popularTime.hour, props.popularTime.status].filter(Boolean).join(" · ")}
-                    </div>
-                  ) : (
-                    <div className="mt-2 text-base text-muted-foreground">資料補抓中</div>
-                  )}
-                  {props.visitDuration ? (
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      平均停留時間：{props.visitDuration}
-                    </p>
-                  ) : null}
-                  <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
-                    若之後補到完整時段資料，這裡會直接顯示最忙時段與停留時間，幫你判斷什麼時候去最舒服。
-                  </p>
-                </div>
-              ) : null}
+                    <span className="text-xs text-muted-foreground">{bucket.count ?? ""}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
 
