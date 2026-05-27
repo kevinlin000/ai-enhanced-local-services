@@ -195,7 +195,7 @@ export function ShopDetailTabs(props: Props) {
                       </span>
                     </div>
                   ) : null}
-                  {normalizedPriceBuckets.length > 0 ? (
+                  {normalizedPriceBuckets.length > 1 ? (
                     <div className="mt-4 space-y-2">
                       {normalizedPriceBuckets.map((bucket) => (
                         <div key={bucket.label} className="grid grid-cols-[84px_1fr_auto] items-center gap-3 text-sm">
@@ -210,6 +210,10 @@ export function ShopDetailTabs(props: Props) {
                         </div>
                       ))}
                     </div>
+                  ) : normalizedPriceBuckets.length === 1 ? (
+                    <p className="mt-4 text-sm text-muted-foreground">
+                      目前只抓到單一主要價位區間，先以這個價格帶作為參考。
+                    </p>
                   ) : null}
                 </div>
               ) : null}
