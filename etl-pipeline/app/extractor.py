@@ -34,7 +34,11 @@ EXTRACT_PROMPT = """你是資深餐廳編輯。根據以下 Google 評論，整�
 7. ai_summary 不要把 booking_difficulty、price_per_person、atmosphere_tags 當成正文硬塞進去
 8. ai_summary 可自然吸收正面與少量負面意見，但語氣仍以餐廳介紹為主
 9. 請避免每家都用同一句型開頭；依照指定視角切入
-10. 輸出純 JSON、不要 markdown code block
+10. 禁止使用空泛套語，例如：賓至如歸、如歸家般、味蕾的饗宴、讚不絕口、CP值超高、走過路過不要錯過、嚴選食材
+11. ai_summary 至少寫出 1 個具體菜色口感、香氣、溫度或做法細節
+12. ai_summary 至少寫出 1 個空間、服務節奏、動線或用餐情境觀察
+13. 句子要像編輯觀察，不要像品牌公關稿；少用「不僅」「更是」「完美」這種誇飾連接
+14. 輸出純 JSON、不要 markdown code block
 """
 
 
