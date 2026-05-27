@@ -127,6 +127,7 @@ function buildFeatureHighlights({
   const rows: { label: string; detail: string }[] = [];
   const district = shop.district ?? shop.area ?? "台北市";
   const mrt = cleanSentence(shop.mrtStation);
+  const variant = shop.id % 4;
   const positiveReviews = reviewInsights?.selectedReviews?.filter((review) => review.rating >= 4) ?? [];
   const environmentMentioned = positiveReviews.some((review) =>
     /環境|裝潢|氣氛|空間|包廂|景觀|寬敞|明亮/.test(review.text),
@@ -137,30 +138,53 @@ function buildFeatureHighlights({
   const groupLikeTags = tags.filter((tag) => ["聚餐", "約會", "親子", "商務", "慶生", "一人"].includes(tag));
 
   if (dishes.length > 0) {
+    const dishText = dishes.slice(0, 3).join("、");
     rows.push({
       label: "料理亮點",
-      detail: `${dishes.slice(0, 3).join("、")}是最常被點名的代表菜色，通常也最能把這家${styleLabel}的主軸、口感記憶點與整體完成度交代清楚。`,
+      detail:
+        variant === 0
+          ? `${dishText}幾乎是最容易被反覆點名的核心菜色，通常也最能把這家${styleLabel}想留下的風味重心、招牌記憶點與整體完成度講清楚。`
+          : variant === 1
+            ? `如果只先記住幾道最有代表性的菜，通常會落在${dishText}這一帶；它們不只是點單率高，也最能反映這家店真正被記住的原因。`
+            : variant === 2
+              ? `${dishText}是最常被拉出來單獨討論的幾道菜，從口感到調味方向，都能直接看出這家${styleLabel}的主軸沒有跑掉。`
+              : `${dishText}通常最能把這家店的招牌性格交代完整，也因此常被當成第一次來訪最值得優先鎖定的幾道重點。`,
     });
   }
 
   rows.push({
     label: "用餐定位",
-    detail: `${shop.name}在${district}一帶更像一間適合坐下來完整吃一餐的${styleLabel}，不是只靠單一招牌撐場，而是從菜色主題到整體節奏都有明確定位。`,
+    detail:
+      variant === 0
+        ? `${shop.name}在${district}一帶更像一間適合坐下來完整吃一餐的${styleLabel}，不是只靠單一噱頭撐場，而是從菜色主題到現場節奏都有明確定位。`
+        : variant === 1
+          ? `以${district}這區來看，${shop.name}比較像是會讓人特地安排一頓正餐的${styleLabel}，而不是臨時填飽肚子的選項；它要賣的其實是整套體驗。`
+          : variant === 2
+            ? `${shop.name}的吸引力不只在店名本身，而是在你真正坐下來之後，會發現它從出餐安排到菜色鋪陳，都比較像一頓完整的${styleLabel}用餐流程。`
+            : `若把它放在${district}一帶同類型店家裡看，${shop.name}更偏向「值得慢慢吃完」的那種${styleLabel}，而不是單靠一兩道招牌快速決勝。`,
   });
 
   if (environmentMentioned || groupLikeTags.length > 0) {
     rows.push({
       label: "空間氛圍",
-      detail: groupLikeTags.length > 0
-        ? `評論裡常把它放在${groupLikeTags.slice(0, 2).join("、")}這類情境來看，表示除了菜色本身，空間感與現場氛圍通常也撐得住聚會需求。`
-        : "不少好評會特別提到環境、裝潢或座位安排，代表這裡帶來的不是單純填飽肚子的節奏，而是比較完整的現場體感。",
+      detail:
+        groupLikeTags.length > 0
+          ? variant % 2 === 0
+            ? `評論裡常把它放在${groupLikeTags.slice(0, 2).join("、")}這類情境來看，表示除了菜色本身，空間感與現場氛圍通常也撐得住聚會需求。`
+            : `不少人會把這裡拿來安排${groupLikeTags.slice(0, 2).join("、")}這種需要坐得住、聊得起來的場合，代表環境體感通常不只是配角。`
+          : variant % 2 === 0
+            ? "不少好評會特別提到環境、裝潢或座位安排，代表這裡帶來的不是單純填飽肚子的節奏，而是比較完整的現場體感。"
+            : "評論對空間、座位舒適度與現場氣氛的著墨不算少，表示這家店留給人的記憶點，通常不只來自餐盤本身。",
     });
   }
 
   if (serviceMentioned) {
     rows.push({
       label: "服務節奏",
-      detail: "正面評論裡常會提到服務應對、介紹節奏或桌邊照顧，表示這家店的體驗通常不是只靠菜色，而是連現場互動也能一起撐住。",
+      detail:
+        variant % 2 === 0
+          ? "正面評論裡常會提到服務應對、介紹節奏或桌邊照顧，表示這家店的體驗通常不是只靠菜色，而是連現場互動也能一起撐住。"
+          : "如果把好評拆開看，除了菜色之外，服務節奏、介紹方式與現場接應常常也會被一起提到，代表整體體驗感是有被照顧到的。",
     });
   }
 
@@ -168,8 +192,12 @@ function buildFeatureHighlights({
     rows.push({
       label: "位置便利",
       detail: mrt
-        ? `店家位在${district}，離捷運${mrt}不遠，對下班聚餐、週末約吃或想控制移動成本的人來說，抵達上通常算是順手。`
-        : `店家位在${district}一帶，若你本來就在這區安排聚餐或行程，它會是相對容易納入動線的一家店。`,
+        ? variant % 2 === 0
+          ? `店家位在${district}，離捷運${mrt}不遠，對下班聚餐、週末約吃或想控制移動成本的人來說，抵達上通常算是順手。`
+          : `若你本來就會經過${district}或從捷運${mrt}出站找餐廳，這家在移動上通常不算繞，安排在聚餐動線裡會相對輕鬆。`
+        : variant % 2 === 0
+          ? `店家位在${district}一帶，若你本來就在這區安排聚餐或行程，它會是相對容易納入動線的一家店。`
+          : `以${district}的用餐圈來看，這家店在動線上不算難安排，若原本就有附近行程，通常能順手接進同一段路線裡。`,
     });
   }
 
@@ -446,7 +474,7 @@ export default async function ShopDetailPage({
 
   const reviewInsightCards = [
     hasValue(ai?.bookingDifficulty) ? { label: "預約難度", value: ai!.bookingDifficulty! } : null,
-    hasValue(ai?.pricePerPerson) && cleanSentence(ai?.pricePerPerson) !== cleanSentence(overview?.price_overview)
+    !overview?.price_overview && hasValue(ai?.pricePerPerson)
       ? { label: "參考價位", value: ai!.pricePerPerson! }
       : null,
     dishes.length > 0 ? { label: "最常被提到", value: dishes.slice(0, 3).join("、") } : null,

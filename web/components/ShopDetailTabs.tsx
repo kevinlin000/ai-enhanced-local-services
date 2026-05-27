@@ -61,6 +61,23 @@ type Props = {
 
 type TabKey = "overview" | "gallery" | "reviews";
 
+function parsePriceUpperBound(value?: string) {
+  if (!value) return null;
+  const numbers = [...value.matchAll(/\$?([0-9]{2,4}(?:,[0-9]{3})?)/g)]
+    .map((match) => Number(match[1].replace(/,/g, "")))
+    .filter((num) => Number.isFinite(num));
+  if (!numbers.length) return null;
+  return Math.max(...numbers);
+}
+
+function getPriceTone(value?: string) {
+  const upper = parsePriceUpperBound(value);
+  if (upper == null) return null;
+  if (upper <= 400) return { label: "平均價格偏低", bar: "bg-emerald-500", chip: "bg-emerald-50 text-emerald-700" };
+  if (upper <= 1200) return { label: "平均價格中等", bar: "bg-amber-400", chip: "bg-amber-50 text-amber-700" };
+  return { label: "平均價格偏高", bar: "bg-rose-500", chip: "bg-rose-50 text-rose-700" };
+}
+
 function ExpandableText({
   text,
   limit = 220,
@@ -124,6 +141,7 @@ export function ShopDetailTabs(props: Props) {
         (totalCount > 0 && bucket.count != null ? Math.max(8, Math.round((bucket.count / totalCount) * 100)) : undefined),
     }));
   }, [props.priceBuckets]);
+  const priceTone = getPriceTone(props.priceOverview);
 
   return (
     <section className="max-w-4xl mx-auto px-4 md:px-8 mt-6">
@@ -170,6 +188,13 @@ export function ShopDetailTabs(props: Props) {
                   {props.priceReportCount ? (
                     <p className="mt-1 text-sm text-muted-foreground">{props.priceReportCount} 人回報</p>
                   ) : null}
+                  {priceTone ? (
+                    <div className="mt-3">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${priceTone.chip}`}>
+                        {priceTone.label}
+                      </span>
+                    </div>
+                  ) : null}
                   {normalizedPriceBuckets.length > 0 ? (
                     <div className="mt-4 space-y-2">
                       {normalizedPriceBuckets.map((bucket) => (
@@ -177,7 +202,7 @@ export function ShopDetailTabs(props: Props) {
                           <span className="text-muted-foreground">{bucket.label}</span>
                           <div className="h-2 rounded-full bg-muted overflow-hidden">
                             <div
-                              className="h-full rounded-full bg-amber-400"
+                              className={`h-full rounded-full ${priceTone?.bar ?? "bg-amber-400"}`}
                               style={{ width: `${bucket.share ?? 16}%` }}
                             />
                           </div>
