@@ -1,5 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { isLegacySeedShop } from "@/lib/legacySeedShops";
 
 type ExtractedShop = {
   shop_id?: number;
@@ -82,7 +83,7 @@ export async function getSimilarShops(shopId: number, limit = 4): Promise<Simila
   const basePriceBand = priceBand(base.ai_extracted?.price_per_person);
 
   return shops
-    .filter((shop) => shop.shop_id && shop.shop_id !== shopId)
+    .filter((shop) => shop.shop_id && shop.shop_id !== shopId && !isLegacySeedShop(shop.shop_id))
     .map((shop) => {
       const tags = parseList(shop.ai_extracted?.atmosphere_tags);
       const dishes = parseList(shop.ai_extracted?.signature_dishes);

@@ -76,7 +76,10 @@ export default async function Home() {
   );
 
   stationsWithShops = HOT_STATIONS
-    .map((name, idx) => ({ name, shops: stationShops[idx]?.data ?? [] }))
+    .map((name, idx) => ({
+      name,
+      shops: (stationShops[idx]?.data ?? []).filter((shop) => !isLegacySeedShop(shop.id)),
+    }))
     .filter((s) => s.shops.length > 0)
     .sort((a, b) => b.shops.length - a.shops.length);
 

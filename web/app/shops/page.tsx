@@ -94,6 +94,10 @@ function getFallbackImage(shop: Shop) {
   return shop.images?.startsWith("http") ? shop.images : null;
 }
 
+function hideLegacySeedShops(shops: Shop[]) {
+  return shops.filter((shop) => !isLegacySeedShop(shop.id));
+}
+
 function ShopsPageContent() {
   const searchParams = useSearchParams();
   const [options, setOptions] = useState<FilterOptions | null>(null);
@@ -132,7 +136,7 @@ function ShopsPageContent() {
       setCategorySlugToId(next);
     });
     javaApi.shopSearch({ size: 100 }).then((r) => {
-      if (r?.success) allShopsRef.current = r.data.records ?? [];
+      if (r?.success) allShopsRef.current = hideLegacySeedShops(r.data.records ?? []);
     });
   }, []);
 
@@ -180,8 +184,9 @@ function ShopsPageContent() {
       })
       .then((r) => {
         if (r?.success) {
-          setShops(r.data.records ?? []);
-          setTotal(r.data.total ?? 0);
+          const filtered = hideLegacySeedShops(r.data.records ?? []);
+          setShops(filtered);
+          setTotal(filtered.length);
         }
       })
       .finally(() => setLoading(false));
@@ -243,8 +248,9 @@ function ShopsPageContent() {
         };
       })
       .filter(Boolean) as Shop[];
-    setShops(ordered);
-    setTotal(ordered.length);
+    const filtered = hideLegacySeedShops(ordered);
+    setShops(filtered);
+    setTotal(filtered.length);
   }, [searchMode, aiHitIds, aiHitMeta]);
 
   // switch to text mode: reset AI state, keep filter state

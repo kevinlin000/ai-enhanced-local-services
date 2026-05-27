@@ -9,6 +9,7 @@ import { proxyImageUrl } from "@/lib/photoProxy";
 import { getBestShopCardPhoto, getShopGalleryPhotos, getShopOverview } from "@/lib/shopPhotoManifest";
 import { getShopReviewInsights } from "@/lib/reviewInsights";
 import { getSlugByTypeId, getStyleByTypeId } from "@/lib/categoryStyle";
+import { isLegacySeedShop } from "@/lib/legacySeedShops";
 import { getSimilarShops } from "@/lib/similarShops";
 
 type SimilarShopCard = {
@@ -227,7 +228,7 @@ function toFallbackSimilarCards(items: Awaited<ReturnType<typeof getSimilarShops
 
 function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): SimilarShopCard[] {
   return candidates
-    .filter((candidate) => candidate.id !== baseShop.id)
+    .filter((candidate) => candidate.id !== baseShop.id && !isLegacySeedShop(candidate.id))
     .map((candidate) => {
       const sameDistrict = Boolean(baseShop.district && candidate.district === baseShop.district);
       const sameMrt = Boolean(baseShop.mrtStation && candidate.mrtStation === baseShop.mrtStation);
