@@ -21,7 +21,7 @@ type PhotoPayload = {
 };
 
 const PHOTO_DATA = payload as PhotoPayload;
-const COVER_OVERRIDES: Record<number, { coverIndex?: number; disableReviewPhotos?: boolean }> = {
+const COVER_OVERRIDES: Record<number, { coverIndex?: number; coverUrl?: string; disableReviewPhotos?: boolean }> = {
   10112: { disableReviewPhotos: true }, // HOOTERS
   10127: { coverIndex: 1 }, // 下港吔：食物比超寬場景穩
   10131: { coverIndex: 3 }, // 詹記：避開過近特寫
@@ -62,6 +62,7 @@ export function getShopOverview(shopId: number): ShopOverview | null {
 
 export function getShopCoverPhoto(shopId: number): string | null {
   const override = COVER_OVERRIDES[shopId];
+  if (override?.coverUrl) return override.coverUrl;
   if (override?.disableReviewPhotos) return null;
   const shop = PHOTO_DATA.shops?.[String(shopId)];
   const urls = getShopPhotoUrlsFromManifest(shopId);

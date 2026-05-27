@@ -596,6 +596,11 @@ export default async function ShopDetailPage({
         phone={ai?.phone}
         bookingDifficulty={hasValue(ai?.bookingDifficulty) ? ai?.bookingDifficulty : undefined}
         pricePerPerson={hasValue(ai?.pricePerPerson) ? ai?.pricePerPerson : undefined}
+        priceOverview={overview?.price_overview}
+        priceReportCount={overview?.price_report_count}
+        priceBuckets={Array.isArray(overview?.price_buckets) ? overview?.price_buckets as { label: string; count?: number; share?: number }[] : undefined}
+        popularTime={overview?.popular_time ?? null}
+        visitDuration={overview?.visit_duration ?? null}
         dishes={dishes}
         tags={tags}
         reviewInsightCards={reviewInsightCards}

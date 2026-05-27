@@ -34,6 +34,11 @@ type Props = {
   phone?: string;
   bookingDifficulty?: string;
   pricePerPerson?: string;
+  priceOverview?: string;
+  priceReportCount?: number;
+  priceBuckets?: string[] | { label: string; count?: number; share?: number }[];
+  popularTime?: { hour?: string; status?: string } | null;
+  visitDuration?: string | null;
   dishes: string[];
   tags: string[];
   reviewInsightCards: { label: string; value: string }[];
@@ -97,6 +102,23 @@ export function ShopDetailTabs(props: Props) {
     [],
   );
 
+  const normalizedPriceBuckets = useMemo(() => {
+    const buckets = props.priceBuckets ?? [];
+    if (!buckets.length) return [];
+    const normalized = buckets.map((bucket) => {
+      if (typeof bucket === "string") return { label: bucket, count: undefined, share: undefined };
+      return bucket;
+    });
+    const totalCount = normalized.reduce((sum, bucket) => sum + (bucket.count ?? 0), 0);
+    return normalized.map((bucket) => ({
+      label: bucket.label,
+      count: bucket.count,
+      share:
+        bucket.share ??
+        (totalCount > 0 && bucket.count != null ? Math.max(8, Math.round((bucket.count / totalCount) * 100)) : undefined),
+    }));
+  }, [props.priceBuckets]);
+
   return (
     <section className="max-w-4xl mx-auto px-4 md:px-8 mt-6">
       <div className="border-b">
@@ -132,6 +154,57 @@ export function ShopDetailTabs(props: Props) {
               </div>
             ))}
           </div>
+
+          {(props.priceOverview || props.popularTime || props.visitDuration) ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {props.priceOverview ? (
+                <div className="rounded-2xl border bg-background p-5">
+                  <div className="text-xs text-muted-foreground">Google 平均每人</div>
+                  <div className="mt-2 text-2xl font-semibold">{props.priceOverview}</div>
+                  {props.priceReportCount ? (
+                    <p className="mt-1 text-sm text-muted-foreground">{props.priceReportCount} 人回報</p>
+                  ) : null}
+                  {normalizedPriceBuckets.length > 0 ? (
+                    <div className="mt-4 space-y-2">
+                      {normalizedPriceBuckets.map((bucket) => (
+                        <div key={bucket.label} className="grid grid-cols-[84px_1fr_auto] items-center gap-3 text-sm">
+                          <span className="text-muted-foreground">{bucket.label}</span>
+                          <div className="h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-amber-400"
+                              style={{ width: `${bucket.share ?? 16}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-muted-foreground">{bucket.count ?? ""}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {(props.popularTime || props.visitDuration) ? (
+                <div className="rounded-2xl border bg-background p-5">
+                  <div className="text-xs text-muted-foreground">熱門時段</div>
+                  {props.popularTime?.hour || props.popularTime?.status ? (
+                    <div className="mt-2 text-lg font-semibold">
+                      {[props.popularTime.hour, props.popularTime.status].filter(Boolean).join(" · ")}
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-base text-muted-foreground">資料補抓中</div>
+                  )}
+                  {props.visitDuration ? (
+                    <p className="mt-3 text-sm text-muted-foreground">
+                      平均停留時間：{props.visitDuration}
+                    </p>
+                  ) : null}
+                  <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
+                    若之後補到完整時段資料，這裡會直接顯示最忙時段與停留時間，幫你判斷什麼時候去最舒服。
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {(props.address || props.phone || props.businessHours) && (
             <div className="space-y-3">
