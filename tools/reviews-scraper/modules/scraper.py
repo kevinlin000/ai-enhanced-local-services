@@ -1564,6 +1564,7 @@ class GoogleReviewsScraper:
         url = self.config.get("url")
         headless = self.config.get("headless", True)
         sort_by = self.config.get("sort_by", "relevance")
+        overview_only = bool(self.config.get("overview_only", False))
         stop_threshold = self.config.get("stop_threshold", 3)
         max_reviews = self.config.get("max_reviews", 0)
         max_scroll_attempts = self.config.get("max_scroll_attempts", 50)
@@ -1620,6 +1621,22 @@ class GoogleReviewsScraper:
                     overview.get("price_overview"),
                     overview.get("popular_time"),
                 )
+
+            if overview_only:
+                if session_id:
+                    self.review_db.end_session(
+                        session_id,
+                        "completed",
+                        reviews_found=0,
+                        reviews_new=0,
+                        reviews_updated=0,
+                    )
+                if self._selector_health is not None:
+                    self._selector_health.flush()
+                end_time = time.time()
+                elapsed_time = end_time - start_time
+                log.info("Overview-only scrape completed in %.2f seconds", elapsed_time)
+                return True
 
             # Load seen IDs from DB (empty for full mode to re-process everything)
             if self.scrape_mode == "full":

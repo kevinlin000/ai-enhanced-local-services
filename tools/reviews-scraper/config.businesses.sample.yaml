@@ -100,6 +100,7 @@ businesses:
       source: "Google Maps"
     sort_by: "relevance"
     scrape_mode: "update"
+    overview_only: false
     stop_threshold: 5
     max_reviews: 0
     max_scroll_attempts: 50
@@ -148,6 +149,7 @@ businesses:
       source: "Google Maps"
     sort_by: "relevance"
     scrape_mode: "update"
+    overview_only: false
     stop_threshold: 3
     convert_dates: true
     download_images: true

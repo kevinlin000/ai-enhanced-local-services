@@ -22,6 +22,7 @@ sort_by: "relevance"            # Options: newest, highest, lowest, relevance
 #   "update"    — insert new + update changed reviews (default)
 #   "full"      — re-process all reviews through upsert pipeline
 scrape_mode: "update"
+overview_only: false           # true = only抓 Google place overview，不進 reviews tab
 
 # Early stop — stop after N consecutive fully-matched scroll batches.
 # A "batch" = all reviews discovered in one scroll iteration.

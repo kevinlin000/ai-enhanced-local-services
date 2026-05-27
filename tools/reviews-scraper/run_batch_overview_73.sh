@@ -3,8 +3,8 @@ set -uo pipefail
 
 SCRAPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON="$SCRAPER_DIR/.venv/bin/python"
-SHOPS_FILE="${SHOPS_FILE:-$SCRAPER_DIR/shops_overview_targets.txt}"
-PROGRESS_FILE="${CRAWL_PROGRESS_FILE:-/tmp/crawl-overview-targets.progress}"
+SHOPS_FILE="${SHOPS_FILE:-$SCRAPER_DIR/shops_overview_73.txt}"
+PROGRESS_FILE="${CRAWL_PROGRESS_FILE:-/tmp/crawl-overview-73.progress}"
 
 export PYTHONUNBUFFERED=1
 export NO_COLOR=1
@@ -58,18 +58,6 @@ CURRENT_SHOP_ID=""
 MAX_ATTEMPTS=${MAX_ATTEMPTS:-3}
 write_progress
 
-mongo_count() {
-  local company="$1"
-  "$PYTHON" -c "
-from pymongo import MongoClient
-try:
-    c = MongoClient('mongodb://localhost:27017', connectTimeoutMS=3000)
-    n = c['bytebites_reviews']['google_reviews'].count_documents({'company': '$company'})
-    print(n); c.close()
-except: print(0)
-" 2>/dev/null || echo 0
-}
-
 build_search_url() {
   local name="$1" address="$2"
   "$PYTHON" -c "
@@ -111,17 +99,14 @@ businesses:
       shop_id: $shop_id
 YAML
 
-  local t0 t1 cnt
+  local t0 t1
   t0=$(date +%s)
-  log "launch scraper shop_id=$shop_id name=$name"
+  log "launch overview_only shop_id=$shop_id name=$name"
   "$PYTHON" -u "$SCRAPER_DIR/start.py" scrape --config "$SCRAPER_DIR/config_single.yaml" 2>&1
   rc=$?
   t1=$(date +%s)
   log "scraper exit rc=$rc elapsed=$((t1-t0))s shop_id=$shop_id"
-
-  cnt=$(mongo_count "$name")
-  log "mongo count company='$name' count=$cnt"
-  [ "$rc" -eq 0 ] && [ "$cnt" -gt 0 ]
+  [ "$rc" -eq 0 ]
 }
 
 for entry in "${SHOPS[@]}"; do
@@ -159,8 +144,8 @@ for entry in "${SHOPS[@]}"; do
   done
 
   write_progress
-  sleep 3
+  sleep 2
 done
 
 echo ""
-log "=== 完成: $SUCCESS 成功 / $FAIL 失敗 / $TOTAL 家 ==="
+log "=== overview 完成: $SUCCESS 成功 / $FAIL 失敗 / $TOTAL 家 ==="

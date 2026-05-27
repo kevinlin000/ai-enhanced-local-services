@@ -23,6 +23,7 @@ DEFAULT_CONFIG = {
     "headless": True,
     "sort_by": "relevance",
     "scrape_mode": "update",
+    "overview_only": False,
     "stop_on_match": False,
     "overwrite_existing": False,
     "max_reviews": 0,
