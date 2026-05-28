@@ -146,7 +146,6 @@ function buildFeatureHighlights({
 }) {
   const rows: { label: string; detail: string }[] = [];
   const district = shop.district ?? shop.area ?? "台北市";
-  const mrt = cleanSentence(shop.mrtStation);
   const variant = shop.id % 3;
   const positiveReviews = reviewInsights?.selectedReviews?.filter((review) => review.rating >= 4) ?? [];
   const foodSnippet = findReviewSnippet(positiveReviews, /好吃|嫩|脆|鮮|香|湯|肉|蝦|魚|飯|麵|鍋|甜點|蛋糕|壽司|和牛|牛排|鴨|雞/);
@@ -163,10 +162,10 @@ function buildFeatureHighlights({
       label: "料理亮點",
       detail:
         variant === 0
-          ? `${dishText}通常會最先被客人提起，而像「${foodSnippet}」這類說法，也更能直接看出這家${styleLabel}真正被記住的是哪一口。`
+          ? `不少好評會把焦點放在${dishText}，像「${foodSnippet}」這類具體描述，也比較能直接看出這家${styleLabel}到底是靠哪幾口讓人留下印象。`
           : variant === 1
-            ? `不少好評會直接寫到「${foodSnippet}」，因此像${dishText}這幾道，也常被當成這家店最能代表自己的菜。`
-            : `${dishText}大多會被放在同一輪討論裡，再配上「${foodSnippet}」這種具體回饋，比起單純說好吃，更能知道這家店厲害在哪裡。`,
+            ? `像「${foodSnippet}」這種回饋，不太像泛泛稱讚；也因此${dishText}這幾道，通常會被視為這家店最值得先鎖定的代表菜。`
+            : `${dishText}常會跟「${foodSnippet}」這類句子一起出現，比起只說好吃，這更能把它真正討喜的口感與做法說清楚。`,
     });
   }
 
@@ -180,10 +179,10 @@ function buildFeatureHighlights({
       label: "空間感受",
       detail:
         variant === 0
-          ? `像「${environmentSnippet}」這類描述，通常能幫你想像現場的空間體感；也因為如此，它常被放進${sceneText}這種需要坐得住的場合。`
+          ? `像「${environmentSnippet}」這類描述，通常能幫你比較快想像現場會是什麼感覺；也因為如此，它常被放進${sceneText}這種需要坐得住的場合。`
           : variant === 1
-            ? `不少人會直接提到「${environmentSnippet}」，再加上它常被拿來安排${sceneText}這類情境，表示空間感並不是可有可無的背景。`
-            : `${sceneText}是它很常出現的使用方式；而從「${environmentSnippet}」這類說法來看，現場氛圍通常也有把整體體驗撐住。`,
+            ? `不少人會直接提到「${environmentSnippet}」，再加上它常被拿來安排${sceneText}這類情境，表示現場氛圍並不是可有可無的背景。`
+            : `${sceneText}是它很常出現的使用方式；而從「${environmentSnippet}」這類說法來看，空間感通常也有把整體體驗撐住。`,
     });
   }
 
@@ -194,7 +193,7 @@ function buildFeatureHighlights({
         variant === 0
           ? `像「${serviceSnippet}」這類回饋，表示客人記住的不只是一兩道菜，連現場應對與互動方式也有被一起留下印象。`
           : variant === 1
-            ? `把好評拆開看，常會看到像「${serviceSnippet}」這樣的描述，代表這裡的服務並不是背景板，而是真的有被客人提起。`
+            ? `把好評拆開看，常會看到像「${serviceSnippet}」這樣的描述，代表這裡的服務不是附帶，而是真的有被客人記住。`
             : `如果只看菜色很容易少看一塊，但像「${serviceSnippet}」這類回饋，也在補強整體體驗為什麼會成立。`,
     });
   }
@@ -479,7 +478,9 @@ export default async function ShopDetailPage({
       : null,
     dishes.length >= 3 ? { label: "最常被提到", value: dishes.slice(0, 3).join("、") } : null,
     strongTags.length >= 2 ? { label: "常見場景", value: strongTags.slice(0, 3).join("、") } : null,
-  ].filter(Boolean) as { label: string; value: string; hint?: string }[];
+  ]
+    .filter(Boolean)
+    .slice(0, 3) as { label: string; value: string; hint?: string }[];
   const featureHighlights = buildFeatureHighlights({
     shop,
     styleLabel: style.label,

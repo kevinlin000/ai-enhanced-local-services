@@ -142,6 +142,17 @@ export function ShopDetailTabs(props: Props) {
     }));
   }, [props.priceBuckets]);
   const priceTone = getPriceTone(props.priceOverview);
+  const overviewCards = useMemo(() => {
+    const cards = [...props.reviewInsightCards];
+    if (props.priceOverview) {
+      cards.unshift({
+        label: "Google 平均每人",
+        value: props.priceOverview,
+        hint: props.priceReportCount ? `${props.priceReportCount} 人回報` : undefined,
+      });
+    }
+    return cards.slice(0, 4);
+  }, [props.priceOverview, props.priceReportCount, props.reviewInsightCards]);
 
   return (
     <section className="max-w-4xl mx-auto px-4 md:px-8 mt-6">
@@ -171,7 +182,7 @@ export function ShopDetailTabs(props: Props) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {props.reviewInsightCards.map((card) => (
+            {overviewCards.map((card) => (
               <div key={card.label} className="rounded-2xl border bg-background p-5">
                 <div className="text-xs text-muted-foreground">{card.label}</div>
                 <div className="mt-2 text-base font-medium leading-relaxed">{card.value}</div>
@@ -180,9 +191,13 @@ export function ShopDetailTabs(props: Props) {
             ))}
           </div>
 
-          {normalizedPriceBuckets.length > 1 ? (
+          {props.priceOverview && normalizedPriceBuckets.length > 1 ? (
             <div className="rounded-2xl border bg-background p-5">
-              <div className="text-xs text-muted-foreground">價位分布</div>
+              <div className="text-xs text-muted-foreground">Google 平均每人</div>
+              <div className="mt-2 text-3xl font-semibold">{props.priceOverview}</div>
+              {props.priceReportCount ? (
+                <div className="mt-1 text-sm text-muted-foreground">{props.priceReportCount} 人回報</div>
+              ) : null}
               <div className="mt-3">
                 {priceTone ? (
                   <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${priceTone.chip}`}>
