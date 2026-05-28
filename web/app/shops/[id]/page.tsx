@@ -119,6 +119,13 @@ function findReviewSnippet(
   return "";
 }
 
+function countReviewMatches(
+  reviews: { text: string; rating: number }[],
+  pattern: RegExp,
+) {
+  return reviews.filter((review) => review.rating >= 4 && pattern.test(review.text)).length;
+}
+
 function buildFeatureHighlights({
   shop,
   styleLabel,
@@ -146,11 +153,14 @@ function buildFeatureHighlights({
   const environmentSnippet = findReviewSnippet(positiveReviews, /環境|裝潢|氣氛|空間|包廂|景觀|寬敞|明亮|舒服|放鬆/);
   const serviceSnippet = findReviewSnippet(positiveReviews, /服務|店員|親切|細心|專業|桌邊|介紹|照顧|貼心/);
   const groupLikeTags = tags.filter((tag) => ["聚餐", "約會", "親子", "商務", "慶生", "一人"].includes(tag));
+  const foodEvidence = countReviewMatches(positiveReviews, /好吃|嫩|脆|鮮|香|湯|肉|蝦|魚|飯|麵|鍋|甜點|蛋糕|壽司|和牛|牛排|鴨|雞/);
+  const envEvidence = countReviewMatches(positiveReviews, /環境|裝潢|氣氛|空間|包廂|景觀|寬敞|明亮|舒服|放鬆/);
+  const serviceEvidence = countReviewMatches(positiveReviews, /服務|店員|親切|細心|專業|桌邊|介紹|照顧|貼心/);
 
-  if (foodSnippet && dishes.length >= 2) {
+  if (foodSnippet && dishes.length >= 2 && foodEvidence >= 2) {
     const dishText = dishes.slice(0, 3).join("、");
     rows.push({
-      label: "招牌菜色",
+      label: "料理亮點",
       detail:
         variant === 0
           ? `${dishText}通常會最先被客人提起，而像「${foodSnippet}」這類說法，也更能直接看出這家${styleLabel}真正被記住的是哪一口。`
@@ -160,7 +170,7 @@ function buildFeatureHighlights({
     });
   }
 
-  if (environmentSnippet) {
+  if (environmentSnippet && envEvidence >= 2) {
     const sceneText = groupLikeTags.includes("一人")
       ? "一個人安靜吃一餐"
       : groupLikeTags.length > 0
@@ -177,7 +187,7 @@ function buildFeatureHighlights({
     });
   }
 
-  if (serviceSnippet) {
+  if (serviceSnippet && serviceEvidence >= 2) {
     rows.push({
       label: "服務互動",
       detail:
@@ -189,19 +199,7 @@ function buildFeatureHighlights({
     });
   }
 
-  if (mrt && rows.length >= 3 && rows.length < 4) {
-    rows.push({
-      label: "位置便利",
-      detail:
-        variant === 0
-          ? `店家位在${district}，離捷運${mrt}不遠，如果你本來就會從這站附近找餐廳，通常不需要為了這家額外繞太多路。`
-          : variant === 1
-            ? `若你的聚餐動線會經過${district}或從捷運${mrt}出站覓食，這家在抵達上通常算順手，安排起來不太費力。`
-            : `以${district}這區來說，靠近捷運${mrt}讓它在下班約吃、臨時聚餐或帶人來用餐時都相對容易納入動線。`,
-    });
-  }
-
-  return rows.length >= 2 ? rows.slice(0, 4) : [];
+  return rows.length >= 2 ? rows.slice(0, 3) : [];
 }
 
 function parseBusinessHours(value?: string | null): string[] {
@@ -476,18 +474,8 @@ export default async function ShopDetailPage({
     ["聚餐", "約會", "親子", "商務", "慶生", "一人"].includes(tag),
   );
   const reviewInsightCards = [
-    hasValue(ai?.bookingDifficulty) && ai?.bookingDifficulty !== "未提及"
+    hasValue(ai?.bookingDifficulty) && !["未提及", "現場可入"].includes(ai!.bookingDifficulty!)
       ? { label: "預約難度", value: ai!.bookingDifficulty! }
-      : null,
-    overview?.price_overview
-      ? {
-          label: "Google 平均每人",
-          value: overview.price_overview,
-          hint: overview.price_report_count ? `${overview.price_report_count} 人回報` : undefined,
-        }
-      : null,
-    !overview?.price_overview && hasValue(ai?.pricePerPerson)
-      ? { label: "參考價位", value: ai!.pricePerPerson! }
       : null,
     dishes.length >= 3 ? { label: "最常被提到", value: dishes.slice(0, 3).join("、") } : null,
     strongTags.length >= 2 ? { label: "常見場景", value: strongTags.slice(0, 3).join("、") } : null,
