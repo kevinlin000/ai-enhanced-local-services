@@ -1,4 +1,4 @@
-import rawTaxonomy from "../../shared/taxonomy.json";
+import rawTaxonomy from "./_generated/taxonomy.json";
 
 export type Category = {
   type_id: number;

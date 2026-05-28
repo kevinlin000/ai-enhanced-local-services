@@ -108,3 +108,4 @@ tools/reviews-scraper/*.egg-info/
 
 # ETL extended reviews (raw data, not for repo)
 etl-pipeline/data/reviews_extended/
+web/lib/_generated/

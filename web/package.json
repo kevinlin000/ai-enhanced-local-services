@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "sync:taxonomy": "node scripts/copy-taxonomy.mjs",
+    "predev": "node scripts/copy-taxonomy.mjs",
+    "prebuild": "node scripts/copy-taxonomy.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
