@@ -84,6 +84,7 @@ downloaded_files/
 # Temporary and Output Files
 # -----------------------------------------------------------
 *.json
+shops_next30.txt
 *.ids
 temp/
 output/
