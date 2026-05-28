@@ -22,10 +22,10 @@ type PhotoPayload = {
 
 const PHOTO_DATA = payload as PhotoPayload;
 const COVER_OVERRIDES: Record<number, { coverIndex?: number; coverUrl?: string; disableReviewPhotos?: boolean }> = {
-  10100: { disableReviewPhotos: true }, // 一蘭別館：目前只有草圖小縮圖
-  10104: { disableReviewPhotos: true }, // 饗饗：目前 overview 仍只有草圖縮圖
-  10112: { disableReviewPhotos: true }, // HOOTERS
-  10115: { disableReviewPhotos: true }, // 辛殿：overview 仍是 122x92 縮圖
+  10100: { coverIndex: 0 }, // 一蘭別館：先用現有評論圖，不退回 icon
+  10104: { coverIndex: 0 }, // 饗饗：用 overview 正圖
+  10112: { coverIndex: 0 }, // HOOTERS：先用 overview 圖，文字污染另行重抓
+  10115: { coverIndex: 1 }, // 辛殿：避開 122x92 overview 縮圖，改用較清楚食物照
   10127: { coverIndex: 1 }, // 下港吔：食物比超寬場景穩
   10131: { coverIndex: 3 }, // 詹記：避開過近特寫
   10149: { coverIndex: 2 }, // 夏慕尼南昌：偏料理成品
