@@ -1,5 +1,4 @@
-import { readdir, readFile } from "node:fs/promises";
-import path from "node:path";
+import { getExtractedShop } from "@/lib/extractedShops";
 
 type RawReview = {
   author?: string | null;
@@ -7,19 +6,6 @@ type RawReview = {
   text?: string | null;
   publish_time?: string | null;
   source?: string | null;
-};
-
-type ExtractedShop = {
-  shop_id?: number;
-  display_name?: string;
-  reviews?: RawReview[];
-  ai_extracted?: {
-    signature_dishes?: string[] | string;
-  };
-};
-
-type ExtractedPayload = {
-  shops?: ExtractedShop[];
 };
 
 export type ReviewSnippet = {
@@ -46,14 +32,6 @@ export type ShopReviewInsights = {
   totalReviews: number;
   nonEmptyReviews: number;
 };
-
-const RAW_DIR = path.join(
-  process.cwd(),
-  "..",
-  "etl-pipeline",
-  "data",
-  "raw",
-);
 
 const ADVICE_RULES: { label: string; detail: string; keywords: string[] }[] = [
   {
@@ -132,20 +110,8 @@ function reviewValueScore(review: RawReview) {
   return score;
 }
 
-async function latestExtractedFile() {
-  const files = await readdir(RAW_DIR);
-  const candidates = files.filter((name) => /^places_extracted_\d{8}_\d{6}\.json$/.test(name)).sort();
-  const latest = candidates.at(-1);
-  if (!latest) return null;
-  return path.join(RAW_DIR, latest);
-}
-
 export async function getShopReviewInsights(shopId: number): Promise<ShopReviewInsights | null> {
-  const latest = await latestExtractedFile();
-  if (!latest) return null;
-
-  const payload = JSON.parse(await readFile(latest, "utf-8")) as ExtractedPayload;
-  const shop = payload.shops?.find((item) => item.shop_id === shopId);
+  const shop = await getExtractedShop(shopId);
   if (!shop) return null;
 
   const dishes = parseList(shop.ai_extracted?.signature_dishes);

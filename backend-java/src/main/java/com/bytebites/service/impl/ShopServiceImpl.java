@@ -73,8 +73,16 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         }
 
         if (!shopBloomFilter.contains(id)) {
-            log.debug("cache path: bloom blocked, id={}", id);
-            return Result.fail("店家不存在！");
+            log.debug("cache path: bloom missed, fallback db, id={}", id);
+            Shop fallbackShop = getById(id);
+            if (fallbackShop == null) {
+                return Result.fail("店家不存在！");
+            }
+            shopBloomFilter.add(id);
+            String fallbackKey = CACHE_SHOP_KEY + id;
+            stringRedisTemplate.opsForValue().set(fallbackKey, JSONUtil.toJsonStr(fallbackShop), CACHE_SHOP_TTL, TimeUnit.MINUTES);
+            shopLocalCache.put(id, fallbackShop);
+            return Result.ok(fallbackShop);
         }
 
         String key = CACHE_SHOP_KEY + id;

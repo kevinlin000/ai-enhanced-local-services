@@ -1,22 +1,5 @@
-import { readdir, readFile } from "node:fs/promises";
-import path from "node:path";
+import { loadExtractedShopMap } from "@/lib/extractedShops";
 import { isLegacySeedShop } from "@/lib/legacySeedShops";
-
-type ExtractedShop = {
-  shop_id?: number;
-  display_name?: string;
-  district?: string;
-  ai_extracted?: {
-    price_per_person?: string;
-    booking_difficulty?: string;
-    atmosphere_tags?: string[];
-    signature_dishes?: string[];
-  };
-};
-
-type ExtractedPayload = {
-  shops?: ExtractedShop[];
-};
 
 export type SimilarShop = {
   shopId: number;
@@ -28,14 +11,6 @@ export type SimilarShop = {
   reason: string;
   score: number;
 };
-
-const RAW_DIR = path.join(
-  process.cwd(),
-  "..",
-  "etl-pipeline",
-  "data",
-  "raw",
-);
 
 function parseList(value?: string[] | string): string[] {
   if (!value) return [];
@@ -59,20 +34,9 @@ function priceBand(value?: string) {
   return "luxury";
 }
 
-async function latestExtractedFile() {
-  const files = await readdir(RAW_DIR);
-  const candidates = files.filter((name) => /^places_extracted_\d{8}_\d{6}\.json$/.test(name)).sort();
-  const latest = candidates.at(-1);
-  if (!latest) return null;
-  return path.join(RAW_DIR, latest);
-}
-
 export async function getSimilarShops(shopId: number, limit = 4): Promise<SimilarShop[]> {
-  const latest = await latestExtractedFile();
-  if (!latest) return [];
-
-  const payload = JSON.parse(await readFile(latest, "utf-8")) as ExtractedPayload;
-  const shops = payload.shops ?? [];
+  const shopMap = await loadExtractedShopMap();
+  const shops = [...shopMap.values()];
   const base = shops.find((shop) => shop.shop_id === shopId);
   if (!base) return [];
 
