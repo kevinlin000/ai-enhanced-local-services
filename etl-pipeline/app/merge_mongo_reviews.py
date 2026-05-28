@@ -21,6 +21,12 @@ VALUE_KEYWORDS = {
     "negative": ["太鹹", "偏鹹", "太慢", "太久", "失望", "普通", "不推", "太貴", "擁擠", "吵", "退步", "冷掉"],
 }
 
+LODGING_KEYWORDS = [
+    "住宿", "入住", "退房", "check in", "check-in", "check out", "check-out",
+    "房間", "民宿", "飯店", "hotel", "room", "front desk", "櫃檯", "床", "枕頭",
+    "洗衣機", "房務", "四人房", "雙人房", "住宿體驗", "睡眠品質",
+]
+
 
 def latest_extracted_file() -> Path:
     files = sorted(RAW_DIR.glob("places_extracted_*.json"))
@@ -61,6 +67,14 @@ def existing_review_key(review: dict) -> tuple:
 
 def review_text(review: dict) -> str:
     return str(review.get("text") or "").strip()
+
+
+def is_likely_lodging_review(review: dict) -> bool:
+    text = review_text(review).lower()
+    if not text:
+        return False
+    hits = sum(1 for keyword in LODGING_KEYWORDS if keyword in text)
+    return hits >= 2
 
 
 def review_rating(review: dict) -> float:
@@ -109,10 +123,10 @@ def select_best_reviews(mongo_reviews: list[dict], original_reviews: list[dict])
         merged_reviews.append(review)
 
     for review in mongo_reviews:
-        if review_text(review):
+        if review_text(review) and not is_likely_lodging_review(review):
             add_unique(review)
     for review in original_reviews:
-        if review_text(review):
+        if review_text(review) and not is_likely_lodging_review(review):
             add_unique(review)
 
     nonempty = merged_reviews
@@ -140,7 +154,7 @@ def select_best_reviews(mongo_reviews: list[dict], original_reviews: list[dict])
             break
 
     if len(picked) < 20:
-        empties = [review for review in mongo_reviews if not review_text(review)]
+        empties = [review for review in mongo_reviews if not review_text(review) and not is_likely_lodging_review(review)]
         for review in empties:
             key = existing_review_key(review)
             if key in picked_keys:
