@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { aiApi, type SearchHit } from "@/lib/api";
+import { streamAgentResponse } from "@/lib/agentStream";
 
 const AI_API = "";
 
@@ -103,29 +104,65 @@ export default function AiPage() {
   async function sendAgentMessage(q: string) {
     if (!q.trim()) return;
     const userMsg = q.trim();
-    setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: userMsg },
+      { role: "ai", content: "", toolsUsed: [] },
+    ]);
     setQuery("");
     setLoading(true);
     try {
-      const r = await fetch(`${AI_API}/api/ai/agent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: userMsg, session_id: sessionId }),
-      }).then((res) => res.json());
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "ai",
-          content: r.answer || "（無回應）",
-          toolsUsed: r.tools_used,
+      await streamAgentResponse(
+        { query: userMsg, session_id: sessionId },
+        (event) => {
+          if (event.type === "chunk") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = { ...last, content: `${last.content}${event.content}` };
+              return next;
+            });
+          } else if (event.type === "tool") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              const tools = [...new Set([...(last.toolsUsed ?? []), event.name])];
+              next[next.length - 1] = { ...last, toolsUsed: tools };
+              return next;
+            });
+          } else if (event.type === "done") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = {
+                ...last,
+                content: event.answer || last.content,
+                toolsUsed: event.tools_used ?? last.toolsUsed,
+              };
+              return next;
+            });
+          } else if (event.type === "error") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = { ...last, content: event.message || "出錯了，再試一次" };
+              return next;
+            });
+          }
         },
-      ]);
+      );
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "ai", content: "出錯了，再試一次" },
-      ]);
+      setMessages((prev) => {
+        const next = [...prev];
+        const last = next[next.length - 1];
+        if (!last || last.role !== "ai") return [...prev, { role: "ai", content: "出錯了，再試一次" }];
+        next[next.length - 1] = { ...last, content: "出錯了，再試一次" };
+        return next;
+      });
     } finally {
       setLoading(false);
     }

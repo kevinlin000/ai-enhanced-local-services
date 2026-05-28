@@ -1,8 +1,10 @@
 import json
 import logging
 import httpx
+from typing import AsyncIterator
 from app import session_store
 from fastapi import FastAPI, HTTPException, Response
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.guardrail import GuardrailViolation, check_input, filter_output
 from google import genai
@@ -1028,6 +1030,103 @@ class AgentRequest(BaseModel):
     session_id: str | None = None  # 前端帶入；None = 無狀態單輪
 
 
+def _history_to_contents(history: list[dict], query: str) -> list:
+    contents: list = []
+    for turn in history:
+        role = turn.get("role")
+        text = turn.get("content", "")
+        if role in ("user", "model") and text:
+            contents.append(
+                types.Content(
+                    role=role,
+                    parts=[types.Part.from_text(text=text)],
+                )
+            )
+    contents.append(
+        types.Content(
+            role="user",
+            parts=[types.Part.from_text(text=query)],
+        )
+    )
+    return contents
+
+
+async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], dict]:
+    history = session_store.load_history(session_id) if session_id else []
+    contents = _history_to_contents(history, query)
+
+    tools_used: list[str] = []
+    last_tool_result: dict = {}
+    final_answer = ""
+
+    for _ in range(4):
+        response = generate(
+            settings.gemini_chat_model,
+            contents,
+            types.GenerateContentConfig(
+                tools=TOOLS,
+                system_instruction=AGENT_SYSTEM_PROMPT,
+            ),
+        )
+
+        candidate = response.candidates[0]
+        function_call = None
+        for part in candidate.content.parts:
+            if hasattr(part, "function_call") and part.function_call:
+                function_call = part.function_call
+                break
+
+        if not function_call:
+            final_answer = filter_output(response.text)
+            break
+
+        tool_name = function_call.name
+        tool_args = dict(function_call.args)
+
+        tool_fn = TOOL_DISPATCH.get(tool_name)
+        if tool_fn is None:
+            raise HTTPException(500, f"unknown tool: {tool_name}")
+
+        tool_result = await tool_fn(**tool_args)
+        tools_used.append(tool_name)
+        last_tool_result = tool_result
+
+        contents.append(candidate.content)
+        contents.append(
+            types.Content(
+                role="tool",
+                parts=[
+                    types.Part.from_function_response(
+                        name=tool_name,
+                        response=tool_result,
+                    )
+                ],
+            )
+        )
+    else:
+        final = generate(
+            settings.gemini_chat_model,
+            contents,
+            types.GenerateContentConfig(
+                system_instruction="根據以上工具查詢結果，用 2-3 句繁體中文給出最終回答。",
+            ),
+        )
+        final_answer = filter_output(final.text)
+
+    if session_id:
+        new_history = history + [
+            {"role": "user", "content": query},
+            {"role": "model", "content": final_answer},
+        ]
+        session_store.save_history(session_id, new_history)
+
+    return final_answer, tools_used, last_tool_result
+
+
+def _sse_frame(payload: dict) -> bytes:
+    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "bytebites-ai"}
@@ -1154,92 +1253,9 @@ async def agent(req: AgentRequest):
 
     session_id = req.session_id or ""
 
-    # 從 Redis 載入歷史，轉成 Gemini contents list
-    history = session_store.load_history(session_id) if session_id else []
-    contents: list = []
-    for turn in history:
-        role = turn.get("role")
-        text = turn.get("content", "")
-        if role in ("user", "model") and text:
-            contents.append(types.Content(
-                role=role,
-                parts=[types.Part.from_text(text=text)],
-            ))
-
-    # 加上此輪 user query
-    contents.append(types.Content(
-        role="user",
-        parts=[types.Part.from_text(text=req.query)],
-    ))
-
     ai_requests.labels(endpoint="agent").inc()
     with ai_latency.labels(endpoint="agent").time():
-        tools_used: list[str] = []
-        last_tool_result: dict = {}
-        final_answer = ""
-
-        for _ in range(4):   # max 4 tool calls: search → booking → pay → (opt extra)
-            response = generate(
-                settings.gemini_chat_model,
-                contents,
-                types.GenerateContentConfig(
-                    tools=TOOLS,
-                    system_instruction=AGENT_SYSTEM_PROMPT,
-                ),
-            )
-
-            candidate = response.candidates[0]
-            function_call = None
-            for part in candidate.content.parts:
-                if hasattr(part, "function_call") and part.function_call:
-                    function_call = part.function_call
-                    break
-
-            if not function_call:
-                final_answer = filter_output(response.text)
-                break
-
-            tool_name = function_call.name
-            tool_args = dict(function_call.args)
-
-            tool_fn = TOOL_DISPATCH.get(tool_name)
-            if tool_fn is None:
-                raise HTTPException(500, f"unknown tool: {tool_name}")
-
-            tool_result = await tool_fn(**tool_args)
-            tools_used.append(tool_name)
-            last_tool_result = tool_result
-
-            contents.append(candidate.content)
-            contents.append(
-                types.Content(
-                    role="tool",
-                    parts=[
-                        types.Part.from_function_response(
-                            name=tool_name,
-                            response=tool_result,
-                        )
-                    ],
-                )
-            )
-        else:
-            # Max iterations reached — synthesize without tools
-            final = generate(
-                settings.gemini_chat_model,
-                contents,
-                types.GenerateContentConfig(
-                    system_instruction="根據以上工具查詢結果，用 2-3 句繁體中文給出最終回答。",
-                ),
-            )
-            final_answer = filter_output(final.text)
-
-    # 寫回 Redis（只存純文字輪次，不存 tool turns）
-    if session_id:
-        new_history = history + [
-            {"role": "user",  "content": req.query},
-            {"role": "model", "content": final_answer},
-        ]
-        session_store.save_history(session_id, new_history)
+        final_answer, tools_used, last_tool_result = await _run_agent_turn(req.query, session_id)
 
     return {
         "query":      req.query,
@@ -1248,6 +1264,52 @@ async def agent(req: AgentRequest):
         "tool_result": last_tool_result,
         "session_id": session_id,
     }
+
+
+@app.post("/api/ai/agent/stream")
+async def agent_stream(req: AgentRequest):
+    """SSE stream for multi-turn agent. Streams tool status + answer chunks."""
+    try:
+        check_input(req.query)
+    except GuardrailViolation as exc:
+        raise HTTPException(400, f"input rejected: {exc}") from exc
+
+    session_id = req.session_id or ""
+    ai_requests.labels(endpoint="agent_stream").inc()
+
+    async def event_gen() -> AsyncIterator[bytes]:
+        with ai_latency.labels(endpoint="agent_stream").time():
+            yield _sse_frame({"type": "status", "message": "thinking"})
+            try:
+                final_answer, tools_used, last_tool_result = await _run_agent_turn(req.query, session_id)
+                if tools_used:
+                    for tool_name in tools_used:
+                        yield _sse_frame({"type": "tool", "name": tool_name})
+                chunk_size = 18
+                for i in range(0, len(final_answer), chunk_size):
+                    yield _sse_frame({"type": "chunk", "content": final_answer[i:i + chunk_size]})
+                yield _sse_frame(
+                    {
+                        "type": "done",
+                        "answer": final_answer,
+                        "tools_used": tools_used,
+                        "tool_result": last_tool_result,
+                        "session_id": session_id,
+                    }
+                )
+            except Exception as exc:
+                logger.exception("agent_stream_failed")
+                yield _sse_frame({"type": "error", "message": str(exc)})
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.delete("/api/ai/session/{session_id}")

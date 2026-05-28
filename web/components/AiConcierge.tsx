@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Send, Sparkles, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { streamAgentResponse } from "@/lib/agentStream";
 
 type Hit = {
   shop_id: number;
@@ -49,28 +50,64 @@ export function AiConcierge() {
     const msg = input.trim();
     if (!msg || loading) return;
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: msg }]);
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: msg },
+      { role: "ai", content: "", tools_used: [] },
+    ]);
     setLoading(true);
     try {
-      const r = await fetch("/api/ai/agent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: msg, session_id: sessionId }),
-      }).then((res) => res.json());
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "ai",
-          content: r.answer || "",
-          hits: r.hits,
-          tools_used: r.tools_used,
+      await streamAgentResponse(
+        { query: msg, session_id: sessionId },
+        (event) => {
+          if (event.type === "chunk") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = { ...last, content: `${last.content}${event.content}` };
+              return next;
+            });
+          } else if (event.type === "tool") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              const tools = [...new Set([...(last.tools_used ?? []), event.name])];
+              next[next.length - 1] = { ...last, tools_used: tools };
+              return next;
+            });
+          } else if (event.type === "done") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = {
+                ...last,
+                content: event.answer || last.content,
+                tools_used: event.tools_used ?? last.tools_used,
+              };
+              return next;
+            });
+          } else if (event.type === "error") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = { ...last, content: event.message || "錯誤、再試一次" };
+              return next;
+            });
+          }
         },
-      ]);
+      );
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "ai", content: "錯誤、再試一次" },
-      ]);
+      setMessages((prev) => {
+        const next = [...prev];
+        const last = next[next.length - 1];
+        if (!last || last.role !== "ai") return [...prev, { role: "ai", content: "錯誤、再試一次" }];
+        next[next.length - 1] = { ...last, content: "錯誤、再試一次" };
+        return next;
+      });
     } finally {
       setLoading(false);
     }
