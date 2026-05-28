@@ -338,7 +338,7 @@ function ShopsPageContent() {
       <div className="mb-4">
         <h1 className="text-2xl md:text-3xl font-bold">探索店家</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          73 家台北中高價餐廳、含 AI 評論摘要
+          {options?.totalShops ?? "—"} 家台北中高價餐廳、含 AI 評論摘要
         </p>
       </div>
 

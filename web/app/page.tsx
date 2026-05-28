@@ -161,7 +161,7 @@ export default async function Home() {
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-12 md:px-8">
-        <h2 className="mb-1 text-2xl font-semibold">12 個餐廳分類</h2>
+        <h2 className="mb-1 text-2xl font-semibold">{categories.length} 個餐廳分類</h2>
         <p className="text-muted-foreground mb-6 text-sm">
           以訂位與聚餐決策最常見的餐廳型態來分
         </p>

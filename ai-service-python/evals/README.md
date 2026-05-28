@@ -2,7 +2,7 @@
 
 ## Eval set
 
-15 筆 golden queries on 73 ETL-loaded shops (post Stage 4):
+15 筆 golden queries on 103 ETL-loaded shops (post Stage 4):
 - 10 basic queries (品類、店名、區域、場景)
 - 5 hard cases (商務語意、抽象口味、多條件、預算 + 氛圍)
 

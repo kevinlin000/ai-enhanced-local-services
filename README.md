@@ -49,7 +49,7 @@
 ## 目前進度
 
 - Spring Boot 3.2.5 + Java 17 + Jakarta 遷移完成，底座已升到現代 Spring 生態。
-- Flyway 接管 schema，完成 V1-V7 migration、12 個在地分類、25 家台北店家與捷運站種子資料。
+- Flyway 接管 schema，完成 V1-V18 migration、10 個在地分類（taxonomy single source of truth）、103 家台北店家與捷運站資料。
 - LINE Login OAuth 2.0、Spring Security、JWT 驗證鏈打通，登入流程已對齊實際台灣使用情境。
 - JPA 遷移已切完 User、ShopType、Shop、Review、Voucher 系列，保留 Hot Seat 高風險搶位路徑的漸進式切換。
 - Python AI 服務已完成 Qdrant ingest、語意搜尋、RAG 推薦、Function Calling Agent、輕量 eval、guardrail、Prometheus。
@@ -89,7 +89,7 @@
 |------|------|------|
 | GET | `/api/auth/line/login` | LINE OAuth 起點（302 到 LINE） |
 | GET | `/api/auth/line/callback` | OAuth callback、回傳 JWT |
-| GET | `/api/category/list` | 12 個在地分類 |
+| GET | `/api/category/list` | 在地分類列表 |
 | GET | `/api/category/{slug}/shops` | 分類下店家（分頁） |
 | GET | `/api/category/{slug}/shops/popular` | 分類熱門 top 5 |
 | GET | `/api/shop/{id}` | 單店詳情（多層快取 + 讀寫鎖） |

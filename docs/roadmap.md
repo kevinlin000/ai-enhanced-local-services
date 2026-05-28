@@ -21,7 +21,7 @@
 ### 台灣在地化
 - ✅ Schema 台灣化（V2-V5 migration 完成）
 - ✅ 台北 25 家店家種子資料（信義 + 中山兩區深耕）
-- ✅ 12 個在地店家分類（牛肉麵、滷味、手搖飲、夜市小吃等）
+- ✅ 10 個在地店家分類（taxonomy v1，shared/taxonomy.json 為 single source of truth）
 - 🚧 LINE Login OAuth 2.0 整合
 - 📋 台北捷運站 GEO 查詢
 - 📋 業務邏輯本地化（繁中、台幣、台灣手機格式）

@@ -39,7 +39,7 @@
 - **原因**：
   - 現在 extractor 已能抽 `ai_summary`、`signature_dishes`、`atmosphere_tags`、`booking_difficulty`、`price_per_person`。
   - 但 ingest 進 Qdrant 時只吃 `name/area/address/district/mrtStation`，浪費評論語意。
-  - 若不補這段，73 家再加到 150 家，AI 搜尋品質也不會明顯變好。
+  - 若不補這段，103 家再加到 300 家，AI 搜尋品質也不會明顯變好。
 - **建議拆成兩步**：
   - A. 補 20 則評論，提高抽取成功率與 metadata 完整度。
   - B. 讓 metadata 進 DB / Qdrant / rerank / detail page。
@@ -144,7 +144,7 @@
 以下條件未滿足前，不建議正式開做 `Phase 2`：
 
 - `/shops` 與 `/ai` 的主流程已穩
-- 73 家資料展示沒有明顯破洞
+- 103 家資料展示沒有明顯破洞
 - AI 搜尋能合理回答場景型 query
 - HotSeat / 訂位 / 支付 demo 故事已一致
 - README / roadmap / demo script 已同步

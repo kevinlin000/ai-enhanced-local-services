@@ -15,7 +15,7 @@ COLLECTION = os.getenv("QDRANT_COLLECTION", "bytebites_shops")
 
 
 def fetch_shops_from_db():
-    """從 MySQL 撈 73 家含 ai_metadata"""
+    """從 MySQL 撈所有 active 店家含 ai_metadata"""
     conn = pymysql.connect(
         host=os.getenv("MYSQL_HOST", "localhost"),
         port=int(os.getenv("MYSQL_PORT", "3306")),
