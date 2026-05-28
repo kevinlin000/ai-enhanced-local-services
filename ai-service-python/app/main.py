@@ -43,19 +43,10 @@ ai_tokens = PromCounter("bytebites_ai_tokens_total", "Gemini token usage", ["mod
 ai_latency = Histogram("bytebites_ai_latency_seconds", "AI endpoint latency", ["endpoint"])
 logger = logging.getLogger("bytebites.ai")
 
-TYPE_ID_TO_CATEGORY = {
-    2001: "hotpot",
-    2002: "yakiniku",
-    2003: "izakaya",
-    2004: "japanese",
-    2005: "omakase",
-    2006: "steakhouse",
-    2007: "european",
-    2008: "chinese",
-    2009: "korean",
-    2010: "brunch",
-    2011: "fine-dining",
-    2012: "cafe-premium",
+from app.taxonomy import CATEGORY_BY_TYPE_ID as _tax_map
+
+TYPE_ID_TO_CATEGORY: dict[int, str] = {
+    tid: cat["slug"] for tid, cat in _tax_map.items()
 }
 
 INTENT_HINTS = {

@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import datetime
 import pymysql
 import structlog
+from app.taxonomy import classify_shop, extract_avg_price
 
 log = structlog.get_logger()
 
@@ -121,54 +122,7 @@ def _contains_any(text: str, keywords: set[str]) -> bool:
 
 
 def smart_type_id(shop):
-    primary_type = shop.get("primary_type", "restaurant")
-    name = shop.get("display_name", "")
-    text = _build_text_blob(shop)
-    ai = shop.get("ai_extracted", {}) or {}
-    avg_price = extract_avg_price(ai.get("price_per_person", ""))
-
-    # 1. 先看 primary_type
-    if primary_type in TYPE_MAPPING:
-        type_id = TYPE_MAPPING[primary_type]
-    else:
-        type_id = 2008  # fallback
-
-    for keyword, override_type_id in NAME_OVERRIDES.items():
-        if keyword.lower() in text:
-            return override_type_id
-
-    # 2. 高優先關鍵字覆寫：先解決最容易誤判的餐廳
-    if _contains_any(text, BUFFET_KEYWORDS):
-        return 2011
-    if _contains_any(text, HOTPOT_KEYWORDS):
-        return 2001
-    if _contains_any(text, CHINESE_KEYWORDS):
-        return 2008
-    if _contains_any(text, FINE_DINING_KEYWORDS) and ((avg_price or 0) >= 1200 or "套餐" in text or "鐵板燒" in text):
-        return 2011
-    if _contains_any(text, YAKINIKU_KEYWORDS):
-        return 2002
-    if _contains_any(text, IZAKAYA_KEYWORDS):
-        return 2003
-    if _contains_any(text, KOREAN_KEYWORDS):
-        return 2009
-    if _contains_any(text, BRUNCH_KEYWORDS):
-        return 2010
-    if _contains_any(text, EUROPEAN_KEYWORDS):
-        return 2007
-    if _contains_any(text, CAFE_KEYWORDS):
-        return 2012
-    if _contains_any(text, JAPANESE_KEYWORDS):
-        return 2004
-
-    # 3. 店名補強
-    name_lower = name.lower()
-    if "pub" in name_lower or "bistro" in name_lower:
-        return 2007
-    if "ramen" in name_lower or "udon" in name_lower:
-        return 2004
-
-    return type_id
+    return int(classify_shop(shop)["primary_type_id"])
 
 PRICE_LEVEL_MAP = {
     "PRICE_LEVEL_INEXPENSIVE": 1,
@@ -176,20 +130,6 @@ PRICE_LEVEL_MAP = {
     "PRICE_LEVEL_EXPENSIVE": 3,
     "PRICE_LEVEL_VERY_EXPENSIVE": 4,
 }
-
-
-def extract_avg_price(price_str):
-    """從 '$600-1000' 或 '$1500' 抽出平均數字"""
-    if not price_str or price_str == "未提及":
-        return None
-    nums = re.findall(r'\d+', price_str.replace(",", ""))
-    if not nums:
-        return None
-    nums = [int(n) for n in nums]
-    if len(nums) >= 2:
-        return (nums[0] + nums[1]) // 2
-    return nums[0]
-
 
 def load():
     # 讀最新 extracted json
