@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { SearchHit } from "@/lib/api";
 import { javaApi } from "@/lib/api";
 import { getStyleByTypeId } from "@/lib/categoryStyle";
@@ -104,13 +104,16 @@ function hideLegacySeedShops(shops: Shop[]) {
 
 function ShopsPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [options, setOptions] = useState<FilterOptions | null>(null);
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(false);
   const [categorySlugToId, setCategorySlugToId] = useState<Map<string, number>>(new Map());
 
-  // search mode
-  const [searchMode, setSearchMode] = useState<"text" | "ai">("text");
+  // search mode — lazy init from URL (?mode=ai)
+  const [searchMode, setSearchMode] = useState<"text" | "ai">(() =>
+    searchParams.get("mode") === "ai" ? "ai" : "text"
+  );
   const [aiHitIds, setAiHitIds] = useState<number[] | null>(null);
   const [aiHitMeta, setAiHitMeta] = useState<Map<number, SearchHit>>(new Map());
   const [aiLoading, setAiLoading] = useState(false);
@@ -118,15 +121,27 @@ function ShopsPageContent() {
   // all shops cache for AI mode ordering
   const allShopsRef = useRef<Shop[]>([]);
 
-  // filter state
-  const [q, setQ] = useState("");
-  const [debouncedQ, setDebouncedQ] = useState("");
-  const [selectedTypes, setSelectedTypes] = useState<Set<number>>(new Set());
-  const [selectedDistricts, setSelectedDistricts] = useState<Set<string>>(new Set());
-  const [selectedMrt, setSelectedMrt] = useState<Set<string>>(new Set());
+  // filter state — lazy init from URL so F5 restores state without flash
+  const [q, setQ] = useState(() => searchParams.get("q") ?? "");
+  const [debouncedQ, setDebouncedQ] = useState(() => searchParams.get("q") ?? "");
+  const [selectedTypes, setSelectedTypes] = useState<Set<number>>(() => {
+    const raw = searchParams.get("types");
+    return raw ? new Set(raw.split(",").map(Number).filter(Boolean)) : new Set();
+  });
+  const [selectedDistricts, setSelectedDistricts] = useState<Set<string>>(() => {
+    const raw = searchParams.get("districts");
+    return raw ? new Set(raw.split(",").filter(Boolean)) : new Set();
+  });
+  const [selectedMrt, setSelectedMrt] = useState<Set<string>>(() => {
+    const raw = searchParams.get("mrt");
+    return raw ? new Set(raw.split(",").filter(Boolean)) : new Set();
+  });
   const [minScore, setMinScore] = useState<number | null>(null);
   const [pageSize, setPageSize] = useState<PageSize>(24);
   const [page, setPage] = useState(1);
+
+  // skip first sync so initial URL params are not immediately overwritten
+  const isFirstRender = useRef(true);
 
   // load filter options + all-shops cache once
   useEffect(() => {
@@ -145,26 +160,31 @@ function ShopsPageContent() {
     });
   }, []);
 
+  // backward compat: ?category=hotpot (from home page links) → selectedTypes
+  // only runs when ?types= is absent (new format already handled by lazy init)
   useEffect(() => {
     const categorySlug = searchParams.get("category");
-    const qParam = searchParams.get("q");
-    const modeParam = searchParams.get("mode");
-
-    if (qParam) {
-      setQ(qParam);
-    }
-
-    if (modeParam === "ai") {
-      setSearchMode("ai");
-    }
-
-    if (!categorySlug || !categorySlugToId.size) return;
+    if (!categorySlug || searchParams.get("types") || !categorySlugToId.size) return;
     const typeId = categorySlugToId.get(categorySlug);
     if (!typeId) return;
-
     setSearchMode("text");
     setSelectedTypes(new Set([typeId]));
   }, [searchParams, categorySlugToId]);
+
+  // state → URL: keep URL in sync so F5 restores full filter state
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const params = new URLSearchParams();
+    if (selectedTypes.size) params.set("types", [...selectedTypes].join(","));
+    if (selectedDistricts.size) params.set("districts", [...selectedDistricts].join(","));
+    if (selectedMrt.size) params.set("mrt", [...selectedMrt].join(","));
+    if (q) params.set("q", q);
+    if (searchMode === "ai") params.set("mode", "ai");
+    router.replace(`/shops${params.size ? "?" + params.toString() : ""}`, { scroll: false });
+  }, [selectedTypes, selectedDistricts, selectedMrt, q, searchMode]);
 
   // debounce q
   useEffect(() => {
