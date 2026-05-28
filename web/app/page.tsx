@@ -169,7 +169,7 @@ export default async function Home() {
           {categories.map((category) => {
             const { icon: Icon, gradient } = getCategoryStyle(category.slug);
             return (
-              <Link key={category.id} href={`/shops?category=${category.slug}`}>
+              <Link key={category.id} href={`/shops?types=${category.id}`}>
                 <div
                   className={`relative flex h-32 flex-col justify-between overflow-hidden rounded-xl border bg-gradient-to-br p-5 transition hover:border-foreground/40 hover:shadow-sm ${gradient}`}
                 >
