@@ -147,16 +147,16 @@ function buildFeatureHighlights({
   const serviceSnippet = findReviewSnippet(positiveReviews, /服務|店員|親切|細心|專業|桌邊|介紹|照顧|貼心/);
   const groupLikeTags = tags.filter((tag) => ["聚餐", "約會", "親子", "商務", "慶生", "一人"].includes(tag));
 
-  if (foodSnippet || dishes.length >= 2) {
+  if (foodSnippet && dishes.length >= 2) {
     const dishText = dishes.slice(0, 3).join("、");
     rows.push({
       label: "招牌菜色",
       detail:
         variant === 0
-          ? `${dishText ? `${dishText}通常會最先被客人提起，` : ""}${foodSnippet ? `而像「${foodSnippet}」這類說法，也更能直接看出這家${styleLabel}真正被記住的是哪一口。` : `多數人第一次來，通常也會先從這幾道看它的基本盤。`}`
+          ? `${dishText}通常會最先被客人提起，而像「${foodSnippet}」這類說法，也更能直接看出這家${styleLabel}真正被記住的是哪一口。`
           : variant === 1
-            ? `${foodSnippet ? `不少好評會直接寫到「${foodSnippet}」，` : ""}${dishText ? `因此像${dishText}這幾道，也常被當成這家店最能代表自己的菜。` : "這種具體吃法與口感描述，通常最能反映它真正的強項。"}`
-            : `${dishText ? `${dishText}大多會被放在同一輪討論裡，` : ""}${foodSnippet ? `再配上「${foodSnippet}」這種具體回饋，` : ""}比起單純說好吃，更能知道這家店厲害在哪裡。`,
+            ? `不少好評會直接寫到「${foodSnippet}」，因此像${dishText}這幾道，也常被當成這家店最能代表自己的菜。`
+            : `${dishText}大多會被放在同一輪討論裡，再配上「${foodSnippet}」這種具體回饋，比起單純說好吃，更能知道這家店厲害在哪裡。`,
     });
   }
 
@@ -189,7 +189,7 @@ function buildFeatureHighlights({
     });
   }
 
-  if (mrt && rows.length >= 2 && rows.length < 4) {
+  if (mrt && rows.length >= 3 && rows.length < 4) {
     rows.push({
       label: "位置便利",
       detail:
@@ -472,8 +472,13 @@ export default async function ShopDetailPage({
     };
   })();
 
+  const strongTags = (tags as string[]).filter((tag: string) =>
+    ["聚餐", "約會", "親子", "商務", "慶生", "一人"].includes(tag),
+  );
   const reviewInsightCards = [
-    hasValue(ai?.bookingDifficulty) ? { label: "預約難度", value: ai!.bookingDifficulty! } : null,
+    hasValue(ai?.bookingDifficulty) && ai?.bookingDifficulty !== "未提及"
+      ? { label: "預約難度", value: ai!.bookingDifficulty! }
+      : null,
     overview?.price_overview
       ? {
           label: "Google 平均每人",
@@ -484,8 +489,8 @@ export default async function ShopDetailPage({
     !overview?.price_overview && hasValue(ai?.pricePerPerson)
       ? { label: "參考價位", value: ai!.pricePerPerson! }
       : null,
-    dishes.length > 0 ? { label: "最常被提到", value: dishes.slice(0, 3).join("、") } : null,
-    tags.length > 0 ? { label: "常見場景", value: tags.slice(0, 3).join("、") } : null,
+    dishes.length >= 3 ? { label: "最常被提到", value: dishes.slice(0, 3).join("、") } : null,
+    strongTags.length >= 2 ? { label: "常見場景", value: strongTags.slice(0, 3).join("、") } : null,
   ].filter(Boolean) as { label: string; value: string; hint?: string }[];
   const featureHighlights = buildFeatureHighlights({
     shop,
