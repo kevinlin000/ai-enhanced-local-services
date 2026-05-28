@@ -27,14 +27,16 @@ type ExtractedPayload = {
 const RAW_DIR = path.join(process.cwd(), "..", "etl-pipeline", "data", "raw");
 
 let cache: Map<number, ExtractedShopRecord> | null = null;
+let cacheSignature: string | null = null;
 
 export async function loadExtractedShopMap() {
-  if (cache) return cache;
-
   const files = await readdir(RAW_DIR);
   const candidates = files
     .filter((name) => /^places_extracted_\d{8}_\d{6}\.json$/.test(name))
     .sort();
+  const signature = candidates.join("|");
+
+  if (cache && cacheSignature === signature) return cache;
 
   const merged = new Map<number, ExtractedShopRecord>();
 
@@ -49,6 +51,7 @@ export async function loadExtractedShopMap() {
   }
 
   cache = merged;
+  cacheSignature = signature;
   return merged;
 }
 
