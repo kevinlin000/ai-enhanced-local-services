@@ -10,7 +10,9 @@ import com.bytebites.entity.SeckillVoucher;
 import com.bytebites.entity.Shop;
 import com.bytebites.entity.Voucher;
 import com.bytebites.entity.jpa.ShopAiMetadataJpa;
+import com.bytebites.entity.jpa.ShopAbsaJpa;
 import com.bytebites.repository.ShopAiMetadataJpaRepository;
+import com.bytebites.repository.ShopAbsaJpaRepository;
 import com.bytebites.entity.ShopType;
 import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.ISeckillVoucherService;
@@ -46,6 +48,9 @@ public class ShopController {
 
     @Autowired
     private ShopAiMetadataJpaRepository aiMetadataRepo;
+
+    @Autowired
+    private ShopAbsaJpaRepository absaRepo;
 
     @Resource
     private IVoucherService voucherService;
@@ -279,6 +284,13 @@ public class ShopController {
     @GetMapping("/{id}/ai-metadata")
     public Result aiMetadata(@PathVariable("id") Long id) {
         return aiMetadataRepo.findById(id)
+                .map(Result::ok)
+                .orElse(Result.ok(null));
+    }
+
+    @GetMapping("/{id}/absa")
+    public Result absa(@PathVariable("id") Long id) {
+        return absaRepo.findById(id)
                 .map(Result::ok)
                 .orElse(Result.ok(null));
     }
