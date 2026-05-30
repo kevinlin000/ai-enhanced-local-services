@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_embedding_model: str = "gemini-embedding-001"
     gemini_chat_model: str = "gemini-3.1-flash-lite"
+    gemini_agent_model: str = "gemini-3.1-flash-lite"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -1052,7 +1053,7 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
 
     for _ in range(4):
         response = generate(
-            settings.gemini_chat_model,
+            settings.gemini_agent_model,
             contents,
             types.GenerateContentConfig(
                 tools=TOOLS,
@@ -1096,7 +1097,7 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
         )
     else:
         final = generate(
-            settings.gemini_chat_model,
+            settings.gemini_agent_model,
             contents,
             types.GenerateContentConfig(
                 system_instruction="根據以上工具查詢結果，用 2-3 句繁體中文給出最終回答。",
@@ -1257,9 +1258,158 @@ async def agent(req: AgentRequest):
     }
 
 
+def _compact_tool_context(tool_result: dict) -> str:
+    shops = tool_result.get("shops", [])
+    if not shops:
+        return json.dumps(tool_result, ensure_ascii=False)
+    lines: list[str] = []
+    for s in shops:
+        name = s.get("name") or ""
+        district = s.get("district") or ""
+        mrt = s.get("mrt_station") or ""
+        price = s.get("price_per_person") or (f"~${s['avg_price']}/人" if s.get("avg_price") else "")
+        booking = s.get("booking_difficulty") or ""
+        tags = "、".join((s.get("atmosphere_tags") or [])[:3])
+        dishes = "、".join((s.get("signature_dishes") or [])[:3])
+        summary = (s.get("ai_summary") or "")[:100]
+        parts: list[str] = [f"【{name}】{district}"]
+        if mrt:
+            parts.append(f"捷運{mrt}")
+        if price:
+            parts.append(price)
+        if booking:
+            parts.append(booking)
+        if tags:
+            parts.append(f"氛圍:{tags}")
+        if dishes:
+            parts.append(f"招牌:{dishes}")
+        if summary:
+            parts.append(summary)
+        lines.append(" | ".join(parts))
+    return "\n".join(lines)
+
+
+async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[dict]:
+    """
+    Async generator yielding SSE payload dicts with true token streaming.
+
+    Strategy:
+    - Phase 1 (tool calls): sync generate() per iteration — fast, structured JSON decisions
+    - Phase 2 (final synthesis): aio.models.generate_content_stream() — tokens arrive as generated
+    - Zero-tool-call path: sync answer chunked at character level (fast response, streaming moot)
+    """
+    history = session_store.load_history(session_id) if session_id else []
+    contents = _history_to_contents(history, query)
+    tools_used: list[str] = []
+    last_tool_result: dict = {}
+    direct_answer: str | None = None
+
+    # Phase 1: tool-calling loop (sync) — yields tool events as each fires
+    for _ in range(4):
+        response = generate(
+            settings.gemini_agent_model,
+            contents,
+            types.GenerateContentConfig(
+                tools=TOOLS,
+                system_instruction=AGENT_SYSTEM_PROMPT,
+            ),
+        )
+        candidate = response.candidates[0]
+        function_call = None
+        for part in candidate.content.parts:
+            if hasattr(part, "function_call") and part.function_call:
+                function_call = part.function_call
+                break
+
+        if not function_call:
+            if not tools_used:
+                # Zero tool calls — answer already computed; fast path, chunk as-is
+                direct_answer = filter_output(response.text)
+            break
+
+        tool_name = function_call.name
+        tool_fn = TOOL_DISPATCH.get(tool_name)
+        if tool_fn is None:
+            yield {"type": "error", "message": f"unknown tool: {tool_name}"}
+            return
+
+        tool_result = await tool_fn(**dict(function_call.args))
+        tools_used.append(tool_name)
+        last_tool_result = tool_result
+        yield {"type": "tool", "name": tool_name}
+
+        contents.append(candidate.content)
+        contents.append(
+            types.Content(
+                role="tool",
+                parts=[types.Part.from_function_response(name=tool_name, response=tool_result)],
+            )
+        )
+
+    # Phase 2: generate final answer
+    full_answer = ""
+    if direct_answer is not None:
+        # Zero-tool path: chunk the pre-computed answer (fast, no visible delay)
+        chunk_size = 18
+        for i in range(0, len(direct_answer), chunk_size):
+            full_answer = direct_answer
+            yield {"type": "chunk", "content": direct_answer[i : i + chunk_size]}
+    else:
+        # Post-tool path: true streaming — tokens arrive as Gemini generates them.
+        # Rebuild clean contents (no function_call/function_response parts) so the
+        # model generates text rather than trying to call another tool.
+        tool_context = _compact_tool_context(last_tool_result)
+        synthesis_contents = [
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(
+                    text=f"使用者問：{query}\n\n查詢結果：\n{tool_context}"
+                )],
+            )
+        ]
+        synthesis_prompt = "根據查詢結果，用繁體中文給出詳細完整的推薦回答。"
+        try:
+            stream = await get_gemini().aio.models.generate_content_stream(
+                model=settings.gemini_agent_model,
+                contents=synthesis_contents,
+                config=types.GenerateContentConfig(system_instruction=synthesis_prompt),
+            )
+            async for chunk in stream:
+                text = ""
+                if chunk.candidates:
+                    for part in (getattr(chunk.candidates[0].content, "parts", None) or []):
+                        text += getattr(part, "text", None) or ""
+                if text:
+                    full_answer += text
+                    yield {"type": "chunk", "content": text}
+        except Exception as exc:
+            logger.exception("agent_stream_synthesis_failed")
+            yield {"type": "error", "message": str(exc)}
+            return
+
+        full_answer = filter_output(full_answer)
+
+    if session_id:
+        session_store.save_history(
+            session_id,
+            history + [
+                {"role": "user", "content": query},
+                {"role": "model", "content": full_answer},
+            ],
+        )
+
+    yield {
+        "type": "done",
+        "answer": full_answer,
+        "tools_used": tools_used,
+        "tool_result": last_tool_result,
+        "session_id": session_id,
+    }
+
+
 @app.post("/api/ai/agent/stream")
 async def agent_stream(req: AgentRequest):
-    """SSE stream for multi-turn agent. Streams tool status + answer chunks."""
+    """SSE stream for multi-turn agent. Tool calls sync; final synthesis true-streamed via Gemini."""
     try:
         check_input(req.query)
     except GuardrailViolation as exc:
@@ -1269,28 +1419,13 @@ async def agent_stream(req: AgentRequest):
     ai_requests.labels(endpoint="agent_stream").inc()
 
     async def event_gen() -> AsyncIterator[bytes]:
-        with ai_latency.labels(endpoint="agent_stream").time():
-            yield _sse_frame({"type": "status", "message": "thinking"})
-            try:
-                final_answer, tools_used, last_tool_result = await _run_agent_turn(req.query, session_id)
-                if tools_used:
-                    for tool_name in tools_used:
-                        yield _sse_frame({"type": "tool", "name": tool_name})
-                chunk_size = 18
-                for i in range(0, len(final_answer), chunk_size):
-                    yield _sse_frame({"type": "chunk", "content": final_answer[i:i + chunk_size]})
-                yield _sse_frame(
-                    {
-                        "type": "done",
-                        "answer": final_answer,
-                        "tools_used": tools_used,
-                        "tool_result": last_tool_result,
-                        "session_id": session_id,
-                    }
-                )
-            except Exception as exc:
-                logger.exception("agent_stream_failed")
-                yield _sse_frame({"type": "error", "message": str(exc)})
+        yield _sse_frame({"type": "status", "message": "thinking"})
+        try:
+            async for payload in _run_agent_turn_stream(req.query, session_id):
+                yield _sse_frame(payload)
+        except Exception as exc:
+            logger.exception("agent_stream_failed")
+            yield _sse_frame({"type": "error", "message": str(exc)})
 
     return StreamingResponse(
         event_gen(),
