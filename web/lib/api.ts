@@ -66,6 +66,32 @@ export type ShopAiMetadata = {
   modelVersion?: string;
 };
 
+export type AbsaEvidence = {
+  claim: string;
+  concrete_terms: string[];
+  source_review_ids: number[];
+};
+
+export type AbsaAspect = {
+  aspect: "dishes" | "service" | "environment" | "price";
+  summary: string;
+  sentiment: "positive" | "negative" | "mixed" | "neutral";
+  confidence: "high" | "medium" | "low";
+  mention_count?: number;
+  positive_evidence?: AbsaEvidence[];
+  negative_evidence?: AbsaEvidence[];
+};
+
+export type ShopAbsa = {
+  shopId: number;
+  aspects: string;
+  charHitRate?: number;
+  semanticHitRate?: number;
+  promptVersion?: string;
+  model?: string;
+  generatedAt?: string;
+};
+
 export type VoucherOffer = {
   id: number;
   shopId: number;
@@ -105,6 +131,10 @@ export const javaApi = {
   shopAiMetadata: (id: string | number) =>
     fetchJson<{ success: boolean; data: ShopAiMetadata | null }>(
       `${JAVA_API}/api/shop/${id}/ai-metadata`,
+    ),
+  shopAbsa: (id: string | number) =>
+    fetchJson<{ success: boolean; data: ShopAbsa | null }>(
+      `${JAVA_API}/api/shop/${id}/absa`,
     ),
   shopVouchers: (shopId: number) =>
     fetchJson<{ success: boolean; data: VoucherOffer[] }>(
