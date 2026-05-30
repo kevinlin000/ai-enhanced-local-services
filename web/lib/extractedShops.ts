@@ -5,6 +5,8 @@ export type ExtractedShopRecord = {
   shop_id?: number;
   display_name?: string;
   district?: string;
+  rating?: number | null;
+  user_rating_count?: number | null;
   reviews?: {
     author?: string | null;
     rating?: number | null;
@@ -46,6 +48,16 @@ export async function loadExtractedShopMap() {
     for (const shop of payload.shops ?? []) {
       const shopId = shop.shop_id;
       if (!shopId) continue;
+      // Deduplicate reviews: same author + normalized whitespace text = same review
+      if (shop.reviews) {
+        const seen = new Set<string>();
+        shop.reviews = shop.reviews.filter((r) => {
+          const key = `${r.author ?? ""}||${(r.text ?? "").replace(/\s+/g, " ").trim()}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }
       merged.set(shopId, shop);
     }
   }
