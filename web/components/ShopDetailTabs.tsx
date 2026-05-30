@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Clock3, ExternalLink, MapPinned, PhoneCall } from "lucide-react";
+import { AbsaSection } from "@/components/AbsaSection";
+import type { ShopAbsa, AbsaAspect } from "@/lib/api";
 
 type SimilarShopCard = {
   shopId: number;
@@ -34,6 +36,7 @@ type FeatureInsight = {
 
 type Props = {
   introText: string;
+  absa?: ShopAbsa | null;
   address?: string;
   businessHours?: string[];
   phone?: string;
@@ -78,14 +81,33 @@ function getPriceTone(value?: string) {
   return { label: "平均價格偏高", bar: "bg-rose-500", chip: "bg-rose-50 text-rose-700" };
 }
 
+function highlightText(text: string, terms: string[]) {
+  if (!terms.length) return text;
+  const escaped = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const pattern = new RegExp(`(${escaped.join("|")})`, "g");
+  const parts = text.split(pattern);
+  const termSet = new Set(terms);
+  return parts.map((part, i) =>
+    termSet.has(part) ? (
+      <mark key={i} className="bg-yellow-200 rounded-sm">
+        {part}
+      </mark>
+    ) : (
+      part
+    ),
+  );
+}
+
 function ExpandableText({
   text,
   limit = 220,
   className = "",
+  highlights,
 }: {
   text: string;
   limit?: number;
   className?: string;
+  highlights?: string[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const shouldCollapse = text.length > limit;
@@ -93,7 +115,9 @@ function ExpandableText({
 
   return (
     <div className={className}>
-      <p className="whitespace-pre-line leading-relaxed text-foreground/85">{visible}</p>
+      <p className="whitespace-pre-line leading-relaxed text-foreground/85">
+        {highlights?.length ? highlightText(visible, highlights) : visible}
+      </p>
       {shouldCollapse ? (
         <button
           type="button"
@@ -142,6 +166,14 @@ export function ShopDetailTabs(props: Props) {
     }));
   }, [props.priceBuckets]);
   const priceTone = getPriceTone(props.priceOverview);
+  const parsedAbsaAspects = useMemo<AbsaAspect[] | null>(() => {
+    if (!props.absa?.aspects) return null;
+    try {
+      return JSON.parse(props.absa.aspects) as AbsaAspect[];
+    } catch {
+      return null;
+    }
+  }, [props.absa]);
   const overviewCards = useMemo(() => {
     const cards = [...props.reviewInsightCards];
     if (props.priceOverview) {
@@ -372,7 +404,13 @@ export function ShopDetailTabs(props: Props) {
 
       {activeTab === "reviews" ? (
         <div className="space-y-8 pt-6">
-          {props.featureHighlights.length > 0 ? (
+          {parsedAbsaAspects && parsedAbsaAspects.length > 0 ? (
+            <AbsaSection
+              aspects={parsedAbsaAspects}
+              charHitRate={props.absa?.charHitRate}
+              semanticHitRate={props.absa?.semanticHitRate}
+            />
+          ) : props.featureHighlights.length > 0 ? (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">餐廳特色</h3>
               <div className="overflow-hidden rounded-2xl border">
@@ -385,30 +423,6 @@ export function ShopDetailTabs(props: Props) {
                   </thead>
                   <tbody>
                     {props.featureHighlights.map((item) => (
-                      <tr key={item.label} className="border-t align-top">
-                        <td className="px-4 py-4 font-medium">{item.label}</td>
-                        <td className="px-4 py-4 text-muted-foreground leading-relaxed">{item.detail}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : null}
-
-          {props.advice.length > 0 ? (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">常見建議</h3>
-              <div className="overflow-hidden rounded-2xl border">
-                <table className="w-full text-sm">
-                  <thead className="bg-stone-100 text-left">
-                    <tr>
-                      <th className="px-4 py-3 font-medium text-muted-foreground">類別</th>
-                      <th className="px-4 py-3 font-medium text-muted-foreground">重點描述</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {props.advice.map((item) => (
                       <tr key={item.label} className="border-t align-top">
                         <td className="px-4 py-4 font-medium">{item.label}</td>
                         <td className="px-4 py-4 text-muted-foreground leading-relaxed">{item.detail}</td>
@@ -444,7 +458,7 @@ export function ShopDetailTabs(props: Props) {
                       ))}
                     </div>
                   ) : null}
-                  <ExpandableText text={review.text} limit={180} className="mt-3 text-sm" />
+                  <ExpandableText text={review.text} limit={180} className="mt-3 text-sm" highlights={review.labels} />
                 </div>
               ))}
             </div>

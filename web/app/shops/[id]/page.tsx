@@ -4,7 +4,7 @@ import { ArrowLeft, DollarSign, MapPin, MessageSquare, Star } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { BookingButton } from "@/components/BookingButton";
 import { ShopDetailTabs } from "@/components/ShopDetailTabs";
-import { javaApi, type Shop, type ShopAiMetadata, type VoucherOffer } from "@/lib/api";
+import { javaApi, type Shop, type ShopAiMetadata, type ShopAbsa, type VoucherOffer } from "@/lib/api";
 import { proxyImageUrl } from "@/lib/photoProxy";
 import { getBestShopCardPhoto, getShopGalleryPhotos, getShopOverview } from "@/lib/shopPhotoManifest";
 import { getShopReviewInsights } from "@/lib/reviewInsights";
@@ -106,19 +106,6 @@ function summarizeReviewTone(text?: string | null) {
   return tones.length ? [...new Set(tones)].slice(0, 2) : null;
 }
 
-function findReviewSnippet(
-  reviews: { text: string; rating: number }[],
-  pattern: RegExp,
-  limit = 44,
-) {
-  for (const review of reviews) {
-    if (review.rating < 4) continue;
-    const cleaned = trimReviewSentence(review.text, limit);
-    if (cleaned && pattern.test(cleaned)) return cleaned;
-  }
-  return "";
-}
-
 function countReviewMatches(
   reviews: { text: string; rating: number }[],
   pattern: RegExp,
@@ -146,30 +133,21 @@ function buildFeatureHighlights({
 }) {
   const rows: { label: string; detail: string }[] = [];
   const district = shop.district ?? shop.area ?? "台北市";
-  const variant = shop.id % 3;
   const positiveReviews = reviewInsights?.selectedReviews?.filter((review) => review.rating >= 4) ?? [];
-  const foodSnippet = findReviewSnippet(positiveReviews, /好吃|嫩|脆|鮮|香|湯|肉|蝦|魚|飯|麵|鍋|甜點|蛋糕|壽司|和牛|牛排|鴨|雞/);
-  const environmentSnippet = findReviewSnippet(positiveReviews, /環境|裝潢|氣氛|空間|包廂|景觀|寬敞|明亮|舒服|放鬆/);
-  const serviceSnippet = findReviewSnippet(positiveReviews, /服務|店員|親切|細心|專業|桌邊|介紹|照顧|貼心/);
   const groupLikeTags = tags.filter((tag) => ["聚餐", "約會", "親子", "商務", "慶生", "一人"].includes(tag));
   const foodEvidence = countReviewMatches(positiveReviews, /好吃|嫩|脆|鮮|香|湯|肉|蝦|魚|飯|麵|鍋|甜點|蛋糕|壽司|和牛|牛排|鴨|雞/);
   const envEvidence = countReviewMatches(positiveReviews, /環境|裝潢|氣氛|空間|包廂|景觀|寬敞|明亮|舒服|放鬆/);
   const serviceEvidence = countReviewMatches(positiveReviews, /服務|店員|親切|細心|專業|桌邊|介紹|照顧|貼心/);
 
-  if (foodSnippet && dishes.length >= 2 && foodEvidence >= 2) {
+  if (dishes.length >= 2 && foodEvidence >= 2) {
     const dishText = dishes.slice(0, 3).join("、");
     rows.push({
       label: "料理亮點",
-      detail:
-        variant === 0
-          ? `不少好評會把焦點放在${dishText}，像「${foodSnippet}」這類具體描述，也比較能直接看出這家${styleLabel}到底是靠哪幾口讓人留下印象。`
-          : variant === 1
-            ? `像「${foodSnippet}」這種回饋，不太像泛泛稱讚；也因此${dishText}這幾道，通常會被視為這家店最值得先鎖定的代表菜。`
-            : `${dishText}常會跟「${foodSnippet}」這類句子一起出現，比起只說好吃，這更能把它真正討喜的口感與做法說清楚。`,
+      detail: `${dishText}在 ${foodEvidence} 則好評中被具體提及，是這家${styleLabel}最常被點名的代表菜。`,
     });
   }
 
-  if (environmentSnippet && envEvidence >= 2) {
+  if (envEvidence >= 2) {
     const sceneText = groupLikeTags.includes("一人")
       ? "一個人安靜吃一餐"
       : groupLikeTags.length > 0
@@ -177,24 +155,14 @@ function buildFeatureHighlights({
         : `${district}一帶的完整正餐場合`;
     rows.push({
       label: "空間感受",
-      detail:
-        variant === 0
-          ? `像「${environmentSnippet}」這類描述，通常能幫你比較快想像現場會是什麼感覺；也因為如此，它常被放進${sceneText}這種需要坐得住的場合。`
-          : variant === 1
-            ? `不少人會直接提到「${environmentSnippet}」，再加上它常被拿來安排${sceneText}這類情境，表示現場氛圍並不是可有可無的背景。`
-            : `${sceneText}是它很常出現的使用方式；而從「${environmentSnippet}」這類說法來看，空間感通常也有把整體體驗撐住。`,
+      detail: `${envEvidence} 則好評對空間與氛圍有具體描述，常被用來安排${sceneText}這類情境。`,
     });
   }
 
-  if (serviceSnippet && serviceEvidence >= 2) {
+  if (serviceEvidence >= 2) {
     rows.push({
       label: "服務互動",
-      detail:
-        variant === 0
-          ? `像「${serviceSnippet}」這類回饋，表示客人記住的不只是一兩道菜，連現場應對與互動方式也有被一起留下印象。`
-          : variant === 1
-            ? `把好評拆開看，常會看到像「${serviceSnippet}」這樣的描述，代表這裡的服務不是附帶，而是真的有被客人記住。`
-            : `如果只看菜色很容易少看一塊，但像「${serviceSnippet}」這類回饋，也在補強整體體驗為什麼會成立。`,
+      detail: `${serviceEvidence} 則好評對服務應對有具體描述，現場互動是整體體驗評分的一部分。`,
     });
   }
 
@@ -371,9 +339,10 @@ export default async function ShopDetailPage({
   const { id } = await params;
   const shopId = Number(id);
 
-  const [shopRes, aiRes, voucherRes, hotSeatRes, reviewInsights, fallbackSimilar, photoUrls] = await Promise.all([
+  const [shopRes, aiRes, absaRes, voucherRes, hotSeatRes, reviewInsights, fallbackSimilar, photoUrls] = await Promise.all([
     javaApi.shopDetail(shopId).catch(() => null),
     javaApi.shopAiMetadata(id).catch(() => ({ success: false, data: null })),
+    javaApi.shopAbsa(id).catch(() => ({ success: false, data: null })),
     javaApi.shopVouchers(shopId).catch(() => ({ success: false, data: [] as VoucherOffer[] })),
     javaApi.hotSeatVouchers(shopId).catch(() => ({ success: false, data: [] as { id: number; stock: number }[] })),
     getShopReviewInsights(shopId).catch(() => null),
@@ -385,6 +354,7 @@ export default async function ShopDetailPage({
   if (!shop) return notFound();
 
   const ai: ShopAiMetadata | null = aiRes?.data ?? null;
+  const absa: ShopAbsa | null = absaRes?.data ?? null;
   const vouchers = (voucherRes?.data ?? []) as VoucherOffer[];
   const style = getStyleByTypeId(shop.typeId);
   const Icon = style.icon;
@@ -698,6 +668,7 @@ export default async function ShopDetailPage({
 
       <ShopDetailTabs
         introText={introText}
+        absa={absa}
         address={shop.address}
         businessHours={businessHours}
         phone={ai?.phone}
