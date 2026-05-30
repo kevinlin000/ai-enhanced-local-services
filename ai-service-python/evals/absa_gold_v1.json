@@ -1,0 +1,671 @@
+[
+  {
+    "shop_id": 10144,
+    "shop_name": "二本松涮涮屋 本館",
+    "aspect": "dishes",
+    "polarity": "pos",
+    "claim": "帝王蟹與和牛品質極佳，料理手法細緻。",
+    "source_review_ids": [
+      0,
+      2,
+      3,
+      9,
+      13,
+      19
+    ],
+    "concrete_terms": [
+      "帝王蟹",
+      "宮崎A5紐約客和牛",
+      "蟹膏粥",
+      "鮮蝦雲吞佐魚子醬"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "原文明確提及帝王蟹與和牛品質優異及料理細膩。"
+  },
+  {
+    "shop_id": 10144,
+    "shop_name": "二本松涮涮屋 本館",
+    "aspect": "service",
+    "polarity": "pos",
+    "claim": "桌邊服務專業且貼心，無需顧客動手。",
+    "source_review_ids": [
+      1,
+      6,
+      7,
+      14,
+      17,
+      19
+    ],
+    "concrete_terms": [
+      "阿信",
+      "Vicky",
+      "浣熊",
+      "剝殼服務"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "多則評論皆明確提及店員全程代煮，無需顧客動手"
+  },
+  {
+    "shop_id": 10144,
+    "shop_name": "二本松涮涮屋 本館",
+    "aspect": "environment",
+    "polarity": "pos",
+    "claim": "環境清潔舒適，適合慶生與帶寵物用餐。",
+    "source_review_ids": [
+      2,
+      11,
+      15,
+      16
+    ],
+    "concrete_terms": [
+      "B1座位",
+      "鏡面設計",
+      "寵物友善"
+    ],
+    "gold_label": "PARTIAL",
+    "gold_reason": "評論未提寵物與環境清潔結合"
+  },
+  {
+    "shop_id": 10144,
+    "shop_name": "二本松涮涮屋 本館",
+    "aspect": "environment",
+    "polarity": "neg",
+    "claim": "吧台座位較擁擠，包廂低消門檻高。",
+    "source_review_ids": [
+      4
+    ],
+    "concrete_terms": [
+      "吧台座位",
+      "包廂",
+      "低消兩萬元"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "吧台偏小且包廂低消高屬實。"
+  },
+  {
+    "shop_id": 10144,
+    "shop_name": "二本松涮涮屋 本館",
+    "aspect": "price",
+    "polarity": "pos",
+    "claim": "食材品質與服務價值符合其高定價。",
+    "source_review_ids": [
+      4,
+      17,
+      18
+    ],
+    "concrete_terms": [
+      "套餐定價",
+      "服務費"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "多則評論皆肯定食材與服務符合其高價位。"
+  },
+  {
+    "shop_id": 10144,
+    "shop_name": "二本松涮涮屋 本館",
+    "aspect": "price",
+    "polarity": "neg",
+    "claim": "價格偏高且設有特定消費門檻。",
+    "source_review_ids": [
+      3,
+      4,
+      11,
+      12
+    ],
+    "concrete_terms": [
+      "沙母套餐",
+      "低消兩萬元"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "評論提及價位偏高及包廂低消。"
+  },
+  {
+    "shop_id": 10166,
+    "shop_name": "潮肉壽喜燒-永吉店",
+    "aspect": "dishes",
+    "polarity": "pos",
+    "claim": "肉品品質佳，特色烹調如起司肉捲與九層塔炒肉令人印象深刻。",
+    "source_review_ids": [
+      4,
+      5,
+      10,
+      16,
+      18
+    ],
+    "concrete_terms": [
+      "澳洲M9和牛前腿芯",
+      "肉包拉絲起司",
+      "九層塔炒肉",
+      "泰式豬肉"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "多則評論皆提及肉品佳及該兩項特色烹調。"
+  },
+  {
+    "shop_id": 10166,
+    "shop_name": "潮肉壽喜燒-永吉店",
+    "aspect": "dishes",
+    "polarity": "neg",
+    "claim": "羊肉口感不佳。",
+    "source_review_ids": [
+      2,
+      3
+    ],
+    "concrete_terms": [
+      "羊肉"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "原文明確提及羊肉口感不好"
+  },
+  {
+    "shop_id": 10166,
+    "shop_name": "潮肉壽喜燒-永吉店",
+    "aspect": "service",
+    "polarity": "pos",
+    "claim": "桌邊服務專業且豐富，展現高超的烤麻糬技巧。",
+    "source_review_ids": [
+      2,
+      10,
+      14,
+      18
+    ],
+    "concrete_terms": [
+      "桌邊服務",
+      "現烤麻糬",
+      "九層塔炒肉",
+      "肉包起司"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "多則評論皆肯定服務與烤麻糬技術"
+  },
+  {
+    "shop_id": 10166,
+    "shop_name": "潮肉壽喜燒-永吉店",
+    "aspect": "environment",
+    "polarity": "pos",
+    "claim": "店內環境寬敞整潔，且具備便利設施。",
+    "source_review_ids": [
+      4,
+      7,
+      15,
+      16
+    ],
+    "concrete_terms": [
+      "乾淨明亮",
+      "置物櫃",
+      "冷氣"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "原文明確提及環境寬敞、整潔及便利設施。"
+  },
+  {
+    "shop_id": 10166,
+    "shop_name": "潮肉壽喜燒-永吉店",
+    "aspect": "environment",
+    "polarity": "neg",
+    "claim": "用餐後身上會留有較重的火鍋氣味。",
+    "source_review_ids": [
+      15
+    ],
+    "concrete_terms": [
+      "火鍋味"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "評論原文明確提及吃完身上有火鍋味"
+  },
+  {
+    "shop_id": 10166,
+    "shop_name": "潮肉壽喜燒-永吉店",
+    "aspect": "price",
+    "polarity": "pos",
+    "claim": "699元價位套餐性價比高，包含和牛及豐富桌邊服務。",
+    "source_review_ids": [
+      1,
+      5,
+      8,
+      10,
+      15
+    ],
+    "concrete_terms": [
+      "699元",
+      "和牛",
+      "服務費"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "699元套餐含和牛及桌邊服務皆有原文佐證"
+  },
+  {
+    "shop_id": 10139,
+    "shop_name": "小小樹食 敦南店",
+    "aspect": "dishes",
+    "polarity": "pos",
+    "claim": "甜點口感出色且精緻，焦糖海鹽戚風與檸檬塔表現優秀。",
+    "source_review_ids": [
+      14,
+      18
+    ],
+    "concrete_terms": [
+      "焦糖海鹽戚風蛋糕",
+      "梨山烏龍檸檬塔"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "兩篇評論皆提及甜點精緻美味且點名品項。"
+  },
+  {
+    "shop_id": 10139,
+    "shop_name": "小小樹食 敦南店",
+    "aspect": "dishes",
+    "polarity": "neg",
+    "claim": "熱食主餐上桌溫度明顯不足，甚至部分出現冷掉狀況。",
+    "source_review_ids": [
+      1,
+      2,
+      9,
+      12,
+      13
+    ],
+    "concrete_terms": [
+      "松露野菇燉飯",
+      "義大利麵",
+      "薯條",
+      "薯球"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "多則評論皆指出主餐與餐點溫度不足。"
+  },
+  {
+    "shop_id": 10139,
+    "shop_name": "小小樹食 敦南店",
+    "aspect": "service",
+    "polarity": "pos",
+    "claim": "服務人員在面對菜色過鹹的投訴時，表現出積極調整的應變能力與良好態度。",
+    "source_review_ids": [
+      4,
+      6
+    ],
+    "concrete_terms": [
+      "米椒榛果青醬義大利麵"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "評論明確提及服務良好且願意調整"
+  },
+  {
+    "shop_id": 10139,
+    "shop_name": "小小樹食 敦南店",
+    "aspect": "service",
+    "polarity": "neg",
+    "claim": "服務流程缺乏邏輯，未遵守菜單順序導致餐點同時堆疊上桌且冷掉。",
+    "source_review_ids": [
+      1,
+      12,
+      13
+    ],
+    "concrete_terms": [
+      "服務流程",
+      "上菜順序"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "評論[0]明確指出上菜順序錯誤導致餐點冷掉。"
+  },
+  {
+    "shop_id": 10139,
+    "shop_name": "小小樹食 敦南店",
+    "aspect": "environment",
+    "polarity": "pos",
+    "claim": "裝潢風格明亮且具有綠色植栽元素，空間設計具備網美風格且整潔。",
+    "source_review_ids": [
+      2,
+      3,
+      8
+    ],
+    "concrete_terms": [
+      "綠色植栽",
+      "大理石元素"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "原文明確提及綠色植栽與網美風格環境"
+  },
+  {
+    "shop_id": 10139,
+    "shop_name": "小小樹食 敦南店",
+    "aspect": "environment",
+    "polarity": "neg",
+    "claim": "桌距過近導致環境吵雜，且冷氣溫度控制不當，造成用餐體驗不適。",
+    "source_review_ids": [
+      4,
+      6,
+      12,
+      13
+    ],
+    "concrete_terms": [
+      "桌距",
+      "冷氣"
+    ],
+    "gold_label": "PARTIAL",
+    "gold_reason": "僅冷氣問題有支撐，未提及桌距。"
+  },
+  {
+    "shop_id": 10139,
+    "shop_name": "小小樹食 敦南店",
+    "aspect": "price",
+    "polarity": "pos",
+    "claim": "透過特定公益活動可享有實惠的下午茶套餐。",
+    "source_review_ids": [
+      18
+    ],
+    "concrete_terms": [
+      "11元公益蛋糕"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "原文明確提及公益活動享11元蛋糕"
+  },
+  {
+    "shop_id": 10139,
+    "shop_name": "小小樹食 敦南店",
+    "aspect": "price",
+    "polarity": "neg",
+    "claim": "低消限制高，餐點份量偏少且定價過高，性價比不佳。",
+    "source_review_ids": [
+      1,
+      4,
+      6,
+      14,
+      17
+    ],
+    "concrete_terms": [
+      "低消500元",
+      "服務費"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "評論內容有提及低消、份量少及價位高"
+  },
+  {
+    "shop_id": 10149,
+    "shop_name": "夏慕尼新香榭鐵板燒 台北南昌店",
+    "aspect": "dishes",
+    "polarity": "pos",
+    "claim": "櫻花蝦炒飯與白蘭地鴨胸表現穩定且美味。",
+    "source_review_ids": [
+      3,
+      6,
+      9,
+      15,
+      18,
+      19
+    ],
+    "concrete_terms": [
+      "櫻花蝦炒飯",
+      "白蘭地鴨胸"
+    ],
+    "gold_label": "PARTIAL",
+    "gold_reason": "炒飯評價兩極，鴨胸則獲普遍好評。"
+  },
+  {
+    "shop_id": 10149,
+    "shop_name": "夏慕尼新香榭鐵板燒 台北南昌店",
+    "aspect": "dishes",
+    "polarity": "neg",
+    "claim": "部分主餐食材處理不當，如石斑魚腥味重、和牛筋多口感老。",
+    "source_review_ids": [
+      3,
+      6,
+      14,
+      16,
+      19
+    ],
+    "concrete_terms": [
+      "石斑魚",
+      "和牛",
+      "羊排"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "評論明確提及石斑魚腥味及和牛筋多口感老"
+  },
+  {
+    "shop_id": 10149,
+    "shop_name": "夏慕尼新香榭鐵板燒 台北南昌店",
+    "aspect": "service",
+    "polarity": "pos",
+    "claim": "服務人員在慶生拍照與客訴處理上表現積極且專業。",
+    "source_review_ids": [
+      7,
+      10,
+      11,
+      12,
+      14,
+      19
+    ],
+    "concrete_terms": [
+      "拍照",
+      "林副理",
+      "更換餐點"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "評論[2][3][5]明確提及拍照貼心及客訴處理妥當。"
+  },
+  {
+    "shop_id": 10149,
+    "shop_name": "夏慕尼新香榭鐵板燒 台北南昌店",
+    "aspect": "service",
+    "polarity": "neg",
+    "claim": "上菜節奏緊湊，導致用餐過程感受匆忙緊張。",
+    "source_review_ids": [
+      0,
+      3,
+      6,
+      12,
+      17,
+      19
+    ],
+    "concrete_terms": [
+      "出餐趕",
+      "急著上下一道"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "多則評論皆明確指出上菜節奏過趕、令人緊張。"
+  },
+  {
+    "shop_id": 10149,
+    "shop_name": "夏慕尼新香榭鐵板燒 台北南昌店",
+    "aspect": "environment",
+    "polarity": "pos",
+    "claim": "甜點區空間舒適，適合聊天。",
+    "source_review_ids": [
+      19
+    ],
+    "concrete_terms": [
+      "沙發",
+      "甜點區"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "原文提及沙發舒適且適合聊天"
+  },
+  {
+    "shop_id": 10149,
+    "shop_name": "夏慕尼新香榭鐵板燒 台北南昌店",
+    "aspect": "environment",
+    "polarity": "neg",
+    "claim": "環境狹小，且防火門動線造成噪音干擾。",
+    "source_review_ids": [
+      8,
+      9
+    ],
+    "concrete_terms": [
+      "防火門",
+      "冷熱空氣"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "評論提及環境狹小及防火門噪音問題。"
+  },
+  {
+    "shop_id": 10149,
+    "shop_name": "夏慕尼新香榭鐵板燒 台北南昌店",
+    "aspect": "price",
+    "polarity": "neg",
+    "claim": "餐點品質與服務水準未達千元價位標準。",
+    "source_review_ids": [
+      0,
+      3,
+      6,
+      8,
+      10,
+      16,
+      17
+    ],
+    "concrete_terms": [
+      "1408套餐",
+      "1280套餐",
+      "1480元",
+      "1500元"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "多則評論皆指出餐點與服務未達價位水準"
+  },
+  {
+    "shop_id": 10171,
+    "shop_name": "肉執事台北松山門市",
+    "aspect": "dishes",
+    "polarity": "pos",
+    "claim": "雞腿肉與牛橫膈膜肉質鮮嫩且無腥味。",
+    "source_review_ids": [
+      5,
+      9
+    ],
+    "concrete_terms": [
+      "雞腿",
+      "牛橫膈膜"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "原文皆有提及雞腿與橫膈膜優點"
+  },
+  {
+    "shop_id": 10171,
+    "shop_name": "肉執事台北松山門市",
+    "aspect": "dishes",
+    "polarity": "neg",
+    "claim": "牛五花油脂過多導致火勢難控，牛小排有異味。",
+    "source_review_ids": [
+      0,
+      8,
+      9,
+      17
+    ],
+    "concrete_terms": [
+      "牛五花",
+      "牛小排",
+      "噴火"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "評論均有提及油脂發爐及牛小排異味。"
+  },
+  {
+    "shop_id": 10171,
+    "shop_name": "肉執事台北松山門市",
+    "aspect": "service",
+    "polarity": "pos",
+    "claim": "送餐小列車設計新奇有趣，增進用餐互動感。",
+    "source_review_ids": [
+      0,
+      1,
+      7,
+      9
+    ],
+    "concrete_terms": [
+      "小列車",
+      "送餐軌道"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "多則評論皆提及送餐軌道有趣新奇"
+  },
+  {
+    "shop_id": 10171,
+    "shop_name": "肉執事台北松山門市",
+    "aspect": "service",
+    "polarity": "neg",
+    "claim": "員工態度惡劣，對帶小孩家庭不友善並刻意催促離場。",
+    "source_review_ids": [
+      2,
+      3,
+      11,
+      12
+    ],
+    "concrete_terms": [
+      "態度臭",
+      "催時間"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "多則評論皆指出店員態度差且趕人。"
+  },
+  {
+    "shop_id": 10171,
+    "shop_name": "肉執事台北松山門市",
+    "aspect": "environment",
+    "polarity": "pos",
+    "claim": "空間具備隱私與設計感，適合個人用餐。",
+    "source_review_ids": [
+      1,
+      6,
+      7,
+      15
+    ],
+    "concrete_terms": [
+      "屏風",
+      "隔板",
+      "個人燒肉"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "原文提及隱私、設計感與適合個人用餐"
+  },
+  {
+    "shop_id": 10171,
+    "shop_name": "肉執事台北松山門市",
+    "aspect": "environment",
+    "polarity": "neg",
+    "claim": "店內未設置洗手間，導致顧客需前往站外使用。",
+    "source_review_ids": [
+      16,
+      17
+    ],
+    "concrete_terms": [
+      "洗手間",
+      "廁所"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "評論明確提及店內無洗手間需去車站"
+  },
+  {
+    "shop_id": 10171,
+    "shop_name": "肉執事台北松山門市",
+    "aspect": "price",
+    "polarity": "pos",
+    "claim": "有時透過優惠或組合套餐，預算可控制在400元以下。",
+    "source_review_ids": [
+      7,
+      15
+    ],
+    "concrete_terms": [
+      "400元"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "原文明確提及不用400元即可吃到雙拼"
+  },
+  {
+    "shop_id": 10171,
+    "shop_name": "肉執事台北松山門市",
+    "aspect": "price",
+    "polarity": "neg",
+    "claim": "份量過少導致需要額外加點，總支出不划算。",
+    "source_review_ids": [
+      0,
+      5,
+      13,
+      16
+    ],
+    "concrete_terms": [
+      "飽足感",
+      "份量"
+    ],
+    "gold_label": "VERIFIED",
+    "gold_reason": "多則評論提及份量少且加點不划算"
+  }
+]
