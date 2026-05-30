@@ -8,12 +8,15 @@ type RawReview = {
   source?: string | null;
 };
 
+export type ReviewLanguage = "zh" | "ja" | "ko" | "en";
+
 export type ReviewSnippet = {
   author: string;
   rating: number;
   text: string;
   publishTime?: string | null;
   labels: string[];
+  language: ReviewLanguage;
 };
 
 export type AdviceInsight = {
@@ -82,8 +85,15 @@ function normalizeText(value?: string | null) {
 function hasEnoughChinese(text: string) {
   const cleaned = normalizeText(text);
   if (!cleaned) return false;
-  const chineseChars = (cleaned.match(/[\u4e00-\u9fff]/g) ?? []).length;
+  const chineseChars = (cleaned.match(/[一-鿿]/g) ?? []).length;
   return chineseChars >= Math.max(8, Math.floor(cleaned.length * 0.2));
+}
+
+function detectLanguage(text: string): ReviewLanguage {
+  if (/[぀-ゟ゠-ヿ]/.test(text)) return "ja";
+  if (/[가-힯]/.test(text)) return "ko";
+  if (hasEnoughChinese(text)) return "zh";
+  return "en";
 }
 
 function parseList(value?: string[] | string) {
@@ -97,17 +107,51 @@ function parseList(value?: string[] | string) {
   }
 }
 
-function reviewValueScore(review: RawReview) {
-  const text = normalizeText(review.text);
-  if (!text) return 0;
-
-  let score = Math.min(text.length, 600) / 30;
-  if (hasEnoughChinese(text)) score += 6;
-  if ((review.rating ?? 0) >= 4) score += 2;
-  if ((review.rating ?? 0) <= 3) score += 1;
-  if (/[0-9]+|元|\$|NT\$/.test(text)) score += 3;
-  if (/推薦|必點|招牌|口感|湯頭|服務|環境|氣氛|包廂|上菜|訂位|排隊/.test(text)) score += 4;
+function informativenessScore(text: string): number {
+  const len = text.length;
+  if (len < 80 || len > 300) return 0;
+  let score = 1;
+  if (/推薦|必點|招牌|口感|湯頭|服務|環境|氣氛|包廂|上菜|訂位|排隊/.test(text)) score += 2;
+  if (/[0-9]+|元|\$|NT\$/.test(text)) score += 1;
   return score;
+}
+
+function recencyScore(publishTime?: string | null): number {
+  if (!publishTime) return 0;
+  const ms = Date.now() - new Date(publishTime).getTime();
+  const days = ms / 86400000;
+  if (days < 90) return 3;
+  if (days < 365) return 2;
+  if (days < 730) return 1;
+  return 0;
+}
+
+// zh=0 sorts first; others sort after
+function langOrder(lang: ReviewLanguage): number {
+  return lang === "zh" ? 0 : 1;
+}
+
+function getSlotCounts(overallRating: number): { positive: number; critical: number } {
+  if (overallRating >= 4.5) return { positive: 3, critical: 1 };
+  if (overallRating >= 3.5) return { positive: 2, critical: 2 };
+  return { positive: 1, critical: 3 };
+}
+
+function attachLabels(
+  review: { text: string; rating: number; author: string; publishTime?: string | null; language: ReviewLanguage },
+  dishes: string[],
+): ReviewSnippet {
+  const lower = review.text.toLowerCase();
+  const labels = new Set<string>();
+  for (const dish of dishes) {
+    if (dish && review.text.includes(dish)) labels.add(dish);
+  }
+  for (const rule of REVIEW_LABEL_RULES) {
+    if (rule.keywords.some((keyword) => lower.includes(keyword))) {
+      labels.add(rule.label);
+    }
+  }
+  return { ...review, labels: [...labels].slice(0, 4) };
 }
 
 export async function getShopReviewInsights(shopId: number): Promise<ShopReviewInsights | null> {
@@ -115,45 +159,99 @@ export async function getShopReviewInsights(shopId: number): Promise<ShopReviewI
   if (!shop) return null;
 
   const dishes = parseList(shop.ai_extracted?.signature_dishes);
+  const overallRating = shop.rating ?? 4.0;
 
-  const reviews = (shop.reviews ?? []).map((review) => ({
-    author: review.author ?? "匿名評論",
-    rating: Number(review.rating ?? 0),
-    text: normalizeText(review.text),
-    publishTime: review.publish_time ?? null,
-  }));
+  const reviews = (shop.reviews ?? []).map((review) => {
+    const text = normalizeText(review.text);
+    return {
+      author: review.author ?? "匿名評論",
+      rating: Number(review.rating ?? 0),
+      text,
+      publishTime: review.publish_time ?? null,
+      language: detectLanguage(text),
+    };
+  });
 
-  const nonEmpty = reviews.filter((review) => review.text);
-  const chineseFirst = nonEmpty.filter((review) => hasEnoughChinese(review.text));
-  const reviewPool = (chineseFirst.length >= 3 ? chineseFirst : nonEmpty);
+  const nonEmpty = reviews.filter((r) => r.text);
 
-  const selectedReviews = [...reviewPool]
-    .sort((a, b) => reviewValueScore(b) - reviewValueScore(a))
-    .slice(0, 5)
-    .map((review) => {
-      const lower = review.text.toLowerCase();
-      const labels = new Set<string>();
-      for (const dish of dishes) {
-        if (dish && review.text.includes(dish)) labels.add(dish);
+  // Sort pool: zh first, then by recency desc, then informativeness desc
+  const sortPool = (pool: typeof nonEmpty) =>
+    [...pool].sort(
+      (a, b) =>
+        langOrder(a.language) - langOrder(b.language) ||
+        recencyScore(b.publishTime) - recencyScore(a.publishTime) ||
+        informativenessScore(b.text) - informativenessScore(a.text),
+    );
+
+  const used = new Set<string>();
+  const key = (r: { author: string; text: string }) => r.author + r.text;
+
+  const pickN = (candidates: typeof nonEmpty, n: number): typeof nonEmpty => {
+    const sorted = sortPool(candidates);
+    const result: typeof nonEmpty = [];
+    for (const r of sorted) {
+      if (result.length >= n) break;
+      if (!used.has(key(r))) {
+        result.push(r);
+        used.add(key(r));
       }
-      for (const rule of REVIEW_LABEL_RULES) {
-        if (rule.keywords.some((keyword) => lower.includes(keyword))) {
-          labels.add(rule.label);
-        }
-      }
-      return {
-        ...review,
-        labels: [...labels].slice(0, 4),
-      };
-    });
+    }
+    return result;
+  };
+
+  const { positive: posCount, critical: critCount } = getSlotCounts(overallRating);
+
+  const positivePool = nonEmpty.filter((r) => r.rating >= 4);
+  const criticalPool = nonEmpty.filter((r) => r.rating > 0 && r.rating <= 3);
+
+  const positiveSlots = pickN(positivePool, posCount);
+  const criticalSlots = pickN(criticalPool, critCount);
+
+  // Fill remaining slots with most informative (any rating), zh first
+  const remaining = 5 - positiveSlots.length - criticalSlots.length;
+  const infoFill = remaining > 0
+    ? pickN(
+        [...nonEmpty].sort(
+          (a, b) =>
+            langOrder(a.language) - langOrder(b.language) ||
+            informativenessScore(b.text) - informativenessScore(a.text) ||
+            recencyScore(b.publishTime) - recencyScore(a.publishTime),
+        ),
+        remaining,
+      )
+    : [];
+
+  const raw = [...positiveSlots, ...criticalSlots, ...infoFill];
+
+  // Fallback: if still fewer than 5, fill from nonEmpty
+  if (raw.length < 5) {
+    const fallback = sortPool(nonEmpty).filter((r) => !used.has(key(r)));
+    for (const r of fallback) {
+      if (raw.length >= 5) break;
+      raw.push(r);
+      used.add(key(r));
+    }
+  }
+
+  // Final sort: zh first, then recency desc, then informativeness desc
+  const selectedReviews = raw
+    .sort(
+      (a, b) =>
+        langOrder(a.language) - langOrder(b.language) ||
+        recencyScore(b.publishTime) - recencyScore(a.publishTime) ||
+        informativenessScore(b.text) - informativenessScore(a.text),
+    )
+    .map((review) => attachLabels(review, dishes));
+
+  const negativeReviews = nonEmpty.filter((r) => r.rating > 0 && r.rating <= 3);
 
   const advice = ADVICE_RULES
     .map((rule) => ({
       label: rule.label,
       detail: rule.detail,
-      matches: nonEmpty.filter((review) => rule.keywords.some((keyword) => review.text.toLowerCase().includes(keyword))).length,
+      matches: negativeReviews.filter((r) => rule.keywords.some((kw) => r.text.toLowerCase().includes(kw))).length,
     }))
-    .filter((rule) => rule.matches > 0)
+    .filter((rule) => rule.matches >= 2)
     .sort((a, b) => b.matches - a.matches)
     .slice(0, 4)
     .map((rule) => ({ label: rule.label, detail: rule.detail }));
