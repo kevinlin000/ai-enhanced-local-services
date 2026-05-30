@@ -16,12 +16,15 @@ type SimilarShopCard = {
   photoUrl?: string | null;
 };
 
+type ReviewLanguage = "zh" | "ja" | "ko" | "en";
+
 type ReviewSnippet = {
   author: string;
   rating: number;
   text: string;
   publishTime?: string | null;
   labels: string[];
+  language: ReviewLanguage;
 };
 
 type AdviceInsight = {
@@ -89,12 +92,115 @@ function highlightText(text: string, terms: string[]) {
   const termSet = new Set(terms);
   return parts.map((part, i) =>
     termSet.has(part) ? (
-      <mark key={i} className="bg-yellow-200 rounded-sm">
+      <mark key={i} className="inline-block bg-amber-50 text-amber-900 border-b border-amber-300 border-dotted px-0.5 whitespace-nowrap">
         {part}
       </mark>
     ) : (
       part
     ),
+  );
+}
+
+function starRating(rating: number) {
+  const full = Math.round(rating);
+  const filled = Math.max(0, Math.min(5, full));
+  return (
+    <span className="text-sm tracking-tight">
+      {"★".repeat(filled).split("").map((_, i) => (
+        <span key={`f${i}`} className="text-amber-500">★</span>
+      ))}
+      {"☆".repeat(Math.max(0, 5 - filled)).split("").map((_, i) => (
+        <span key={`e${i}`} className="text-gray-300">☆</span>
+      ))}
+    </span>
+  );
+}
+
+function splitSentences(text: string): string {
+  return text
+    .replace(/([。！？])(\s+)/g, "$1\n")
+    .replace(/([。！？])([^\n])/g, "$1\n$2")
+    .replace(/ {2,}/g, "\n")
+    .trim();
+}
+
+function ReviewCard({ review }: { review: ReviewSnippet }) {
+  const [expanded, setExpanded] = useState(false);
+  const limit = 220;
+  const processed = splitSentences(review.text);
+  const shouldCollapse = processed.length > limit;
+  const visible = !shouldCollapse || expanded ? processed : `${processed.slice(0, limit)}…`;
+  const bodyContent = review.labels.length ? highlightText(visible, review.labels) : visible;
+
+  const langBadge =
+    review.language === "ja" ? { flag: "🇯🇵", label: "日文" }
+    : review.language === "ko" ? { flag: "🇰🇷", label: "韓文" }
+    : review.language === "en" ? { flag: "🇬🇧", label: "English" }
+    : null;
+
+  return (
+    <div className="bg-white shadow-sm rounded-xl border border-gray-100 p-6">
+      {/* header: name + stars + language badge */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold text-gray-900">{review.author}</span>
+        {starRating(review.rating)}
+        {langBadge ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+            {langBadge.flag} {langBadge.label} <span className="text-gray-400">(原文)</span>
+          </span>
+        ) : null}
+      </div>
+
+      {/* date */}
+      {review.publishTime ? (
+        <div className="mt-0.5 text-xs text-gray-400">{review.publishTime.slice(0, 10)}</div>
+      ) : null}
+
+      {/* label chips */}
+      {review.labels.length > 0 ? (
+        <div className="mt-3 mb-4 flex flex-wrap gap-1.5">
+          {review.labels.map((label) => (
+            <span
+              key={label}
+              className="text-xs bg-gray-50 border border-gray-200 rounded-full px-2.5 py-0.5 text-gray-500"
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-3 mb-4" />
+      )}
+
+      {/* body with subtle left border */}
+      <div className="border-l-2 border-amber-300/40 pl-4">
+        <p className="whitespace-pre-line leading-loose tracking-wide text-gray-700 text-sm">
+          {bodyContent}
+        </p>
+      </div>
+
+      {shouldCollapse && !expanded ? (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="text-xs font-medium text-amber-600 hover:text-amber-700"
+          >
+            閱讀更多 →
+          </button>
+        </div>
+      ) : shouldCollapse && expanded ? (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="text-xs font-medium text-amber-600 hover:text-amber-700"
+          >
+            收起 ↑
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -439,27 +545,9 @@ export function ShopDetailTabs(props: Props) {
             <p className="text-sm text-muted-foreground">
               從 {props.reviewTotal} 則評論中整理，以下先挑 5 則最能幫你判斷菜色、服務、環境與值不值得訂位的內容。
             </p>
-            <div className="space-y-4">
+            <div className="space-y-8">
               {props.selectedReviews.map((review, index) => (
-                <div key={`${review.author}-${index}`} className="rounded-2xl border bg-background p-5">
-                  <div className="flex flex-wrap items-center gap-3 text-sm">
-                    <span className="font-medium">{review.author}</span>
-                    <span className="font-mono text-amber-600">★ {review.rating ? review.rating.toFixed(1) : "—"}</span>
-                    {review.publishTime ? (
-                      <span className="text-xs text-muted-foreground">{review.publishTime.slice(0, 10)}</span>
-                    ) : null}
-                  </div>
-                  {review.labels.length > 0 ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {review.labels.map((label) => (
-                        <span key={label} className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                  <ExpandableText text={review.text} limit={180} className="mt-3 text-sm" highlights={review.labels} />
-                </div>
+                <ReviewCard key={`${review.author}-${index}`} review={review} />
               ))}
             </div>
           </div>
