@@ -1,6 +1,7 @@
 package com.bytebites.controller;
 
 import com.bytebites.dto.Result;
+import com.bytebites.service.AvailabilityNotificationService;
 import com.bytebites.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,6 +25,7 @@ public class MerchantController {
     );
 
     private final JdbcTemplate jdbcTemplate;
+    private final AvailabilityNotificationService availabilityNotificationService;
 
     @GetMapping("/shops")
     public Result shops() {
@@ -142,6 +144,7 @@ public class MerchantController {
                     time,
                     tableType
             );
+            availabilityNotificationService.triggerIfAvailable(shopId, bookingDate, time, tableType);
         }
 
         return slots(shopId, bookingDate.toString(), tableType);

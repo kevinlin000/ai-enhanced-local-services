@@ -4,6 +4,7 @@ import com.bytebites.dto.Result;
 import com.bytebites.dto.UserDTO;
 import com.bytebites.entity.jpa.BookingJpa;
 import com.bytebites.repository.BookingJpaRepository;
+import com.bytebites.service.AvailabilityNotificationService;
 import com.bytebites.service.BookingHoldService;
 import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.IShopService;
@@ -46,6 +47,7 @@ public class BookingController {
     private final IShopService shopService;
     private final DepositPolicy depositPolicy;
     private final BookingHoldService bookingHoldService;
+    private final AvailabilityNotificationService availabilityNotificationService;
     private final JdbcTemplate jdbcTemplate;
     private final PlatformTransactionManager transactionManager;
 
@@ -289,6 +291,12 @@ public class BookingController {
                 booking.getBookingTime(),
                 booking.getTableType(),
                 booking.getPeople()
+        );
+        availabilityNotificationService.triggerIfAvailable(
+                booking.getShopId(),
+                booking.getBookingDate(),
+                booking.getBookingTime(),
+                booking.getTableType()
         );
         booking.setStatus(BookingHoldService.STATUS_CANCELED);
         bookingRepo.saveAndFlush(booking);

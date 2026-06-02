@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { javaApi } from "@/lib/api";
 
 declare global {
   interface Window { TPDirect: any }
@@ -87,6 +88,8 @@ export function BookingButton({
   const [step, setStep] = useState<Step>("idle");
   const [sdkReady, setSdkReady] = useState(false);
   const [error, setError] = useState("");
+  const [soldOutSlot, setSoldOutSlot] = useState(false);
+  const [watchMessage, setWatchMessage] = useState("");
   const [result, setResult] = useState<any>(null);
   const [policy, setPolicy] = useState<BookingPolicy | null>(null);
   const [bookingCode, setBookingCode] = useState<string | null>(null);
@@ -179,6 +182,8 @@ export function BookingButton({
   // 免訂金流程：直接呼叫 /api/booking/reserve
   const handleNoDepositConfirm = () => {
     setStep("processing");
+    setSoldOutSlot(false);
+    setWatchMessage("");
     fetch(`${JAVA_API}/api/booking/reserve`, {
       method: "POST",
       headers: bookingHeaders(),
@@ -191,6 +196,7 @@ export function BookingButton({
           setStep("done");
         } else {
           setError(data.errorMsg || "訂位失敗");
+          setSoldOutSlot(Boolean((data.errorMsg || "").includes("額滿")));
           setStep("form");
         }
       })
@@ -203,6 +209,8 @@ export function BookingButton({
   // 有訂金流程第一步：先建訂位 DB 記錄，再進 select-pay
   const handleProceedToPay = async () => {
     setError("");
+    setSoldOutSlot(false);
+    setWatchMessage("");
     if (bookingCode) {
       setStep("select-pay");
       return;
@@ -221,9 +229,32 @@ export function BookingButton({
         setStep("select-pay");
       } else {
         setError(data.errorMsg || "建立訂位失敗");
+        setSoldOutSlot(Boolean((data.errorMsg || "").includes("額滿")));
       }
     } catch (e: any) {
       setError("網路錯誤: " + e.message);
+    }
+  };
+
+  const handleCreateAvailabilityWatch = async () => {
+    setError("");
+    setWatchMessage("");
+    try {
+      const response = await javaApi.createAvailabilityWatch({
+        shopId: shop.id,
+        date,
+        time,
+        tableType,
+        people,
+      });
+      if (!response.success) {
+        setError(response.errorMsg ?? "建立空位通知失敗");
+        return;
+      }
+      setSoldOutSlot(false);
+      setWatchMessage("已設定空位通知。若此時段釋出足夠座位，會出現在通知中心。");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "建立空位通知失敗");
     }
   };
 
@@ -324,6 +355,8 @@ export function BookingButton({
     setBookingCode(null);
     setHoldExpiresAt(null);
     setAllowDemoFallback(false);
+    setSoldOutSlot(false);
+    setWatchMessage("");
   };
 
   if (step === "idle") {
@@ -457,6 +490,24 @@ export function BookingButton({
           )}
 
           {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
+          {soldOutSlot ? (
+            <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <p className="font-semibold">此時段目前額滿。</p>
+              <p className="mt-1 leading-5">可先設定空位通知；有人取消或店家釋出容量時，系統會通知你回來訂位。</p>
+              <button
+                type="button"
+                onClick={handleCreateAvailabilityWatch}
+                className="mt-2 w-full rounded-md bg-amber-700 px-3 py-2 font-semibold text-white hover:bg-amber-800"
+              >
+                通知我有空位
+              </button>
+            </div>
+          ) : null}
+          {watchMessage ? (
+            <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+              {watchMessage}
+            </div>
+          ) : null}
 
           {policy?.needsDeposit ? (
             <Button onClick={handleProceedToPay} className="w-full">

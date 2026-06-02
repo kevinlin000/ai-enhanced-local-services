@@ -25,6 +25,7 @@ public class BookingHoldService {
 
     private final BookingJpaRepository bookingRepo;
     private final JdbcTemplate jdbcTemplate;
+    private final AvailabilityNotificationService availabilityNotificationService;
 
     public LocalDateTime newHoldExpiry() {
         return LocalDateTime.now().plusMinutes(HOLD_MINUTES);
@@ -49,6 +50,12 @@ public class BookingHoldService {
                 booking.getBookingTime(),
                 booking.getTableType(),
                 booking.getPeople()
+        );
+        availabilityNotificationService.triggerIfAvailable(
+                booking.getShopId(),
+                booking.getBookingDate(),
+                booking.getBookingTime(),
+                booking.getTableType()
         );
         booking.setStatus(STATUS_EXPIRED);
         bookingRepo.saveAndFlush(booking);

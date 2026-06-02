@@ -143,6 +143,37 @@ export type MyBooking = {
   idempotentReplay?: boolean;
 };
 
+export type AvailabilityWatch = {
+  id: number;
+  shopId: number;
+  shopName: string;
+  date: string;
+  time: string;
+  tableType: string;
+  people: number;
+  status: "ACTIVE" | "TRIGGERED" | "CANCELED" | "EXPIRED";
+  triggeredAt?: string | null;
+  expiresAt: string;
+  createdAt: string;
+};
+
+export type UserNotification = {
+  id: number;
+  type: "AVAILABILITY_RELEASED" | string;
+  title: string;
+  body: string;
+  shopId?: number | null;
+  shopName?: string | null;
+  watchId?: number | null;
+  status: "UNREAD" | "READ";
+  date?: string | null;
+  time?: string | null;
+  tableType?: string | null;
+  people?: number | null;
+  createdAt: string;
+  readAt?: string | null;
+};
+
 function merchantHeaders(): HeadersInit {
   return {
     "Content-Type": "application/json",
@@ -259,6 +290,48 @@ export const javaApi = {
   cancelBooking: (bookingCode: string) =>
     fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking }>(
       `${CLIENT_JAVA_API}/api/booking/${encodeURIComponent(bookingCode)}/cancel`,
+      {
+        method: "POST",
+        headers: authOrDemoHeaders(true),
+      },
+    ),
+  createAvailabilityWatch: (body: {
+    shopId: number;
+    date: string;
+    time: string;
+    tableType?: string;
+    people: number;
+  }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: AvailabilityWatch }>(
+      `${CLIENT_JAVA_API}/api/availability/watches`,
+      {
+        method: "POST",
+        headers: authOrDemoHeaders(true),
+        body: JSON.stringify({
+          shopId: body.shopId,
+          date: body.date,
+          time: body.time,
+          tableType: body.tableType ?? "normal",
+          people: body.people,
+        }),
+      },
+    ),
+  availabilityWatches: () =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: AvailabilityWatch[] }>(
+      `${CLIENT_JAVA_API}/api/availability/watches`,
+      { headers: authOrDemoHeaders() },
+    ),
+  notifications: () =>
+    fetchJson<{
+      success: boolean;
+      errorMsg?: string;
+      data: { unreadCount: number; items: UserNotification[] };
+    }>(`${CLIENT_JAVA_API}/api/availability/notifications`, {
+      headers: authOrDemoHeaders(),
+    }),
+  markNotificationRead: (id: number) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: { id: number; status: "READ" } }>(
+      `${CLIENT_JAVA_API}/api/availability/notifications/${id}/read`,
       {
         method: "POST",
         headers: authOrDemoHeaders(true),

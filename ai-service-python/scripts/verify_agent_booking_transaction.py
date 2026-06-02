@@ -6,6 +6,7 @@ Checks:
 - The booking row exists in MySQL as pending payment.
 - Explicit pay-test completes payment and retry is idempotent.
 - Paid booking cancellation transitions to CANCELED and releases slot inventory.
+- Availability watches trigger notifications when cancellation or merchant capacity updates release seats.
 - Expired pending holds reject payment and release slot inventory.
 - Backend rejects past-date reservations.
 - Ambiguous multi-branch brand bookings ask for branch selection before booking.
@@ -190,6 +191,49 @@ def slot_booked_count(shop_id: int, booking_date: str, booking_time: str, table_
             return int((row or {}).get("booked_count") or 0)
 
 
+def cleanup_availability_slot(shop_id: int, booking_date: str, booking_time: str, table_type: str = "normal") -> None:
+    with mysql_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select id
+                from tb_availability_watch
+                where shop_id = %s and booking_date = %s and booking_time = %s and table_type = %s
+                """,
+                (shop_id, booking_date, booking_time, table_type),
+            )
+            watch_ids = [row["id"] for row in cur.fetchall()]
+            if watch_ids:
+                placeholders = ",".join(["%s"] * len(watch_ids))
+                cur.execute(f"delete from tb_user_notification where watch_id in ({placeholders})", watch_ids)
+                cur.execute(f"delete from tb_availability_watch where id in ({placeholders})", watch_ids)
+
+
+def fetch_watch_for_slot(shop_id: int, booking_date: str, booking_time: str, people: int) -> dict[str, Any] | None:
+    with mysql_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select id, status, triggered_at
+                from tb_availability_watch
+                where user_id = 1001 and shop_id = %s and booking_date = %s
+                  and booking_time = %s and table_type = 'normal' and people = %s
+                order by id desc
+                limit 1
+                """,
+                (shop_id, booking_date, booking_time, people),
+            )
+            return cur.fetchone()
+
+
+def notification_count_for_watch(watch_id: int) -> int:
+    with mysql_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("select count(*) as count from tb_user_notification where watch_id = %s", (watch_id,))
+            row = cur.fetchone()
+            return int((row or {}).get("count") or 0)
+
+
 def assert_agent_transaction(events: list[dict[str, Any]]) -> dict[str, Any]:
     tools = [event["name"] for event in events if event.get("type") == "tool"]
     expected_tools = ["semantic_shop_search", "create_booking"]
@@ -330,6 +374,115 @@ def assert_paid_cancel_releases_slot_inventory(txn: dict[str, Any]) -> None:
         fail("cancel retry released slot inventory twice")
 
     ok("paid booking cancel transitions to CANCELED and releases slot inventory")
+
+
+def assert_availability_watch_triggers_on_cancel(run_id: str) -> None:
+    booking_date = (date.today() + timedelta(days=12)).isoformat()
+    booking_time = "17:30"
+    idempotency_key = f"smoke-watch-cancel-{run_id}"
+    booking_code: str | None = None
+    cleanup_availability_slot(10115, booking_date, booking_time)
+    delete_booking_by_idempotency_key(idempotency_key)
+    try:
+        reserve = httpx.post(
+            f"{JAVA_BACKEND_URL}/api/booking/reserve",
+            headers=DEMO_HEADERS,
+            json={
+                "shopId": 10115,
+                "people": 8,
+                "date": booking_date,
+                "time": booking_time,
+                "tableType": "normal",
+                "idempotencyKey": idempotency_key,
+            },
+            timeout=15,
+        )
+        reserve.raise_for_status()
+        reserve_payload = reserve.json()
+        if not reserve_payload.get("success"):
+            fail(f"availability cancel setup reserve failed: {reserve_payload}")
+        booking_code = reserve_payload["data"]["bookingCode"]
+
+        watch = httpx.post(
+            f"{JAVA_BACKEND_URL}/api/availability/watches",
+            headers=DEMO_HEADERS,
+            json={"shopId": 10115, "date": booking_date, "time": booking_time, "tableType": "normal", "people": 2},
+            timeout=15,
+        )
+        watch.raise_for_status()
+        watch_payload = watch.json()
+        if not watch_payload.get("success"):
+            fail(f"availability watch creation failed: {watch_payload}")
+
+        cancel = httpx.post(
+            f"{JAVA_BACKEND_URL}/api/booking/{booking_code}/cancel",
+            headers=DEMO_HEADERS,
+            timeout=15,
+        )
+        cancel.raise_for_status()
+        cancel_payload = cancel.json()
+        if not cancel_payload.get("success"):
+            fail(f"availability cancel trigger failed: {cancel_payload}")
+
+        row = fetch_watch_for_slot(10115, booking_date, booking_time, 2)
+        if not row or row["status"] != "TRIGGERED":
+            fail(f"availability watch was not triggered by cancellation: {row}")
+        if notification_count_for_watch(int(row["id"])) != 1:
+            fail(f"availability cancellation trigger did not create exactly one notification: {row}")
+        ok("availability watch triggers notification when cancellation releases seats")
+    finally:
+        if booking_code:
+            delete_booking(booking_code)
+        delete_booking_by_idempotency_key(idempotency_key)
+        cleanup_availability_slot(10115, booking_date, booking_time)
+
+
+def assert_availability_watch_triggers_on_merchant_capacity(run_id: str) -> None:
+    booking_date = (date.today() + timedelta(days=13)).isoformat()
+    booking_time = "17:30"
+    cleanup_availability_slot(10115, booking_date, booking_time)
+    try:
+        setup = httpx.put(
+            f"{JAVA_BACKEND_URL}/api/merchant/shops/10115/slots",
+            headers=DEMO_HEADERS,
+            json={"date": booking_date, "tableType": "normal", "slots": [{"time": booking_time, "capacity": 0}]},
+            timeout=15,
+        )
+        setup.raise_for_status()
+        setup_payload = setup.json()
+        if not setup_payload.get("success"):
+            fail(f"merchant capacity setup failed: {setup_payload}")
+
+        watch = httpx.post(
+            f"{JAVA_BACKEND_URL}/api/availability/watches",
+            headers=DEMO_HEADERS,
+            json={"shopId": 10115, "date": booking_date, "time": booking_time, "tableType": "normal", "people": 1},
+            timeout=15,
+        )
+        watch.raise_for_status()
+        watch_payload = watch.json()
+        if not watch_payload.get("success"):
+            fail(f"merchant capacity watch creation failed: {watch_payload}")
+
+        release = httpx.put(
+            f"{JAVA_BACKEND_URL}/api/merchant/shops/10115/slots",
+            headers=DEMO_HEADERS,
+            json={"date": booking_date, "tableType": "normal", "slots": [{"time": booking_time, "capacity": 2}]},
+            timeout=15,
+        )
+        release.raise_for_status()
+        release_payload = release.json()
+        if not release_payload.get("success"):
+            fail(f"merchant capacity release failed: {release_payload}")
+
+        row = fetch_watch_for_slot(10115, booking_date, booking_time, 1)
+        if not row or row["status"] != "TRIGGERED":
+            fail(f"availability watch was not triggered by merchant capacity update: {row}")
+        if notification_count_for_watch(int(row["id"])) != 1:
+            fail(f"merchant capacity trigger did not create exactly one notification: {row}")
+        ok("availability watch triggers notification when merchant capacity releases seats")
+    finally:
+        cleanup_availability_slot(10115, booking_date, booking_time)
 
 
 def assert_agent_duplicate_booking_reuses_transaction(session_id: str, txn: dict[str, Any]) -> None:
@@ -594,6 +747,8 @@ def main() -> None:
         assert_paid_cancel_releases_slot_inventory(txn)
         assert_backend_reserve_idempotency(run_id)
         assert_backend_slot_capacity(run_id)
+        assert_availability_watch_triggers_on_cancel(run_id)
+        assert_availability_watch_triggers_on_merchant_capacity(run_id)
         assert_expired_hold_rejects_payment_and_releases_slot(run_id)
         assert_backend_rejects_past_date()
         assert_backend_rejects_same_day()

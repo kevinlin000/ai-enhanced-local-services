@@ -29,6 +29,11 @@ export function Navbar() {
               我的訂位
             </Button>
           </Link>
+          <Link href="/notifications">
+            <Button variant="ghost" size="sm" className="px-2 text-xs md:px-3 md:text-sm">
+              空位通知
+            </Button>
+          </Link>
           {mounted
             ? isLoggedIn
               ? (
