@@ -15,6 +15,10 @@ public class BookingJpa {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Owner user id. Nullable for legacy/demo bookings created before V24. */
+    @Column(name = "user_id")
+    private Long userId;
+
     /** BK-XXXXXXXXXXXX 唯一訂位編號 */
     @Column(name = "booking_code", nullable = false, unique = true, length = 50)
     private String bookingCode;
@@ -40,6 +44,7 @@ public class BookingJpa {
      * 1 = 待付款（有訂金、尚未付款）
      * 2 = 已付款（TapPay 交易成功）
      * 3 = 已確認（免訂金直接確認）
+     * 4 = 已取消
      */
     @Column(name = "status", nullable = false, columnDefinition = "tinyint")
     private Integer status;

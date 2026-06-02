@@ -1,10 +1,12 @@
 package com.bytebites.controller;
 
 import com.bytebites.dto.Result;
+import com.bytebites.dto.UserDTO;
 import com.bytebites.entity.jpa.BookingJpa;
 import com.bytebites.repository.BookingJpaRepository;
 import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.IShopService;
+import com.bytebites.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.CannotAcquireLockException;
@@ -20,9 +22,11 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * 訂位 Controller。
@@ -36,6 +40,10 @@ import java.util.UUID;
 @RequestMapping({"/booking", "/api/booking"})
 public class BookingController {
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Taipei");
+    private static final int STATUS_PENDING_PAYMENT = 1;
+    private static final int STATUS_PAID = 2;
+    private static final int STATUS_CONFIRMED = 3;
+    private static final int STATUS_CANCELED = 4;
 
     private final BookingJpaRepository bookingRepo;
     private final IShopService shopService;
@@ -145,6 +153,7 @@ public class BookingController {
 
         // 建 booking 記錄
         BookingJpa booking = new BookingJpa();
+        booking.setUserId(currentUserIdOrNull());
         booking.setBookingCode("BK-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase());
         booking.setShopId(shopId);
         booking.setPeople(people);
@@ -154,7 +163,7 @@ public class BookingController {
         booking.setNeedsDeposit(pol.isNeedsDeposit());
         booking.setDepositPerPerson(pol.getDepositPerPerson());
         booking.setDepositTotal(pol.isNeedsDeposit() ? pol.getDepositPerPerson() * people : 0);
-        booking.setStatus(pol.isNeedsDeposit() ? 1 : 3);  // 1=待付款, 3=已確認
+        booking.setStatus(pol.isNeedsDeposit() ? STATUS_PENDING_PAYMENT : STATUS_CONFIRMED);
         booking.setIdempotencyKey(idempotencyKey);
 
         bookingRepo.saveAndFlush(booking);
@@ -200,8 +209,10 @@ public class BookingController {
 
         BookingJpa b = bookingRepo.findByBookingCode(bookingCode).orElse(null);
         if (b == null)            return Result.fail("訂位不存在");
+        if (!canAccessBooking(b)) return Result.fail("無權操作此訂位");
+        if (b.getStatus() == STATUS_CANCELED) return Result.fail("訂位已取消，無法付款");
         if (!b.getNeedsDeposit()) return Result.fail("此訂位免訂金、無需付款");
-        if (b.getStatus() == 2) {
+        if (b.getStatus() == STATUS_PAID) {
             return Result.ok(Map.of(
                     "bookingCode",  bookingCode,
                     "rec_trade_id", b.getPaymentTransId(),
@@ -214,7 +225,7 @@ public class BookingController {
         // Demo transaction ID（格式仿 TapPay）
         String demoTransId = "DEMO-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
         b.setPaymentTransId(demoTransId);
-        b.setStatus(2);
+        b.setStatus(STATUS_PAID);
         bookingRepo.save(b);
 
         log.info("[Booking pay-test] {} demo-paid via agent, trans={}", bookingCode, demoTransId);
@@ -228,9 +239,61 @@ public class BookingController {
         ));
     }
 
+    @GetMapping("/my")
+    public Result myBookings() {
+        Long userId = currentUserIdOrNull();
+        if (userId == null) return Result.fail("請先登入或使用 demo mode");
+
+        List<Map<String, Object>> bookings = bookingRepo.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(booking -> {
+                    var shop = shopService.getById(booking.getShopId());
+                    String shopName = shop != null ? shop.getName() : null;
+                    return bookingResponse(booking, shopName, false);
+                })
+                .collect(Collectors.toList());
+        return Result.ok(bookings);
+    }
+
+    @PostMapping("/{bookingCode}/cancel")
+    public Result cancel(@PathVariable String bookingCode) {
+        return reserveTransactionTemplate().execute(status -> cancelInTransaction(bookingCode));
+    }
+
+    private Result cancelInTransaction(String bookingCode) {
+        if (bookingCode == null || bookingCode.isBlank()) return Result.fail("bookingCode 必填");
+
+        BookingJpa booking = bookingRepo.findByBookingCode(bookingCode).orElse(null);
+        if (booking == null) return Result.fail("訂位不存在");
+        if (!canAccessBooking(booking)) return Result.fail("無權操作此訂位");
+
+        var shop = shopService.getById(booking.getShopId());
+        String shopName = shop != null ? shop.getName() : null;
+        if (booking.getStatus() == STATUS_CANCELED) {
+            return Result.ok(bookingResponse(booking, shopName, true));
+        }
+
+        releaseSlotCapacity(
+                booking.getShopId(),
+                booking.getBookingDate(),
+                booking.getBookingTime(),
+                booking.getTableType(),
+                booking.getPeople()
+        );
+        booking.setStatus(STATUS_CANCELED);
+        bookingRepo.saveAndFlush(booking);
+
+        log.info("[Booking cancel] code={} shop={} people={} date={} time={}",
+                booking.getBookingCode(), booking.getShopId(), booking.getPeople(),
+                booking.getBookingDate(), booking.getBookingTime());
+
+        return Result.ok(bookingResponse(booking, shopName, false));
+    }
+
     private Map<String, Object> bookingResponse(BookingJpa booking, String shopName, boolean idempotentReplay) {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("bookingCode", booking.getBookingCode());
+        out.put("userId", booking.getUserId());
         out.put("shopId", booking.getShopId());
         out.put("shopName", shopName != null ? shopName : "店家 " + booking.getShopId());
         out.put("people", booking.getPeople());
@@ -241,12 +304,28 @@ public class BookingController {
         out.put("depositTotal", booking.getDepositTotal());
         out.put(
                 "status",
-                booking.getStatus() == 1
+                booking.getStatus() == STATUS_PENDING_PAYMENT
                         ? "PENDING_PAYMENT"
-                        : booking.getStatus() == 2 ? "PAID" : "CONFIRMED"
+                        : booking.getStatus() == STATUS_PAID
+                        ? "PAID"
+                        : booking.getStatus() == STATUS_CANCELED ? "CANCELED" : "CONFIRMED"
         );
+        out.put("paymentTransId", booking.getPaymentTransId());
+        out.put("createdAt", booking.getCreatedAt() != null ? booking.getCreatedAt().toString() : null);
+        out.put("updatedAt", booking.getUpdatedAt() != null ? booking.getUpdatedAt().toString() : null);
         out.put("idempotentReplay", idempotentReplay);
         return out;
+    }
+
+    private Long currentUserIdOrNull() {
+        UserDTO user = UserHolder.getUser();
+        return user != null ? user.getId() : null;
+    }
+
+    private boolean canAccessBooking(BookingJpa booking) {
+        Long ownerId = booking.getUserId();
+        Long currentUserId = currentUserIdOrNull();
+        return ownerId != null && currentUserId != null && ownerId.equals(currentUserId);
     }
 
     private void ensureSlotInventory(Long shopId, LocalDate bookingDate, String time, String tableType) {
@@ -275,6 +354,17 @@ public class BookingController {
                 people, shopId, bookingDate, time, tableType, people
         );
         return updated == 1;
+    }
+
+    private void releaseSlotCapacity(Long shopId, LocalDate bookingDate, String time, String tableType, int people) {
+        jdbcTemplate.update(
+                """
+                UPDATE tb_booking_slot_inventory
+                SET booked_count = GREATEST(booked_count - ?, 0)
+                WHERE shop_id = ? AND booking_date = ? AND booking_time = ? AND table_type = ?
+                """,
+                people, shopId, bookingDate, time, tableType
+        );
     }
 
     private int defaultSlotCapacity(String tableType) {

@@ -864,6 +864,7 @@ async def tool_create_booking(
     async with httpx.AsyncClient(timeout=10.0) as client:
         r = await client.post(
             f"{settings.java_backend_url}/api/booking/reserve",
+            headers={"X-Demo-Mode": "true"},
             json={
                 "shopId": shop_id,
                 "people": people,
@@ -886,6 +887,7 @@ async def tool_pay_booking_with_test_card(booking_code: str) -> dict:
     async with httpx.AsyncClient(timeout=15.0) as client:
         r = await client.post(
             f"{settings.java_backend_url}/api/booking/pay-test",
+            headers={"X-Demo-Mode": "true"},
             json={"bookingCode": booking_code},
         )
     if r.status_code != 200:

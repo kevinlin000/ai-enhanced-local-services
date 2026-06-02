@@ -42,6 +42,15 @@ const TABLE_TYPES = [
   { label: "包廂", value: "private" },
 ];
 
+function bookingHeaders(): HeadersInit {
+  const token = typeof window !== "undefined"
+    ? window.localStorage.getItem("bytebites_token")
+    : null;
+  return token
+    ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+    : { "Content-Type": "application/json", "X-Demo-Mode": "true" };
+}
+
 function next14Days() {
   const days = [];
   const now = new Date();
@@ -150,7 +159,7 @@ export function BookingButton({
     setStep("processing");
     fetch(`${JAVA_API}/api/booking/reserve`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: bookingHeaders(),
       body: JSON.stringify({ shopId: shop.id, people, date, time, tableType }),
     })
       .then((r) => r.json())
@@ -175,7 +184,7 @@ export function BookingButton({
     try {
       const res = await fetch(`${JAVA_API}/api/booking/reserve`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: bookingHeaders(),
         body: JSON.stringify({ shopId: shop.id, people, date, time, tableType }),
       });
       const data = await res.json();
@@ -208,7 +217,7 @@ export function BookingButton({
       setStep("processing");
       fetch(`${JAVA_API}/api/payment/tappay/pay-by-prime`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: bookingHeaders(),
         body: JSON.stringify({
           prime: r.card.prime,
           orderId: Math.floor(Math.random() * 100000),
@@ -233,16 +242,38 @@ export function BookingButton({
     });
   };
 
-  // Demo 支付（Line Pay / Apple Pay / 街口）：bookingCode 已在 handleProceedToPay 建立
-  const handleDemoPay = (label: string) => {
-    setResult({
-      bookingCode,
-      rec_trade_id: "DEMO-" + Math.random().toString(36).slice(2, 10).toUpperCase(),
-      payLabel: label + " 訂金",
-      depositPaid: true,
-      note: "demo 不串、production 才接 TapPay",
-    });
-    setStep("done");
+  // Demo 支付（LINE Pay / Apple Pay / 街口）：仍回寫後端 booking 狀態，避免 UI 與 DB 不一致。
+  const handleDemoPay = async (label: string) => {
+    if (!bookingCode) {
+      setError("缺少訂位編號，請重新建立訂位");
+      return;
+    }
+    setError("");
+    setStep("processing");
+    try {
+      const res = await fetch(`${JAVA_API}/api/booking/pay-test`, {
+        method: "POST",
+        headers: bookingHeaders(),
+        body: JSON.stringify({ bookingCode }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setResult({
+          bookingCode,
+          rec_trade_id: data.data.rec_trade_id,
+          payLabel: `${label} 訂金`,
+          depositPaid: true,
+          note: `${label} demo 付款，已回寫訂位狀態；production 需接第三方授權。`,
+        });
+        setStep("done");
+      } else {
+        setError(data.errorMsg || "支付失敗");
+        setStep("select-pay");
+      }
+    } catch (e: any) {
+      setError("網路錯誤: " + e.message);
+      setStep("select-pay");
+    }
   };
 
   const reset = () => {

@@ -1,10 +1,12 @@
 package com.bytebites.controller;
 
 import com.bytebites.dto.Result;
+import com.bytebites.dto.UserDTO;
 import com.bytebites.entity.jpa.BookingJpa;
 import com.bytebites.enums.PayType;
 import com.bytebites.repository.BookingJpaRepository;
 import com.bytebites.service.TapPayService;
+import com.bytebites.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -47,6 +49,12 @@ public class PaymentController {
             // 回寫訂位記錄：status=2(已付款), payment_trans_id=rec_trade_id
             if (bookingCode != null && !bookingCode.isBlank()) {
                 Optional<BookingJpa> opt = bookingRepo.findByBookingCode(bookingCode);
+                if (opt.isPresent() && !canAccessBooking(opt.get())) {
+                    return Result.fail("無權操作此訂位");
+                }
+                if (opt.isPresent() && opt.get().getStatus() == 4) {
+                    return Result.fail("訂位已取消，無法付款");
+                }
                 opt.ifPresentOrElse(
                         bk -> {
                             bk.setStatus(2);
@@ -106,5 +114,11 @@ public class PaymentController {
         return Result.ok(Arrays.stream(PayType.values())
                 .map(p -> Map.of("code", p.getCode(), "label", p.getLabel()))
                 .toList());
+    }
+
+    private boolean canAccessBooking(BookingJpa booking) {
+        Long ownerId = booking.getUserId();
+        UserDTO user = UserHolder.getUser();
+        return ownerId != null && user != null && ownerId.equals(user.getId());
     }
 }

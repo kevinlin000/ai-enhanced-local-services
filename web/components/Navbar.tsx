@@ -24,6 +24,11 @@ export function Navbar() {
               AI 搜尋
             </Button>
           </Link>
+          <Link href="/my-bookings">
+            <Button variant="ghost" size="sm" className="px-2 text-xs md:px-3 md:text-sm">
+              我的訂位
+            </Button>
+          </Link>
           {mounted
             ? isLoggedIn
               ? (

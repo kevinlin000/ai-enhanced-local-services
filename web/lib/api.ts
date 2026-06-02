@@ -123,11 +123,44 @@ export type MerchantSlot = {
   remaining: number;
 };
 
+export type MyBooking = {
+  bookingCode: string;
+  userId?: number | null;
+  shopId: number;
+  shopName: string;
+  people: number;
+  date: string;
+  time: string;
+  tableType: string;
+  needsDeposit: boolean;
+  depositTotal: number;
+  status: "PENDING_PAYMENT" | "PAID" | "CONFIRMED" | "CANCELED";
+  paymentTransId?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  idempotentReplay?: boolean;
+};
+
 function merchantHeaders(): HeadersInit {
   return {
     "Content-Type": "application/json",
     "X-Demo-Mode": "true",
   };
+}
+
+function authOrDemoHeaders(contentType = false): HeadersInit {
+  const headers: Record<string, string> = {};
+  if (contentType) headers["Content-Type"] = "application/json";
+
+  const token = typeof window !== "undefined"
+    ? window.localStorage.getItem("bytebites_token")
+    : null;
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  } else {
+    headers["X-Demo-Mode"] = "true";
+  }
+  return headers;
 }
 
 export const javaApi = {
@@ -191,9 +224,22 @@ export const javaApi = {
       };
     }>(`${CLIENT_JAVA_API}/api/booking/pay-test`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Demo-Mode": "true" },
+      headers: authOrDemoHeaders(true),
       body: JSON.stringify({ bookingCode }),
     }),
+  myBookings: () =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking[] }>(
+      `${CLIENT_JAVA_API}/api/booking/my`,
+      { headers: authOrDemoHeaders() },
+    ),
+  cancelBooking: (bookingCode: string) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking }>(
+      `${CLIENT_JAVA_API}/api/booking/${encodeURIComponent(bookingCode)}/cancel`,
+      {
+        method: "POST",
+        headers: authOrDemoHeaders(true),
+      },
+    ),
   tappayMockCallback: (body: { orderId: number; payType: number; amount: number }) =>
     fetchJson<{ success: boolean; data: { status: string; rec_trade_id: string; pay_type: number; label: string; amount: number } }>(
       `${JAVA_API}/api/payment/tappay/mock-callback`,

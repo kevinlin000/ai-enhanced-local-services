@@ -34,6 +34,7 @@ AI_STREAM_URL = os.getenv(
     "http://127.0.0.1:8000/api/ai/agent/stream",
 )
 JAVA_BACKEND_URL = os.getenv("JAVA_BACKEND_URL", "http://127.0.0.1:8081")
+DEMO_HEADERS = {"X-Demo-Mode": "true"}
 
 
 def fail(message: str) -> None:
@@ -205,6 +206,7 @@ def assert_db_row_pending_payment(txn: dict[str, Any]) -> None:
 def assert_explicit_pay_test_completes_and_retries(txn: dict[str, Any]) -> None:
     response = httpx.post(
         f"{JAVA_BACKEND_URL}/api/booking/pay-test",
+        headers=DEMO_HEADERS,
         json={"bookingCode": txn["booking_code"]},
         timeout=15,
     )
@@ -218,6 +220,7 @@ def assert_explicit_pay_test_completes_and_retries(txn: dict[str, Any]) -> None:
 
     retry = httpx.post(
         f"{JAVA_BACKEND_URL}/api/booking/pay-test",
+        headers=DEMO_HEADERS,
         json={"bookingCode": txn["booking_code"]},
         timeout=15,
     )
@@ -259,14 +262,15 @@ def assert_agent_duplicate_booking_reuses_transaction(session_id: str, txn: dict
 
 
 def reserve_with_idempotency_key(idempotency_key: str) -> dict[str, Any]:
-    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    smoke_date = (date.today() + timedelta(days=10)).isoformat()
     response = httpx.post(
         f"{JAVA_BACKEND_URL}/api/booking/reserve",
+        headers=DEMO_HEADERS,
         json={
             "shopId": 10115,
             "people": 2,
-            "date": tomorrow,
-            "time": "18:30",
+            "date": smoke_date,
+            "time": "20:30",
             "tableType": "normal",
             "idempotencyKey": idempotency_key,
         },
@@ -296,6 +300,7 @@ def assert_backend_reserve_idempotency(run_id: str) -> None:
 def reserve_capacity_case(idempotency_key: str, booking_date: str) -> dict[str, Any]:
     response = httpx.post(
         f"{JAVA_BACKEND_URL}/api/booking/reserve",
+        headers=DEMO_HEADERS,
         json={
             "shopId": 10115,
             "people": 5,
@@ -333,6 +338,7 @@ def assert_backend_rejects_past_date() -> None:
     yesterday = (date.today() - timedelta(days=1)).isoformat()
     response = httpx.post(
         f"{JAVA_BACKEND_URL}/api/booking/reserve",
+        headers=DEMO_HEADERS,
         json={
             "shopId": 10115,
             "people": 2,
@@ -355,6 +361,7 @@ def assert_backend_rejects_same_day() -> None:
     today = date.today().isoformat()
     response = httpx.post(
         f"{JAVA_BACKEND_URL}/api/booking/reserve",
+        headers=DEMO_HEADERS,
         json={
             "shopId": 10115,
             "people": 2,
