@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { javaApi, type MyBooking } from "@/lib/api";
 
+type PaymentMethod = "credit_card" | "line_pay" | "apple_pay" | "jkopay";
+
 const statusCopy: Record<MyBooking["status"], { label: string; tone: string; helper: string }> = {
   PENDING_PAYMENT: {
     label: "待付訂金",
@@ -28,6 +30,33 @@ const statusCopy: Record<MyBooking["status"], { label: string; tone: string; hel
   },
 };
 
+const paymentMethods: { id: PaymentMethod; label: string; helper: string; badge: string }[] = [
+  {
+    id: "credit_card",
+    label: "信用卡",
+    helper: "TapPay sandbox 測試卡",
+    badge: "測試卡",
+  },
+  {
+    id: "line_pay",
+    label: "LINE Pay",
+    helper: "Demo wallet authorization",
+    badge: "demo",
+  },
+  {
+    id: "apple_pay",
+    label: "Apple Pay",
+    helper: "Demo wallet authorization",
+    badge: "demo",
+  },
+  {
+    id: "jkopay",
+    label: "街口支付",
+    helper: "Demo wallet authorization",
+    badge: "demo",
+  },
+];
+
 function formatDateTime(booking: MyBooking) {
   return `${booking.date} ${booking.time}`;
 }
@@ -37,6 +66,12 @@ export default function MyBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyCode, setBusyCode] = useState<string | null>(null);
+  const [paymentBooking, setPaymentBooking] = useState<MyBooking | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("credit_card");
+  const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
+  const [cardExpiry, setCardExpiry] = useState("12/30");
+  const [cardCcv, setCardCcv] = useState("123");
+  const [paymentError, setPaymentError] = useState("");
 
   const loadBookings = async () => {
     setLoading(true);
@@ -61,17 +96,52 @@ export default function MyBookingsPage() {
     void loadBookings();
   }, []);
 
-  const pay = async (bookingCode: string) => {
-    setBusyCode(bookingCode);
+  const openPayment = (booking: MyBooking) => {
+    setPaymentBooking(booking);
+    setPaymentMethod("credit_card");
+    setPaymentError("");
+    setCardNumber("4242 4242 4242 4242");
+    setCardExpiry("12/30");
+    setCardCcv("123");
+  };
+
+  const closePayment = () => {
+    if (busyCode) return;
+    setPaymentBooking(null);
+    setPaymentError("");
+  };
+
+  const validateCard = () => {
+    const digits = cardNumber.replace(/\D/g, "");
+    if (digits.length !== 16) return "請輸入 16 位測試卡號";
+    if (!/^\d{2}\/\d{2}$/.test(cardExpiry.trim())) return "有效期限格式需為 MM/YY";
+    if (!/^\d{3,4}$/.test(cardCcv.trim())) return "請輸入 3-4 位安全碼";
+    return "";
+  };
+
+  const confirmPayment = async () => {
+    if (!paymentBooking) return;
+    if (paymentMethod === "credit_card") {
+      const validation = validateCard();
+      if (validation) {
+        setPaymentError(validation);
+        return;
+      }
+    }
+
+    setBusyCode(paymentBooking.bookingCode);
     setError("");
+    setPaymentError("");
     try {
-      const response = await javaApi.payBookingWithTestCard(bookingCode);
+      const response = await javaApi.payBookingWithTestCard(paymentBooking.bookingCode);
       if (!response.success) {
-        setError(response.errorMsg ?? "付款失敗");
+        setPaymentError(response.errorMsg ?? "付款失敗");
+        return;
       }
       await loadBookings();
+      setPaymentBooking(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "付款失敗");
+      setPaymentError(err instanceof Error ? err.message : "付款失敗");
     } finally {
       setBusyCode(null);
     }
@@ -194,11 +264,11 @@ export default function MyBookingsPage() {
                       <div className="flex gap-2">
                         {canPay ? (
                           <Button
-                            onClick={() => pay(booking.bookingCode)}
+                            onClick={() => openPayment(booking)}
                             disabled={busy}
                             className="rounded-full bg-[#0b8a5b] px-5 hover:bg-[#087a50]"
                           >
-                            {busy ? "處理中..." : "支付訂金"}
+                            支付訂金
                           </Button>
                         ) : null}
                         {canCancel ? (
@@ -220,6 +290,123 @@ export default function MyBookingsPage() {
           )}
         </div>
       </section>
+
+      {paymentBooking ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4 backdrop-blur-sm">
+          <section className="w-full max-w-xl overflow-hidden rounded-[1.5rem] border border-black/10 bg-white shadow-2xl">
+            <div className="border-b border-zinc-200 bg-[#fffdf8] px-6 py-5">
+              <button
+                type="button"
+                onClick={closePayment}
+                className="mb-4 text-sm font-semibold text-zinc-500 hover:text-zinc-900"
+              >
+                返回訂位
+              </button>
+              <p className="text-2xl font-black">確認訂金付款</p>
+              <p className="mt-2 text-sm text-zinc-500">
+                {paymentBooking.shopName} · {formatDateTime(paymentBooking)} · {paymentBooking.people} 人
+              </p>
+              <p className="mt-4 text-3xl font-black text-[#0b8a5b]">
+                NT$ {paymentBooking.depositTotal}
+              </p>
+            </div>
+
+            <div className="space-y-5 px-6 py-5">
+              <div>
+                <p className="mb-3 text-sm font-black">選擇付款方式</p>
+                <div className="grid gap-2">
+                  {paymentMethods.map((method) => {
+                    const active = paymentMethod === method.id;
+                    return (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => {
+                          setPaymentMethod(method.id);
+                          setPaymentError("");
+                        }}
+                        className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
+                          active
+                            ? "border-[#0b8a5b] bg-emerald-50"
+                            : "border-zinc-200 bg-white hover:border-zinc-300"
+                        }`}
+                      >
+                        <span>
+                          <span className="block font-black">{method.label}</span>
+                          <span className="mt-0.5 block text-xs text-zinc-500">{method.helper}</span>
+                        </span>
+                        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-500">
+                          {method.badge}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {paymentMethod === "credit_card" ? (
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                  <p className="mb-3 text-sm font-black">測試卡資料</p>
+                  <div className="grid gap-3">
+                    <label className="text-sm font-semibold">
+                      卡號
+                      <input
+                        value={cardNumber}
+                        onChange={(event) => setCardNumber(event.target.value)}
+                        className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 font-mono"
+                      />
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="text-sm font-semibold">
+                        有效期限
+                        <input
+                          value={cardExpiry}
+                          onChange={(event) => setCardExpiry(event.target.value)}
+                          className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 font-mono"
+                        />
+                      </label>
+                      <label className="text-sm font-semibold">
+                        CCV
+                        <input
+                          value={cardCcv}
+                          onChange={(event) => setCardCcv(event.target.value)}
+                          className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 font-mono"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-zinc-500">
+                    Demo 使用 TapPay 測試卡格式；本頁不會產生真實扣款。
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  {paymentMethods.find((method) => method.id === paymentMethod)?.label} 目前為 demo 授權流程；production 需串接第三方錢包 redirect / SDK confirmation。
+                </div>
+              )}
+
+              {paymentError ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                  {paymentError}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 border-t border-zinc-200 bg-white px-6 py-5 md:flex-row md:justify-end">
+              <Button variant="outline" onClick={closePayment} disabled={busyCode === paymentBooking.bookingCode}>
+                取消
+              </Button>
+              <Button
+                onClick={confirmPayment}
+                disabled={busyCode === paymentBooking.bookingCode}
+                className="bg-[#0b8a5b] px-6 hover:bg-[#087a50]"
+              >
+                {busyCode === paymentBooking.bookingCode ? "付款處理中..." : "確認付款"}
+              </Button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }
