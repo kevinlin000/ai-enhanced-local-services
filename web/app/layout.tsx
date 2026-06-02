@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans_TC } from "next/font/google";
 import { AiConcierge } from "@/components/AiConcierge";
-import { Navbar } from "@/components/Navbar";
+import { AppShell } from "@/components/AppShell";
 import { NotificationCenterClient } from "@/components/NotificationCenterClient";
 import Script from "next/script";
 import "./globals.css";
@@ -36,11 +36,12 @@ export default function RootLayout({
       lang="zh-Hant"
       className={`${geist.variable} ${geistMono.variable} ${notoTC.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <Navbar />
-        <NotificationCenterClient />
-        {children}
-        <AiConcierge />
+      <body className="min-h-full">
+        <AppShell>
+          <NotificationCenterClient />
+          {children}
+          <AiConcierge />
+        </AppShell>
         {/* 開發環境: 透過 server proxy 載入，繞過 localhost Referer 限制 */}
         {/* Production: 換回 https://js.tappaysdk.com/sdk/tpdirect/v5.17.1 並在 portal 加 domain */}
         <Script

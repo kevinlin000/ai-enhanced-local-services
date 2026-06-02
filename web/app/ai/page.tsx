@@ -494,62 +494,64 @@ export default function AiPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f1e8] px-4 py-6 md:px-8">
-      <section className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-2xl shadow-black/10">
-          <div className="border-b bg-[#123326] px-5 py-6 text-white md:px-8">
-            <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.32em] text-emerald-200">
-                  ByteBites Concierge
-                </p>
-                <h1 className="mt-3 text-4xl font-black tracking-tight md:text-6xl">
-                  AI Chat
-                </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-white/70">
-                  直接說需求。找餐廳、比較選項、訂位、付款、額滿改設空位通知，全部由 Agent 自己決定該用哪個 tool。
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleClearChat}
-                className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-black text-white/90 hover:bg-white/10"
-              >
-                <Trash2 className="h-4 w-4" />
-                清空對話
-              </button>
-            </div>
+    <main className="min-h-screen bg-[#f7f3ec]">
+      <section className="flex min-h-screen flex-col">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-black/10 bg-[#f7f3ec]/95 px-5 backdrop-blur md:px-8">
+          <button className="text-2xl leading-none text-zinc-500 md:hidden" aria-label="menu">
+            ≡
+          </button>
+          <div className="mx-auto text-3xl font-black tracking-[-0.06em] md:text-4xl">
+            ByteBites
           </div>
-
-          <div className="border-b bg-[#fbfaf6] px-5 py-4 md:px-8">
-            <div className="flex flex-wrap gap-2">
-              {PRESETS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => handleRun(preset)}
-                  disabled={loading}
-                  className="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-bold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-60"
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div
-            ref={scrollRef}
-            className="flex max-h-[68vh] min-h-[520px] flex-col gap-4 overflow-y-auto bg-[#fffdf8] p-4 md:p-6"
+          <button
+            type="button"
+            onClick={handleClearChat}
+            className="rounded-full p-2 text-zinc-500 hover:bg-black/5"
+            aria-label="清空對話"
           >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </header>
+
+        <div
+          ref={scrollRef}
+          className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 overflow-y-auto px-5 pb-36 pt-8 md:px-8"
+        >
             {messages.length === 0 ? (
-              <div className="m-auto max-w-xl text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-800">
-                  <Bot className="h-8 w-8" />
-                </div>
-                <h2 className="mt-5 text-2xl font-black">今晚想吃什麼？</h2>
-                <p className="mt-2 text-sm leading-7 text-zinc-500">
-                  不需要先選搜尋模式。像跟真人 concierge 說話一樣描述需求，Agent 會自己做語意搜尋、推薦、訂位或建立付款流程。
+              <div className="mx-auto mt-16 max-w-3xl text-center md:mt-24">
+                <p className="text-xs font-black tracking-[0.32em] text-[#b59a57]">
+                  AI DINING CONCIERGE
                 </p>
+                <h1 className="mt-4 text-5xl font-black leading-tight tracking-tight md:text-7xl">
+                  今晚想去哪？
+                </h1>
+                <p className="mx-auto mt-4 max-w-xl text-base leading-8 text-zinc-500">
+                  告訴 ByteBites AI，你想吃什麼、幾個人、什麼時間。推薦、訂位、付款與空位通知都在同一個對話裡完成。
+                </p>
+                <div className="mt-8 flex flex-wrap justify-center gap-3">
+                  {PRESETS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => handleRun(preset)}
+                      disabled={loading}
+                      className="rounded-full bg-[#eee8dc] px-4 py-3 text-sm font-bold text-zinc-600 transition hover:bg-[#e5dccb] disabled:opacity-60"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-8 flex flex-wrap justify-center gap-2">
+                  {PRODUCT_HINTS.map((hint) => {
+                    const Icon = hint.icon;
+                    return (
+                      <span key={hint.label} className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1.5 text-xs font-bold text-zinc-500">
+                        <Icon className="h-3.5 w-3.5" />
+                        {hint.label}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
             ) : null}
 
@@ -560,16 +562,16 @@ export default function AiPage() {
               >
                 <div className={m.role === "user" ? "max-w-[82%]" : "w-full"}>
                   <div
-                    className={`rounded-3xl px-4 py-3 text-sm shadow-sm ${
+                    className={`rounded-3xl px-4 py-3 text-base leading-7 ${
                       m.role === "user"
-                        ? "rounded-br-sm bg-emerald-800 text-white"
-                        : "rounded-bl-sm border border-black/5 bg-white text-zinc-800"
+                        ? "rounded-br-sm bg-[#5a5650] text-white shadow-sm"
+                        : "rounded-bl-sm text-zinc-700"
                     }`}
                   >
                     {m.role === "user" ? (
                       <div className="whitespace-pre-wrap">{m.content}</div>
                     ) : (
-                      <div className="prose prose-sm max-w-none">
+                      <div className="prose prose-zinc max-w-none">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {m.content}
                         </ReactMarkdown>
@@ -601,81 +603,37 @@ export default function AiPage() {
 
             {loading ? (
               <div className="flex justify-start">
-                <div className="rounded-3xl rounded-bl-sm border border-black/5 bg-white px-4 py-3 text-sm text-zinc-500 shadow-sm">
+                <div className="rounded-3xl rounded-bl-sm bg-white px-4 py-3 text-sm text-zinc-500 shadow-sm">
                   正在查詢可訂狀態與推薦理由...
                 </div>
               </div>
             ) : null}
-          </div>
+        </div>
 
-          <div className="border-t bg-white p-4 md:p-5">
-            <div className="flex gap-2">
+        <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-[#f7f3ec] via-[#f7f3ec] to-transparent px-4 pb-4 pt-10 md:left-[292px]">
+          <div className="mx-auto max-w-5xl">
+            <div className="flex items-center gap-2 rounded-full bg-white px-4 py-3 shadow-2xl shadow-black/15 ring-1 ring-black/5">
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="例如：幫我訂辛殿麻辣鍋明天晚上 7 點 2 人"
+                placeholder="找餐廳 問 ByteBites AI"
                 onKeyDown={(event) => event.key === "Enter" && !loading && handleRun(query)}
                 disabled={loading}
-                className="h-12 rounded-full border-zinc-200 bg-[#fbfaf6] px-5"
+                className="h-11 flex-1 border-0 bg-transparent px-2 text-base shadow-none focus-visible:ring-0"
               />
               <Button
                 onClick={() => handleRun(query)}
                 disabled={loading || !query.trim()}
-                className="h-12 rounded-full bg-emerald-800 px-6 font-black hover:bg-emerald-900"
+                className="h-11 rounded-full bg-[#171512] px-5 font-black text-white hover:bg-black"
               >
-                {loading ? "處理中" : "送出"}
+                {loading ? "..." : "送出"}
               </Button>
             </div>
-            <p className="mt-2 text-[11px] text-zinc-400">
-              Session：{sessionId} · Redis 30 分鐘內重整可繼續對話
+            <p className="mt-2 text-center text-[11px] text-zinc-400">
+              AI 建議僅供參考，請以店家公告為主 · Session {sessionId.slice(0, 16)}
             </p>
           </div>
         </div>
-
-        <aside className="space-y-4">
-          <div className="rounded-[2rem] border border-black/10 bg-[#111b16] p-5 text-white shadow-xl shadow-black/10">
-            <p className="text-xs font-black uppercase tracking-[0.28em] text-emerald-200">Why one chat</p>
-            <h2 className="mt-3 text-2xl font-black">你不用知道背後是哪個模式。</h2>
-            <p className="mt-3 text-sm leading-7 text-white/65">
-              語意搜尋、推薦、訂位、付款、空位通知都是內部能力。使用者只需要把需求說清楚。
-            </p>
-          </div>
-
-          <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-black">Agent 可以做什麼</h3>
-            <div className="mt-4 space-y-3">
-              {PRODUCT_HINTS.map((hint) => {
-                const Icon = hint.icon;
-                return (
-                  <div key={hint.label} className="flex items-center gap-3 rounded-2xl border border-zinc-100 bg-[#fbfaf6] p-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-800">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <p className="font-bold">{hint.label}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-black">快速入口</h3>
-            <div className="mt-4 grid gap-2">
-              <Link href="/shops" className="rounded-2xl border px-4 py-3 text-sm font-bold hover:bg-zinc-50">
-                探索餐廳
-              </Link>
-              <Link href="/my-bookings" className="rounded-2xl border px-4 py-3 text-sm font-bold hover:bg-zinc-50">
-                我的訂位
-              </Link>
-              <Link href="/notifications" className="rounded-2xl border px-4 py-3 text-sm font-bold hover:bg-zinc-50">
-                空位通知
-              </Link>
-              <Link href="/favorites" className="rounded-2xl border px-4 py-3 text-sm font-bold hover:bg-zinc-50">
-                收藏餐廳
-              </Link>
-            </div>
-          </div>
-        </aside>
       </section>
     </main>
   );

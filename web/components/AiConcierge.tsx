@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Send, Sparkles, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -24,6 +25,7 @@ type Msg = {
 };
 
 export function AiConcierge() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -130,7 +132,7 @@ export function AiConcierge() {
   return (
     <>
       {/* Trigger button — hidden when sidebar open */}
-      {!open && (
+      {!open && pathname !== "/ai" && (
         <button
           onClick={() => setOpen(true)}
           className="fixed right-6 bottom-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition hover:scale-105"
