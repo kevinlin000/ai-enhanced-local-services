@@ -43,6 +43,12 @@ function getSummary(shop: Shop, meta?: ShopAiMetadata | null) {
   return "查看餐廳資訊、評論與可訂時段。";
 }
 
+function formatRating(score?: number) {
+  if (!score) return null;
+  const normalized = score > 10 ? score / 10 : score;
+  return normalized.toFixed(1);
+}
+
 function sortVisibleShops(shops: Shop[]) {
   return [...shops].sort((a, b) => {
     const aSeed = isLegacySeedShop(a.id) ? 1 : 0;
@@ -60,9 +66,23 @@ function sortVisibleShops(shops: Shop[]) {
 function getUniqueFeaturedShops(stationsWithShops: { name: string; shops: Shop[] }[]) {
   const seen = new Set<number>();
   const result: { station: string; shop: Shop }[] = [];
+  const sortedByStation = stationsWithShops.map((station) => ({
+    name: station.name,
+    shops: sortVisibleShops(station.shops),
+  }));
 
-  for (const station of stationsWithShops) {
-    for (const shop of sortVisibleShops(station.shops)) {
+  // First pass: one representative per MRT area, so the homepage does not look
+  // like a single station duplicated across every editorial card.
+  for (const station of sortedByStation) {
+    const shop = station.shops.find((candidate) => !seen.has(candidate.id) && getBestShopCardPhoto(candidate.id, candidate.images));
+    if (!shop) continue;
+    seen.add(shop.id);
+    result.push({ station: station.name, shop });
+    if (result.length >= 8) return result;
+  }
+
+  for (const station of sortedByStation) {
+    for (const shop of station.shops) {
       if (seen.has(shop.id)) continue;
       if (!getBestShopCardPhoto(shop.id, shop.images)) continue;
       seen.add(shop.id);
@@ -151,6 +171,7 @@ function RestaurantCard({
   const spend = getDisplaySpend(shop, metadata);
   const summary = getSummary(shop, metadata);
   const tags = parseTags(metadata?.atmosphereTags).slice(0, 2);
+  const rating = formatRating(shop.score);
 
   return (
     <Link href={`/shops/${shop.id}`} className="group block h-full">
@@ -186,7 +207,7 @@ function RestaurantCard({
             {style.label} · {shop.district ?? shop.area ?? item.station}
           </p>
           <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-500">
-            {shop.score ? <span className="font-black text-[#b59a58]">★ {shop.score.toFixed(1)}</span> : null}
+            {rating ? <span className="font-black text-[#b59a58]">★ {rating}</span> : null}
             {shop.comments ? <span>{shop.comments.toLocaleString()} 則評論</span> : null}
             {shop.mrtStation ? <span>{shop.mrtStation}</span> : null}
           </div>
@@ -254,7 +275,7 @@ function MrtPopularSection({
         />
         <div className="space-y-10">
           {rows.map((row) => {
-            const shops = sortVisibleShops(row.shops).slice(0, 5);
+            const shops = sortVisibleShops(row.shops).slice(0, 4);
             if (!shops.length) return null;
 
             return (
@@ -271,9 +292,9 @@ function MrtPopularSection({
                     查看站點
                   </Link>
                 </div>
-                <div className="flex gap-5 overflow-x-auto pb-2">
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                   {shops.map((shop) => (
-                    <div key={shop.id} className="min-w-[282px] max-w-[282px]">
+                    <div key={shop.id}>
                       <RestaurantCard item={{ station: row.name, shop }} metadata={metadataMap.get(shop.id)} compact />
                     </div>
                   ))}
