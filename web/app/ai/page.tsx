@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Bot, CalendarCheck, CreditCard, MapPin, Search, Sparkles, Trash2 } from "lucide-react";
+import { AlertTriangle, Bot, CalendarCheck, CreditCard, MapPin, Search, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,15 +66,83 @@ function selectRecommendedShops(
 function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTransaction }) {
   const paid = transaction.status === "PAID";
   const confirmed = transaction.status === "CONFIRMED" || paid;
-  const title = confirmed ? "訂位確認" : "訂位處理狀態";
   const shopLabel = transaction.shop_name ?? `店家 ID ${transaction.shop_id ?? "-"}`;
+
+  if (transaction.status === "FAILED") {
+    return (
+      <Card className="mt-3 w-full overflow-hidden border-rose-200 bg-gradient-to-br from-rose-50 to-stone-50 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base text-rose-950">
+            <AlertTriangle className="h-5 w-5 text-rose-600" />
+            訂位未建立
+            <Badge variant="secondary" className="ml-auto bg-white/80 text-rose-700">
+              FAILED
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <div className="rounded-xl border border-rose-100 bg-white/75 p-4 text-rose-950">
+            <p className="font-semibold">{transaction.error ?? "此時段目前無法建立訂位。"}</p>
+            <p className="mt-2 text-xs leading-5 text-rose-800/80">
+              尚未建立訂位、未產生訂位編號，也不會進入付款流程。
+            </p>
+          </div>
+          <div className="rounded-xl border border-stone-200 bg-white/75 p-3 text-xs leading-5 text-stone-700">
+            建議改查其他時段、降低人數，或回到店家後台調整此時段 capacity 後再試。
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (transaction.status === "PAYMENT_FAILED") {
+    return (
+      <Card className="mt-3 w-full overflow-hidden border-amber-200 bg-gradient-to-br from-amber-50 to-stone-50 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base text-amber-950">
+            <CreditCard className="h-5 w-5 text-amber-700" />
+            訂金付款未完成
+            <Badge variant="secondary" className="ml-auto bg-white/80 text-amber-800">
+              PAYMENT_FAILED
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm">
+          <div className="grid gap-3 rounded-xl border border-amber-100 bg-white/75 p-4 md:grid-cols-2">
+            <div>
+              <p className="text-xs text-muted-foreground">店家</p>
+              <p className="font-semibold text-foreground">{shopLabel}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">訂位編號</p>
+              <p className="font-mono font-semibold text-foreground">{transaction.booking_code ?? "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">人數</p>
+              <p className="font-medium">{transaction.people ?? "-"} 人</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">時間</p>
+              <p className="font-medium">
+                {transaction.date ?? "-"} {transaction.time ?? ""}
+              </p>
+            </div>
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-900">
+            <p className="font-semibold">錯誤：{transaction.error ?? "付款流程未完成"}</p>
+            <p className="mt-2">此訂位需要訂金，付款成功前不應視為完成。</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="mt-3 w-full overflow-hidden border-emerald-200 bg-gradient-to-br from-emerald-50 to-stone-50 shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base text-emerald-950">
           <CalendarCheck className="h-5 w-5 text-emerald-700" />
-          {title}
+          {confirmed ? "訂位確認" : "訂位待付款"}
           <Badge variant="secondary" className="ml-auto bg-white/70 text-emerald-800">
             {transaction.status}
           </Badge>
