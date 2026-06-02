@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.UUID;
 
@@ -35,14 +37,38 @@ public class BookingController {
      */
     @PostMapping("/reserve")
     public Result reserve(@RequestBody Map<String, Object> body) {
-        Long shopId  = Long.valueOf(body.get("shopId").toString());
-        int  people  = Integer.parseInt(body.getOrDefault("people", 2).toString());
-        String date  = (String) body.get("date");
-        String time  = (String) body.get("time");
-        String table = (String) body.getOrDefault("tableType", "normal");
+        if (body.get("shopId") == null) return Result.fail("shopId 必填");
+        if (body.get("date") == null)   return Result.fail("date 必填");
+        if (body.get("time") == null)   return Result.fail("time 必填");
+
+        Long shopId;
+        int people;
+        LocalDate bookingDate;
+        LocalTime bookingTime;
+        try {
+            shopId = Long.valueOf(body.get("shopId").toString());
+            people = Integer.parseInt(body.getOrDefault("people", 2).toString());
+            bookingDate = LocalDate.parse(body.get("date").toString());
+            bookingTime = LocalTime.parse(body.get("time").toString());
+        } catch (NumberFormatException | DateTimeParseException ex) {
+            return Result.fail("訂位格式錯誤，請確認 shopId、people、date(YYYY-MM-DD)、time(HH:mm)");
+        }
+
+        if (people < 1 || people > 12) return Result.fail("訂位人數需介於 1-12 人");
+        if (bookingDate.isBefore(LocalDate.now())) return Result.fail("不能建立過去日期訂位");
+        if (bookingDate.isEqual(LocalDate.now()) && bookingTime.isBefore(LocalTime.now())) {
+            return Result.fail("不能建立過去時間訂位");
+        }
+
+        String time = bookingTime.toString();
+        String table = body.getOrDefault("tableType", "normal").toString();
+        if (!table.equals("normal") && !table.equals("bar") && !table.equals("private")) {
+            return Result.fail("tableType 僅支援 normal/bar/private");
+        }
 
         // 查訂金政策
         var shop     = shopService.getById(shopId);
+        if (shop == null) return Result.fail("店家不存在");
         Integer typeId   = shop != null && shop.getTypeId() != null ? shop.getTypeId().intValue() : null;
         Integer score    = shop != null ? shop.getScore() : null;
         Integer avgPrice = shop != null && shop.getAvgPrice() != null ? shop.getAvgPrice().intValue() : null;
@@ -54,7 +80,7 @@ public class BookingController {
         booking.setBookingCode("BK-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase());
         booking.setShopId(shopId);
         booking.setPeople(people);
-        booking.setBookingDate(LocalDate.parse(date));
+        booking.setBookingDate(bookingDate);
         booking.setBookingTime(time);
         booking.setTableType(table);
         booking.setNeedsDeposit(pol.isNeedsDeposit());
@@ -65,14 +91,15 @@ public class BookingController {
         bookingRepo.save(booking);
 
         log.info("[Booking] code={} shop={} people={} date={} time={} table={} needsDeposit={} status={}",
-                booking.getBookingCode(), shopId, people, date, time, table,
+                booking.getBookingCode(), shopId, people, bookingDate, time, table,
                 pol.isNeedsDeposit(), booking.getStatus());
 
         return Result.ok(Map.of(
                 "bookingCode",  booking.getBookingCode(),
                 "shopId",       shopId,
+                "shopName",     shopName != null ? shopName : "店家 " + shopId,
                 "people",       people,
-                "date",         date,
+                "date",         bookingDate.toString(),
                 "time",         time,
                 "tableType",    table,
                 "needsDeposit", pol.isNeedsDeposit(),
@@ -96,7 +123,15 @@ public class BookingController {
         BookingJpa b = bookingRepo.findByBookingCode(bookingCode).orElse(null);
         if (b == null)            return Result.fail("訂位不存在");
         if (!b.getNeedsDeposit()) return Result.fail("此訂位免訂金、無需付款");
-        if (b.getStatus() == 2)   return Result.fail("訂位已付款、勿重複");
+        if (b.getStatus() == 2) {
+            return Result.ok(Map.of(
+                    "bookingCode",  bookingCode,
+                    "rec_trade_id", b.getPaymentTransId(),
+                    "amount",       b.getDepositTotal(),
+                    "status",       "PAID",
+                    "note",         "訂位已付款，回傳既有交易編號"
+            ));
+        }
 
         // Demo transaction ID（格式仿 TapPay）
         String demoTransId = "DEMO-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
