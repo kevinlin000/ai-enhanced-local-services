@@ -84,20 +84,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className={shellClass}>
       <aside className="hidden border-r border-black/10 bg-[#f7f3ec] md:sticky md:top-0 md:flex md:h-screen md:flex-col">
-        <div className={`flex h-24 items-center ${collapsed ? "justify-center px-2" : "justify-between px-8"}`}>
+        <div className={`flex h-24 items-center ${collapsed ? "justify-center px-2" : "px-8"}`}>
           <Link href="/" className={`${collapsed ? "text-3xl" : "text-4xl"} font-black tracking-[-0.08em]`}>
-            {collapsed ? "b" : "bb"}
+            bb
           </Link>
-          {!collapsed ? (
-            <button
-              type="button"
-              onClick={toggleCollapsed}
-              className="rounded-full p-2 text-zinc-500 hover:bg-black/5 hover:text-zinc-900"
-              aria-label="收合側欄"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-          ) : null}
         </div>
 
         <div className={`${collapsed ? "px-3" : "px-6"} pb-5`}>
