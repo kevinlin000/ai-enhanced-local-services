@@ -840,6 +840,13 @@ async def tool_create_booking(
 
     if not date:
         date = (date_cls.today() + timedelta(days=1)).isoformat()
+    else:
+        try:
+            requested_date = date_cls.fromisoformat(date)
+            if requested_date < date_cls.today():
+                date = (date_cls.today() + timedelta(days=1)).isoformat()
+        except ValueError:
+            date = (date_cls.today() + timedelta(days=1)).isoformat()
     if not time:
         time = "19:00"
 
@@ -1001,6 +1008,17 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 - 一個 query 最多執行 1 次訂位動作"""
 
 
+def _agent_system_prompt() -> str:
+    from datetime import date as date_cls
+
+    return (
+        f"今天日期：{date_cls.today().isoformat()}（Asia/Taipei）。"
+        "解析「今天」「明天」「下週」等相對日期時必須以此為準。"
+        "禁止建立過去日期訂位；若不確定日期，使用明天。\n\n"
+        f"{AGENT_SYSTEM_PROMPT}"
+    )
+
+
 class AgentRecommendationDecision(BaseModel):
     recommended_shop_ids: list[int] = Field(default_factory=list)
     narrative: str = ""
@@ -1108,6 +1126,95 @@ def _decision_payload(decision: AgentRecommendationDecision) -> dict:
         "rejected_shop_ids": decision.rejected_shop_ids,
         "rejection_summary": decision.rejection_summary,
     }
+
+
+def _find_shop_from_tool_result(tool_result: dict, shop_id: int | None) -> dict | None:
+    if shop_id is None:
+        return None
+    shops = tool_result.get("shops", []) if isinstance(tool_result, dict) else []
+    for shop in shops:
+        if _shop_id(shop) == shop_id:
+            return shop
+    return None
+
+
+def _build_booking_transaction(
+    booking_result: dict,
+    payment_result: dict | None,
+    search_result: dict,
+) -> dict:
+    """Merge reserve + optional pay-test into one UI-safe transaction payload."""
+    booking_success = bool(booking_result.get("success"))
+    payment_success = bool(payment_result and payment_result.get("success"))
+    shop_id = booking_result.get("shopId") or booking_result.get("shop_id")
+    try:
+        shop_id = int(shop_id) if shop_id is not None else None
+    except (TypeError, ValueError):
+        shop_id = None
+
+    shop = _find_shop_from_tool_result(search_result, shop_id)
+    needs_deposit = bool(booking_result.get("needsDeposit"))
+
+    if payment_result and not payment_success:
+        status = "PAYMENT_FAILED"
+    elif payment_success:
+        status = "PAID"
+    elif booking_success and needs_deposit:
+        status = "PENDING_PAYMENT"
+    elif booking_success:
+        status = "CONFIRMED"
+    else:
+        status = "FAILED"
+
+    return {
+        "kind": "booking",
+        "success": booking_success and (not needs_deposit or payment_success),
+        "status": status,
+        "shop_id": shop_id,
+        "shop_name": booking_result.get("shopName") or (shop or {}).get("name"),
+        "booking_code": booking_result.get("bookingCode"),
+        "people": booking_result.get("people"),
+        "date": booking_result.get("date"),
+        "time": booking_result.get("time"),
+        "table_type": booking_result.get("tableType"),
+        "needs_deposit": needs_deposit,
+        "deposit_total": booking_result.get("depositTotal"),
+        "rec_trade_id": (payment_result or {}).get("rec_trade_id"),
+        "payment_amount": (payment_result or {}).get("amount"),
+        "payment_note": (payment_result or {}).get("note"),
+        "error": booking_result.get("error") or (payment_result or {}).get("error"),
+    }
+
+
+def _booking_confirmation_narrative(transaction: dict) -> str:
+    if transaction.get("status") == "FAILED":
+        return f"訂位建立失敗：{transaction.get('error') or '後端未回傳原因'}"
+    if transaction.get("status") == "PAYMENT_FAILED":
+        return (
+            "已建立訂位，但訂金付款失敗。\n\n"
+            f"- 訂位編號：`{transaction.get('booking_code')}`\n"
+            f"- 錯誤：{transaction.get('error') or '付款流程未完成'}"
+        )
+
+    shop_name = transaction.get("shop_name") or f"店家 ID {transaction.get('shop_id')}"
+    base = [
+        "訂位已完成。",
+        "",
+        f"- 店家：{shop_name}",
+        f"- 人數：{transaction.get('people')} 人",
+        f"- 時間：{transaction.get('date')} {transaction.get('time')}",
+        f"- 訂位編號：`{transaction.get('booking_code')}`",
+    ]
+    if transaction.get("needs_deposit"):
+        base.extend(
+            [
+                f"- 訂金：NT$ {transaction.get('deposit_total')}",
+                f"- 付款交易編號：`{transaction.get('rec_trade_id')}`",
+            ]
+        )
+    else:
+        base.append("- 訂金：免訂金，已直接確認")
+    return "\n".join(base)
 
 
 def _build_agent_recommendation_decision(query: str, tool_result: dict) -> AgentRecommendationDecision:
@@ -1271,7 +1378,7 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
             contents,
             types.GenerateContentConfig(
                 tools=TOOLS,
-                system_instruction=AGENT_SYSTEM_PROMPT,
+                system_instruction=_agent_system_prompt(),
             ),
         )
 
@@ -1526,6 +1633,9 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
     contents = _history_to_contents(history, query)
     tools_used: list[str] = []
     last_tool_result: dict = {}
+    latest_search_result: dict = {}
+    booking_result: dict | None = None
+    payment_result: dict | None = None
     direct_answer: str | None = None
 
     # Phase 1: tool-calling loop (sync) — yields tool events as each fires
@@ -1560,6 +1670,12 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
         tool_result = await tool_fn(**dict(function_call.args))
         tools_used.append(tool_name)
         last_tool_result = tool_result
+        if tool_name in {"semantic_shop_search", "search_shops_by_mrt"}:
+            latest_search_result = tool_result
+        elif tool_name == "create_booking":
+            booking_result = tool_result
+        elif tool_name == "pay_booking_with_test_card":
+            payment_result = tool_result
         yield {"type": "tool", "name": tool_name}
 
         contents.append(candidate.content)
@@ -1579,9 +1695,18 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             full_answer = direct_answer
             yield {"type": "chunk", "content": direct_answer[i : i + chunk_size]}
     else:
-        decision = _build_agent_recommendation_decision(query, last_tool_result)
-        full_answer = decision.narrative
-        last_tool_result["agent_decision"] = _decision_payload(decision)
+        if booking_result is not None:
+            transaction = _build_booking_transaction(
+                booking_result,
+                payment_result,
+                latest_search_result,
+            )
+            full_answer = _booking_confirmation_narrative(transaction)
+            last_tool_result["transaction"] = transaction
+        else:
+            decision = _build_agent_recommendation_decision(query, last_tool_result)
+            full_answer = decision.narrative
+            last_tool_result["agent_decision"] = _decision_payload(decision)
         chunk_size = 18
         for i in range(0, len(full_answer), chunk_size):
             yield {"type": "chunk", "content": full_answer[i : i + chunk_size]}
@@ -1599,6 +1724,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
         "type": "done",
         "answer": full_answer,
         **last_tool_result.get("agent_decision", {}),
+        "transaction": last_tool_result.get("transaction"),
         "tools_used": tools_used,
         "tool_result": last_tool_result,
         "session_id": session_id,
