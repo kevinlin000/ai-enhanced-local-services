@@ -10,7 +10,7 @@ from app.guardrail import GuardrailViolation, check_input, filter_output
 from google import genai
 from google.genai.errors import ClientError, ServerError
 from google.genai import types
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from prometheus_client import CONTENT_TYPE_LATEST, Counter as PromCounter, Histogram, generate_latest
 from qdrant_client import QdrantClient
@@ -986,6 +986,195 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 - 一個 query 最多執行 1 次訂位動作"""
 
 
+class AgentRecommendationDecision(BaseModel):
+    recommended_shop_ids: list[int] = Field(default_factory=list)
+    narrative: str = ""
+    rejected_shop_ids: list[int] = Field(default_factory=list)
+    rejection_summary: str | None = None
+
+
+def _shop_id(shop: dict) -> int | None:
+    raw_id = shop.get("shop_id") or shop.get("id")
+    try:
+        return int(raw_id)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_agent_decision(raw: str) -> AgentRecommendationDecision | None:
+    text = (raw or "").strip()
+    if not text:
+        return None
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].startswith("```"):
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start < 0 or end <= start:
+            return None
+        try:
+            data = json.loads(text[start : end + 1])
+        except json.JSONDecodeError:
+            return None
+    if not isinstance(data, dict):
+        return None
+    return AgentRecommendationDecision(
+        recommended_shop_ids=[
+            int(item) for item in data.get("recommended_shop_ids", []) if str(item).isdigit()
+        ],
+        narrative=str(data.get("narrative") or ""),
+        rejected_shop_ids=[
+            int(item) for item in data.get("rejected_shop_ids", []) if str(item).isdigit()
+        ],
+        rejection_summary=(
+            str(data["rejection_summary"])
+            if data.get("rejection_summary")
+            else None
+        ),
+    )
+
+
+def _fallback_agent_decision(answer: str, tool_result: dict) -> AgentRecommendationDecision:
+    shops = tool_result.get("shops", []) if isinstance(tool_result, dict) else []
+    mentioned_ids: list[int] = []
+    for shop in shops:
+        sid = _shop_id(shop)
+        name = str(shop.get("name") or "")
+        if sid is not None and name and name in answer:
+            mentioned_ids.append(sid)
+    return AgentRecommendationDecision(
+        recommended_shop_ids=mentioned_ids,
+        narrative=answer,
+        rejected_shop_ids=[
+            sid for shop in shops if (sid := _shop_id(shop)) is not None and sid not in mentioned_ids
+        ],
+    )
+
+
+def _validate_agent_decision(
+    decision: AgentRecommendationDecision,
+    tool_result: dict,
+) -> AgentRecommendationDecision:
+    shops = tool_result.get("shops", []) if isinstance(tool_result, dict) else []
+    available_ids = [_shop_id(shop) for shop in shops]
+    valid_ids = {sid for sid in available_ids if sid is not None}
+    recommended: list[int] = []
+    for sid in decision.recommended_shop_ids:
+        if sid in valid_ids and sid not in recommended:
+            recommended.append(sid)
+
+    rejected: list[int] = []
+    for sid in decision.rejected_shop_ids:
+        if sid in valid_ids and sid not in recommended and sid not in rejected:
+            rejected.append(sid)
+    for sid in available_ids:
+        if sid is not None and sid not in recommended and sid not in rejected:
+            rejected.append(sid)
+
+    return AgentRecommendationDecision(
+        recommended_shop_ids=recommended,
+        narrative=filter_output(decision.narrative),
+        rejected_shop_ids=rejected,
+        rejection_summary=decision.rejection_summary,
+    )
+
+
+def _decision_payload(decision: AgentRecommendationDecision) -> dict:
+    return {
+        "recommended_shop_ids": decision.recommended_shop_ids,
+        "narrative": decision.narrative,
+        "rejected_shop_ids": decision.rejected_shop_ids,
+        "rejection_summary": decision.rejection_summary,
+    }
+
+
+def _build_agent_recommendation_decision(query: str, tool_result: dict) -> AgentRecommendationDecision:
+    shops = tool_result.get("shops", []) if isinstance(tool_result, dict) else []
+    if not shops:
+        return AgentRecommendationDecision(narrative="")
+
+    tool_context = _compact_tool_context(tool_result)
+    prompt = f"""使用者問：{query}
+
+候選店家：
+{tool_context}
+
+請輸出單一 JSON object，不能輸出 markdown code fence 或其他文字。
+
+JSON schema:
+{{
+  "recommended_shop_ids": [number],
+  "narrative": "user-facing markdown in Traditional Chinese",
+  "rejected_shop_ids": [number],
+  "rejection_summary": "optional one-line reason"
+}}
+
+決策規則：
+- recommended_shop_ids 必須只包含候選店家 ID，且必須是 narrative 實際介紹的店家。
+- narrative 提到幾家店，recommended_shop_ids 就必須有幾個 ID；不要在 narrative 中介紹未列入 recommended_shop_ids 的店。
+- 最多推薦 3 家店，且每個 numbered bullet 只能介紹 1 家店。
+- 若同品牌有多個分店，只選最符合需求的 1 家；不要在同一個 bullet 合併多家分店。
+- rejected_shop_ids 放入候選中未推薦的店，尤其是不符分類、地點或需求的店。
+- 不要編造候選資料以外的資訊。"""
+
+    try:
+        response = generate(
+            settings.gemini_agent_model,
+            prompt,
+            types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.2,
+            ),
+        )
+        decision = _parse_agent_decision(response.text)
+    except Exception:
+        logger.exception("agent_decision_generation_failed")
+        decision = None
+
+    if decision is not None and len(decision.recommended_shop_ids) > 3:
+        try:
+            repair = generate(
+                settings.gemini_agent_model,
+                f"""{prompt}
+
+你剛才的輸出違反規則，recommended_shop_ids 超過 3 家或在同一 bullet 合併多家店。
+請修正為最多 3 家，且每個 numbered bullet 只介紹 1 家店。
+
+原輸出：
+{json.dumps(_decision_payload(decision), ensure_ascii=False)}""",
+                types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.1,
+                ),
+            )
+            repaired_decision = _parse_agent_decision(repair.text)
+            if repaired_decision is not None:
+                decision = repaired_decision
+        except Exception:
+            logger.exception("agent_decision_repair_failed")
+
+    if decision is None or not decision.narrative:
+        fallback_answer = ""
+        try:
+            response = generate(
+                settings.gemini_agent_model,
+                f"使用者問：{query}\n\n查詢結果：\n{tool_context}\n\n根據查詢結果，用繁體中文推薦 1-3 家最符合需求的店。",
+            )
+            fallback_answer = filter_output(response.text)
+        except Exception:
+            logger.exception("agent_decision_fallback_failed")
+        decision = _fallback_agent_decision(fallback_answer, tool_result)
+
+    return _validate_agent_decision(decision, tool_result)
+
+
 class SearchRequest(BaseModel):
     query: str
     top_k: int = 5
@@ -1104,6 +1293,12 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
             ),
         )
         final_answer = filter_output(final.text)
+
+    if last_tool_result.get("shops"):
+        decision = _build_agent_recommendation_decision(query, last_tool_result)
+        if decision.narrative:
+            final_answer = decision.narrative
+            last_tool_result["agent_decision"] = _decision_payload(decision)
 
     if session_id:
         new_history = history + [
@@ -1265,14 +1460,18 @@ def _compact_tool_context(tool_result: dict) -> str:
     lines: list[str] = []
     for s in shops:
         name = s.get("name") or ""
+        shop_id = _shop_id(s)
         district = s.get("district") or ""
         mrt = s.get("mrt_station") or ""
+        category = s.get("category") or s.get("category_slug") or ""
         price = s.get("price_per_person") or (f"~${s['avg_price']}/人" if s.get("avg_price") else "")
         booking = s.get("booking_difficulty") or ""
         tags = "、".join((s.get("atmosphere_tags") or [])[:3])
         dishes = "、".join((s.get("signature_dishes") or [])[:3])
         summary = (s.get("ai_summary") or "")[:100]
-        parts: list[str] = [f"【{name}】{district}"]
+        parts: list[str] = [f"ID:{shop_id}", f"【{name}】{district}"]
+        if category:
+            parts.append(f"分類:{category}")
         if mrt:
             parts.append(f"捷運{mrt}")
         if price:
@@ -1295,7 +1494,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
 
     Strategy:
     - Phase 1 (tool calls): sync generate() per iteration — fast, structured JSON decisions
-    - Phase 2 (final synthesis): aio.models.generate_content_stream() — tokens arrive as generated
+    - Phase 2 (final synthesis): structured JSON decision, then stream its narrative
     - Zero-tool-call path: sync answer chunked at character level (fast response, streaming moot)
     """
     history = session_store.load_history(session_id) if session_id else []
@@ -1355,39 +1554,12 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             full_answer = direct_answer
             yield {"type": "chunk", "content": direct_answer[i : i + chunk_size]}
     else:
-        # Post-tool path: true streaming — tokens arrive as Gemini generates them.
-        # Rebuild clean contents (no function_call/function_response parts) so the
-        # model generates text rather than trying to call another tool.
-        tool_context = _compact_tool_context(last_tool_result)
-        synthesis_contents = [
-            types.Content(
-                role="user",
-                parts=[types.Part.from_text(
-                    text=f"使用者問：{query}\n\n查詢結果：\n{tool_context}"
-                )],
-            )
-        ]
-        synthesis_prompt = "根據查詢結果，用繁體中文給出詳細完整的推薦回答。"
-        try:
-            stream = await get_gemini().aio.models.generate_content_stream(
-                model=settings.gemini_agent_model,
-                contents=synthesis_contents,
-                config=types.GenerateContentConfig(system_instruction=synthesis_prompt),
-            )
-            async for chunk in stream:
-                text = ""
-                if chunk.candidates:
-                    for part in (getattr(chunk.candidates[0].content, "parts", None) or []):
-                        text += getattr(part, "text", None) or ""
-                if text:
-                    full_answer += text
-                    yield {"type": "chunk", "content": text}
-        except Exception as exc:
-            logger.exception("agent_stream_synthesis_failed")
-            yield {"type": "error", "message": str(exc)}
-            return
-
-        full_answer = filter_output(full_answer)
+        decision = _build_agent_recommendation_decision(query, last_tool_result)
+        full_answer = decision.narrative
+        last_tool_result["agent_decision"] = _decision_payload(decision)
+        chunk_size = 18
+        for i in range(0, len(full_answer), chunk_size):
+            yield {"type": "chunk", "content": full_answer[i : i + chunk_size]}
 
     if session_id:
         session_store.save_history(
@@ -1401,6 +1573,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
     yield {
         "type": "done",
         "answer": full_answer,
+        **last_tool_result.get("agent_decision", {}),
         "tools_used": tools_used,
         "tool_result": last_tool_result,
         "session_id": session_id,
