@@ -178,6 +178,22 @@ export const javaApi = {
     fetchJson<{ success: boolean; data: { code: number; label: string }[] }>(
       `${JAVA_API}/api/payment/methods`,
     ),
+  payBookingWithTestCard: (bookingCode: string) =>
+    fetchJson<{
+      success: boolean;
+      errorMsg?: string;
+      data: {
+        bookingCode: string;
+        rec_trade_id: string;
+        amount: number;
+        status: "PAID";
+        note?: string;
+      };
+    }>(`${CLIENT_JAVA_API}/api/booking/pay-test`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Demo-Mode": "true" },
+      body: JSON.stringify({ bookingCode }),
+    }),
   tappayMockCallback: (body: { orderId: number; payType: number; amount: number }) =>
     fetchJson<{ success: boolean; data: { status: string; rec_trade_id: string; pay_type: number; label: string; amount: number } }>(
       `${JAVA_API}/api/payment/tappay/mock-callback`,

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { aiApi, type SearchHit } from "@/lib/api";
+import { aiApi, javaApi, type SearchHit } from "@/lib/api";
 import { streamAgentResponse, type AgentTransaction } from "@/lib/agentStream";
 import { AgentShopCard, type AgentShop } from "@/components/AgentShopCard";
 import ReactMarkdown from "react-markdown";
@@ -64,11 +64,36 @@ function selectRecommendedShops(
 }
 
 function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTransaction }) {
-  const paid = transaction.status === "PAID";
-  const confirmed = transaction.status === "CONFIRMED" || paid;
-  const shopLabel = transaction.shop_name ?? `店家 ID ${transaction.shop_id ?? "-"}`;
+  const [current, setCurrent] = useState(transaction);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+  const paid = current.status === "PAID";
+  const confirmed = current.status === "CONFIRMED" || paid;
+  const shopLabel = current.shop_name ?? `店家 ID ${current.shop_id ?? "-"}`;
 
-  if (transaction.status === "FAILED") {
+  async function handleDemoPay() {
+    if (!current.booking_code || paying) return;
+    setPaying(true);
+    setPayError(null);
+    try {
+      const response = await javaApi.payBookingWithTestCard(current.booking_code);
+      if (!response.success) throw new Error(response.errorMsg ?? "付款失敗");
+      setCurrent({
+        ...current,
+        success: true,
+        status: "PAID",
+        rec_trade_id: response.data.rec_trade_id,
+        payment_amount: response.data.amount,
+        payment_note: response.data.note ?? "agent demo 付款，非真實 TapPay",
+      });
+    } catch (err) {
+      setPayError(err instanceof Error ? err.message : "付款失敗，請再試一次");
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  if (current.status === "FAILED") {
     return (
       <Card className="mt-3 w-full overflow-hidden border-rose-200 bg-gradient-to-br from-rose-50 to-stone-50 shadow-sm">
         <CardHeader className="pb-3">
@@ -82,7 +107,7 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <div className="rounded-xl border border-rose-100 bg-white/75 p-4 text-rose-950">
-            <p className="font-semibold">{transaction.error ?? "此時段目前無法建立訂位。"}</p>
+            <p className="font-semibold">{current.error ?? "此時段目前無法建立訂位。"}</p>
             <p className="mt-2 text-xs leading-5 text-rose-800/80">
               尚未建立訂位、未產生訂位編號，也不會進入付款流程。
             </p>
@@ -95,7 +120,7 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
     );
   }
 
-  if (transaction.status === "PAYMENT_FAILED") {
+  if (current.status === "PAYMENT_FAILED") {
     return (
       <Card className="mt-3 w-full overflow-hidden border-amber-200 bg-gradient-to-br from-amber-50 to-stone-50 shadow-sm">
         <CardHeader className="pb-3">
@@ -115,21 +140,21 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
             </div>
             <div>
               <p className="text-xs text-muted-foreground">訂位編號</p>
-              <p className="font-mono font-semibold text-foreground">{transaction.booking_code ?? "-"}</p>
+              <p className="font-mono font-semibold text-foreground">{current.booking_code ?? "-"}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">人數</p>
-              <p className="font-medium">{transaction.people ?? "-"} 人</p>
+              <p className="font-medium">{current.people ?? "-"} 人</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">時間</p>
               <p className="font-medium">
-                {transaction.date ?? "-"} {transaction.time ?? ""}
+                {current.date ?? "-"} {current.time ?? ""}
               </p>
             </div>
           </div>
           <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-900">
-            <p className="font-semibold">錯誤：{transaction.error ?? "付款流程未完成"}</p>
+            <p className="font-semibold">錯誤：{current.error ?? "付款流程未完成"}</p>
             <p className="mt-2">此訂位需要訂金，付款成功前不應視為完成。</p>
           </div>
         </CardContent>
@@ -144,7 +169,7 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
           <CalendarCheck className="h-5 w-5 text-emerald-700" />
           {confirmed ? "訂位確認" : "訂位待付款"}
           <Badge variant="secondary" className="ml-auto bg-white/70 text-emerald-800">
-            {transaction.status}
+            {current.status}
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -156,33 +181,49 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
           </div>
           <div>
             <p className="text-xs text-muted-foreground">訂位編號</p>
-            <p className="font-mono font-semibold text-foreground">{transaction.booking_code ?? "-"}</p>
+            <p className="font-mono font-semibold text-foreground">{current.booking_code ?? "-"}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">人數</p>
-            <p className="font-medium">{transaction.people ?? "-"} 人</p>
+            <p className="font-medium">{current.people ?? "-"} 人</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">時間</p>
             <p className="font-medium">
-              {transaction.date ?? "-"} {transaction.time ?? ""}
+              {current.date ?? "-"} {current.time ?? ""}
             </p>
           </div>
         </div>
 
-        {transaction.needs_deposit ? (
+        {current.needs_deposit ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4">
             <div className="mb-2 flex items-center gap-2 font-medium text-amber-950">
               <CreditCard className="h-4 w-4" />
               訂金付款
             </div>
             <div className="grid gap-2 text-xs text-amber-900 md:grid-cols-3">
-              <p>金額：NT$ {transaction.deposit_total ?? transaction.payment_amount ?? "-"}</p>
+              <p>金額：NT$ {current.deposit_total ?? current.payment_amount ?? "-"}</p>
               <p>狀態：{paid ? "已付款" : "待付款"}</p>
-              <p className="truncate">交易編號：{transaction.rec_trade_id ?? "-"}</p>
+              <p className="truncate">交易編號：{current.rec_trade_id ?? "-"}</p>
             </div>
-            {transaction.payment_note ? (
-              <p className="mt-2 text-[11px] text-amber-800">{transaction.payment_note}</p>
+            {current.payment_note ? (
+              <p className="mt-2 text-[11px] text-amber-800">{current.payment_note}</p>
+            ) : null}
+            {!paid && current.booking_code ? (
+              <div className="mt-3 space-y-2">
+                <Button
+                  size="sm"
+                  className="w-full bg-amber-700 text-white hover:bg-amber-800"
+                  disabled={paying}
+                  onClick={handleDemoPay}
+                >
+                  {paying ? "付款處理中..." : "立即支付訂金（Demo）"}
+                </Button>
+                <p className="text-[11px] leading-5 text-amber-800">
+                  Demo 會呼叫 sandbox pay-test；正式上線應改為 TapPay client confirmation。
+                </p>
+                {payError ? <p className="text-xs font-medium text-rose-700">{payError}</p> : null}
+              </div>
             ) : null}
           </div>
         ) : (
@@ -191,8 +232,8 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
           </div>
         )}
 
-        {transaction.shop_id ? (
-          <Link href={`/shops/${transaction.shop_id}`}>
+        {current.shop_id ? (
+          <Link href={`/shops/${current.shop_id}`}>
             <Button size="sm" className="w-full bg-emerald-700 hover:bg-emerald-800">
               查看店家詳情
             </Button>

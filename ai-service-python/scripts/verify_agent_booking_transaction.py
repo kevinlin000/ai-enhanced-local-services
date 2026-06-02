@@ -1,10 +1,10 @@
 """Smoke-test the Agent booking transaction loop end-to-end.
 
 Checks:
-- Agent SSE emits semantic search -> create_booking -> pay-test.
-- done.transaction is structured and paid.
-- The booking row exists in MySQL with the same payment transaction id.
-- pay-test retry is idempotent.
+- Agent SSE emits semantic search -> create_booking, without automatic payment.
+- done.transaction is structured and pending payment when deposit is required.
+- The booking row exists in MySQL as pending payment.
+- Explicit pay-test completes payment and retry is idempotent.
 - Backend rejects past-date reservations.
 - Ambiguous multi-branch brand bookings ask for branch selection before booking.
 - Repeating the same booking request in one Agent session reuses the existing booking.
@@ -156,7 +156,7 @@ def delete_booking_by_idempotency_key(idempotency_key: str) -> None:
 
 def assert_agent_transaction(events: list[dict[str, Any]]) -> dict[str, Any]:
     tools = [event["name"] for event in events if event.get("type") == "tool"]
-    expected_tools = ["semantic_shop_search", "create_booking", "pay_booking_with_test_card"]
+    expected_tools = ["semantic_shop_search", "create_booking"]
     if tools != expected_tools:
         fail(f"tool sequence mismatch: expected={expected_tools} got={tools}")
     ok(f"tool sequence {tools}")
@@ -170,35 +170,39 @@ def assert_agent_transaction(events: list[dict[str, Any]]) -> dict[str, Any]:
         fail("done.transaction missing or not object")
     if txn.get("kind") != "booking":
         fail(f"unexpected transaction kind: {txn.get('kind')}")
-    if txn.get("status") != "PAID" or not txn.get("success"):
-        fail(f"transaction not paid/successful: {txn}")
-    if not txn.get("booking_code") or not txn.get("rec_trade_id"):
-        fail(f"transaction missing booking_code or rec_trade_id: {txn}")
+    if txn.get("needs_deposit") and txn.get("status") != "PENDING_PAYMENT":
+        fail(f"deposit booking should wait for explicit payment: {txn}")
+    if txn.get("needs_deposit") and txn.get("success"):
+        fail(f"pending-payment transaction should not be marked successful yet: {txn}")
+    if not txn.get("booking_code"):
+        fail(f"transaction missing booking_code: {txn}")
+    if txn.get("rec_trade_id"):
+        fail(f"Agent should not auto-pay or return rec_trade_id before explicit payment: {txn}")
     if date.fromisoformat(txn["date"]) < date.today():
         fail(f"transaction date is in the past: {txn['date']}")
     ok(
-        "done.transaction paid "
-        f"booking={txn['booking_code']} trade={txn['rec_trade_id']} date={txn['date']}"
+        "done.transaction pending explicit payment "
+        f"booking={txn['booking_code']} date={txn['date']}"
     )
     return txn
 
 
-def assert_db_row(txn: dict[str, Any]) -> None:
+def assert_db_row_pending_payment(txn: dict[str, Any]) -> None:
     row = fetch_booking(txn["booking_code"])
     if not row:
         fail(f"booking row missing: {txn['booking_code']}")
-    if row["status"] != 2:
-        fail(f"booking row not paid: {row}")
-    if row["payment_trans_id"] != txn["rec_trade_id"]:
-        fail(f"payment trans mismatch: db={row['payment_trans_id']} txn={txn['rec_trade_id']}")
+    if txn.get("needs_deposit") and row["status"] != 1:
+        fail(f"deposit booking row should be pending payment: {row}")
+    if row["payment_trans_id"]:
+        fail(f"booking row should not have payment transaction before explicit pay: {row}")
     if str(row["booking_date"]) != txn["date"]:
         fail(f"booking date mismatch: db={row['booking_date']} txn={txn['date']}")
     if not row.get("idempotency_key"):
         fail(f"booking row missing idempotency_key: {row}")
-    ok("MySQL row matches paid transaction")
+    ok("MySQL row matches pending-payment transaction")
 
 
-def assert_pay_retry_idempotent(txn: dict[str, Any]) -> None:
+def assert_explicit_pay_test_completes_and_retries(txn: dict[str, Any]) -> None:
     response = httpx.post(
         f"{JAVA_BACKEND_URL}/api/booking/pay-test",
         json={"bookingCode": txn["booking_code"]},
@@ -207,16 +211,32 @@ def assert_pay_retry_idempotent(txn: dict[str, Any]) -> None:
     response.raise_for_status()
     payload = response.json()
     if not payload.get("success"):
-        fail(f"pay-test retry failed: {payload}")
-    data = payload.get("data") or {}
-    if data.get("rec_trade_id") != txn["rec_trade_id"]:
-        fail(f"pay-test retry returned different trade id: {data}")
-    ok("pay-test retry is idempotent")
+        fail(f"explicit pay-test failed: {payload}")
+    first = payload.get("data") or {}
+    if first.get("status") != "PAID" or not first.get("rec_trade_id"):
+        fail(f"explicit pay-test did not return paid transaction: {first}")
+
+    retry = httpx.post(
+        f"{JAVA_BACKEND_URL}/api/booking/pay-test",
+        json={"bookingCode": txn["booking_code"]},
+        timeout=15,
+    )
+    retry.raise_for_status()
+    retry_payload = retry.json()
+    if not retry_payload.get("success"):
+        fail(f"pay-test retry failed: {retry_payload}")
+    second = retry_payload.get("data") or {}
+    if second.get("rec_trade_id") != first.get("rec_trade_id"):
+        fail(f"pay-test retry returned different trade id: first={first} second={second}")
+    row = fetch_booking(txn["booking_code"])
+    if not row or row["status"] != 2 or row["payment_trans_id"] != first.get("rec_trade_id"):
+        fail(f"booking row was not paid after explicit pay-test: row={row} payment={first}")
+    ok("explicit pay-test completes payment and retry is idempotent")
 
 
 def assert_agent_duplicate_booking_reuses_transaction(session_id: str, txn: dict[str, Any]) -> None:
     events = stream_agent(
-        "幫我訂辛殿麻辣鍋明天晚上7點2人",
+        "幫我訂辛殿麻辣鍋明天18:30 2人",
         session_id,
     )
     tools = [event["name"] for event in events if event.get("type") == "tool"]
@@ -407,13 +427,13 @@ def main() -> None:
         run_id = uuid.uuid4().hex[:10]
         session_id = f"agent-booking-smoke-{run_id}"
         events = stream_agent(
-            "幫我訂辛殿麻辣鍋明天晚上7點2人",
+            "幫我訂辛殿麻辣鍋明天18:30 2人",
             session_id,
         )
         txn = assert_agent_transaction(events)
-        assert_db_row(txn)
-        assert_pay_retry_idempotent(txn)
+        assert_db_row_pending_payment(txn)
         assert_agent_duplicate_booking_reuses_transaction(session_id, txn)
+        assert_explicit_pay_test_completes_and_retries(txn)
         assert_backend_reserve_idempotency(run_id)
         assert_backend_slot_capacity(run_id)
         assert_backend_rejects_past_date()

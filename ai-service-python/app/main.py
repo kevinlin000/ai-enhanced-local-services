@@ -973,7 +973,7 @@ TOOLS = [
             {
                 "name": "pay_booking_with_test_card",
                 "description": """用 TapPay sandbox 測試卡為訂位支付訂金。
-僅在 create_booking 回應 needsDeposit=true 時呼叫。
+僅在使用者明確要求支付某個 bookingCode 時呼叫；不要在建立訂位後自動付款。
 回應含 rec_trade_id（TapPay 交易編號）。""",
                 "parameters": {
                     "type": "OBJECT",
@@ -1010,10 +1010,10 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 ==== 一般訂位流程（create_booking）====
 - 用戶說「幫我訂位」「我要訂」「訂明天晚上」→ 先 semantic_shop_search 確認 shop_id
 - 找到店家後 → create_booking 建立訂位
-- 若回應 needsDeposit=true → 主動呼叫 pay_booking_with_test_card 完成付款
+- 若回應 needsDeposit=true → 不要自動付款；回覆訂位已保留、待支付訂金，讓前端卡片提供「立即支付」CTA
 - 若 needsDeposit=false → 訂位完成、不要付款
 - 一次對話最多 1 個 booking，不要重複建立
-- 訂位完成後，回應要包含 bookingCode，若有付款也要包含 rec_trade_id
+- 訂位建立後，回應要包含 bookingCode；只有使用者明確支付完成後才包含 rec_trade_id
 - 若使用者只指定品牌但未指定分店，而候選中有多間同品牌分店，必須先詢問使用者選哪間分店；禁止直接替使用者挑分店下訂
 
 ==== Hot Seat 搶位流程（create_hot_seat_order）====
@@ -1094,6 +1094,10 @@ def _query_mentions_unique_branch(query: str, same_brand_shops: list[dict], bran
 
 def _booking_intent(query: str) -> bool:
     return any(token in query for token in ("訂", "訂位", "預約", "幫我訂", "我要訂"))
+
+
+def _payment_intent(query: str) -> bool:
+    return any(token in query for token in ("付款", "支付", "付訂金", "刷卡", "pay", "付款訂金"))
 
 
 def _brand_matches_query(query: str, brand: str) -> bool:
@@ -1326,9 +1330,14 @@ def _booking_confirmation_narrative(transaction: dict) -> str:
             f"- 錯誤：{transaction.get('error') or '付款流程未完成'}"
         )
 
+    if transaction.get("needs_deposit"):
+        status_line = "訂位已保留，請完成訂金付款。"
+    else:
+        status_line = "訂位已完成。"
+
     shop_name = transaction.get("shop_name") or f"店家 ID {transaction.get('shop_id')}"
     base = [
-        "訂位已完成。",
+        status_line,
         "",
         f"- 店家：{shop_name}",
         f"- 人數：{transaction.get('people')} 人",
@@ -1336,12 +1345,7 @@ def _booking_confirmation_narrative(transaction: dict) -> str:
         f"- 訂位編號：`{transaction.get('booking_code')}`",
     ]
     if transaction.get("needs_deposit"):
-        base.extend(
-            [
-                f"- 訂金：NT$ {transaction.get('deposit_total')}",
-                f"- 付款交易編號：`{transaction.get('rec_trade_id')}`",
-            ]
-        )
+        base.append(f"- 待付訂金：NT$ {transaction.get('deposit_total')}")
     else:
         base.append("- 訂金：免訂金，已直接確認")
     return "\n".join(base)
@@ -1404,7 +1408,7 @@ def _find_duplicate_booking_transaction(history: list[dict], tool_args: dict) ->
         tx = turn.get("transaction") if isinstance(turn, dict) else None
         if not isinstance(tx, dict) or tx.get("kind") != "booking":
             continue
-        if tx.get("status") not in {"PAID", "CONFIRMED"}:
+        if tx.get("status") not in {"PAID", "CONFIRMED", "PENDING_PAYMENT"}:
             continue
         existing_key = _booking_key(
             tx.get("shop_id"),
@@ -1424,7 +1428,7 @@ def _latest_successful_booking_transaction(history: list[dict]) -> dict | None:
         tx = turn.get("transaction") if isinstance(turn, dict) else None
         if not isinstance(tx, dict) or tx.get("kind") != "booking":
             continue
-        if tx.get("status") not in {"PAID", "CONFIRMED"}:
+        if tx.get("status") not in {"PAID", "CONFIRMED", "PENDING_PAYMENT"}:
             continue
         duplicate = dict(tx)
         duplicate["duplicate"] = True
@@ -1908,6 +1912,9 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             idempotency_key = _agent_booking_idempotency_key(session_id, tool_args)
             if idempotency_key:
                 tool_args["idempotency_key"] = idempotency_key
+        elif tool_name == "pay_booking_with_test_card" and not _payment_intent(query):
+            # Payment requires explicit user action; never auto-pay just because a booking was created.
+            break
 
         tool_result = await tool_fn(**tool_args)
         tools_used.append(tool_name)
