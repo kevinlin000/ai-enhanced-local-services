@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Bell, Bot, CalendarCheck, Heart, Sparkles } from "lucide-react";
+import { ArrowRight, Bot, CalendarDays, Search, Sparkles } from "lucide-react";
 import { aiApi, javaApi, type Category, type Shop, type ShopAiMetadata } from "@/lib/api";
 import { getCategoryStyle, getStyleByTypeId } from "@/lib/categoryStyle";
 import { isLegacySeedShop } from "@/lib/legacySeedShops";
@@ -8,46 +7,21 @@ import { proxyImageUrl } from "@/lib/photoProxy";
 import { getBestShopCardPhoto, getShopOverview } from "@/lib/shopPhotoManifest";
 
 const HOT_STATIONS = [
-  "信義安和", "台北101/世貿", "市政府", "象山",
-  "中山國小", "雙連", "行天宮", "中山",
+  "信義安和",
+  "台北101/世貿",
+  "市政府",
+  "象山",
+  "中山國小",
+  "雙連",
+  "行天宮",
+  "中山",
 ];
 
-const HOME_AI_QUICK_LINKS = [
-  { label: "信義區想吃火鍋", href: "/ai" },
-  { label: "大安區美式漢堡", href: "/ai" },
-  { label: "明天 19:00 訂 2 人", href: "/ai" },
-  { label: "有空位通知的熱門店", href: "/notifications" },
-];
-
-const PRODUCT_LOOPS = [
-  {
-    title: "AI 推薦",
-    body: "Agent 依照類別、區域、評論語意做 curated recommendation，不再只是關鍵字搜尋。",
-    href: "/ai",
-    cta: "開始問 AI",
-    icon: Bot,
-  },
-  {
-    title: "真實訂位",
-    body: "同一份 slot inventory 支援 AI Agent、商家後台與使用者訂位，避免假裝有位。",
-    href: "/shops",
-    cta: "查看可訂店家",
-    icon: CalendarCheck,
-  },
-  {
-    title: "空位通知",
-    body: "額滿時段可建立 watch；釋出容量後站內 toast 主動提醒，不必自己回來刷新。",
-    href: "/notifications",
-    cta: "管理通知",
-    icon: Bell,
-  },
-  {
-    title: "收藏餐廳",
-    body: "收藏會寫入使用者資料，未來可接個人化推薦，不是 localStorage 假 UI。",
-    href: "/favorites",
-    cta: "看收藏",
-    icon: Heart,
-  },
+const AI_PROMPTS = [
+  "信義區想吃火鍋",
+  "今晚有位的約會餐廳",
+  "大安區美式漢堡",
+  "幫我訂明天晚上 7 點 2 人",
 ];
 
 function parseTags(raw?: string): string[] {
@@ -62,8 +36,8 @@ function parseTags(raw?: string): string[] {
 
 function getDisplaySpend(shop: Shop, meta?: ShopAiMetadata | null) {
   const overview = getShopOverview(shop.id);
-  if (overview?.price_overview) return `平均每人 ${overview.price_overview}`;
-  if (meta?.pricePerPerson) return `價位：${meta.pricePerPerson}`;
+  if (overview?.price_overview) return overview.price_overview;
+  if (meta?.pricePerPerson && meta.pricePerPerson !== "未提及") return meta.pricePerPerson;
   if (shop.avgPrice) return `NT$ ${shop.avgPrice}`;
   return null;
 }
@@ -80,34 +54,137 @@ function prioritizeVisibleShops(shops: Shop[]) {
   });
 }
 
-function hasUsablePhoto(shop: Shop) {
-  return Boolean(getBestShopCardPhoto(shop.id, shop.images));
+function getUniqueFeaturedShops(stationsWithShops: { name: string; shops: Shop[] }[]) {
+  const seen = new Set<number>();
+  const result: { station: string; shop: Shop }[] = [];
+
+  for (const station of stationsWithShops) {
+    for (const shop of prioritizeVisibleShops(station.shops)) {
+      if (seen.has(shop.id)) continue;
+      if (!getBestShopCardPhoto(shop.id, shop.images)) continue;
+      seen.add(shop.id);
+      result.push({ station: station.name, shop });
+      if (result.length >= 8) return result;
+    }
+  }
+
+  return result;
+}
+
+function CategoryRail({ categories }: { categories: Category[] }) {
+  return (
+    <section className="border-b border-black/10 bg-[#f6f1e8] px-6 py-10 md:px-12">
+      <div className="mb-8 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-black tracking-[0.22em] text-[#b89f61]">探索餐廳分類</p>
+          <h2 className="mt-2 text-2xl font-black text-[#171512]">找一種今晚想吃的方向</h2>
+        </div>
+        <Link href="/shops" className="hidden items-center gap-2 text-sm font-black text-[#866f34] hover:underline md:flex">
+          全部餐廳
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+
+      <div className="flex gap-7 overflow-x-auto pb-2">
+        {categories.slice(0, 12).map((category) => {
+          const { icon: Icon, gradient } = getCategoryStyle(category.slug);
+          return (
+            <Link
+              key={category.id}
+              href={`/shops?types=${category.id}`}
+              className="group flex min-w-[118px] flex-col items-center gap-3"
+            >
+              <div
+                className={`flex h-24 w-24 items-center justify-center rounded-[2rem] border border-black/10 bg-gradient-to-br shadow-sm transition group-hover:-translate-y-1 group-hover:shadow-md ${gradient}`}
+              >
+                <Icon className="h-10 w-10 text-[#171512]/70" strokeWidth={1.4} />
+              </div>
+              <span className="text-center text-sm font-black text-[#171512]">{category.name}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function FeaturedShopCard({
+  item,
+  metadata,
+}: {
+  item: { station: string; shop: Shop };
+  metadata?: ShopAiMetadata | null;
+}) {
+  const shop = item.shop;
+  const style = getStyleByTypeId(shop.typeId);
+  const Icon = style.icon;
+  const coverPhoto = proxyImageUrl(getBestShopCardPhoto(shop.id, shop.images));
+  const spend = getDisplaySpend(shop, metadata);
+  const tags = parseTags(metadata?.atmosphereTags).slice(0, 2);
+
+  return (
+    <Link href={`/shops/${shop.id}`} className="group block">
+      <article className="overflow-hidden rounded-[1.75rem] border border-black/10 bg-white shadow-sm transition group-hover:-translate-y-1 group-hover:shadow-xl">
+        <div className={`relative aspect-[4/3] overflow-hidden bg-gradient-to-br ${style.gradient}`}>
+          {coverPhoto ? (
+            <img src={coverPhoto} alt={`${shop.name} cover`} className="h-full w-full object-cover" loading="lazy" />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <Icon className="h-10 w-10 text-[#171512]/40" strokeWidth={1.4} />
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4">
+            <p className="text-xs font-black text-white/75">捷運 {item.station}</p>
+            <h3 className="line-clamp-1 text-lg font-black text-white">{shop.name}</h3>
+          </div>
+        </div>
+
+        <div className="space-y-3 p-4">
+          <div className="flex items-center gap-2 text-sm text-zinc-600">
+            {shop.score ? <span className="font-black text-[#b89f61]">★ {(shop.score / 10).toFixed(1)}</span> : null}
+            {shop.comments ? <span>({shop.comments.toLocaleString()})</span> : null}
+            {spend ? <span className="truncate">· {spend}</span> : null}
+          </div>
+
+          {metadata?.bookingDifficulty && metadata.bookingDifficulty !== "未提及" ? (
+            <p className="line-clamp-2 text-sm leading-6 text-[#171512]">{metadata.bookingDifficulty}</p>
+          ) : (
+            <p className="line-clamp-2 text-sm leading-6 text-zinc-600">{shop.address ?? shop.district ?? "查看餐廳資訊與可訂時段"}</p>
+          )}
+
+          {tags.length ? (
+            <div className="flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <span key={`${shop.id}-${tag}`} className="rounded-full bg-[#f2eee5] px-3 py-1 text-xs font-bold text-zinc-600">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </article>
+    </Link>
+  );
 }
 
 export default async function Home() {
-  let categories: Category[] = [];
-  let aiOk = false;
-  let stationShops: { data: Shop[] }[] = [];
-  let totalShops = 0;
-  let stationsWithShops: { name: string; shops: Shop[] }[] = [];
-
   const [categoriesRes, shopCountRes, aiHealthRes] = await Promise.all([
     javaApi.listCategories().catch(() => ({ data: [] as Category[] })),
     javaApi.shopCount().catch(() => ({ data: 0 })),
     aiApi.health().catch(() => ({ status: "off" })),
   ]);
 
-  categories = (categoriesRes.data ?? []) as Category[];
-  totalShops = shopCountRes.data ?? 0;
-  aiOk = aiHealthRes.status === "ok";
+  const categories = (categoriesRes.data ?? []) as Category[];
+  const totalShops = shopCountRes.data ?? 0;
+  const aiOk = aiHealthRes.status === "ok";
 
-  stationShops = await Promise.all(
+  const stationShops = await Promise.all(
     HOT_STATIONS.map((station) =>
       javaApi.popularShopsByMrt(station).catch(() => ({ data: [] as Shop[] })),
     ),
   );
 
-  stationsWithShops = HOT_STATIONS
+  const stationsWithShops = HOT_STATIONS
     .map((name, idx) => ({
       name,
       shops: (stationShops[idx]?.data ?? []).filter((shop) => !isLegacySeedShop(shop.id)),
@@ -115,130 +192,67 @@ export default async function Home() {
     .filter((s) => s.shops.length > 0)
     .sort((a, b) => b.shops.length - a.shops.length);
 
-  const featuredShops = stationsWithShops.flatMap((station) => station.shops.slice(0, 5));
-  const featuredShopIds = Array.from(new Set(featuredShops.map((shop) => shop.id)));
-
-  const [metadataEntries, hotSeatEntries] = await Promise.all([
-    Promise.all(
-      featuredShopIds.map(async (shopId) => {
-        const res = await javaApi.shopAiMetadata(shopId).catch(() => ({ data: null as ShopAiMetadata | null }));
-        return [shopId, res.data] as const;
-      }),
-    ),
-    Promise.all(
-      featuredShopIds.map(async (shopId) => {
-        const res = await javaApi.hotSeatVouchers(shopId).catch(() => ({ data: [] as { id: number }[] }));
-        return [shopId, res.data?.length ?? 0] as const;
-      }),
-    ),
-  ]);
-
+  const featuredItems = getUniqueFeaturedShops(stationsWithShops);
+  const metadataEntries = await Promise.all(
+    featuredItems.map(async ({ shop }) => {
+      const res = await javaApi.shopAiMetadata(shop.id).catch(() => ({ data: null as ShopAiMetadata | null }));
+      return [shop.id, res.data] as const;
+    }),
+  );
   const metadataMap = new Map<number, ShopAiMetadata | null>(metadataEntries);
-  const hotSeatMap = new Map<number, number>(hotSeatEntries);
 
   return (
-    <main className="bg-[#f6f1e8]">
-      <section className="relative overflow-hidden border-b border-black/10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(20,120,80,0.18),transparent_34%),radial-gradient(circle_at_82%_18%,rgba(184,143,72,0.22),transparent_28%),linear-gradient(135deg,#f8f3ea_0%,#fffdf8_52%,#eef5ed_100%)]" />
-        <div className="relative mx-auto grid min-h-[680px] max-w-7xl gap-10 px-4 py-14 md:grid-cols-[1.05fr_0.95fr] md:px-8 md:py-20">
+    <main className="min-h-screen bg-[#f6f1e8] text-[#171512]">
+      <section className="border-b border-black/10 bg-[#f6f1e8]">
+        <div className="mx-auto grid min-h-[560px] max-w-7xl gap-10 px-6 py-12 md:grid-cols-[1fr_0.9fr] md:px-12 md:py-20">
           <div className="flex flex-col justify-center">
-            <div className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-white/70 px-4 py-2 text-xs font-black uppercase tracking-[0.28em] text-emerald-800 shadow-sm">
-              <Sparkles className="h-4 w-4" />
-              ByteBites AI Dining Agent
-            </div>
-            <h1 className="max-w-3xl text-5xl font-black leading-[0.95] tracking-tight text-[#171512] md:text-7xl">
-              不只推薦餐廳，
-              <span className="block text-emerald-800">直接幫你完成訂位。</span>
+            <p className="text-sm font-black tracking-[0.22em] text-[#b89f61]">獨家桌位，僅此一處</p>
+            <h1 className="mt-6 max-w-2xl text-6xl font-black leading-[0.92] tracking-[-0.08em] md:text-8xl">
+              餐飲體驗
+              <span className="block text-[#b89f61]">臻於極致</span>
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-600">
-              對標 inline 的餐廳探索體驗，但把 AI Agent、真實 slot inventory、訂金付款、空位通知與收藏回訪串成同一條產品路徑。
+            <p className="mt-8 max-w-xl text-lg leading-8 text-zinc-600">
+              ByteBites 只展示值得花時間看的餐廳。你可以直接探索分類，也可以交給 AI 助手從推薦、空位、訂金付款一路處理到完成訂位。
             </p>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/ai">
-                <Button size="lg" className="rounded-full bg-emerald-800 px-6 hover:bg-emerald-900">
-                  問 AI 找餐廳
-                </Button>
-              </Link>
-              <Link href="/shops">
-                <Button size="lg" variant="outline" className="rounded-full border-black/15 bg-white/75 px-6">
-                  探索全部餐廳
-                </Button>
-              </Link>
-            </div>
-
-            <div className="mt-7 grid max-w-2xl grid-cols-2 gap-3 md:grid-cols-4">
-              {[
-                ["TTFT", "908ms"],
-                ["ABSA F1", "0.955"],
-                ["DB shops", totalShops || "—"],
-                ["AI", aiOk ? "ONLINE" : "OFFLINE"],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-2xl border border-black/10 bg-white/65 p-4 shadow-sm backdrop-blur">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">{label}</p>
-                  <p className="mt-1 font-mono text-2xl font-black text-[#171512]">{value}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6 flex flex-wrap gap-2">
-              {HOME_AI_QUICK_LINKS.map((item) => (
-                <Link key={item.label} href={item.href}>
-                  <span className="inline-flex rounded-full border border-emerald-200 bg-white/70 px-3 py-1.5 text-xs font-bold text-emerald-800 transition hover:bg-emerald-50">
-                    {item.label}
-                  </span>
-                </Link>
-              ))}
-            </div>
           </div>
 
           <div className="flex items-center">
-            <div className="w-full overflow-hidden rounded-[2rem] border border-black/10 bg-[#111b16] p-4 shadow-2xl shadow-emerald-950/20">
-              <div className="rounded-[1.5rem] bg-[#fdfbf5] p-4 md:p-5">
-                <div className="flex items-center justify-between border-b border-black/10 pb-4">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-800">Live demo flow</p>
-                    <p className="mt-1 text-lg font-black">信義區火鍋 · 明天 19:00 · 2 人</p>
-                  </div>
-                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">
-                    PAID
-                  </span>
+            <div className="w-full rounded-[2rem] border border-black/10 bg-[#eee8dc] p-8">
+              <div className="mb-6 flex items-center gap-3">
+                <Sparkles className="h-7 w-7 fill-[#171512] text-[#171512]" />
+                <div>
+                  <h2 className="text-3xl font-black">今晚想去哪？</h2>
+                  <p className="mt-1 text-zinc-600">用自然語言找最適合的一間</p>
                 </div>
+              </div>
 
-                <div className="mt-5 space-y-3">
-                  <div className="ml-auto max-w-[78%] rounded-2xl bg-emerald-800 px-4 py-3 text-sm font-bold text-white">
-                    幫我訂辛殿麻辣鍋明天晚上 7 點 2 人
-                  </div>
-                  <div className="max-w-[86%] rounded-2xl bg-zinc-100 px-4 py-3 text-sm leading-6 text-zinc-700">
-                    訂位已保留，請完成訂金付款。系統會先檢查店家容量，付款完成才正式成立。
-                  </div>
-                  <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4">
-                    <div className="flex items-center gap-2 text-emerald-900">
-                      <CalendarCheck className="h-5 w-5" />
-                      <p className="font-black">訂位 + 訂金完成</p>
-                    </div>
-                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <p className="text-xs text-zinc-500">店家</p>
-                        <p className="font-black">辛殿麻辣鍋｜信義店</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-zinc-500">時間</p>
-                        <p className="font-black">明天 19:00</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-zinc-500">人數</p>
-                        <p className="font-black">2 人</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-zinc-500">訂金</p>
-                        <p className="font-black">NT$ 200</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                    若時段額滿，可建立空位通知；釋出後站內 toast 會主動提醒。
-                  </div>
+              <Link
+                href="/ai"
+                className="flex items-center gap-3 rounded-2xl border border-black/10 bg-[#f8f5ee] px-5 py-5 text-left text-zinc-500 transition hover:border-[#b89f61]/60 hover:bg-white"
+              >
+                <Search className="h-5 w-5" />
+                <span className="flex-1 text-base font-bold">找餐廳、查空位、直接訂位</span>
+                <Bot className={`h-5 w-5 ${aiOk ? "text-emerald-700" : "text-zinc-400"}`} />
+              </Link>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                {AI_PROMPTS.map((prompt) => (
+                  <Link key={prompt} href={`/ai?q=${encodeURIComponent(prompt)}`}>
+                    <span className="inline-flex rounded-xl bg-[#e7dfcf] px-4 py-3 text-sm font-black text-zinc-600 transition hover:bg-[#ded2bc]">
+                      {prompt}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+
+              <div className="mt-7 grid grid-cols-2 gap-3 border-t border-black/10 pt-6 text-sm">
+                <div>
+                  <p className="font-mono text-2xl font-black">{totalShops || "—"}</p>
+                  <p className="text-zinc-500">間餐廳資料</p>
+                </div>
+                <div>
+                  <p className="font-mono text-2xl font-black">{aiOk ? "ONLINE" : "OFFLINE"}</p>
+                  <p className="text-zinc-500">AI Agent 狀態</p>
                 </div>
               </div>
             </div>
@@ -246,169 +260,55 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-10 md:px-8">
-        <div className="grid gap-4 md:grid-cols-4">
-          {PRODUCT_LOOPS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link key={item.title} href={item.href} className="group">
-                <article className="h-full rounded-3xl border border-black/10 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-800">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <h2 className="mt-5 text-xl font-black">{item.title}</h2>
-                  <p className="mt-2 min-h-[72px] text-sm leading-6 text-zinc-600">{item.body}</p>
-                  <p className="mt-4 text-sm font-black text-emerald-800 group-hover:underline">{item.cta}</p>
-                </article>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+      <CategoryRail categories={categories} />
 
-      <section className="mx-auto max-w-7xl px-4 py-12 md:px-8">
-        <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm md:p-8">
-          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <section className="px-6 py-14 md:px-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.28em] text-emerald-800">Browse by category</p>
-              <h2 className="mt-2 text-3xl font-black">{categories.length} 個餐廳分類</h2>
-              <p className="mt-2 text-sm text-zinc-500">
-                以訂位與聚餐決策最常見的餐廳型態來分，不把所有 tag 混成一個字串。
+              <p className="text-xs font-black tracking-[0.22em] text-[#b89f61]">得獎紀錄與熱門口碑</p>
+              <h2 className="mt-2 text-4xl font-black tracking-[-0.04em]">值得優先看的餐廳</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-500">
+                依照片完整度、真實資料品質、捷運熱門度與評分排序。想要更精準，直接到 AI 助手描述今天的需求。
               </p>
             </div>
-            <Link href="/shops" className="text-sm font-black text-emerald-800 hover:underline">
-              查看完整篩選
+            <Link href="/shops" className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-black hover:bg-[#fbfaf6]">
+              查看全部
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-            {categories.map((category) => {
-              const { icon: Icon, gradient } = getCategoryStyle(category.slug);
-              return (
-                <Link key={category.id} href={`/shops?types=${category.id}`}>
-                  <div
-                    className={`relative flex h-32 flex-col justify-between overflow-hidden rounded-2xl border bg-gradient-to-br p-5 transition hover:-translate-y-0.5 hover:border-emerald-800/40 hover:shadow-sm ${gradient}`}
-                  >
-                    <Icon className="h-8 w-8 text-foreground/70" strokeWidth={1.5} />
-                    <div>
-                      <div className="font-semibold">{category.name}</div>
-                      <div className="text-muted-foreground/70 font-mono mt-0.5 text-xs">
-                        {category.slug}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+
+          {featuredItems.length ? (
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+              {featuredItems.map((item) => (
+                <FeaturedShopCard key={item.shop.id} item={item} metadata={metadataMap.get(item.shop.id)} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-[2rem] border border-black/10 bg-white p-10 text-center text-zinc-500">
+              目前尚無可展示餐廳。請確認後端資料與圖片 manifest。
+            </div>
+          )}
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-16 md:px-8">
-        <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.28em] text-emerald-800">Popular near MRT</p>
-            <h2 className="mt-2 text-3xl font-black">捷運站熱門</h2>
-            <p className="mt-2 text-sm text-zinc-500">每站最多 5 家，可左右滑看完整名單。</p>
-          </div>
-          <div className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-bold text-zinc-600">
-            {stationsWithShops.length || "—"} 個熱門站點
-          </div>
-        </div>
-
-        <div className="space-y-8">
-          {stationsWithShops.map(({ name: station, shops }) => {
-            const visibleStationShops = prioritizeVisibleShops(shops)
-              .filter((shop) => hasUsablePhoto(shop))
-              .slice(0, 5);
-
-            if (visibleStationShops.length === 0) return null;
-            return (
-              <div key={station}>
-                <div className="mb-3 flex items-baseline justify-between">
-                  <h3 className="font-medium">
-                    捷運<span className="text-primary">{station}</span>站
-                  </h3>
-                  <span className="text-muted-foreground font-mono text-xs">{visibleStationShops.length} 家</span>
+      <section className="px-6 pb-20 md:px-12">
+        <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-3">
+          {[
+            ["與 AI 助手聊天", "讓 Agent 依照需求推薦、查空位並保留訂位。", "/ai"],
+            ["空位釋出通知", "額滿時段可建立 watch，有位時主動提醒。", "/notifications"],
+            ["我的訂位", "查看待付款、已付款與已取消紀錄。", "/my-bookings"],
+          ].map(([title, body, href]) => (
+            <Link key={title} href={href} className="rounded-[1.75rem] border border-black/10 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-black">{title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-zinc-500">{body}</p>
                 </div>
-                <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory">
-                  {visibleStationShops.map((shop) => {
-                    const style = getStyleByTypeId(shop.typeId);
-                    const Icon = style.icon;
-                    const fallbackImage = shop.images?.startsWith("http")
-                      ? shop.images
-                      : null;
-                    const coverPhoto = proxyImageUrl(
-                      getBestShopCardPhoto(shop.id, fallbackImage),
-                    );
-                    const displaySpend = getDisplaySpend(shop, metadataMap.get(shop.id));
-                    const bookingDifficulty = metadataMap.get(shop.id)?.bookingDifficulty;
-                    return (
-                      <Link key={shop.id} href={`/shops/${shop.id}`} className="min-w-[280px] max-w-[280px] snap-start shrink-0">
-                        <div className="overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-0.5 hover:border-emerald-800/40 hover:shadow-md">
-                          <div className={`relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br ${style.gradient}`}>
-                            {coverPhoto ? (
-                              <>
-                                <img
-                                  src={coverPhoto}
-                                  alt={`${shop.name}-cover`}
-                                  className="h-full w-full object-cover"
-                                  loading="lazy"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
-                              </>
-                            ) : (
-                              <Icon className="h-7 w-7 text-foreground/40" strokeWidth={1.5} />
-                            )}
-                          </div>
-                          <div className="p-3">
-                            <div className="flex items-start justify-between gap-2">
-                              <h4 className="text-sm leading-tight font-medium">{shop.name}</h4>
-                              {shop.score ? (
-                                <span className="bg-foreground text-background font-mono shrink-0 rounded px-1.5 py-0.5 text-xs">
-                                  {(shop.score / 10).toFixed(1)}
-                                </span>
-                              ) : null}
-                            </div>
-                            {hotSeatMap.get(shop.id) ? (
-                              <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1">
-                                <div className="text-[11px] font-medium text-amber-800">
-                                  Hot Seat {hotSeatMap.get(shop.id)} 案
-                                </div>
-                              </div>
-                            ) : null}
-                            {displaySpend ? (
-                              <div className="text-muted-foreground mt-1 text-xs">
-                                {displaySpend}
-                              </div>
-                            ) : null}
-                            {bookingDifficulty && bookingDifficulty !== "未提及" ? (
-                              <div className="mt-1 text-xs text-foreground/80">
-                                {bookingDifficulty}
-                              </div>
-                            ) : null}
-                            {metadataMap.get(shop.id)?.atmosphereTags ? (
-                              <div className="mt-2 flex flex-wrap gap-1">
-                                {parseTags(metadataMap.get(shop.id)?.atmosphereTags)
-                                  .slice(0, 2)
-                                  .map((tag: string) => (
-                                    <span
-                                      key={`${shop.id}-${tag}`}
-                                      className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-foreground/80"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
+                <CalendarDays className="h-6 w-6 text-[#b89f61]" />
               </div>
-            );
-          })}
+            </Link>
+          ))}
         </div>
       </section>
     </main>
