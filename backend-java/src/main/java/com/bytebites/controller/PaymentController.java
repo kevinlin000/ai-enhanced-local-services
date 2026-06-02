@@ -84,7 +84,11 @@ public class PaymentController {
                     "msg",          r.getOrDefault("msg", "成功")
             ));
         }
-        return Result.fail("TapPay: " + r.get("msg") + " (status=" + status + ")");
+        String msg = String.valueOf(r.getOrDefault("msg", "付款失敗"));
+        if (status != null && status == 4 && msg.toLowerCase().contains("ip mismatch")) {
+            return Result.fail("TapPay sandbox IP 未在商家後台白名單內，請設定 server IP 後再試。");
+        }
+        return Result.fail("TapPay: " + msg + " (status=" + status + ")");
     }
 
     /**

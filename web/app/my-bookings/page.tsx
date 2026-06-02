@@ -90,6 +90,7 @@ export default function MyBookingsPage() {
   const [paymentBooking, setPaymentBooking] = useState<MyBooking | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("credit_card");
   const [paymentError, setPaymentError] = useState("");
+  const [allowDemoFallback, setAllowDemoFallback] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -184,12 +185,35 @@ export default function MyBookingsPage() {
     setPaymentBooking(booking);
     setPaymentMethod("credit_card");
     setPaymentError("");
+    setAllowDemoFallback(false);
   };
 
   const closePayment = () => {
     if (busyCode) return;
     setPaymentBooking(null);
     setPaymentError("");
+    setAllowDemoFallback(false);
+  };
+
+  const completeDemoAuthorization = async () => {
+    if (!paymentBooking) return;
+    setBusyCode(paymentBooking.bookingCode);
+    setError("");
+    setPaymentError("");
+    try {
+      const response = await javaApi.payBookingWithTestCard(paymentBooking.bookingCode);
+      if (!response.success) {
+        setPaymentError(response.errorMsg ?? "Demo 授權失敗");
+        return;
+      }
+      await loadBookings();
+      setPaymentBooking(null);
+      setAllowDemoFallback(false);
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : "Demo 授權失敗");
+    } finally {
+      setBusyCode(null);
+    }
   };
 
   const confirmPayment = async () => {
@@ -229,10 +253,14 @@ export default function MyBookingsPage() {
           });
           if (!response.success) {
             setPaymentError(response.errorMsg ?? "付款失敗");
+            setAllowDemoFallback(
+              Boolean(response.errorMsg?.includes("TapPay sandbox IP")),
+            );
             return;
           }
           await loadBookings();
           setPaymentBooking(null);
+          setAllowDemoFallback(false);
         } catch (err) {
           setPaymentError(err instanceof Error ? err.message : "付款失敗");
         } finally {
@@ -250,6 +278,7 @@ export default function MyBookingsPage() {
       }
       await loadBookings();
       setPaymentBooking(null);
+      setAllowDemoFallback(false);
     } catch (err) {
       setPaymentError(err instanceof Error ? err.message : "付款失敗");
     } finally {
@@ -520,8 +549,26 @@ export default function MyBookingsPage() {
               )}
 
               {paymentError ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-                  {paymentError}
+                <div className="space-y-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <p className="font-semibold">{paymentError}</p>
+                  {allowDemoFallback ? (
+                    <div className="rounded-xl border border-red-200 bg-white/75 p-3 text-xs leading-5 text-red-800">
+                      <p>
+                        目前已完成 TapPay iframe prime 取得；失敗點是 TapPay sandbox 後台尚未允許此 server IP 呼叫 pay-by-prime。
+                      </p>
+                      <p className="mt-1">
+                        本地展示可先使用 demo 授權完成訂位；正式上線必須設定 TapPay 後台 IP 白名單。
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={completeDemoAuthorization}
+                        disabled={busyCode === paymentBooking.bookingCode}
+                        className="mt-3 w-full bg-red-700 text-white hover:bg-red-800"
+                      >
+                        使用 demo 授權完成付款狀態
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
