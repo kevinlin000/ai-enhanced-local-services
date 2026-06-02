@@ -181,6 +181,10 @@ export function BookingButton({
   // 有訂金流程第一步：先建訂位 DB 記錄，再進 select-pay
   const handleProceedToPay = async () => {
     setError("");
+    if (bookingCode) {
+      setStep("select-pay");
+      return;
+    }
     try {
       const res = await fetch(`${JAVA_API}/api/booking/reserve`, {
         method: "POST",
@@ -393,6 +397,9 @@ export function BookingButton({
                   <p className="text-xs text-muted-foreground mt-1">
                     用餐當日全額折抵消費
                   </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
+                    下一步會先保留座位並產生訂位編號；完成付款後訂位才算完成。
+                  </p>
                 </>
               ) : (
                 <>
@@ -415,7 +422,7 @@ export function BookingButton({
 
           {policy?.needsDeposit ? (
             <Button onClick={handleProceedToPay} className="w-full">
-              下一步 · 選擇支付
+              保留座位並前往付款
             </Button>
           ) : (
             <Button
@@ -436,12 +443,32 @@ export function BookingButton({
             onClick={() => setStep("form")}
             className="text-xs text-muted-foreground mb-3 hover:text-foreground"
           >
-            ← 修改訂位
+            ← 返回修改（已保留訂位不會自動取消）
           </button>
           <p className="text-sm font-medium mb-1">確認訂位</p>
           <p className="text-xs text-muted-foreground mb-3">
             {shop.name} · {date} {time} · {people} 人
           </p>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 mb-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-amber-950">
+                  已為你保留座位
+                </p>
+                <p className="text-xs text-amber-800 mt-1">
+                  尚未付款，完成訂金支付後訂位才成立。
+                </p>
+              </div>
+              <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-amber-800">
+                待付款
+              </span>
+            </div>
+            {bookingCode ? (
+              <p className="font-mono text-xs text-amber-900 mt-3 break-all">
+                訂位編號：{bookingCode}
+              </p>
+            ) : null}
+          </div>
           <p className="text-lg font-bold text-primary mb-4">
             訂金 NT$ {depositTotal.toLocaleString()}
           </p>
