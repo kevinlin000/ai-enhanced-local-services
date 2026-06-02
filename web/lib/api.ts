@@ -123,11 +123,10 @@ export type MerchantSlot = {
   remaining: number;
 };
 
-function merchantHeaders(token?: string | null): HeadersInit {
+function merchantHeaders(): HeadersInit {
   return {
     "Content-Type": "application/json",
-    "X-Demo-Mode": token ? "false" : "true",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    "X-Demo-Mode": "true",
   };
 }
 
@@ -220,10 +219,10 @@ export const javaApi = {
       `${CLIENT_JAVA_API}/api/shop/search?${sp.toString()}`,
     );
   },
-  merchantShops: (token?: string | null) =>
+  merchantShops: (_token?: string | null) =>
     fetchJson<{ success: boolean; data: MerchantShop[] }>(
       `${CLIENT_JAVA_API}/api/merchant/shops`,
-      { headers: merchantHeaders(token) },
+      { headers: merchantHeaders() },
     ),
   merchantSlots: (params: {
     shopId: number;
@@ -241,7 +240,7 @@ export const javaApi = {
       };
     }>(
       `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/slots?date=${encodeURIComponent(params.date)}&tableType=${encodeURIComponent(params.tableType ?? "normal")}`,
-      { headers: merchantHeaders(params.token) },
+      { headers: merchantHeaders() },
     ),
   updateMerchantSlots: (params: {
     shopId: number;
@@ -261,7 +260,7 @@ export const javaApi = {
       };
     }>(`${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/slots`, {
       method: "PUT",
-      headers: merchantHeaders(params.token),
+      headers: merchantHeaders(),
       body: JSON.stringify({
         date: params.date,
         tableType: params.tableType ?? "normal",
