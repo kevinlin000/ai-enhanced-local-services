@@ -1,3 +1,22 @@
+export type AgentTransaction = {
+  kind: "booking";
+  success: boolean;
+  status: "CONFIRMED" | "PAID" | "PENDING_PAYMENT" | "PAYMENT_FAILED" | "FAILED";
+  shop_id?: number | null;
+  shop_name?: string | null;
+  booking_code?: string | null;
+  people?: number | null;
+  date?: string | null;
+  time?: string | null;
+  table_type?: string | null;
+  needs_deposit?: boolean;
+  deposit_total?: number | null;
+  rec_trade_id?: string | null;
+  payment_amount?: number | null;
+  payment_note?: string | null;
+  error?: string | null;
+};
+
 export type AgentStreamEvent =
   | { type: "status"; message: string }
   | { type: "tool"; name: string }
@@ -9,6 +28,7 @@ export type AgentStreamEvent =
       narrative?: string;
       rejected_shop_ids?: number[];
       rejection_summary?: string | null;
+      transaction?: AgentTransaction | null;
       tools_used?: string[];
       tool_result?: unknown;
       session_id?: string;

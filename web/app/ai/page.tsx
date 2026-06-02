@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Bot, MapPin, Search, Sparkles, Trash2 } from "lucide-react";
+import { Bot, CalendarCheck, CreditCard, MapPin, Search, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { aiApi, type SearchHit } from "@/lib/api";
-import { streamAgentResponse } from "@/lib/agentStream";
+import { streamAgentResponse, type AgentTransaction } from "@/lib/agentStream";
 import { AgentShopCard, type AgentShop } from "@/components/AgentShopCard";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -24,6 +24,7 @@ interface Msg {
   hits?: SearchHit[];
   toolsUsed?: string[];
   shops?: AgentShop[];
+  transaction?: AgentTransaction;
 }
 
 const PRESETS: Record<Mode, string[]> = {
@@ -60,6 +61,78 @@ function selectRecommendedShops(
   return recommendedShopIds
     .map((id) => byId.get(Number(id)))
     .filter((shop): shop is AgentShop => Boolean(shop));
+}
+
+function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTransaction }) {
+  const paid = transaction.status === "PAID";
+  const confirmed = transaction.status === "CONFIRMED" || paid;
+  const title = confirmed ? "訂位確認" : "訂位處理狀態";
+  const shopLabel = transaction.shop_name ?? `店家 ID ${transaction.shop_id ?? "-"}`;
+
+  return (
+    <Card className="mt-3 w-full overflow-hidden border-emerald-200 bg-gradient-to-br from-emerald-50 to-stone-50 shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base text-emerald-950">
+          <CalendarCheck className="h-5 w-5 text-emerald-700" />
+          {title}
+          <Badge variant="secondary" className="ml-auto bg-white/70 text-emerald-800">
+            {transaction.status}
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <div className="grid gap-3 rounded-xl border border-emerald-100 bg-white/70 p-4 md:grid-cols-2">
+          <div>
+            <p className="text-xs text-muted-foreground">店家</p>
+            <p className="font-semibold text-foreground">{shopLabel}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">訂位編號</p>
+            <p className="font-mono font-semibold text-foreground">{transaction.booking_code ?? "-"}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">人數</p>
+            <p className="font-medium">{transaction.people ?? "-"} 人</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">時間</p>
+            <p className="font-medium">
+              {transaction.date ?? "-"} {transaction.time ?? ""}
+            </p>
+          </div>
+        </div>
+
+        {transaction.needs_deposit ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4">
+            <div className="mb-2 flex items-center gap-2 font-medium text-amber-950">
+              <CreditCard className="h-4 w-4" />
+              訂金付款
+            </div>
+            <div className="grid gap-2 text-xs text-amber-900 md:grid-cols-3">
+              <p>金額：NT$ {transaction.deposit_total ?? transaction.payment_amount ?? "-"}</p>
+              <p>狀態：{paid ? "已付款" : "待付款"}</p>
+              <p className="truncate">交易編號：{transaction.rec_trade_id ?? "-"}</p>
+            </div>
+            {transaction.payment_note ? (
+              <p className="mt-2 text-[11px] text-amber-800">{transaction.payment_note}</p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-emerald-100 bg-white/70 p-3 text-xs text-emerald-900">
+            此店家免訂金，已直接確認訂位。
+          </div>
+        )}
+
+        {transaction.shop_id ? (
+          <Link href={`/shops/${transaction.shop_id}`}>
+            <Button size="sm" className="w-full bg-emerald-700 hover:bg-emerald-800">
+              查看店家詳情
+            </Button>
+          </Link>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
 }
 
 /** 產生或讀取 localStorage session id */
@@ -176,6 +249,7 @@ export default function AiPage() {
                 content: event.answer || last.content,
                 toolsUsed: event.tools_used ?? last.toolsUsed,
                 shops: shops ?? last.shops,
+                transaction: event.transaction ?? last.transaction,
               };
               return next;
             });
@@ -341,6 +415,9 @@ export default function AiPage() {
                     ))}
                   </div>
                 )}
+                {m.transaction ? (
+                  <AgentBookingConfirmationCard transaction={m.transaction} />
+                ) : null}
               </div>
             ))}
             {loading && (
