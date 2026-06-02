@@ -374,6 +374,25 @@ def assert_ambiguous_branch_requires_clarification(run_id: str) -> None:
     ok("ambiguous multi-branch booking asks for branch selection")
 
 
+def assert_agent_today_requires_reschedule(run_id: str) -> None:
+    events = stream_agent(
+        "幫我訂辛殿麻辣鍋今天晚上7點2人",
+        f"agent-booking-today-reject-{run_id}",
+    )
+    tools = [event["name"] for event in events if event.get("type") == "tool"]
+    if "create_booking" in tools or "pay_booking_with_test_card" in tools:
+        fail(f"same-day query should not create or pay booking: tools={tools}")
+    done = next((event for event in events if event.get("type") == "done"), None)
+    if not done:
+        fail("same-day query missing done event")
+    answer = str(done.get("answer") or "")
+    if "明天" not in answer or "今天" not in answer:
+        fail(f"same-day query did not explain next-day policy: {answer}")
+    if done.get("transaction"):
+        fail(f"same-day query returned transaction: {done.get('transaction')}")
+    ok("Agent asks to reschedule explicit same-day booking")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -400,6 +419,7 @@ def main() -> None:
         assert_backend_rejects_past_date()
         assert_backend_rejects_same_day()
         assert_ambiguous_branch_requires_clarification(run_id)
+        assert_agent_today_requires_reschedule(run_id)
     finally:
         if txn and not args.keep_booking:
             delete_booking(txn["booking_code"])

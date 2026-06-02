@@ -852,9 +852,12 @@ async def tool_create_booking(
         try:
             requested_date = date_cls.fromisoformat(date)
             if requested_date <= today:
-                date = tomorrow
+                return {
+                    "success": False,
+                    "error": "今天不可訂位，最早可訂明天。請確認是否改訂明天或其他日期。",
+                }
         except ValueError:
-            date = tomorrow
+            return {"success": False, "error": "date 格式需為 YYYY-MM-DD"}
     if not time:
         time = "19:00"
 
@@ -1030,7 +1033,8 @@ def _agent_system_prompt() -> str:
     return (
         f"今天日期：{today.isoformat()}（Asia/Taipei）。"
         "解析「今天」「明天」「下週」等相對日期時必須以此為準。"
-        "今天不可訂位，最早可訂明天；若用戶說今天或未指定日期，使用明天。"
+        "今天不可訂位，最早可訂明天；若用戶明確說今天或過去日期，不得呼叫 create_booking，"
+        "必須先告知最早可訂明天並詢問是否改日期。若用戶未指定日期，才使用明天。"
         "禁止建立今天或過去日期訂位。\n\n"
         f"{AGENT_SYSTEM_PROMPT}"
     )
@@ -1366,16 +1370,15 @@ def _booking_key(shop_id: int | None, people: int | None, booking_date: str | No
 def _booking_key_from_tool_args(tool_args: dict) -> tuple | None:
     raw_shop_id = tool_args.get("shop_id")
     raw_people = tool_args.get("people")
-    today = taipei_today()
-    tomorrow = (today + timedelta(days=1)).isoformat()
-    booking_date = tool_args.get("date") or tomorrow
+    tomorrow = (taipei_today() + timedelta(days=1)).isoformat()
+    raw_date = tool_args.get("date")
+    booking_date = raw_date or tomorrow
     booking_time = tool_args.get("time") or "19:00"
-    try:
-        parsed_date = date_cls.fromisoformat(str(booking_date))
-        if parsed_date <= today:
-            booking_date = tomorrow
-    except ValueError:
-        booking_date = tomorrow
+    if raw_date:
+        try:
+            booking_date = date_cls.fromisoformat(str(raw_date)).isoformat()
+        except ValueError:
+            return None
     try:
         return _booking_key(int(raw_shop_id), int(raw_people), str(booking_date), str(booking_time))
     except (TypeError, ValueError):
