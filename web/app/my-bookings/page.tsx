@@ -28,6 +28,11 @@ const statusCopy: Record<MyBooking["status"], { label: string; tone: string; hel
     tone: "border-zinc-200 bg-zinc-50 text-zinc-600",
     helper: "訂位已取消，店家容量已釋放。",
   },
+  EXPIRED: {
+    label: "已逾期",
+    tone: "border-red-200 bg-red-50 text-red-700",
+    helper: "付款保留時間已過，店家容量已釋放。",
+  },
 };
 
 const paymentMethods: { id: PaymentMethod; label: string; helper: string; badge: string }[] = [
@@ -61,6 +66,16 @@ function formatDateTime(booking: MyBooking) {
   return `${booking.date} ${booking.time}`;
 }
 
+function formatHoldCountdown(holdExpiresAt: string | null | undefined, nowMs: number) {
+  if (!holdExpiresAt) return null;
+  const remainingMs = new Date(holdExpiresAt).getTime() - nowMs;
+  if (remainingMs <= 0) return "已逾期";
+  const totalSeconds = Math.ceil(remainingMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
 export default function MyBookingsPage() {
   const [bookings, setBookings] = useState<MyBooking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,6 +87,7 @@ export default function MyBookingsPage() {
   const [cardExpiry, setCardExpiry] = useState("12/30");
   const [cardCcv, setCardCcv] = useState("123");
   const [paymentError, setPaymentError] = useState("");
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const loadBookings = async () => {
     setLoading(true);
@@ -96,7 +112,17 @@ export default function MyBookingsPage() {
     void loadBookings();
   }, []);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const openPayment = (booking: MyBooking) => {
+    if (booking.holdExpiresAt && new Date(booking.holdExpiresAt).getTime() <= Date.now()) {
+      setError("此保留已逾期，請重新整理後重新建立訂位");
+      void loadBookings();
+      return;
+    }
     setPaymentBooking(booking);
     setPaymentMethod("credit_card");
     setPaymentError("");
@@ -121,6 +147,11 @@ export default function MyBookingsPage() {
 
   const confirmPayment = async () => {
     if (!paymentBooking) return;
+    if (paymentBooking.holdExpiresAt && new Date(paymentBooking.holdExpiresAt).getTime() <= Date.now()) {
+      setPaymentError("此保留已逾期，請重新建立訂位");
+      await loadBookings();
+      return;
+    }
     if (paymentMethod === "credit_card") {
       const validation = validateCard();
       if (validation) {
@@ -217,8 +248,10 @@ export default function MyBookingsPage() {
             <div className="space-y-4">
               {bookings.map((booking) => {
                 const status = statusCopy[booking.status];
-                const canPay = booking.status === "PENDING_PAYMENT" && booking.needsDeposit;
-                const canCancel = booking.status !== "CANCELED";
+                const holdCountdown = formatHoldCountdown(booking.holdExpiresAt, nowMs);
+                const expiredInUi = booking.status === "PENDING_PAYMENT" && holdCountdown === "已逾期";
+                const canPay = booking.status === "PENDING_PAYMENT" && booking.needsDeposit && !expiredInUi;
+                const canCancel = booking.status !== "CANCELED" && booking.status !== "EXPIRED";
                 const busy = busyCode === booking.bookingCode;
 
                 return (
@@ -260,7 +293,11 @@ export default function MyBookingsPage() {
                     </div>
 
                     <div className="flex flex-col gap-3 border-t border-zinc-200 bg-white px-5 py-4 md:flex-row md:items-center md:justify-between">
-                      <p className="text-sm text-zinc-500">{status.helper}</p>
+                      <p className="text-sm text-zinc-500">
+                        {booking.status === "PENDING_PAYMENT" && holdCountdown
+                          ? `座位保留倒數 ${holdCountdown}，付款完成後訂位才成立。`
+                          : status.helper}
+                      </p>
                       <div className="flex gap-2">
                         {canPay ? (
                           <Button
@@ -306,6 +343,11 @@ export default function MyBookingsPage() {
               <p className="mt-2 text-sm text-zinc-500">
                 {paymentBooking.shopName} · {formatDateTime(paymentBooking)} · {paymentBooking.people} 人
               </p>
+              {paymentBooking.holdExpiresAt ? (
+                <p className="mt-3 w-fit rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-900">
+                  座位保留倒數 {formatHoldCountdown(paymentBooking.holdExpiresAt, nowMs)}
+                </p>
+              ) : null}
               <p className="mt-4 text-3xl font-black text-[#0b8a5b]">
                 NT$ {paymentBooking.depositTotal}
               </p>

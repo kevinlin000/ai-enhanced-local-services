@@ -5,6 +5,7 @@ import com.bytebites.dto.UserDTO;
 import com.bytebites.entity.jpa.BookingJpa;
 import com.bytebites.enums.PayType;
 import com.bytebites.repository.BookingJpaRepository;
+import com.bytebites.service.BookingHoldService;
 import com.bytebites.service.TapPayService;
 import com.bytebites.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,9 @@ public class PaymentController {
     @Autowired
     BookingJpaRepository bookingRepo;
 
+    @Autowired
+    BookingHoldService bookingHoldService;
+
     /**
      * 真實 TapPay Sandbox Pay by Prime 串接。
      * 前端先呼叫 TapPay JS SDK 取得 prime，再 POST 到此 endpoint。
@@ -40,6 +44,17 @@ public class PaymentController {
         Long amount   = Long.valueOf(body.getOrDefault("amount", 1280).toString());
         String bookingCode = (String) body.get("bookingCode");   // 可為 null（舊流程相容）
 
+        if (bookingCode != null && !bookingCode.isBlank()) {
+            Optional<BookingJpa> opt = bookingRepo.findByBookingCode(bookingCode);
+            if (opt.isEmpty()) return Result.fail("訂位不存在");
+
+            BookingJpa booking = opt.get();
+            if (!canAccessBooking(booking)) return Result.fail("無權操作此訂位");
+            if (booking.getStatus() == BookingHoldService.STATUS_CANCELED) return Result.fail("訂位已取消，無法付款");
+            if (booking.getStatus() == BookingHoldService.STATUS_EXPIRED) return Result.fail("此保留已逾期，請重新建立訂位");
+            if (bookingHoldService.expireIfDue(booking)) return Result.fail("此保留已逾期，請重新建立訂位");
+        }
+
         Map<String, Object> r = tapPay.payByPrime(prime, amount, orderId);
         Integer status = (Integer) r.get("status");
 
@@ -49,15 +64,9 @@ public class PaymentController {
             // 回寫訂位記錄：status=2(已付款), payment_trans_id=rec_trade_id
             if (bookingCode != null && !bookingCode.isBlank()) {
                 Optional<BookingJpa> opt = bookingRepo.findByBookingCode(bookingCode);
-                if (opt.isPresent() && !canAccessBooking(opt.get())) {
-                    return Result.fail("無權操作此訂位");
-                }
-                if (opt.isPresent() && opt.get().getStatus() == 4) {
-                    return Result.fail("訂位已取消，無法付款");
-                }
                 opt.ifPresentOrElse(
                         bk -> {
-                            bk.setStatus(2);
+                            bk.setStatus(BookingHoldService.STATUS_PAID);
                             bk.setPaymentTransId(recTradeId);
                             bookingRepo.save(bk);
                             log.info("[Payment] bookingCode={} → status=2, trans={}", bookingCode, recTradeId);

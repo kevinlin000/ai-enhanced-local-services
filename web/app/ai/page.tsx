@@ -86,10 +86,21 @@ const DEMO_PAYMENT_METHODS = [
   },
 ] as const;
 
+function formatHoldCountdown(holdExpiresAt: string | null | undefined, nowMs: number) {
+  if (!holdExpiresAt) return null;
+  const remainingMs = new Date(holdExpiresAt).getTime() - nowMs;
+  if (remainingMs <= 0) return "已逾期";
+  const totalSeconds = Math.ceil(remainingMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
 function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTransaction }) {
   const [current, setCurrent] = useState(transaction);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<(typeof DEMO_PAYMENT_METHODS)[number]["id"]>("card");
   const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
@@ -99,9 +110,21 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
   const confirmed = current.status === "CONFIRMED" || paid;
   const shopLabel = current.shop_name ?? `店家 ID ${current.shop_id ?? "-"}`;
   const selectedPayment = DEMO_PAYMENT_METHODS.find((method) => method.id === selectedPaymentMethod);
+  const holdCountdown = formatHoldCountdown(current.hold_expires_at, nowMs);
+  const holdExpired = current.status === "PENDING_PAYMENT" && holdCountdown === "已逾期";
+
+  useEffect(() => {
+    if (current.status !== "PENDING_PAYMENT" || !current.hold_expires_at) return;
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [current.hold_expires_at, current.status]);
 
   async function handleDemoPay() {
     if (!current.booking_code || paying) return;
+    if (holdExpired) {
+      setPayError("此保留已逾期，請重新建立訂位");
+      return;
+    }
     setPaying(true);
     setPayError(null);
     if (selectedPaymentMethod === "card") {
@@ -240,13 +263,18 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
             </div>
             <div className="grid gap-2 text-xs text-amber-900 md:grid-cols-3">
               <p>金額：NT$ {current.deposit_total ?? current.payment_amount ?? "-"}</p>
-              <p>狀態：{paid ? "已付款" : "待付款"}</p>
+              <p>狀態：{paid ? "已付款" : holdExpired ? "已逾期" : "待付款"}</p>
               <p className="truncate">交易編號：{current.rec_trade_id ?? "-"}</p>
             </div>
+            {!paid && holdCountdown ? (
+              <p className={`mt-2 text-[11px] font-semibold ${holdExpired ? "text-red-700" : "text-amber-800"}`}>
+                座位保留倒數：{holdCountdown}。完成付款後訂位才成立。
+              </p>
+            ) : null}
             {current.payment_note ? (
               <p className="mt-2 text-[11px] text-amber-800">{current.payment_note}</p>
             ) : null}
-            {!paid && current.booking_code ? (
+            {!paid && current.booking_code && !holdExpired ? (
               <div className="mt-4 space-y-3 rounded-xl border border-amber-200 bg-white/70 p-3">
                 <div>
                   <p className="text-sm font-semibold text-amber-950">選擇付款方式</p>
@@ -330,6 +358,10 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
                       }`}
                 </Button>
                 {payError ? <p className="text-xs font-medium text-rose-700">{payError}</p> : null}
+              </div>
+            ) : !paid && holdExpired ? (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+                此保留已逾期，座位容量會釋放；請重新建立訂位。
               </div>
             ) : null}
           </div>

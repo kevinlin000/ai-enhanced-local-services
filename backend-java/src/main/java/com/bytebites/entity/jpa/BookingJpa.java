@@ -45,6 +45,7 @@ public class BookingJpa {
      * 2 = 已付款（TapPay 交易成功）
      * 3 = 已確認（免訂金直接確認）
      * 4 = 已取消
+     * 5 = 已逾期（待付款 hold 過期）
      */
     @Column(name = "status", nullable = false, columnDefinition = "tinyint")
     private Integer status;
@@ -61,6 +62,10 @@ public class BookingJpa {
     /** TapPay rec_trade_id，付款後回寫 */
     @Column(name = "payment_trans_id", length = 100)
     private String paymentTransId;
+
+    /** Payment hold expiry for pending-deposit bookings. Null for paid/free/canceled legacy rows. */
+    @Column(name = "hold_expires_at")
+    private LocalDateTime holdExpiresAt;
 
     /** Client/Agent supplied idempotency key for retry-safe reservation creation. */
     @Column(name = "idempotency_key", unique = true, length = 120)

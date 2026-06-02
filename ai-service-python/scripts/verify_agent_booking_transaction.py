@@ -5,6 +5,7 @@ Checks:
 - done.transaction is structured and pending payment when deposit is required.
 - The booking row exists in MySQL as pending payment.
 - Explicit pay-test completes payment and retry is idempotent.
+- Expired pending holds reject payment and release slot inventory.
 - Backend rejects past-date reservations.
 - Ambiguous multi-branch brand bookings ask for branch selection before booking.
 - Repeating the same booking request in one Agent session reuses the existing booking.
@@ -85,7 +86,7 @@ def fetch_booking(booking_code: str) -> dict[str, Any] | None:
                 """
                 select booking_code, shop_id, people, booking_date, booking_time, table_type,
                        status, needs_deposit, deposit_total, payment_trans_id,
-                       idempotency_key
+                       idempotency_key, hold_expires_at
                 from tb_booking
                 where booking_code = %s
                 """,
@@ -95,6 +96,8 @@ def fetch_booking(booking_code: str) -> dict[str, Any] | None:
 
 
 def release_slot_for_booking(row: dict[str, Any]) -> None:
+    if row.get("status") in {4, 5}:
+        return
     with mysql_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -142,7 +145,7 @@ def delete_booking_by_idempotency_key(idempotency_key: str) -> None:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                select booking_code, shop_id, people, booking_date, booking_time, table_type
+                select booking_code, shop_id, people, booking_date, booking_time, table_type, status
                 from tb_booking
                 where idempotency_key = %s
                 """,
@@ -153,6 +156,37 @@ def delete_booking_by_idempotency_key(idempotency_key: str) -> None:
     for row in rows:
         release_slot_for_booking(row)
     delete_idempotency_lock(idempotency_key)
+
+
+def force_expire_booking(booking_code: str) -> None:
+    with mysql_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                update tb_booking
+                set hold_expires_at = date_sub(now(), interval 1 minute)
+                where booking_code = %s
+                """,
+                (booking_code,),
+            )
+
+
+def slot_booked_count(shop_id: int, booking_date: str, booking_time: str, table_type: str) -> int:
+    with mysql_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select booked_count
+                from tb_booking_slot_inventory
+                where shop_id = %s
+                  and booking_date = %s
+                  and booking_time = %s
+                  and table_type = %s
+                """,
+                (shop_id, booking_date, booking_time, table_type),
+            )
+            row = cur.fetchone()
+            return int((row or {}).get("booked_count") or 0)
 
 
 def assert_agent_transaction(events: list[dict[str, Any]]) -> dict[str, Any]:
@@ -200,6 +234,10 @@ def assert_db_row_pending_payment(txn: dict[str, Any]) -> None:
         fail(f"booking date mismatch: db={row['booking_date']} txn={txn['date']}")
     if not row.get("idempotency_key"):
         fail(f"booking row missing idempotency_key: {row}")
+    if txn.get("needs_deposit") and not row.get("hold_expires_at"):
+        fail(f"deposit booking row missing hold_expires_at: {row}")
+    if txn.get("needs_deposit") and not txn.get("hold_expires_at"):
+        fail(f"done.transaction missing hold_expires_at: {txn}")
     ok("MySQL row matches pending-payment transaction")
 
 
@@ -334,6 +372,61 @@ def assert_backend_slot_capacity(run_id: str) -> None:
             delete_booking_by_idempotency_key(key)
 
 
+def assert_expired_hold_rejects_payment_and_releases_slot(run_id: str) -> None:
+    booking_date = (date.today() + timedelta(days=11)).isoformat()
+    idempotency_key = f"smoke-expire-{run_id}"
+    booking_code: str | None = None
+    try:
+        response = httpx.post(
+            f"{JAVA_BACKEND_URL}/api/booking/reserve",
+            headers=DEMO_HEADERS,
+            json={
+                "shopId": 10115,
+                "people": 2,
+                "date": booking_date,
+                "time": "21:00",
+                "tableType": "normal",
+                "idempotencyKey": idempotency_key,
+            },
+            timeout=15,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if not payload.get("success"):
+            fail(f"hold-expiry reserve failed: {payload}")
+        booking = payload["data"]
+        booking_code = booking["bookingCode"]
+        if not booking.get("holdExpiresAt"):
+            fail(f"hold-expiry reserve missing holdExpiresAt: {booking}")
+        if slot_booked_count(10115, booking_date, "21:00", "normal") < 2:
+            fail("hold-expiry reserve did not increment slot inventory")
+
+        force_expire_booking(booking_code)
+        pay_response = httpx.post(
+            f"{JAVA_BACKEND_URL}/api/booking/pay-test",
+            headers=DEMO_HEADERS,
+            json={"bookingCode": booking_code},
+            timeout=15,
+        )
+        pay_response.raise_for_status()
+        pay_payload = pay_response.json()
+        if pay_payload.get("success") is not False:
+            fail(f"expired hold payment should be rejected: {pay_payload}")
+        if "逾期" not in str(pay_payload.get("errorMsg") or ""):
+            fail(f"expired hold payment error should mention expiry: {pay_payload}")
+
+        row = fetch_booking(booking_code)
+        if not row or row["status"] != 5:
+            fail(f"expired hold did not transition to EXPIRED: row={row}")
+        if slot_booked_count(10115, booking_date, "21:00", "normal") != 0:
+            fail("expired hold did not release slot inventory")
+        ok("expired pending hold rejects payment and releases slot inventory")
+    finally:
+        if booking_code:
+            delete_booking(booking_code)
+        delete_idempotency_lock(idempotency_key)
+
+
 def assert_backend_rejects_past_date() -> None:
     yesterday = (date.today() - timedelta(days=1)).isoformat()
     response = httpx.post(
@@ -443,6 +536,7 @@ def main() -> None:
         assert_explicit_pay_test_completes_and_retries(txn)
         assert_backend_reserve_idempotency(run_id)
         assert_backend_slot_capacity(run_id)
+        assert_expired_hold_rejects_payment_and_releases_slot(run_id)
         assert_backend_rejects_past_date()
         assert_backend_rejects_same_day()
         assert_ambiguous_branch_requires_clarification(run_id)

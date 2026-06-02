@@ -1,7 +1,7 @@
 export type AgentTransaction = {
   kind: "booking";
   success: boolean;
-  status: "CONFIRMED" | "PAID" | "PENDING_PAYMENT" | "PAYMENT_FAILED" | "FAILED";
+  status: "CONFIRMED" | "PAID" | "PENDING_PAYMENT" | "PAYMENT_FAILED" | "FAILED" | "EXPIRED";
   shop_id?: number | null;
   shop_name?: string | null;
   booking_code?: string | null;
@@ -11,6 +11,8 @@ export type AgentTransaction = {
   table_type?: string | null;
   needs_deposit?: boolean;
   deposit_total?: number | null;
+  hold_expires_at?: string | null;
+  hold_minutes?: number | null;
   rec_trade_id?: string | null;
   payment_amount?: number | null;
   payment_note?: string | null;

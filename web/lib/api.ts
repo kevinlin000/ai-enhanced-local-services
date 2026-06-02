@@ -134,8 +134,10 @@ export type MyBooking = {
   tableType: string;
   needsDeposit: boolean;
   depositTotal: number;
-  status: "PENDING_PAYMENT" | "PAID" | "CONFIRMED" | "CANCELED";
+  status: "PENDING_PAYMENT" | "PAID" | "CONFIRMED" | "CANCELED" | "EXPIRED";
   paymentTransId?: string | null;
+  holdExpiresAt?: string | null;
+  holdMinutes?: number | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   idempotentReplay?: boolean;

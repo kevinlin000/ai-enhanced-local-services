@@ -1098,6 +1098,24 @@ def _booking_intent(query: str) -> bool:
     return any(token in query for token in ("訂", "訂位", "預約", "幫我訂", "我要訂"))
 
 
+def _explicit_same_day_booking_request(query: str) -> bool:
+    if not _booking_intent(query):
+        return False
+    normalized = query.replace(" ", "").replace("　", "")
+    if "明天" in normalized:
+        return False
+    return any(token in normalized for token in ("今天", "今日", "今晚", "今夜"))
+
+
+def _same_day_booking_policy_answer() -> str:
+    tomorrow = taipei_today() + timedelta(days=1)
+    return (
+        "很抱歉，系統規定不可預訂今天的位子。"
+        f"最早可預訂明天（{tomorrow.isoformat()}）。"
+        "請問您需要改訂明天同一時間嗎？"
+    )
+
+
 def _payment_intent(query: str) -> bool:
     return any(token in query for token in ("付款", "支付", "付訂金", "刷卡", "pay", "付款訂金"))
 
@@ -1314,6 +1332,8 @@ def _build_booking_transaction(
         "table_type": booking_result.get("tableType"),
         "needs_deposit": needs_deposit,
         "deposit_total": booking_result.get("depositTotal"),
+        "hold_expires_at": booking_result.get("holdExpiresAt"),
+        "hold_minutes": booking_result.get("holdMinutes"),
         "rec_trade_id": (payment_result or {}).get("rec_trade_id"),
         "payment_amount": (payment_result or {}).get("amount"),
         "payment_note": (payment_result or {}).get("note"),
@@ -1333,7 +1353,8 @@ def _booking_confirmation_narrative(transaction: dict) -> str:
         )
 
     if transaction.get("needs_deposit"):
-        status_line = "訂位已保留，請完成訂金付款。"
+        minutes = transaction.get("hold_minutes") or 10
+        status_line = f"訂位已保留，請於 {minutes} 分鐘內完成訂金付款。"
     else:
         status_line = "訂位已完成。"
 
@@ -1348,6 +1369,8 @@ def _booking_confirmation_narrative(transaction: dict) -> str:
     ]
     if transaction.get("needs_deposit"):
         base.append(f"- 待付訂金：NT$ {transaction.get('deposit_total')}")
+        if transaction.get("hold_expires_at"):
+            base.append(f"- 保留期限：`{transaction.get('hold_expires_at')}`")
     else:
         base.append("- 訂金：免訂金，已直接確認")
     return "\n".join(base)
@@ -1363,6 +1386,7 @@ def _booking_duplicate_narrative(transaction: dict) -> str:
             f"- 人數：{transaction.get('people')} 人",
             f"- 時間：{transaction.get('date')} {transaction.get('time')}",
             f"- 訂位編號：`{transaction.get('booking_code')}`",
+            "- 若尚未付款，請於保留期限內完成訂金付款，否則座位會釋放。",
         ]
     )
 
@@ -1410,6 +1434,8 @@ def _find_duplicate_booking_transaction(history: list[dict], tool_args: dict) ->
         tx = turn.get("transaction") if isinstance(turn, dict) else None
         if not isinstance(tx, dict) or tx.get("kind") != "booking":
             continue
+        if _pending_booking_expired(tx):
+            continue
         if tx.get("status") not in {"PAID", "CONFIRMED", "PENDING_PAYMENT"}:
             continue
         existing_key = _booking_key(
@@ -1430,12 +1456,27 @@ def _latest_successful_booking_transaction(history: list[dict]) -> dict | None:
         tx = turn.get("transaction") if isinstance(turn, dict) else None
         if not isinstance(tx, dict) or tx.get("kind") != "booking":
             continue
+        if _pending_booking_expired(tx):
+            continue
         if tx.get("status") not in {"PAID", "CONFIRMED", "PENDING_PAYMENT"}:
             continue
         duplicate = dict(tx)
         duplicate["duplicate"] = True
         return duplicate
     return None
+
+
+def _pending_booking_expired(tx: dict) -> bool:
+    if tx.get("status") != "PENDING_PAYMENT":
+        return False
+    raw_expiry = tx.get("hold_expires_at")
+    if not raw_expiry:
+        return False
+    try:
+        expiry = datetime.fromisoformat(str(raw_expiry))
+    except ValueError:
+        return False
+    return datetime.now() >= expiry
 
 
 def _build_agent_recommendation_decision(query: str, tool_result: dict) -> AgentRecommendationDecision:
@@ -1859,6 +1900,29 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
     payment_result: dict | None = None
     final_transaction: dict | None = None
     direct_answer: str | None = None
+
+    if _explicit_same_day_booking_request(query):
+        full_answer = _same_day_booking_policy_answer()
+        chunk_size = 18
+        for i in range(0, len(full_answer), chunk_size):
+            yield {"type": "chunk", "content": full_answer[i : i + chunk_size]}
+        if session_id:
+            session_store.save_history(
+                session_id,
+                history + [
+                    {"role": "user", "content": query},
+                    {"role": "model", "content": full_answer},
+                ],
+            )
+        yield {
+            "type": "done",
+            "answer": full_answer,
+            "transaction": None,
+            "tools_used": [],
+            "tool_result": {},
+            "session_id": session_id,
+        }
+        return
 
     # Phase 1: tool-calling loop (sync) — yields tool events as each fires
     for _ in range(4):

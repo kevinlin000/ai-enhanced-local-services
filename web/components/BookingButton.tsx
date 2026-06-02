@@ -42,6 +42,16 @@ const TABLE_TYPES = [
   { label: "包廂", value: "private" },
 ];
 
+function formatHoldCountdown(holdExpiresAt: string | null, nowMs: number) {
+  if (!holdExpiresAt) return "10:00";
+  const remainingMs = new Date(holdExpiresAt).getTime() - nowMs;
+  if (remainingMs <= 0) return "已逾期";
+  const totalSeconds = Math.ceil(remainingMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
 function bookingHeaders(): HeadersInit {
   const token = typeof window !== "undefined"
     ? window.localStorage.getItem("bytebites_token")
@@ -80,6 +90,8 @@ export function BookingButton({
   const [result, setResult] = useState<any>(null);
   const [policy, setPolicy] = useState<BookingPolicy | null>(null);
   const [bookingCode, setBookingCode] = useState<string | null>(null);
+  const [holdExpiresAt, setHoldExpiresAt] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   // 訂位 form state
   const [people, setPeople] = useState(2);
@@ -90,6 +102,9 @@ export function BookingButton({
   const depositTotal = policy?.needsDeposit
     ? policy.depositPerPerson * people
     : 0;
+  const holdExpired = Boolean(
+    holdExpiresAt && new Date(holdExpiresAt).getTime() <= nowMs,
+  );
 
   // 開啟 form 時查訂金政策（只查一次）
   useEffect(() => {
@@ -102,6 +117,12 @@ export function BookingButton({
         setPolicy({ needsDeposit: false, depositPerPerson: 0, reason: "免訂金" });
       });
   }, [step, shop.id, policy]);
+
+  useEffect(() => {
+    if (step !== "select-pay" || !holdExpiresAt) return;
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [holdExpiresAt, step]);
 
   // Init TapPay SDK
   useEffect(() => {
@@ -194,6 +215,8 @@ export function BookingButton({
       const data = await res.json();
       if (data.success) {
         setBookingCode(data.data.bookingCode);
+        setHoldExpiresAt(data.data.holdExpiresAt ?? null);
+        setNowMs(Date.now());
         setStep("select-pay");
       } else {
         setError(data.errorMsg || "建立訂位失敗");
@@ -206,6 +229,10 @@ export function BookingButton({
   // 有訂金流程：TapPay credit card
   const handleCardSubmit = () => {
     setError("");
+    if (holdExpired) {
+      setError("此保留已逾期，請重新建立訂位");
+      return;
+    }
     const status = window.TPDirect.card.getTappayFieldsStatus();
     if (!status.canGetPrime) {
       setError("請完整填寫卡號資料");
@@ -253,6 +280,10 @@ export function BookingButton({
       return;
     }
     setError("");
+    if (holdExpired) {
+      setError("此保留已逾期，請重新建立訂位");
+      return;
+    }
     setStep("processing");
     try {
       const res = await fetch(`${JAVA_API}/api/booking/pay-test`, {
@@ -286,6 +317,7 @@ export function BookingButton({
     setError("");
     setPolicy(null);
     setBookingCode(null);
+    setHoldExpiresAt(null);
   };
 
   if (step === "idle") {
@@ -460,12 +492,17 @@ export function BookingButton({
                 </p>
               </div>
               <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-amber-800">
-                待付款
+                {holdExpired ? "已逾期" : `剩餘 ${formatHoldCountdown(holdExpiresAt, nowMs)}`}
               </span>
             </div>
             {bookingCode ? (
               <p className="font-mono text-xs text-amber-900 mt-3 break-all">
                 訂位編號：{bookingCode}
+              </p>
+            ) : null}
+            {holdExpired ? (
+              <p className="text-xs font-semibold text-red-700 mt-3">
+                此保留已逾期，座位容量將釋放；請關閉後重新建立訂位。
               </p>
             ) : null}
           </div>
@@ -481,7 +518,8 @@ export function BookingButton({
                 onClick={() =>
                   p.real ? setStep("card-input") : handleDemoPay(p.label)
                 }
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted text-sm flex items-center justify-between border"
+                disabled={holdExpired}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted text-sm flex items-center justify-between border disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <span className="font-medium">{p.label}</span>
                 <span
@@ -528,8 +566,8 @@ export function BookingButton({
             />
           </div>
           {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
-          <Button onClick={handleCardSubmit} className="w-full">
-            支付訂金 NT$ {depositTotal.toLocaleString()}
+          <Button onClick={handleCardSubmit} className="w-full" disabled={holdExpired}>
+            {holdExpired ? "保留已逾期" : `支付訂金 NT$ ${depositTotal.toLocaleString()}`}
           </Button>
         </>
       )}

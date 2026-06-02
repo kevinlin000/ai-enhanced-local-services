@@ -4,6 +4,7 @@ import com.bytebites.dto.Result;
 import com.bytebites.dto.UserDTO;
 import com.bytebites.entity.jpa.BookingJpa;
 import com.bytebites.repository.BookingJpaRepository;
+import com.bytebites.service.BookingHoldService;
 import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.IShopService;
 import com.bytebites.utils.UserHolder;
@@ -40,14 +41,11 @@ import java.util.stream.Collectors;
 @RequestMapping({"/booking", "/api/booking"})
 public class BookingController {
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Taipei");
-    private static final int STATUS_PENDING_PAYMENT = 1;
-    private static final int STATUS_PAID = 2;
-    private static final int STATUS_CONFIRMED = 3;
-    private static final int STATUS_CANCELED = 4;
 
     private final BookingJpaRepository bookingRepo;
     private final IShopService shopService;
     private final DepositPolicy depositPolicy;
+    private final BookingHoldService bookingHoldService;
     private final JdbcTemplate jdbcTemplate;
     private final PlatformTransactionManager transactionManager;
 
@@ -124,6 +122,7 @@ public class BookingController {
         if (idempotencyKey != null) {
             var existing = bookingRepo.findByIdempotencyKey(idempotencyKey).orElse(null);
             if (existing != null) {
+                bookingHoldService.expireIfDue(existing);
                 var existingShop = shopService.getById(existing.getShopId());
                 String existingShopName = existingShop != null ? existingShop.getName() : null;
                 return Result.ok(bookingResponse(existing, existingShopName, true));
@@ -131,6 +130,7 @@ public class BookingController {
             lockIdempotencyKey(idempotencyKey);
             existing = bookingRepo.findByIdempotencyKey(idempotencyKey).orElse(null);
             if (existing != null) {
+                bookingHoldService.expireIfDue(existing);
                 var existingShop = shopService.getById(existing.getShopId());
                 String existingShopName = existingShop != null ? existingShop.getName() : null;
                 return Result.ok(bookingResponse(existing, existingShopName, true));
@@ -163,7 +163,10 @@ public class BookingController {
         booking.setNeedsDeposit(pol.isNeedsDeposit());
         booking.setDepositPerPerson(pol.getDepositPerPerson());
         booking.setDepositTotal(pol.isNeedsDeposit() ? pol.getDepositPerPerson() * people : 0);
-        booking.setStatus(pol.isNeedsDeposit() ? STATUS_PENDING_PAYMENT : STATUS_CONFIRMED);
+        booking.setStatus(pol.isNeedsDeposit()
+                ? BookingHoldService.STATUS_PENDING_PAYMENT
+                : BookingHoldService.STATUS_CONFIRMED);
+        booking.setHoldExpiresAt(pol.isNeedsDeposit() ? bookingHoldService.newHoldExpiry() : null);
         booking.setIdempotencyKey(idempotencyKey);
 
         bookingRepo.saveAndFlush(booking);
@@ -210,9 +213,11 @@ public class BookingController {
         BookingJpa b = bookingRepo.findByBookingCode(bookingCode).orElse(null);
         if (b == null)            return Result.fail("訂位不存在");
         if (!canAccessBooking(b)) return Result.fail("無權操作此訂位");
-        if (b.getStatus() == STATUS_CANCELED) return Result.fail("訂位已取消，無法付款");
+        if (b.getStatus() == BookingHoldService.STATUS_CANCELED) return Result.fail("訂位已取消，無法付款");
+        if (b.getStatus() == BookingHoldService.STATUS_EXPIRED) return Result.fail("此保留已逾期，請重新建立訂位");
+        if (bookingHoldService.expireIfDue(b)) return Result.fail("此保留已逾期，請重新建立訂位");
         if (!b.getNeedsDeposit()) return Result.fail("此訂位免訂金、無需付款");
-        if (b.getStatus() == STATUS_PAID) {
+        if (b.getStatus() == BookingHoldService.STATUS_PAID) {
             return Result.ok(Map.of(
                     "bookingCode",  bookingCode,
                     "rec_trade_id", b.getPaymentTransId(),
@@ -225,7 +230,7 @@ public class BookingController {
         // Demo transaction ID（格式仿 TapPay）
         String demoTransId = "DEMO-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
         b.setPaymentTransId(demoTransId);
-        b.setStatus(STATUS_PAID);
+        b.setStatus(BookingHoldService.STATUS_PAID);
         bookingRepo.save(b);
 
         log.info("[Booking pay-test] {} demo-paid via agent, trans={}", bookingCode, demoTransId);
@@ -247,6 +252,7 @@ public class BookingController {
         List<Map<String, Object>> bookings = bookingRepo.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(booking -> {
+                    bookingHoldService.expireIfDue(booking);
                     var shop = shopService.getById(booking.getShopId());
                     String shopName = shop != null ? shop.getName() : null;
                     return bookingResponse(booking, shopName, false);
@@ -269,7 +275,11 @@ public class BookingController {
 
         var shop = shopService.getById(booking.getShopId());
         String shopName = shop != null ? shop.getName() : null;
-        if (booking.getStatus() == STATUS_CANCELED) {
+        if (booking.getStatus() == BookingHoldService.STATUS_CANCELED
+                || booking.getStatus() == BookingHoldService.STATUS_EXPIRED) {
+            return Result.ok(bookingResponse(booking, shopName, true));
+        }
+        if (bookingHoldService.expireIfDue(booking)) {
             return Result.ok(bookingResponse(booking, shopName, true));
         }
 
@@ -280,7 +290,7 @@ public class BookingController {
                 booking.getTableType(),
                 booking.getPeople()
         );
-        booking.setStatus(STATUS_CANCELED);
+        booking.setStatus(BookingHoldService.STATUS_CANCELED);
         bookingRepo.saveAndFlush(booking);
 
         log.info("[Booking cancel] code={} shop={} people={} date={} time={}",
@@ -304,13 +314,17 @@ public class BookingController {
         out.put("depositTotal", booking.getDepositTotal());
         out.put(
                 "status",
-                booking.getStatus() == STATUS_PENDING_PAYMENT
+                booking.getStatus() == BookingHoldService.STATUS_PENDING_PAYMENT
                         ? "PENDING_PAYMENT"
-                        : booking.getStatus() == STATUS_PAID
+                        : booking.getStatus() == BookingHoldService.STATUS_PAID
                         ? "PAID"
-                        : booking.getStatus() == STATUS_CANCELED ? "CANCELED" : "CONFIRMED"
+                        : booking.getStatus() == BookingHoldService.STATUS_CANCELED
+                        ? "CANCELED"
+                        : booking.getStatus() == BookingHoldService.STATUS_EXPIRED ? "EXPIRED" : "CONFIRMED"
         );
         out.put("paymentTransId", booking.getPaymentTransId());
+        out.put("holdExpiresAt", booking.getHoldExpiresAt() != null ? booking.getHoldExpiresAt().toString() : null);
+        out.put("holdMinutes", BookingHoldService.HOLD_MINUTES);
         out.put("createdAt", booking.getCreatedAt() != null ? booking.getCreatedAt().toString() : null);
         out.put("updatedAt", booking.getUpdatedAt() != null ? booking.getUpdatedAt().toString() : null);
         out.put("idempotentReplay", idempotentReplay);
