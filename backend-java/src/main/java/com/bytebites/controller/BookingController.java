@@ -7,11 +7,13 @@ import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.IShopService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -65,6 +67,21 @@ public class BookingController {
         if (!table.equals("normal") && !table.equals("bar") && !table.equals("private")) {
             return Result.fail("tableType 僅支援 normal/bar/private");
         }
+        String idempotencyKey = body.get("idempotencyKey") != null
+                ? body.get("idempotencyKey").toString().trim()
+                : null;
+        if (idempotencyKey != null && idempotencyKey.isBlank()) idempotencyKey = null;
+        if (idempotencyKey != null && idempotencyKey.length() > 120) {
+            return Result.fail("idempotencyKey 長度不可超過 120");
+        }
+        if (idempotencyKey != null) {
+            var existing = bookingRepo.findByIdempotencyKey(idempotencyKey).orElse(null);
+            if (existing != null) {
+                var existingShop = shopService.getById(existing.getShopId());
+                String existingShopName = existingShop != null ? existingShop.getName() : null;
+                return Result.ok(bookingResponse(existing, existingShopName, true));
+            }
+        }
 
         // 查訂金政策
         var shop     = shopService.getById(shopId);
@@ -87,25 +104,27 @@ public class BookingController {
         booking.setDepositPerPerson(pol.getDepositPerPerson());
         booking.setDepositTotal(pol.isNeedsDeposit() ? pol.getDepositPerPerson() * people : 0);
         booking.setStatus(pol.isNeedsDeposit() ? 1 : 3);  // 1=待付款, 3=已確認
+        booking.setIdempotencyKey(idempotencyKey);
 
-        bookingRepo.save(booking);
+        try {
+            bookingRepo.save(booking);
+        } catch (DataIntegrityViolationException ex) {
+            if (idempotencyKey != null) {
+                var existing = bookingRepo.findByIdempotencyKey(idempotencyKey).orElse(null);
+                if (existing != null) {
+                    var existingShop = shopService.getById(existing.getShopId());
+                    String existingShopName = existingShop != null ? existingShop.getName() : null;
+                    return Result.ok(bookingResponse(existing, existingShopName, true));
+                }
+            }
+            throw ex;
+        }
 
         log.info("[Booking] code={} shop={} people={} date={} time={} table={} needsDeposit={} status={}",
                 booking.getBookingCode(), shopId, people, bookingDate, time, table,
                 pol.isNeedsDeposit(), booking.getStatus());
 
-        return Result.ok(Map.of(
-                "bookingCode",  booking.getBookingCode(),
-                "shopId",       shopId,
-                "shopName",     shopName != null ? shopName : "店家 " + shopId,
-                "people",       people,
-                "date",         bookingDate.toString(),
-                "time",         time,
-                "tableType",    table,
-                "needsDeposit", pol.isNeedsDeposit(),
-                "depositTotal", booking.getDepositTotal(),
-                "status",       pol.isNeedsDeposit() ? "PENDING_PAYMENT" : "CONFIRMED"
-        ));
+        return Result.ok(bookingResponse(booking, shopName, false));
     }
 
     /**
@@ -148,5 +167,26 @@ public class BookingController {
                 "status",       "PAID",
                 "note",         "agent demo 付款，非真實 TapPay"
         ));
+    }
+
+    private Map<String, Object> bookingResponse(BookingJpa booking, String shopName, boolean idempotentReplay) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("bookingCode", booking.getBookingCode());
+        out.put("shopId", booking.getShopId());
+        out.put("shopName", shopName != null ? shopName : "店家 " + booking.getShopId());
+        out.put("people", booking.getPeople());
+        out.put("date", booking.getBookingDate().toString());
+        out.put("time", booking.getBookingTime());
+        out.put("tableType", booking.getTableType());
+        out.put("needsDeposit", booking.getNeedsDeposit());
+        out.put("depositTotal", booking.getDepositTotal());
+        out.put(
+                "status",
+                booking.getStatus() == 1
+                        ? "PENDING_PAYMENT"
+                        : booking.getStatus() == 2 ? "PAID" : "CONFIRMED"
+        );
+        out.put("idempotentReplay", idempotentReplay);
+        return out;
     }
 }

@@ -8,6 +8,7 @@ Checks:
 - Backend rejects past-date reservations.
 - Ambiguous multi-branch brand bookings ask for branch selection before booking.
 - Repeating the same booking request in one Agent session reuses the existing booking.
+- Backend reserve idempotency key handles duplicate/racing requests.
 
 Prereqs: Java backend, AI service, MySQL, Qdrant, and Gemini env are running.
 """
@@ -19,6 +20,7 @@ import json
 import os
 import sys
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from typing import Any
 
@@ -80,7 +82,8 @@ def fetch_booking(booking_code: str) -> dict[str, Any] | None:
             cur.execute(
                 """
                 select booking_code, shop_id, people, booking_date, booking_time,
-                       status, needs_deposit, deposit_total, payment_trans_id
+                       status, needs_deposit, deposit_total, payment_trans_id,
+                       idempotency_key
                 from tb_booking
                 where booking_code = %s
                 """,
@@ -93,6 +96,12 @@ def delete_booking(booking_code: str) -> None:
     with mysql_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("delete from tb_booking where booking_code = %s", (booking_code,))
+
+
+def delete_booking_by_idempotency_key(idempotency_key: str) -> None:
+    with mysql_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("delete from tb_booking where idempotency_key = %s", (idempotency_key,))
 
 
 def assert_agent_transaction(events: list[dict[str, Any]]) -> dict[str, Any]:
@@ -134,6 +143,8 @@ def assert_db_row(txn: dict[str, Any]) -> None:
         fail(f"payment trans mismatch: db={row['payment_trans_id']} txn={txn['rec_trade_id']}")
     if str(row["booking_date"]) != txn["date"]:
         fail(f"booking date mismatch: db={row['booking_date']} txn={txn['date']}")
+    if not row.get("idempotency_key"):
+        fail(f"booking row missing idempotency_key: {row}")
     ok("MySQL row matches paid transaction")
 
 
@@ -175,6 +186,41 @@ def assert_agent_duplicate_booking_reuses_transaction(session_id: str, txn: dict
     if not duplicate_txn.get("duplicate"):
         fail(f"duplicate booking transaction missing duplicate marker: {duplicate_txn}")
     ok("duplicate Agent booking request reuses existing transaction")
+
+
+def reserve_with_idempotency_key(idempotency_key: str) -> dict[str, Any]:
+    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    response = httpx.post(
+        f"{JAVA_BACKEND_URL}/api/booking/reserve",
+        json={
+            "shopId": 10115,
+            "people": 2,
+            "date": tomorrow,
+            "time": "18:30",
+            "tableType": "normal",
+            "idempotencyKey": idempotency_key,
+        },
+        timeout=15,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if not payload.get("success"):
+        fail(f"idempotent reserve failed: {payload}")
+    return payload["data"]
+
+
+def assert_backend_reserve_idempotency(run_id: str) -> None:
+    idempotency_key = f"smoke-idem-{run_id}"
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first, second = list(pool.map(reserve_with_idempotency_key, [idempotency_key, idempotency_key]))
+        if first["bookingCode"] != second["bookingCode"]:
+            fail(f"idempotent reserve returned different booking codes: {first}, {second}")
+        if not (first.get("idempotentReplay") or second.get("idempotentReplay")):
+            fail(f"idempotent reserve did not mark either response as replay: {first}, {second}")
+        ok("backend reserve idempotency key handles duplicate requests")
+    finally:
+        delete_booking_by_idempotency_key(idempotency_key)
 
 
 def assert_backend_rejects_past_date() -> None:
@@ -239,6 +285,7 @@ def main() -> None:
         assert_db_row(txn)
         assert_pay_retry_idempotent(txn)
         assert_agent_duplicate_booking_reuses_transaction(session_id, txn)
+        assert_backend_reserve_idempotency(run_id)
         assert_backend_rejects_past_date()
         assert_ambiguous_branch_requires_clarification(run_id)
     finally:

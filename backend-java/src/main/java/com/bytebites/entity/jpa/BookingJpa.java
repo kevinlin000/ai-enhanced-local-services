@@ -57,6 +57,10 @@ public class BookingJpa {
     @Column(name = "payment_trans_id", length = 100)
     private String paymentTransId;
 
+    /** Client/Agent supplied idempotency key for retry-safe reservation creation. */
+    @Column(name = "idempotency_key", unique = true, length = 120)
+    private String idempotencyKey;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

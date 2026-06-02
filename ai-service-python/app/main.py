@@ -834,6 +834,7 @@ async def tool_create_booking(
     date: str = None,
     time: str = None,
     table_type: str = "normal",
+    idempotency_key: str | None = None,
 ) -> dict:
     """建立訂位記錄，回 bookingCode + needsDeposit + depositTotal。"""
     from datetime import date as date_cls, timedelta
@@ -853,7 +854,14 @@ async def tool_create_booking(
     async with httpx.AsyncClient(timeout=10.0) as client:
         r = await client.post(
             f"{settings.java_backend_url}/api/booking/reserve",
-            json={"shopId": shop_id, "people": people, "date": date, "time": time, "tableType": table_type},
+            json={
+                "shopId": shop_id,
+                "people": people,
+                "date": date,
+                "time": time,
+                "tableType": table_type,
+                **({"idempotencyKey": idempotency_key} if idempotency_key else {}),
+            },
         )
     if r.status_code != 200:
         return {"success": False, "error": f"HTTP {r.status_code}"}
@@ -1291,6 +1299,7 @@ def _build_booking_transaction(
         "rec_trade_id": (payment_result or {}).get("rec_trade_id"),
         "payment_amount": (payment_result or {}).get("amount"),
         "payment_note": (payment_result or {}).get("note"),
+        "idempotent_replay": bool(booking_result.get("idempotentReplay")),
         "error": booking_result.get("error") or (payment_result or {}).get("error"),
     }
 
@@ -1357,6 +1366,17 @@ def _booking_key_from_tool_args(tool_args: dict) -> tuple | None:
         return _booking_key(int(raw_shop_id), int(raw_people), str(booking_date), str(booking_time))
     except (TypeError, ValueError):
         return None
+
+
+def _agent_booking_idempotency_key(session_id: str, tool_args: dict) -> str | None:
+    key = _booking_key_from_tool_args(tool_args)
+    if key is None:
+        return None
+    shop_id, people, booking_date, booking_time = key
+    table_type = str(tool_args.get("table_type") or "normal")
+    session_part = session_id or "anonymous"
+    raw = f"agent:{session_part}:{shop_id}:{people}:{booking_date}:{booking_time}:{table_type}"
+    return raw[:120]
 
 
 def _find_duplicate_booking_transaction(history: list[dict], tool_args: dict) -> dict | None:
@@ -1868,6 +1888,9 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 final_transaction = duplicate_transaction
                 last_tool_result = {"transaction": duplicate_transaction}
                 break
+            idempotency_key = _agent_booking_idempotency_key(session_id, tool_args)
+            if idempotency_key:
+                tool_args["idempotency_key"] = idempotency_key
 
         tool_result = await tool_fn(**tool_args)
         tools_used.append(tool_name)
