@@ -7,7 +7,9 @@ import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.IShopService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -32,12 +34,15 @@ public class BookingController {
     private final BookingJpaRepository bookingRepo;
     private final IShopService shopService;
     private final DepositPolicy depositPolicy;
+    private final JdbcTemplate jdbcTemplate;
+
     /**
      * 建立訂位記錄並寫 DB。
      * needsDeposit=true  → status=1(待付款)，等 TapPay 回寫。
      * needsDeposit=false → status=3(已確認)。
      */
     @PostMapping("/reserve")
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Result reserve(@RequestBody Map<String, Object> body) {
         if (body.get("shopId") == null) return Result.fail("shopId 必填");
         if (body.get("date") == null)   return Result.fail("date 必填");
@@ -81,6 +86,13 @@ public class BookingController {
                 String existingShopName = existingShop != null ? existingShop.getName() : null;
                 return Result.ok(bookingResponse(existing, existingShopName, true));
             }
+            lockIdempotencyKey(idempotencyKey);
+            existing = bookingRepo.findByIdempotencyKey(idempotencyKey).orElse(null);
+            if (existing != null) {
+                var existingShop = shopService.getById(existing.getShopId());
+                String existingShopName = existingShop != null ? existingShop.getName() : null;
+                return Result.ok(bookingResponse(existing, existingShopName, true));
+            }
         }
 
         // 查訂金政策
@@ -91,6 +103,15 @@ public class BookingController {
         Integer avgPrice = shop != null && shop.getAvgPrice() != null ? shop.getAvgPrice().intValue() : null;
         String  shopName = shop != null ? shop.getName() : null;
         DepositPolicy.Result pol = depositPolicy.evaluate(shopId, shopName, typeId, score, avgPrice);
+
+        ensureSlotInventory(shopId, bookingDate, time, table);
+        Map<String, Object> slot = lockSlotInventory(shopId, bookingDate, time, table);
+
+        int capacity = ((Number) slot.get("capacity")).intValue();
+        int bookedCount = ((Number) slot.get("booked_count")).intValue();
+        if (bookedCount + people > capacity) {
+            return Result.fail("該時段目前已額滿，請選擇其他時間");
+        }
 
         // 建 booking 記錄
         BookingJpa booking = new BookingJpa();
@@ -106,25 +127,34 @@ public class BookingController {
         booking.setStatus(pol.isNeedsDeposit() ? 1 : 3);  // 1=待付款, 3=已確認
         booking.setIdempotencyKey(idempotencyKey);
 
-        try {
-            bookingRepo.save(booking);
-        } catch (DataIntegrityViolationException ex) {
-            if (idempotencyKey != null) {
-                var existing = bookingRepo.findByIdempotencyKey(idempotencyKey).orElse(null);
-                if (existing != null) {
-                    var existingShop = shopService.getById(existing.getShopId());
-                    String existingShopName = existingShop != null ? existingShop.getName() : null;
-                    return Result.ok(bookingResponse(existing, existingShopName, true));
-                }
-            }
-            throw ex;
-        }
+        bookingRepo.saveAndFlush(booking);
+        incrementBookedCount(shopId, bookingDate, time, table, people);
 
         log.info("[Booking] code={} shop={} people={} date={} time={} table={} needsDeposit={} status={}",
                 booking.getBookingCode(), shopId, people, bookingDate, time, table,
                 pol.isNeedsDeposit(), booking.getStatus());
 
         return Result.ok(bookingResponse(booking, shopName, false));
+    }
+
+    private void lockIdempotencyKey(String idempotencyKey) {
+        jdbcTemplate.update(
+                """
+                INSERT IGNORE INTO tb_booking_idempotency_lock (idempotency_key)
+                VALUES (?)
+                """,
+                idempotencyKey
+        );
+        jdbcTemplate.queryForObject(
+                """
+                SELECT idempotency_key
+                FROM tb_booking_idempotency_lock
+                WHERE idempotency_key = ?
+                FOR UPDATE
+                """,
+                String.class,
+                idempotencyKey
+        );
     }
 
     /**
@@ -188,5 +218,58 @@ public class BookingController {
         );
         out.put("idempotentReplay", idempotentReplay);
         return out;
+    }
+
+    private void ensureSlotInventory(Long shopId, LocalDate bookingDate, String time, String tableType) {
+        jdbcTemplate.update(
+                """
+                INSERT IGNORE INTO tb_booking_slot_inventory
+                    (shop_id, booking_date, booking_time, table_type, capacity, booked_count)
+                VALUES (?, ?, ?, ?, ?, 0)
+                """,
+                shopId,
+                bookingDate,
+                time,
+                tableType,
+                defaultSlotCapacity(tableType)
+        );
+    }
+
+    private Map<String, Object> lockSlotInventory(Long shopId, LocalDate bookingDate, String time, String tableType) {
+        return jdbcTemplate.queryForMap(
+                """
+                SELECT capacity, booked_count
+                FROM tb_booking_slot_inventory
+                WHERE shop_id = ? AND booking_date = ? AND booking_time = ? AND table_type = ?
+                FOR UPDATE
+                """,
+                shopId,
+                bookingDate,
+                time,
+                tableType
+        );
+    }
+
+    private void incrementBookedCount(Long shopId, LocalDate bookingDate, String time, String tableType, int people) {
+        jdbcTemplate.update(
+                """
+                UPDATE tb_booking_slot_inventory
+                SET booked_count = booked_count + ?
+                WHERE shop_id = ? AND booking_date = ? AND booking_time = ? AND table_type = ?
+                """,
+                people,
+                shopId,
+                bookingDate,
+                time,
+                tableType
+        );
+    }
+
+    private int defaultSlotCapacity(String tableType) {
+        return switch (tableType) {
+            case "private" -> 4;
+            case "bar" -> 6;
+            default -> 8;
+        };
     }
 }

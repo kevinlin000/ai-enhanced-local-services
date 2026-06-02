@@ -9,6 +9,7 @@ Checks:
 - Ambiguous multi-branch brand bookings ask for branch selection before booking.
 - Repeating the same booking request in one Agent session reuses the existing booking.
 - Backend reserve idempotency key handles duplicate/racing requests.
+- Simulated slot inventory rejects over-capacity reservations.
 
 Prereqs: Java backend, AI service, MySQL, Qdrant, and Gemini env are running.
 """
@@ -81,7 +82,7 @@ def fetch_booking(booking_code: str) -> dict[str, Any] | None:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                select booking_code, shop_id, people, booking_date, booking_time,
+                select booking_code, shop_id, people, booking_date, booking_time, table_type,
                        status, needs_deposit, deposit_total, payment_trans_id,
                        idempotency_key
                 from tb_booking
@@ -92,16 +93,65 @@ def fetch_booking(booking_code: str) -> dict[str, Any] | None:
             return cur.fetchone()
 
 
+def release_slot_for_booking(row: dict[str, Any]) -> None:
+    with mysql_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                update tb_booking_slot_inventory
+                set booked_count = greatest(booked_count - %s, 0)
+                where shop_id = %s
+                  and booking_date = %s
+                  and booking_time = %s
+                  and table_type = %s
+                """,
+                (
+                    row["people"],
+                    row["shop_id"],
+                    row["booking_date"],
+                    row["booking_time"],
+                    row["table_type"],
+                ),
+            )
+
+
+def delete_idempotency_lock(idempotency_key: str | None) -> None:
+    if not idempotency_key:
+        return
+    with mysql_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "delete from tb_booking_idempotency_lock where idempotency_key = %s",
+                (idempotency_key,),
+            )
+
+
 def delete_booking(booking_code: str) -> None:
+    row = fetch_booking(booking_code)
     with mysql_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("delete from tb_booking where booking_code = %s", (booking_code,))
+    if row:
+        release_slot_for_booking(row)
+        delete_idempotency_lock(row.get("idempotency_key"))
 
 
 def delete_booking_by_idempotency_key(idempotency_key: str) -> None:
     with mysql_conn() as conn:
         with conn.cursor() as cur:
+            cur.execute(
+                """
+                select booking_code, shop_id, people, booking_date, booking_time, table_type
+                from tb_booking
+                where idempotency_key = %s
+                """,
+                (idempotency_key,),
+            )
+            rows = cur.fetchall()
             cur.execute("delete from tb_booking where idempotency_key = %s", (idempotency_key,))
+    for row in rows:
+        release_slot_for_booking(row)
+    delete_idempotency_lock(idempotency_key)
 
 
 def assert_agent_transaction(events: list[dict[str, Any]]) -> dict[str, Any]:
@@ -223,6 +273,42 @@ def assert_backend_reserve_idempotency(run_id: str) -> None:
         delete_booking_by_idempotency_key(idempotency_key)
 
 
+def reserve_capacity_case(idempotency_key: str, booking_date: str) -> dict[str, Any]:
+    response = httpx.post(
+        f"{JAVA_BACKEND_URL}/api/booking/reserve",
+        json={
+            "shopId": 10115,
+            "people": 5,
+            "date": booking_date,
+            "time": "18:30",
+            "tableType": "normal",
+            "idempotencyKey": idempotency_key,
+        },
+        timeout=15,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def assert_backend_slot_capacity(run_id: str) -> None:
+    booking_date = (date.today() + timedelta(days=9)).isoformat()
+    keys = [f"smoke-capacity-a-{run_id}", f"smoke-capacity-b-{run_id}"]
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first, second = list(pool.map(lambda key: reserve_capacity_case(key, booking_date), keys))
+        payloads = [first, second]
+        successes = [payload for payload in payloads if payload.get("success")]
+        failures = [payload for payload in payloads if payload.get("success") is False]
+        if len(successes) != 1 or len(failures) != 1:
+            fail(f"capacity test expected one success and one failure: {payloads}")
+        if "額滿" not in str(failures[0].get("errorMsg") or ""):
+            fail(f"capacity failure did not explain sold-out slot: {failures[0]}")
+        ok("backend slot inventory rejects over-capacity reservations")
+    finally:
+        for key in keys:
+            delete_booking_by_idempotency_key(key)
+
+
 def assert_backend_rejects_past_date() -> None:
     yesterday = (date.today() - timedelta(days=1)).isoformat()
     response = httpx.post(
@@ -286,6 +372,7 @@ def main() -> None:
         assert_pay_retry_idempotent(txn)
         assert_agent_duplicate_booking_reuses_transaction(session_id, txn)
         assert_backend_reserve_idempotency(run_id)
+        assert_backend_slot_capacity(run_id)
         assert_backend_rejects_past_date()
         assert_ambiguous_branch_requires_clarification(run_id)
     finally:
