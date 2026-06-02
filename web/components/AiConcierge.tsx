@@ -18,6 +18,9 @@ type Msg = {
   content: string;
   hits?: Hit[];
   tools_used?: string[];
+  query?: string;
+  done?: boolean;
+  hasShops?: boolean;
 };
 
 export function AiConcierge() {
@@ -53,7 +56,7 @@ export function AiConcierge() {
     setMessages((prev) => [
       ...prev,
       { role: "user", content: msg },
-      { role: "ai", content: "", tools_used: [] },
+      { role: "ai", content: "", tools_used: [], query: msg },
     ]);
     setLoading(true);
     try {
@@ -78,6 +81,8 @@ export function AiConcierge() {
               return next;
             });
           } else if (event.type === "done") {
+            const toolResult = event.tool_result as { shops?: unknown[] } | undefined;
+            const hasShops = (toolResult?.shops?.length ?? 0) > 0;
             setMessages((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
@@ -86,6 +91,8 @@ export function AiConcierge() {
                 ...last,
                 content: event.answer || last.content,
                 tools_used: event.tools_used ?? last.tools_used,
+                done: true,
+                hasShops,
               };
               return next;
             });
@@ -213,6 +220,18 @@ export function AiConcierge() {
                             → {h.name} · {h.district}
                           </Link>
                         ))}
+                      </div>
+                    )}
+
+                    {m.role === "ai" && m.done && m.hasShops && m.query && (
+                      <div className="mt-3 border-t border-foreground/10 pt-2.5 text-center">
+                        <Link
+                          href={`/ai?q=${encodeURIComponent(m.query)}`}
+                          onClick={() => setOpen(false)}
+                          className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition"
+                        >
+                          想看詳細卡片？在 AI Chat 查看完整推薦 →
+                        </Link>
                       </div>
                     )}
                   </div>

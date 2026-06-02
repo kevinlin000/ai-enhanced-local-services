@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { aiApi, type SearchHit } from "@/lib/api";
 import { streamAgentResponse } from "@/lib/agentStream";
 import { AgentShopCard, type AgentShop } from "@/components/AgentShopCard";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const AI_API = "";
 
@@ -306,13 +308,21 @@ export default function AiPage() {
               >
                 <div className={m.role === "user" ? "max-w-[80%]" : "w-full"}>
                   <div
-                    className={`px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap ${
+                    className={`px-3 py-2 rounded-2xl text-sm ${
                       m.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-br-sm"
+                        ? "bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap"
                         : "bg-muted rounded-bl-sm"
                     }`}
                   >
-                    {m.content}
+                    {m.role === "user" ? (
+                      m.content
+                    ) : (
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {m.content}
+                        </ReactMarkdown>
+                      </div>
+                    )}
                   </div>
                   {m.toolsUsed && m.toolsUsed.length > 0 && (
                     <div className="mt-1 flex flex-wrap gap-1">
