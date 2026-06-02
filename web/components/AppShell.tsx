@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   Bell,
   BookOpen,
@@ -11,8 +12,10 @@ import {
   Heart,
   LogIn,
   LogOut,
+  Menu,
   MessageSquareText,
   PenSquare,
+  Search,
   UserCircle,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -59,26 +62,57 @@ function isActive(pathname: string, href: string) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isLoggedIn, login, logout, mounted } = useAuth();
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("bytebites_sidebar_collapsed");
+    if (stored === "true") setCollapsed(true);
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((current) => {
+      const next = !current;
+      window.localStorage.setItem("bytebites_sidebar_collapsed", String(next));
+      return next;
+    });
+  };
+
+  const shellClass = collapsed
+    ? "min-h-screen bg-[#f6f1e8] text-[#171512] md:grid md:grid-cols-[84px_minmax(0,1fr)]"
+    : "min-h-screen bg-[#f6f1e8] text-[#171512] md:grid md:grid-cols-[292px_minmax(0,1fr)]";
 
   return (
-    <div className="min-h-screen bg-[#f6f1e8] text-[#171512] md:grid md:grid-cols-[292px_minmax(0,1fr)]">
+    <div className={shellClass}>
       <aside className="hidden border-r border-black/10 bg-[#f7f3ec] md:sticky md:top-0 md:flex md:h-screen md:flex-col">
-        <div className="flex h-24 items-center px-8">
-          <Link href="/" className="text-4xl font-black tracking-[-0.08em]">
-            bb
+        <div className={`flex h-24 items-center ${collapsed ? "justify-center px-2" : "justify-between px-8"}`}>
+          <Link href="/" className={`${collapsed ? "text-3xl" : "text-4xl"} font-black tracking-[-0.08em]`}>
+            {collapsed ? "b" : "bb"}
           </Link>
+          {!collapsed ? (
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              className="rounded-full p-2 text-zinc-500 hover:bg-black/5 hover:text-zinc-900"
+              aria-label="收合側欄"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          ) : null}
         </div>
 
-        <div className="px-6 pb-5">
+        <div className={`${collapsed ? "px-3" : "px-6"} pb-5`}>
           <button
             type="button"
             onClick={() => {
               if (pathname !== "/ai") window.location.href = "/ai";
             }}
-            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-base font-bold hover:bg-black/5"
+            className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-base font-bold hover:bg-black/5 ${
+              collapsed ? "justify-center" : ""
+            }`}
+            title="開始新對話"
           >
             <PenSquare className="h-5 w-5" />
-            開始新對話
+            {!collapsed ? "開始新對話" : null}
           </button>
         </div>
 
@@ -86,49 +120,59 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = isActive(pathname, item.href);
-            const className = `flex items-center gap-4 rounded-xl px-5 py-3 text-[15px] font-bold transition ${
+            const className = `flex items-center rounded-xl py-3 text-[15px] font-bold transition ${
               active
                 ? "bg-[#e9ddbd] text-[#171512]"
                 : item.disabled
                   ? "cursor-not-allowed text-zinc-400"
                   : "text-[#27231d] hover:bg-black/5"
-            }`;
+            } ${collapsed ? "justify-center px-3" : "gap-4 px-5"}`;
 
             if (item.disabled) {
               return (
                 <div key={item.label} className={className} title="後續加入食記功能">
                   <Icon className="h-5 w-5" />
-                  <span className="flex-1">{item.label}</span>
-                  <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-zinc-400">
-                    soon
-                  </span>
+                  {!collapsed ? (
+                    <>
+                      <span className="flex-1">{item.label}</span>
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-zinc-400">
+                        soon
+                      </span>
+                    </>
+                  ) : null}
                 </div>
               );
             }
 
             return (
-              <Link key={item.label} href={item.href} className={className}>
+              <Link key={item.label} href={item.href} className={className} title={item.label}>
                 <Icon className="h-5 w-5" />
-                <span className="flex-1">{item.label}</span>
-                <ChevronRight className="h-4 w-4 opacity-60" />
+                {!collapsed ? (
+                  <>
+                    <span className="flex-1">{item.label}</span>
+                    <ChevronRight className="h-4 w-4 opacity-60" />
+                  </>
+                ) : null}
               </Link>
             );
           })}
         </nav>
 
-        <div className="space-y-3 px-6 py-6">
-          <div className="flex items-center gap-3 rounded-2xl px-3 py-3">
+        <div className={`space-y-3 ${collapsed ? "px-3" : "px-6"} py-6`}>
+          <div className={`flex items-center gap-3 rounded-2xl px-3 py-3 ${collapsed ? "justify-center" : ""}`}>
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white">
               <UserCircle className="h-6 w-6 text-zinc-500" />
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-black">
-                {mounted && isLoggedIn ? "ByteBites User" : "訪客模式"}
-              </p>
-              <p className="text-xs text-zinc-500">
-                {mounted && isLoggedIn ? "LINE 已登入" : "Demo mode"}
-              </p>
-            </div>
+            {!collapsed ? (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-black">
+                  {mounted && isLoggedIn ? "ByteBites User" : "訪客模式"}
+                </p>
+                <p className="text-xs text-zinc-500">
+                  {mounted && isLoggedIn ? "LINE 已登入" : "Demo mode"}
+                </p>
+              </div>
+            ) : null}
           </div>
 
           {mounted ? (
@@ -136,28 +180,55 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={logout}
-                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-bold hover:bg-black/5"
+                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-bold hover:bg-black/5 ${
+                  collapsed ? "justify-center" : ""
+                }`}
+                title="登出"
               >
                 <LogOut className="h-5 w-5" />
-                登出
+                {!collapsed ? "登出" : null}
               </button>
             ) : (
               <button
                 type="button"
                 onClick={login}
-                className="flex w-full items-center gap-3 rounded-2xl bg-emerald-700 px-4 py-3 text-left text-sm font-black text-white hover:bg-emerald-800"
+                className={`flex w-full items-center gap-3 rounded-2xl bg-emerald-700 px-4 py-3 text-left text-sm font-black text-white hover:bg-emerald-800 ${
+                  collapsed ? "justify-center" : ""
+                }`}
+                title="用 LINE 登入"
               >
                 <LogIn className="h-5 w-5" />
-                用 LINE 登入
+                {!collapsed ? "用 LINE 登入" : null}
               </button>
             )
           ) : null}
 
-          <p className="px-3 text-[11px] text-zinc-400">Version: 1.4.0</p>
+          {!collapsed ? <p className="px-3 text-[11px] text-zinc-400">Version: 1.4.0</p> : null}
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-col">
+        <header className="sticky top-0 z-40 hidden h-16 items-center justify-between border-b border-black/10 bg-[#f7f3ec]/92 px-7 backdrop-blur md:flex">
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            className="rounded-full p-2 text-zinc-600 hover:bg-black/5 hover:text-zinc-950"
+            aria-label={collapsed ? "展開側欄" : "收合側欄"}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <Link href="/" className="text-4xl font-black tracking-[-0.06em]">
+            ByteBites
+          </Link>
+          <Link
+            href="/ai"
+            className="flex w-[280px] items-center gap-2 rounded-full border border-black/10 bg-[#eee8dc] px-4 py-2.5 text-sm font-bold text-zinc-500 transition hover:bg-white"
+          >
+            <Search className="h-4 w-4" />
+            找餐廳 問 ByteBites AI
+          </Link>
+        </header>
+
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-black/10 bg-[#f7f3ec]/90 px-4 backdrop-blur md:hidden">
           <Link href="/" className="text-2xl font-black tracking-[-0.08em]">
             bb
