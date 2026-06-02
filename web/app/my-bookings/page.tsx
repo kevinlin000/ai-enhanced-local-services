@@ -88,6 +88,7 @@ export default function MyBookingsPage() {
   const [error, setError] = useState("");
   const [busyCode, setBusyCode] = useState<string | null>(null);
   const [paymentBooking, setPaymentBooking] = useState<MyBooking | null>(null);
+  const [cancelBooking, setCancelBooking] = useState<MyBooking | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("credit_card");
   const [paymentError, setPaymentError] = useState("");
   const [allowDemoFallback, setAllowDemoFallback] = useState(false);
@@ -195,6 +196,16 @@ export default function MyBookingsPage() {
     setAllowDemoFallback(false);
   };
 
+  const openCancel = (booking: MyBooking) => {
+    setError("");
+    setCancelBooking(booking);
+  };
+
+  const closeCancel = () => {
+    if (busyCode) return;
+    setCancelBooking(null);
+  };
+
   const completeDemoAuthorization = async () => {
     if (!paymentBooking) return;
     setBusyCode(paymentBooking.bookingCode);
@@ -286,15 +297,17 @@ export default function MyBookingsPage() {
     }
   };
 
-  const cancel = async (bookingCode: string) => {
-    setBusyCode(bookingCode);
+  const confirmCancel = async () => {
+    if (!cancelBooking) return;
+    setBusyCode(cancelBooking.bookingCode);
     setError("");
     try {
-      const response = await javaApi.cancelBooking(bookingCode);
+      const response = await javaApi.cancelBooking(cancelBooking.bookingCode);
       if (!response.success) {
         setError(response.errorMsg ?? "取消訂位失敗");
       }
       await loadBookings();
+      setCancelBooking(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "取消訂位失敗");
     } finally {
@@ -419,7 +432,7 @@ export default function MyBookingsPage() {
                         {canCancel ? (
                           <Button
                             variant="outline"
-                            onClick={() => cancel(booking.bookingCode)}
+                            onClick={() => openCancel(booking)}
                             disabled={busy}
                             className="rounded-full px-5"
                           >
@@ -587,6 +600,58 @@ export default function MyBookingsPage() {
                   : paymentMethod === "credit_card"
                     ? "取得 TapPay prime 並付款"
                     : "確認 demo 授權付款"}
+              </Button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {cancelBooking ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4 backdrop-blur-sm">
+          <section className="w-full max-w-lg overflow-hidden rounded-[1.5rem] border border-black/10 bg-white shadow-2xl">
+            <div className="border-b border-zinc-200 bg-[#fffdf8] px-6 py-5">
+              <p className="text-sm font-bold uppercase tracking-[0.22em] text-red-600">Cancel reservation</p>
+              <h2 className="mt-2 text-2xl font-black">確認取消訂位？</h2>
+              <p className="mt-2 text-sm leading-6 text-zinc-500">
+                取消後此訂位會標記為已取消，店家時段容量會立即釋放。此 demo 不處理退款流程。
+              </p>
+            </div>
+
+            <div className="space-y-4 px-6 py-5">
+              <div className="rounded-2xl border border-zinc-200 bg-[#fffdf8] p-4">
+                <p className="text-lg font-black">{cancelBooking.shopName}</p>
+                <p className="mt-1 font-mono text-sm text-zinc-500">{cancelBooking.bookingCode}</p>
+                <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">時間</p>
+                    <p className="mt-1 font-bold">{formatDateTime(cancelBooking)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">人數</p>
+                    <p className="mt-1 font-bold">{cancelBooking.people} 人</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">狀態</p>
+                    <p className="mt-1 font-bold">{statusCopy[cancelBooking.status].label}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+                若這是已付款訂位，目前僅示範取消與容量釋放；正式產品需再接退款/取消政策。
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 border-t border-zinc-200 bg-white px-6 py-5 md:flex-row md:justify-end">
+              <Button variant="outline" onClick={closeCancel} disabled={busyCode === cancelBooking.bookingCode}>
+                保留訂位
+              </Button>
+              <Button
+                onClick={confirmCancel}
+                disabled={busyCode === cancelBooking.bookingCode}
+                className="bg-red-700 px-6 text-white hover:bg-red-800"
+              >
+                {busyCode === cancelBooking.bookingCode ? "取消中..." : "確認取消並釋放容量"}
               </Button>
             </div>
           </section>

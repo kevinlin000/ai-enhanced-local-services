@@ -5,6 +5,7 @@ Checks:
 - done.transaction is structured and pending payment when deposit is required.
 - The booking row exists in MySQL as pending payment.
 - Explicit pay-test completes payment and retry is idempotent.
+- Paid booking cancellation transitions to CANCELED and releases slot inventory.
 - Expired pending holds reject payment and release slot inventory.
 - Backend rejects past-date reservations.
 - Ambiguous multi-branch brand bookings ask for branch selection before booking.
@@ -275,6 +276,62 @@ def assert_explicit_pay_test_completes_and_retries(txn: dict[str, Any]) -> None:
     ok("explicit pay-test completes payment and retry is idempotent")
 
 
+def assert_paid_cancel_releases_slot_inventory(txn: dict[str, Any]) -> None:
+    row = fetch_booking(txn["booking_code"])
+    if not row or row["status"] != 2:
+        fail(f"paid cancel test requires a paid booking row: {row}")
+    before = slot_booked_count(
+        int(row["shop_id"]),
+        str(row["booking_date"]),
+        str(row["booking_time"]),
+        str(row["table_type"]),
+    )
+    if before < int(row["people"]):
+        fail(f"slot booked_count lower than booking people before cancel: row={row} booked_count={before}")
+
+    response = httpx.post(
+        f"{JAVA_BACKEND_URL}/api/booking/{txn['booking_code']}/cancel",
+        headers=DEMO_HEADERS,
+        timeout=15,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if not payload.get("success"):
+        fail(f"paid booking cancel failed: {payload}")
+    canceled = payload.get("data") or {}
+    if canceled.get("status") != "CANCELED":
+        fail(f"paid booking cancel did not return CANCELED: {canceled}")
+
+    after = slot_booked_count(
+        int(row["shop_id"]),
+        str(row["booking_date"]),
+        str(row["booking_time"]),
+        str(row["table_type"]),
+    )
+    expected_after = before - int(row["people"])
+    if after != expected_after:
+        fail(f"cancel did not release slot inventory: before={before} after={after} row={row}")
+
+    retry = httpx.post(
+        f"{JAVA_BACKEND_URL}/api/booking/{txn['booking_code']}/cancel",
+        headers=DEMO_HEADERS,
+        timeout=15,
+    )
+    retry.raise_for_status()
+    retry_payload = retry.json()
+    if not retry_payload.get("success") or (retry_payload.get("data") or {}).get("status") != "CANCELED":
+        fail(f"cancel retry should be idempotent CANCELED: {retry_payload}")
+    if slot_booked_count(
+        int(row["shop_id"]),
+        str(row["booking_date"]),
+        str(row["booking_time"]),
+        str(row["table_type"]),
+    ) != after:
+        fail("cancel retry released slot inventory twice")
+
+    ok("paid booking cancel transitions to CANCELED and releases slot inventory")
+
+
 def assert_agent_duplicate_booking_reuses_transaction(session_id: str, txn: dict[str, Any]) -> None:
     events = stream_agent(
         "幫我訂辛殿麻辣鍋明天18:30 2人",
@@ -534,6 +591,7 @@ def main() -> None:
         assert_db_row_pending_payment(txn)
         assert_agent_duplicate_booking_reuses_transaction(session_id, txn)
         assert_explicit_pay_test_completes_and_retries(txn)
+        assert_paid_cancel_releases_slot_inventory(txn)
         assert_backend_reserve_idempotency(run_id)
         assert_backend_slot_capacity(run_id)
         assert_expired_hold_rejects_payment_and_releases_slot(run_id)
