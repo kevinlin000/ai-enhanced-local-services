@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans_TC } from "next/font/google";
 import { AiConcierge } from "@/components/AiConcierge";
 import { Navbar } from "@/components/Navbar";
+import { NotificationCenterClient } from "@/components/NotificationCenterClient";
 import Script from "next/script";
 import "./globals.css";
 
@@ -37,6 +38,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <Navbar />
+        <NotificationCenterClient />
         {children}
         <AiConcierge />
         {/* 開發環境: 透過 server proxy 載入，繞過 localhost Referer 限制 */}
