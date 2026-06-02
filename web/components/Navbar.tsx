@@ -34,6 +34,11 @@ export function Navbar() {
               空位通知
             </Button>
           </Link>
+          <Link href="/favorites">
+            <Button variant="ghost" size="sm" className="px-2 text-xs md:px-3 md:text-sm">
+              收藏
+            </Button>
+          </Link>
           {mounted
             ? isLoggedIn
               ? (

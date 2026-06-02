@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, DollarSign, MapPin, MessageSquare, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookingButton } from "@/components/BookingButton";
+import { FavoriteShopButton } from "@/components/FavoriteShopButton";
 import { ShopDetailTabs } from "@/components/ShopDetailTabs";
 import { javaApi, type Shop, type ShopAiMetadata, type ShopAbsa, type VoucherOffer } from "@/lib/api";
 import { proxyImageUrl } from "@/lib/photoProxy";
@@ -472,6 +473,9 @@ export default async function ShopDetailPage({
 
       <section className="max-w-4xl mx-auto px-4 md:px-8 mt-4">
         <div className={`relative overflow-hidden bg-gradient-to-br ${style.gradient} rounded-2xl min-h-[320px] md:min-h-[360px] p-6 md:p-10`}>
+          <div className="absolute right-4 top-4 z-20">
+            <FavoriteShopButton shopId={shop.id} compact inverted={Boolean(coverPhoto)} />
+          </div>
           {coverPhoto ? (
             <>
               <img
@@ -707,6 +711,7 @@ export default async function ShopDetailPage({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <FavoriteShopButton shopId={shop.id} />
             {bestHotSeatOffer ? (
               <a
                 href="#offers"

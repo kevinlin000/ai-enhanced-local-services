@@ -174,6 +174,11 @@ export type UserNotification = {
   readAt?: string | null;
 };
 
+export type FavoriteShop = Shop & {
+  shopId: number;
+  favoritedAt: string;
+};
+
 function merchantHeaders(): HeadersInit {
   return {
     "Content-Type": "application/json",
@@ -334,6 +339,32 @@ export const javaApi = {
       `${CLIENT_JAVA_API}/api/availability/notifications/${id}/read`,
       {
         method: "POST",
+        headers: authOrDemoHeaders(true),
+      },
+    ),
+  favoriteShops: () =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: FavoriteShop[] }>(
+      `${CLIENT_JAVA_API}/api/favorites/shops`,
+      { headers: authOrDemoHeaders() },
+    ),
+  favoriteStatus: (shopId: number) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: { shopId: number; favorited: boolean } }>(
+      `${CLIENT_JAVA_API}/api/favorites/shops/${shopId}`,
+      { headers: authOrDemoHeaders() },
+    ),
+  saveFavoriteShop: (shopId: number) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: { shopId: number; favorited: boolean } }>(
+      `${CLIENT_JAVA_API}/api/favorites/shops/${shopId}`,
+      {
+        method: "POST",
+        headers: authOrDemoHeaders(true),
+      },
+    ),
+  removeFavoriteShop: (shopId: number) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: { shopId: number; favorited: boolean } }>(
+      `${CLIENT_JAVA_API}/api/favorites/shops/${shopId}`,
+      {
+        method: "DELETE",
         headers: authOrDemoHeaders(true),
       },
     ),

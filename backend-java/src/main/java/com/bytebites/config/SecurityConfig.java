@@ -57,6 +57,7 @@ public class SecurityConfig {
                         .requestMatchers("/payment/**", "/api/payment/**").permitAll()
                         .requestMatchers("/booking/**", "/api/booking/**").permitAll()
                         .requestMatchers("/availability/**", "/api/availability/**").permitAll()
+                        .requestMatchers("/favorites/**", "/api/favorites/**").permitAll()
                         .requestMatchers("/user/login", "/user/code", "/error", "/actuator/**").permitAll()
                         .anyRequest().authenticated()
                 )
