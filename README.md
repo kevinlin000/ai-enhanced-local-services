@@ -1,168 +1,117 @@
-# ByteBites · 台灣在地 AI 點評平台
+# ByteBites — AI-Powered Restaurant Recommendation Platform
 
-> Java 後端 + Python AI 服務 + Next.js 前端的三服務整合作品，台北場景。
+> Full-stack AI recommendation system for local restaurants.
+> Spring Boot + FastAPI + Next.js, with Gemini Agent, ABSA review analysis, Qdrant semantic search, and structured recommendation cards.
 
-## 為什麼這個專案
+## What It Does
 
-台灣在地店家發現分散在 Google Maps、社群、論壇之間。本專案做一個整合「在地店家發現、語意搜尋、AI 推薦」的平台，並以此展示後端工程實踐與 AI 應用整合的雙能力。
+ByteBites is an AI restaurant recommendation platform benchmarked against inline.app. Users ask natural-language questions like **「推薦信義區的火鍋」**, and the system searches real shop data, routes through an AI Agent, analyzes reviews with ABSA (Aspect-Based Sentiment Analysis), and returns recommendation cards with photos, review carousel, Google Maps, positive highlights, and booking CTA.
 
-## 三大差異化
+The project focuses on production-style engineering decisions, not a demo-only chatbot: real streaming, model ablation, taxonomy migrations, review verification, and UX consistency between agent narrative and rendered cards.
 
-- **Java + Python 雙服務**：Java 處理核心業務（用戶、店家、訂位、Hot Seat 限時搶位），Python 負責 AI（RAG、Agent、Eval）
-- **LINE Login + 台北捷運 GEO**：對齊台灣使用情境，非 Google OAuth、非縣市行政區
-- **Strangler Fig 漸進遷移**：MyBatis-Plus 與 Spring Data JPA 並存，Hot Seat 搶位路徑保留 MyBatis 因 AOP 整合穩定，是有意的工程取捨
+## Tech Stack
 
-## 技術棧
+| Layer | Technology |
+|---|---|
+| Backend | Spring Boot 3.2 / Java 17 / JPA / MySQL 8.4 / Redis / RabbitMQ / Flyway |
+| AI Service | FastAPI / Gemini Agent / Gemini ABSA / Gemini Embedding / SSE |
+| Vector DB | Qdrant semantic search |
+| Frontend | Next.js / React / TypeScript / Tailwind / shadcn |
+| Data | Google Places API / review scraper / taxonomy backfill |
+| Infra | Docker Compose / Prometheus metrics |
 
-### 後端 (Java)
-| 類別 | 技術 |
-|------|------|
-| 語言 / 框架 | Java 17 · Spring Boot 3.2 |
-| 安全 | Spring Security · OAuth 2.0 (LINE) · JWT |
-| ORM | Spring Data JPA · MyBatis-Plus（並存） |
-| Migration | Flyway |
-| 快取 | Caffeine (L1) · Redis 7 (L2) · Bloom Filter (Redisson) |
-| 鎖 | Redisson 讀寫鎖 |
-| MQ | RabbitMQ 3.13 · Outbox 模式 · DLQ |
-| Database | MySQL 8 |
-| 可觀測性 | Micrometer · Prometheus |
+## Architecture
 
-### AI 服務 (Python)
-| 類別 | 技術 |
-|------|------|
-| 語言 / 框架 | Python 3.12 · FastAPI · uv |
-| LLM | Gemini 3.1 Flash Lite · Function Calling |
-| Embedding | Gemini Embedding 001 (768d) |
-| 向量庫 | Qdrant 1.13 |
-| 監控 | prometheus-client · token tracking |
-| 評估 | 自寫 hit@k · 10 案例 dataset |
-| 安全 | Input injection guardrail · Output filter |
-
-### 前端 (Web)
-| 類別 | 技術 |
-|------|------|
-| 框架 | Next.js 15 · React 19 · TypeScript |
-| 樣式 | Tailwind v4 · shadcn-ui |
-| 字型 | Geist Sans · Geist Mono · Noto Sans TC |
-| 圖示 | Lucide |
-
-## 目前進度
-
-- Spring Boot 3.2.5 + Java 17 + Jakarta 遷移完成，底座已升到現代 Spring 生態。
-- Flyway 接管 schema，完成 V1-V18 migration、10 個在地分類（taxonomy single source of truth）、103 家台北店家與捷運站資料。
-- LINE Login OAuth 2.0、Spring Security、JWT 驗證鏈打通，登入流程已對齊實際台灣使用情境。
-- JPA 遷移已切完 User、ShopType、Shop、Review、Voucher 系列，保留 Hot Seat 高風險搶位路徑的漸進式切換。
-- Python AI 服務已完成 Qdrant ingest、語意搜尋、RAG 推薦、Function Calling Agent、輕量 eval、guardrail、Prometheus。
-- Next.js 前端已完成商家瀏覽、AI 搜尋頁、AI Concierge 浮窗、首頁視覺 polish 與手機版調整。
-
-## 進階工程能力
-
-### 後端層
-
-| 能力 | 實作 | 設計取捨 |
-|------|------|----------|
-| 多層快取 | Caffeine + Redis + Bloom + 空值快取 | 避免穿透、擊穿、雪崩 |
-| 限流 | Lua 令牌桶 + 註解式 `@RateLimit` + AOP | 原子性扣減；支援多維度 |
-| 冪等 | Redis SETNX + 註解式 `@Idempotent` + SpEL key | TTL 過期自動釋放 |
-| 讀寫鎖 | Redisson 註解式 `@DistributedLock(type=READ/WRITE)` | 讀並行寫互斥 |
-| 可靠消息 | RabbitMQ + Outbox 模式 + DLQ | DB transaction + 背景 publisher 保證一致性 |
-| 可觀測性 | Actuator + Prometheus + 業務 counter | seckill / ratelimit / outbox metric |
-
-### AI 層
-
-| 能力 | 實作 | 重點 |
-|------|------|------|
-| 語意搜尋 | Gemini Embedding + Qdrant cosine | task_type 區分 query/document |
-| RAG | Embedding + 檢索 + LLM 生成 | tenacity retry on 429/503 |
-| Agent | Function Calling (2 tools) | LLM 自動決定查 GEO 或語意檢索 |
-| 評估 | hit@5 dataset (10 case) | baseline 80%、失敗案例有 root cause |
-| Guardrail | Regex input filter + output blocklist | 中英文 injection pattern |
-| Observability | Prometheus + token tracking | prompt / output token by model |
-
-完整 commit 流水與「為什麼這樣做」見 [CHANGELOG.md](./CHANGELOG.md)。
-
-## 已實作 API
-
-### Java Backend (8081)
-
-| 方法 | 路徑 | 說明 |
-|------|------|------|
-| GET | `/api/auth/line/login` | LINE OAuth 起點（302 到 LINE） |
-| GET | `/api/auth/line/callback` | OAuth callback、回傳 JWT |
-| GET | `/api/category/list` | 在地分類列表 |
-| GET | `/api/category/{slug}/shops` | 分類下店家（分頁） |
-| GET | `/api/category/{slug}/shops/popular` | 分類熱門 top 5 |
-| GET | `/api/shop/{id}` | 單店詳情（多層快取 + 讀寫鎖） |
-| GET | `/api/mrt/stations` | 8 個捷運站 |
-| GET | `/api/mrt/stations/nearby` | GEO 半徑搜尋 |
-| GET | `/api/mrt/{station}/popular-shops` | 捷運站附近熱門 |
-| GET | `/api/shop/nearby-mrt/{station}` | 該站附近店家 |
-| POST | `/voucher-order/seckill/{id}` | Hot Seat 限時搶位（限流 + 冪等） |
-| POST | `/api/demo/mq-outbox` | Outbox demo |
-
-### Python AI Service (8000)
-
-| 方法 | 路徑 | 說明 |
-|------|------|------|
-| GET | `/health` | 健康檢查 |
-| POST | `/api/ai/search` | 純向量檢索 top-k |
-| POST | `/api/ai/recommend` | RAG 完整閉環 |
-| POST | `/api/ai/agent` | Function Calling Agent |
-| GET | `/metrics` | Prometheus metrics |
-
-## 本地啟動
-
-### 1. 啟動依賴服務
-
-```bash
-cd deploy
-docker compose up -d mysql redis rabbitmq qdrant
+```text
+Browser
+  |
+  v
+Next.js web
+  |-- AI Chat UI + SSE stream
+  |-- recommendation cards
+  |
+  +--> Spring Boot backend
+  |      |-- shop API
+  |      |-- booking / voucher APIs
+  |      |-- MySQL taxonomy + ABSA JSON
+  |      |-- Redis / RabbitMQ
+  |
+  +--> FastAPI AI service
+         |-- Gemini function-calling agent
+         |-- Qdrant semantic search
+         |-- structured recommendation decision
+         |-- SSE done payload
 ```
 
-### 2. Java Backend (port 8081)
+## Highlights
+
+- **Structured AI Agent decisions**: agent emits `recommended_shop_ids`, `rejected_shop_ids`, `rejection_summary`, and `narrative`; frontend renders cards from the same IDs.
+- **True SSE streaming**: debugged fake streaming, tool-call history contamination, and model latency floor; TTFT improved from effectively infinite to 908ms.
+- **ABSA review analysis**: LLM-based aspect extraction with two-layer faithfulness verification; measured F1 0.955 on a hand-labeled gold set.
+- **Model ablation**: benchmarked model latency, quality, tool routing, and cost; selected Gemini Flash Lite for agent work instead of blindly choosing the fastest model.
+- **Production taxonomy**: migrated from string tags to a 3-axis taxonomy with Flyway migrations and third-party validation anchors.
+- **Recommendation UX**: removed raw mixed-sentiment bars from recommendation cards and replaced them with positive-only highlights while preserving full ABSA on detail pages.
+
+## Case Studies
+
+1. [AI Agent 真實串流 — 三層 debug 走完](docs/case-studies/01-sse-streaming-debug.md)
+   Fake streaming, synchronous SDK calls, tool-call history pollution, context compression, and model swap.
+
+2. [ABSA Pipeline — 從模板到 LLM, F1 0.955](docs/case-studies/02-absa-pipeline.md)
+   Aspect-level sentiment extraction, character verifier, semantic fallback, gold set, batch issues.
+
+3. [Model 選擇不是「越貴越好」](docs/case-studies/03-model-ablation.md)
+   Task-specific model ablation across latency, tool routing, quality, and cost.
+
+4. [Taxonomy 從 0 到 production](docs/case-studies/04-taxonomy-migration.md)
+   V15-V19 Flyway migrations, taxonomy design, and third-party validation anchors.
+
+5. [推薦卡 UX — 從暴露 ABSA 到正面 framing](docs/case-studies/05-recommendation-ux.md)
+   Product judgment around what belongs on recommendation cards vs detail pages.
+
+## Project Structure
+
+```text
+ai-enhanced-local-services/
+├── backend-java/          # Spring Boot, JPA, Flyway, shop/booking APIs
+├── ai-service-python/     # FastAPI, Gemini Agent, ABSA, semantic search
+├── web/                   # Next.js AI UI and recommendation cards
+├── etl-pipeline/          # scraper, Qdrant loader, taxonomy verification
+├── tools/                 # scraper utilities
+└── docs/
+    ├── case-studies/      # engineering case studies
+    └── taxonomy-spec.md
+```
+
+## Local Development
 
 ```bash
+# 1. Start infra
+docker compose up -d
+
+# 2. Backend
 cd backend-java
-cp ../.env.example ../.env  # 填入 LINE_CHANNEL_ID / SECRET / JWT_SECRET
-set -a; source ../.env; set +a
+set -a; source .env; set +a
 mvn spring-boot:run
-```
 
-首次啟動會跑 Flyway migration（V1-V7）。
-
-### 3. Python AI Service (port 8000)
-
-```bash
+# 3. AI service
 cd ai-service-python
-cp .env.example .env  # 填入 GEMINI_API_KEY
 uv sync
-uv run uvicorn app.main:app --port 8000
-```
+uv run uvicorn app.main:app --reload --port 8000
 
-一次性 ingest 25 家種子店家到 Qdrant：
-
-```bash
-uv run python -m app.ingest
-```
-
-### 4. 前端 (port 3000)
-
-```bash
+# 4. Frontend
 cd web
-pnpm install
-pnpm dev
+npm run dev
 ```
 
-訪問 http://localhost:3000
+Required environment variables include Gemini API keys, Java backend URL, and local service URLs. Secrets are intentionally ignored by git.
 
-## Gemini Quota 注意
+## Built With AI as a Force Multiplier
 
-Google 從 2025/12 大幅砍 free tier：
-- gemini-2.5-flash / 2.5-flash-lite: **20 RPD**（過小、不堪用）
-- gemini-3.1-flash-lite: **500 RPD**（推薦）
+Claude and Codex were used throughout the project for hypothesis generation, code audit, boilerplate, and debugging support. The case studies explicitly separate what AI suggested from what I verified, challenged, measured, and shipped.
 
-預設值已設為 `gemini-3.1-flash-lite`、不要改回 2.5 系列。
+The core thesis: AI tools accelerate engineering work, but the engineer still owns judgment, validation, trade-offs, and product responsibility.
 
-## 規劃路線
+## Contact
 
-詳見 [docs/roadmap.md](./docs/roadmap.md)。
+- GitHub: [@kevinlin000](https://github.com/kevinlin000)
