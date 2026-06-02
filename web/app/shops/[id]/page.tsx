@@ -461,7 +461,7 @@ export default async function ShopDetailPage({
   });
 
   return (
-    <div className="min-h-screen pb-32">
+    <div className="min-h-screen pb-40 md:pb-32">
       <div className="max-w-4xl mx-auto px-4 md:px-8 pt-6">
         <Link href="/shops">
           <Button variant="ghost" size="sm">
@@ -699,9 +699,9 @@ export default async function ShopDetailPage({
       />
 
       <div className="fixed bottom-0 left-0 right-0 w-full z-30 border-t bg-background/95 backdrop-blur">
-        <div className="relative max-w-4xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
-          <div className="text-sm">
-            <div className="font-medium">{shop.name}</div>
+        <div className="relative mx-auto flex max-w-4xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between md:px-8">
+          <div className="min-w-0 text-sm">
+            <div className="truncate font-medium">{shop.name}</div>
             <div className="text-muted-foreground text-xs">
               {bestHotSeatOffer
                 ? `Hot Seat 剩 ${bestHotSeatOffer.stock} 席`
@@ -710,7 +710,7 @@ export default async function ShopDetailPage({
                   : "可線上訂位"}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <FavoriteShopButton shopId={shop.id} />
             {bestHotSeatOffer ? (
               <a

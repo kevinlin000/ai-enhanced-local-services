@@ -496,23 +496,6 @@ export default function AiPage() {
   return (
     <main className="min-h-screen bg-[#f7f3ec]">
       <section className="flex min-h-screen flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-black/10 bg-[#f7f3ec]/95 px-5 backdrop-blur md:px-8">
-          <button className="text-2xl leading-none text-zinc-500 md:hidden" aria-label="menu">
-            ≡
-          </button>
-          <div className="mx-auto text-3xl font-black tracking-[-0.06em] md:text-4xl">
-            ByteBites
-          </div>
-          <button
-            type="button"
-            onClick={handleClearChat}
-            className="rounded-full p-2 text-zinc-500 hover:bg-black/5"
-            aria-label="清空對話"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </header>
-
         <div
           ref={scrollRef}
           className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 overflow-y-auto px-5 pb-6 pt-8 md:px-8"
@@ -628,6 +611,14 @@ export default function AiPage() {
               >
                 {loading ? "..." : "送出"}
               </Button>
+              <button
+                type="button"
+                onClick={handleClearChat}
+                className="hidden rounded-full p-2 text-zinc-400 transition hover:bg-black/5 hover:text-zinc-700 sm:inline-flex"
+                aria-label="清空對話"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
             <p className="mt-2 text-center text-[11px] text-zinc-400">
               AI 建議僅供參考，請以店家公告為主 · Session {sessionId.slice(0, 16)}

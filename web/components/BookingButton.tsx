@@ -361,14 +361,14 @@ export function BookingButton({
 
   if (step === "idle") {
     return (
-      <Button size="lg" onClick={() => setStep("form")}>
+      <Button size="lg" onClick={() => setStep("form")} className="flex-1 sm:flex-none">
         立即訂位
       </Button>
     );
   }
 
   return (
-    <div className="absolute right-4 bottom-16 bg-background border rounded-xl shadow-2xl p-5 w-96 z-50 max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-x-3 bottom-3 z-50 max-h-[88dvh] overflow-y-auto rounded-2xl border bg-background p-5 shadow-2xl md:absolute md:inset-auto md:bottom-16 md:right-4 md:w-96 md:max-h-[80vh]">
 
       {/* ── Step: form ── */}
       {step === "form" && (
@@ -610,15 +610,15 @@ export function BookingButton({
             className="border rounded px-3 py-2 mb-2"
             style={{ height: 40 }}
           />
-          <div className="flex gap-2 mb-3">
+          <div className="grid gap-2 mb-3 sm:grid-cols-[1fr_96px]">
             <div
               id="tappay-expiry"
-              className="border rounded px-3 py-2 flex-1"
+              className="border rounded px-3 py-2"
               style={{ height: 40 }}
             />
             <div
               id="tappay-ccv"
-              className="border rounded px-3 py-2 w-24"
+              className="border rounded px-3 py-2"
               style={{ height: 40 }}
             />
           </div>
