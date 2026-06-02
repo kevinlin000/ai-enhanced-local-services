@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 import structlog
+from dotenv import load_dotenv
 
 from app.extractor import Extractor
 
@@ -20,6 +21,8 @@ def resolve_input_file(cli_input: str | None) -> Path:
 
 
 def main() -> None:
+    load_dotenv(".env")
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", help="input enriched/merged json file")
     parser.add_argument("--force-all", action="store_true", help="re-extract all shops")
