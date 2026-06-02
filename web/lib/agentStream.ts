@@ -2,7 +2,17 @@ export type AgentStreamEvent =
   | { type: "status"; message: string }
   | { type: "tool"; name: string }
   | { type: "chunk"; content: string }
-  | { type: "done"; answer: string; tools_used?: string[]; tool_result?: unknown; session_id?: string }
+  | {
+      type: "done";
+      answer: string;
+      recommended_shop_ids?: number[];
+      narrative?: string;
+      rejected_shop_ids?: number[];
+      rejection_summary?: string | null;
+      tools_used?: string[];
+      tool_result?: unknown;
+      session_id?: string;
+    }
   | { type: "error"; message: string };
 
 export async function streamAgentResponse(

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { aiApi, type SearchHit } from "@/lib/api";
 import { streamAgentResponse } from "@/lib/agentStream";
+import { AgentShopCard, type AgentShop } from "@/components/AgentShopCard";
 
 const AI_API = "";
 
@@ -20,6 +21,7 @@ interface Msg {
   content: string;
   hits?: SearchHit[];
   toolsUsed?: string[];
+  shops?: AgentShop[];
 }
 
 const PRESETS: Record<Mode, string[]> = {
@@ -42,6 +44,21 @@ const CATEGORY_LABELS: Record<string, string> = {
   "fine-dining": "高級餐廳",
   "cafe-premium": "甜點 / 咖啡",
 };
+
+function shopId(shop: AgentShop): number {
+  return shop.shop_id;
+}
+
+function selectRecommendedShops(
+  shops: AgentShop[] | undefined,
+  recommendedShopIds: number[] | undefined,
+): AgentShop[] | undefined {
+  if (!shops || !recommendedShopIds?.length) return undefined;
+  const byId = new Map(shops.map((shop) => [shopId(shop), shop]));
+  return recommendedShopIds
+    .map((id) => byId.get(Number(id)))
+    .filter((shop): shop is AgentShop => Boolean(shop));
+}
 
 /** 產生或讀取 localStorage session id */
 function getOrCreateSessionId(): string {
@@ -78,6 +95,16 @@ export default function AiPage() {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, loading]);
+
+  // Prefill query from ?q= URL param (e.g. arriving from AiConcierge CTA)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q");
+    if (!q) return;
+    setMode("agent");
+    setQuery(q);
+  }, []);
 
   async function runSearchOrRecommend(q: string) {
     setLoading(true);
@@ -133,6 +160,11 @@ export default function AiPage() {
               return next;
             });
           } else if (event.type === "done") {
+            const toolResult = event.tool_result as { shops?: AgentShop[] } | undefined;
+            const shops = selectRecommendedShops(
+              toolResult?.shops,
+              event.recommended_shop_ids,
+            );
             setMessages((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
@@ -141,6 +173,7 @@ export default function AiPage() {
                 ...last,
                 content: event.answer || last.content,
                 toolsUsed: event.tools_used ?? last.toolsUsed,
+                shops: shops ?? last.shops,
               };
               return next;
             });
@@ -260,7 +293,7 @@ export default function AiPage() {
       {mode === "agent" ? (
         <div className="flex flex-col gap-3">
           {/* Chat history */}
-          <div ref={scrollRef} className="flex flex-col gap-3 max-h-[28rem] min-h-[12rem] overflow-y-auto rounded-xl border p-4 bg-muted/20">
+          <div ref={scrollRef} className="flex flex-col gap-3 max-h-[70vh] min-h-[12rem] overflow-y-auto rounded-xl border p-4 bg-muted/20">
             {messages.length === 0 && (
               <p className="text-muted-foreground text-sm text-center mt-8">
                 開始對話吧！可以問「信義區想吃火鍋」或「幫我訂明天晚上」
@@ -269,9 +302,9 @@ export default function AiPage() {
             {messages.map((m, i) => (
               <div
                 key={i}
-                className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
               >
-                <div className={`max-w-[80%] ${m.role === "user" ? "" : ""}`}>
+                <div className={m.role === "user" ? "max-w-[80%]" : "w-full"}>
                   <div
                     className={`px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap ${
                       m.role === "user"
@@ -291,6 +324,13 @@ export default function AiPage() {
                     </div>
                   )}
                 </div>
+                {m.shops && m.shops.length > 0 && (
+                  <div className="mt-3 w-full space-y-3">
+                    {m.shops.map((shop, rank) => (
+                      <AgentShopCard key={shop.shop_id} shop={shop} rank={rank + 1} />
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             {loading && (
