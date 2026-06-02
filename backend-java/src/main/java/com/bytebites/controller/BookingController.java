@@ -7,9 +7,13 @@ import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.IShopService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -35,6 +39,7 @@ public class BookingController {
     private final IShopService shopService;
     private final DepositPolicy depositPolicy;
     private final JdbcTemplate jdbcTemplate;
+    private final PlatformTransactionManager transactionManager;
 
     /**
      * 建立訂位記錄並寫 DB。
@@ -42,8 +47,34 @@ public class BookingController {
      * needsDeposit=false → status=3(已確認)。
      */
     @PostMapping("/reserve")
-    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Result reserve(@RequestBody Map<String, Object> body) {
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                return reserveTransactionTemplate().execute(status -> reserveInTransaction(body));
+            } catch (CannotAcquireLockException ex) {
+                if (attempt == 2) {
+                    log.warn("[Booking] slot lock contention after retry body={}", body, ex);
+                    return Result.fail("該時段目前忙碌，請稍後再試");
+                }
+                try {
+                    Thread.sleep(30);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    return Result.fail("訂位處理中斷，請再試一次");
+                }
+            }
+        }
+        return Result.fail("訂位失敗，請再試一次");
+    }
+
+    private TransactionTemplate reserveTransactionTemplate() {
+        DefaultTransactionDefinition definition = new DefaultTransactionDefinition();
+        definition.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+        definition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
+        return new TransactionTemplate(transactionManager, definition);
+    }
+
+    private Result reserveInTransaction(Map<String, Object> body) {
         if (body.get("shopId") == null) return Result.fail("shopId 必填");
         if (body.get("date") == null)   return Result.fail("date 必填");
         if (body.get("time") == null)   return Result.fail("time 必填");
@@ -105,11 +136,7 @@ public class BookingController {
         DepositPolicy.Result pol = depositPolicy.evaluate(shopId, shopName, typeId, score, avgPrice);
 
         ensureSlotInventory(shopId, bookingDate, time, table);
-        Map<String, Object> slot = lockSlotInventory(shopId, bookingDate, time, table);
-
-        int capacity = ((Number) slot.get("capacity")).intValue();
-        int bookedCount = ((Number) slot.get("booked_count")).intValue();
-        if (bookedCount + people > capacity) {
+        if (!reserveSlotCapacity(shopId, bookingDate, time, table, people)) {
             return Result.fail("該時段目前已額滿，請選擇其他時間");
         }
 
@@ -128,7 +155,6 @@ public class BookingController {
         booking.setIdempotencyKey(idempotencyKey);
 
         bookingRepo.saveAndFlush(booking);
-        incrementBookedCount(shopId, bookingDate, time, table, people);
 
         log.info("[Booking] code={} shop={} people={} date={} time={} table={} needsDeposit={} status={}",
                 booking.getBookingCode(), shopId, people, bookingDate, time, table,
@@ -235,34 +261,17 @@ public class BookingController {
         );
     }
 
-    private Map<String, Object> lockSlotInventory(Long shopId, LocalDate bookingDate, String time, String tableType) {
-        return jdbcTemplate.queryForMap(
-                """
-                SELECT capacity, booked_count
-                FROM tb_booking_slot_inventory
-                WHERE shop_id = ? AND booking_date = ? AND booking_time = ? AND table_type = ?
-                FOR UPDATE
-                """,
-                shopId,
-                bookingDate,
-                time,
-                tableType
-        );
-    }
-
-    private void incrementBookedCount(Long shopId, LocalDate bookingDate, String time, String tableType, int people) {
-        jdbcTemplate.update(
+    private boolean reserveSlotCapacity(Long shopId, LocalDate bookingDate, String time, String tableType, int people) {
+        int updated = jdbcTemplate.update(
                 """
                 UPDATE tb_booking_slot_inventory
                 SET booked_count = booked_count + ?
                 WHERE shop_id = ? AND booking_date = ? AND booking_time = ? AND table_type = ?
+                  AND booked_count + ? <= capacity
                 """,
-                people,
-                shopId,
-                bookingDate,
-                time,
-                tableType
+                people, shopId, bookingDate, time, tableType, people
         );
+        return updated == 1;
     }
 
     private int defaultSlotCapacity(String tableType) {

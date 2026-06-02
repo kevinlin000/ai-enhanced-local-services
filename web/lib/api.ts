@@ -107,6 +107,30 @@ export type VoucherOffer = {
   endTime?: string;
 };
 
+export type MerchantShop = {
+  id: number;
+  name: string;
+  district?: string;
+  address?: string;
+  role: string;
+};
+
+export type MerchantSlot = {
+  time: string;
+  tableType: string;
+  capacity: number;
+  bookedCount: number;
+  remaining: number;
+};
+
+function merchantHeaders(token?: string | null): HeadersInit {
+  return {
+    "Content-Type": "application/json",
+    "X-Demo-Mode": token ? "false" : "true",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 export const javaApi = {
   listCategories: () =>
     fetchJson<{ success: boolean; data: Category[] }>(
@@ -196,6 +220,54 @@ export const javaApi = {
       `${CLIENT_JAVA_API}/api/shop/search?${sp.toString()}`,
     );
   },
+  merchantShops: (token?: string | null) =>
+    fetchJson<{ success: boolean; data: MerchantShop[] }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops`,
+      { headers: merchantHeaders(token) },
+    ),
+  merchantSlots: (params: {
+    shopId: number;
+    date: string;
+    tableType?: string;
+    token?: string | null;
+  }) =>
+    fetchJson<{
+      success: boolean;
+      data: {
+        shopId: number;
+        date: string;
+        tableType: string;
+        slots: MerchantSlot[];
+      };
+    }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/slots?date=${encodeURIComponent(params.date)}&tableType=${encodeURIComponent(params.tableType ?? "normal")}`,
+      { headers: merchantHeaders(params.token) },
+    ),
+  updateMerchantSlots: (params: {
+    shopId: number;
+    date: string;
+    tableType?: string;
+    token?: string | null;
+    slots: { time: string; capacity: number }[];
+  }) =>
+    fetchJson<{
+      success: boolean;
+      errorMsg?: string;
+      data: {
+        shopId: number;
+        date: string;
+        tableType: string;
+        slots: MerchantSlot[];
+      };
+    }>(`${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/slots`, {
+      method: "PUT",
+      headers: merchantHeaders(params.token),
+      body: JSON.stringify({
+        date: params.date,
+        tableType: params.tableType ?? "normal",
+        slots: params.slots,
+      }),
+    }),
 };
 
 export const aiApi = {

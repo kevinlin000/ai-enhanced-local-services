@@ -41,6 +41,7 @@ public class SecurityConfig {
                                 "/api/demo/**",
                                 "/api/category/**",
                                 "/api/mrt/**",
+                                "/api/merchant/**",
                                 "/api/shop/**",
                                 "/api/shop/nearby-mrt/**",
                                 "/api/shop-type/**",
@@ -50,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/auth/line/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/shop/**", "/shop-type/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shop/**", "/api/shop-type/**").permitAll()
+                        .requestMatchers("/merchant/**").permitAll()
                         .requestMatchers("/upload/**", "/voucher/**", "/voucher/list/**", "/blog/hot").permitAll()
                         .requestMatchers("/voucher-order/seckill/**", "/api/voucher-order/seckill/**").permitAll()
                         .requestMatchers("/payment/**", "/api/payment/**").permitAll()
