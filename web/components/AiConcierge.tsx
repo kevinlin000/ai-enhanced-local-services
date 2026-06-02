@@ -131,11 +131,11 @@ export function AiConcierge() {
 
   return (
     <>
-      {/* Trigger button — hidden when sidebar open */}
+      {/* Mobile shortcut only. Desktop already has the persistent AI entry in the app sidebar. */}
       {!open && pathname !== "/ai" && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed right-6 bottom-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition hover:scale-105"
+          className="fixed right-6 bottom-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition hover:scale-105 md:hidden"
           aria-label="AI Concierge"
         >
           <Sparkles className="h-6 w-6" />

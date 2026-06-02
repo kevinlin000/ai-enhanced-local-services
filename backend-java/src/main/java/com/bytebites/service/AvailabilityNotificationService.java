@@ -113,6 +113,8 @@ public class AvailabilityNotificationService {
                 LEFT JOIN tb_availability_watch w ON w.id = n.watch_id
                 LEFT JOIN tb_shop s ON s.id = n.shop_id
                 WHERE n.user_id = ?
+                  AND LOWER(n.title) NOT LIKE '%smoke test%'
+                  AND LOWER(n.body) NOT LIKE '%smoke test%'
                 ORDER BY n.created_at DESC
                 LIMIT 50
                 """,
@@ -123,6 +125,8 @@ public class AvailabilityNotificationService {
                 SELECT COUNT(*)
                 FROM tb_user_notification
                 WHERE user_id = ? AND status = 'UNREAD'
+                  AND LOWER(title) NOT LIKE '%smoke test%'
+                  AND LOWER(body) NOT LIKE '%smoke test%'
                 """,
                 Integer.class,
                 userId

@@ -328,7 +328,7 @@ export default function MyBookingsPage() {
                 我的訂位
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-emerald-50/80 md:text-base">
-                管理已保留、待付款、已付款與已取消的訂位。Demo mode 使用 user_id=1001；正式上線會改由 LINE/JWT 決定 ownership。
+                管理已保留、待付款、已付款與已取消的訂位。付款、取消與逾期都會同步更新店家的可訂容量。
               </p>
             </div>
             <Link href="/ai">
@@ -343,7 +343,7 @@ export default function MyBookingsPage() {
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-2xl font-black">訂位紀錄</h2>
-              <p className="mt-1 text-sm text-zinc-500">付款與取消都會同步更新店家 slot inventory。</p>
+              <p className="mt-1 text-sm text-zinc-500">付款完成後訂位成立；取消或逾期會釋放店家容量。</p>
             </div>
             <Button variant="outline" onClick={loadBookings} disabled={loading}>
               重新整理

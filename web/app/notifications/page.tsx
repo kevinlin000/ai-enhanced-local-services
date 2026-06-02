@@ -106,7 +106,7 @@ export default function NotificationsPage() {
             <div>
               <h1 className="text-4xl font-black tracking-tight md:text-5xl">空位通知管理</h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-emerald-50/80 md:text-base">
-                當額滿時段釋出足夠座位，系統會建立 in-app notification。Demo mode 使用 user_id=1001；正式上線可接 LINE push。
+                額滿時段釋出座位時會主動提醒。你可以在這裡查看通知、前往訂位，或取消不再需要的追蹤。
               </p>
             </div>
             <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-4">
@@ -121,7 +121,7 @@ export default function NotificationsPage() {
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-2xl font-black">通知</h2>
-                <p className="mt-1 text-sm text-zinc-500">由真實 slot inventory 變化觸發。</p>
+                <p className="mt-1 text-sm text-zinc-500">有位時會優先提醒，請盡快完成訂位。</p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={markAllRead} disabled={loading || unreadCount === 0 || markingAll}>
@@ -197,7 +197,7 @@ export default function NotificationsPage() {
 
           <section className="rounded-[1.5rem] border border-black/10 bg-white p-5 shadow-xl shadow-black/5 md:p-6">
             <h2 className="text-2xl font-black">追蹤中的空位</h2>
-            <p className="mt-1 text-sm text-zinc-500">保留 watch history，避免通知像黑盒。</p>
+            <p className="mt-1 text-sm text-zinc-500">管理正在等待、已通知或已取消的時段。</p>
             <div className="mt-5 space-y-3">
               {watches.length === 0 ? (
                 <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-500">
@@ -216,7 +216,7 @@ export default function NotificationsPage() {
                       </span>
                     </div>
                     <p className="mt-3 text-xs leading-5 text-zinc-500">
-                      追蹤到 {watch.expiresAt}。觸發後此 watch 會轉為 TRIGGERED，並建立通知。
+                      追蹤到 {watch.expiresAt}。有足夠座位釋出後會通知你前往訂位。
                     </p>
                     {watch.status === "ACTIVE" ? (
                       <div className="mt-3">

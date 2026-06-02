@@ -70,7 +70,7 @@ export default function FavoritesPage() {
             <div>
               <h1 className="text-4xl font-black tracking-tight md:text-6xl">收藏餐廳</h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-white/70">
-                把想吃、想訂、想等空位的餐廳集中管理。這不是假 UI，收藏會寫入使用者資料，之後可接推薦個人化與空位提醒。
+                把想吃、想訂、想等空位的餐廳集中管理。之後回訪時可以快速查看詳情、訂位或建立空位提醒。
               </p>
             </div>
             <Link
