@@ -996,6 +996,7 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 - 若 needsDeposit=false → 訂位完成、不要付款
 - 一次對話最多 1 個 booking，不要重複建立
 - 訂位完成後，回應要包含 bookingCode，若有付款也要包含 rec_trade_id
+- 若使用者只指定品牌但未指定分店，而候選中有多間同品牌分店，必須先詢問使用者選哪間分店；禁止直接替使用者挑分店下訂
 
 ==== Hot Seat 搶位流程（create_hot_seat_order）====
 - 用戶說「幫我搶」「搶位」「想搶熱座」→ 呼叫 create_hot_seat_order
@@ -1032,6 +1033,114 @@ def _shop_id(shop: dict) -> int | None:
         return int(raw_id)
     except (TypeError, ValueError):
         return None
+
+
+def _shop_brand_key(shop: dict) -> str:
+    name = str(shop.get("name") or "").strip()
+    for sep in ("｜", "|", " ", "　"):
+        if sep in name:
+            name = name.split(sep, 1)[0]
+    return name.strip()
+
+
+def _shop_branch_label(shop: dict, brand: str) -> str:
+    name = str(shop.get("name") or "").strip()
+    label = name
+    if brand and label.startswith(brand):
+        label = label[len(brand) :]
+    label = label.strip(" ｜|　")
+    if label:
+        return label
+    district = str(shop.get("district") or "").strip()
+    mrt = str(shop.get("mrt_station") or "").strip()
+    return " / ".join(part for part in (district, mrt) if part)
+
+
+def _query_mentions_unique_branch(query: str, same_brand_shops: list[dict], brand: str) -> bool:
+    normalized_query = query.replace(" ", "").replace("　", "")
+    matches = 0
+    for shop in same_brand_shops:
+        name = str(shop.get("name") or "").replace(" ", "").replace("　", "")
+        branch = _shop_branch_label(shop, brand).replace(" ", "").replace("　", "")
+        branch_core = branch.removesuffix("店")
+        if name and name in normalized_query:
+            matches += 1
+        elif branch and branch in normalized_query:
+            matches += 1
+        elif branch_core and len(branch_core) >= 3 and branch_core in normalized_query:
+            matches += 1
+    return matches == 1
+
+
+def _booking_intent(query: str) -> bool:
+    return any(token in query for token in ("訂", "訂位", "預約", "幫我訂", "我要訂"))
+
+
+def _brand_matches_query(query: str, brand: str) -> bool:
+    normalized_query = query.replace(" ", "").replace("　", "")
+    normalized_brand = brand.replace(" ", "").replace("　", "")
+    aliases = [normalized_brand]
+    if "-" in normalized_brand:
+        aliases.append(normalized_brand.split("-", 1)[0])
+    return any(alias and len(alias) >= 2 and alias in normalized_query for alias in aliases)
+
+
+def _branch_clarification_text(brand: str, same_brand_shops: list[dict]) -> str:
+    lines = [f"我找到多間「{brand}」分店。為避免訂錯店，請先選擇要訂哪一間："]
+    for index, shop in enumerate(same_brand_shops[:5], start=1):
+        name = shop.get("name") or f"店家 ID {_shop_id(shop)}"
+        district = shop.get("district") or "未標示區域"
+        mrt = shop.get("mrt_station") or "未標示捷運"
+        lines.append(f"{index}. {name}（{district}，捷運{mrt}）")
+    lines.append("請回覆分店名稱或編號，我再幫您建立訂位。")
+    return "\n".join(lines)
+
+
+def _booking_branch_clarification_from_tool_call(query: str, tool_args: dict, search_result: dict) -> str | None:
+    shops = search_result.get("shops", []) if isinstance(search_result, dict) else []
+    if not shops:
+        return None
+    try:
+        target_shop_id = int(tool_args.get("shop_id"))
+    except (TypeError, ValueError):
+        return None
+
+    selected = next((shop for shop in shops if _shop_id(shop) == target_shop_id), None)
+    if not selected:
+        return None
+    brand = _shop_brand_key(selected)
+    if not brand:
+        return None
+
+    same_brand_shops = [
+        shop for shop in shops if _shop_brand_key(shop) == brand and _shop_id(shop) is not None
+    ]
+    if len(same_brand_shops) <= 1:
+        return None
+    if _query_mentions_unique_branch(query, same_brand_shops, brand):
+        return None
+    return _branch_clarification_text(brand, same_brand_shops)
+
+
+def _booking_branch_clarification_from_search(query: str, search_result: dict) -> str | None:
+    if not _booking_intent(query):
+        return None
+    shops = search_result.get("shops", []) if isinstance(search_result, dict) else []
+    by_brand: dict[str, list[dict]] = {}
+    for shop in shops:
+        brand = _shop_brand_key(shop)
+        if brand and _shop_id(shop) is not None:
+            by_brand.setdefault(brand, []).append(shop)
+
+    for brand, same_brand_shops in by_brand.items():
+        if len(same_brand_shops) <= 1:
+            continue
+        if not _brand_matches_query(query, brand):
+            continue
+        if _query_mentions_unique_branch(query, same_brand_shops, brand):
+            continue
+        return _branch_clarification_text(brand, same_brand_shops)
+    return None
 
 
 def _parse_agent_decision(raw: str) -> AgentRecommendationDecision | None:
@@ -1645,7 +1754,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             contents,
             types.GenerateContentConfig(
                 tools=TOOLS,
-                system_instruction=AGENT_SYSTEM_PROMPT,
+                system_instruction=_agent_system_prompt(),
             ),
         )
         candidate = response.candidates[0]
@@ -1667,7 +1776,15 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             yield {"type": "error", "message": f"unknown tool: {tool_name}"}
             return
 
-        tool_result = await tool_fn(**dict(function_call.args))
+        tool_args = dict(function_call.args)
+        if tool_name == "create_booking":
+            clarification = _booking_branch_clarification_from_tool_call(query, tool_args, latest_search_result)
+            if clarification:
+                direct_answer = clarification
+                last_tool_result = latest_search_result
+                break
+
+        tool_result = await tool_fn(**tool_args)
         tools_used.append(tool_name)
         last_tool_result = tool_result
         if tool_name in {"semantic_shop_search", "search_shops_by_mrt"}:
@@ -1704,9 +1821,13 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             full_answer = _booking_confirmation_narrative(transaction)
             last_tool_result["transaction"] = transaction
         else:
-            decision = _build_agent_recommendation_decision(query, last_tool_result)
-            full_answer = decision.narrative
-            last_tool_result["agent_decision"] = _decision_payload(decision)
+            clarification = _booking_branch_clarification_from_search(query, last_tool_result)
+            if clarification:
+                full_answer = clarification
+            else:
+                decision = _build_agent_recommendation_decision(query, last_tool_result)
+                full_answer = decision.narrative
+                last_tool_result["agent_decision"] = _decision_payload(decision)
         chunk_size = 18
         for i in range(0, len(full_answer), chunk_size):
             yield {"type": "chunk", "content": full_answer[i : i + chunk_size]}

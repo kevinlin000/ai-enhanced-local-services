@@ -6,6 +6,7 @@ Checks:
 - The booking row exists in MySQL with the same payment transaction id.
 - pay-test retry is idempotent.
 - Backend rejects past-date reservations.
+- Ambiguous multi-branch brand bookings ask for branch selection before booking.
 
 Prereqs: Java backend, AI service, MySQL, Qdrant, and Gemini env are running.
 """
@@ -16,6 +17,7 @@ import argparse
 import json
 import os
 import sys
+import uuid
 from datetime import date, timedelta
 from typing import Any
 
@@ -172,6 +174,25 @@ def assert_backend_rejects_past_date() -> None:
     ok(f"backend rejects past-date reservation ({yesterday})")
 
 
+def assert_ambiguous_branch_requires_clarification(run_id: str) -> None:
+    events = stream_agent(
+        "幫我訂刁民明天晚上7點2人",
+        f"agent-booking-branch-ambiguity-{run_id}",
+    )
+    tools = [event["name"] for event in events if event.get("type") == "tool"]
+    if "create_booking" in tools or "pay_booking_with_test_card" in tools:
+        fail(f"ambiguous branch query should not book or pay: tools={tools}")
+    done = next((event for event in events if event.get("type") == "done"), None)
+    if not done:
+        fail("ambiguous branch query missing done event")
+    answer = str(done.get("answer") or "")
+    if "分店" not in answer or "請" not in answer:
+        fail(f"ambiguous branch answer did not ask for branch selection: {answer}")
+    if done.get("transaction"):
+        fail(f"ambiguous branch query returned transaction: {done.get('transaction')}")
+    ok("ambiguous multi-branch booking asks for branch selection")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -183,14 +204,16 @@ def main() -> None:
 
     txn: dict[str, Any] | None = None
     try:
+        run_id = uuid.uuid4().hex[:10]
         events = stream_agent(
             "幫我訂辛殿麻辣鍋明天晚上7點2人",
-            "agent-booking-smoke",
+            f"agent-booking-smoke-{run_id}",
         )
         txn = assert_agent_transaction(events)
         assert_db_row(txn)
         assert_pay_retry_idempotent(txn)
         assert_backend_rejects_past_date()
+        assert_ambiguous_branch_requires_clarification(run_id)
     finally:
         if txn and not args.keep_booking:
             delete_booking(txn["booking_code"])
