@@ -515,7 +515,7 @@ export default function AiPage() {
 
         <div
           ref={scrollRef}
-          className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 overflow-y-auto px-5 pb-36 pt-8 md:px-8"
+          className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 overflow-y-auto px-5 pb-6 pt-8 md:px-8"
         >
             {messages.length === 0 ? (
               <div className="mx-auto mt-16 max-w-3xl text-center md:mt-24">
@@ -610,7 +610,7 @@ export default function AiPage() {
             ) : null}
         </div>
 
-        <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-[#f7f3ec] via-[#f7f3ec] to-transparent px-4 pb-4 pt-10 md:left-[292px]">
+        <div className="sticky bottom-0 z-40 bg-gradient-to-t from-[#f7f3ec] via-[#f7f3ec] to-transparent px-4 pb-4 pt-10">
           <div className="mx-auto max-w-5xl">
             <div className="flex items-center gap-2 rounded-full bg-white px-4 py-3 shadow-2xl shadow-black/15 ring-1 ring-black/5">
               <Input

@@ -419,7 +419,7 @@ export default function MyBookingsPage() {
                           ? `座位保留倒數 ${holdCountdown}，付款完成後訂位才成立。`
                           : status.helper}
                       </p>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row">
                         {canPay ? (
                           <Button
                             onClick={() => openPayment(booking)}
@@ -450,8 +450,8 @@ export default function MyBookingsPage() {
       </section>
 
       {paymentBooking ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4 backdrop-blur-sm">
-          <section className="w-full max-w-xl overflow-hidden rounded-[1.5rem] border border-black/10 bg-white shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/35 px-4 pb-4 pt-12 backdrop-blur-sm sm:items-center sm:py-6">
+          <section className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-[1.5rem] border border-black/10 bg-white shadow-2xl">
             <div className="border-b border-zinc-200 bg-[#fffdf8] px-6 py-5">
               <button
                 type="button"
@@ -534,7 +534,7 @@ export default function MyBookingsPage() {
                         className="mt-1 h-11 rounded-xl border border-zinc-200 bg-white px-3 py-2"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <div>
                         <label className="text-sm font-semibold">有效期限</label>
                         <div
@@ -607,8 +607,8 @@ export default function MyBookingsPage() {
       ) : null}
 
       {cancelBooking ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4 backdrop-blur-sm">
-          <section className="w-full max-w-lg overflow-hidden rounded-[1.5rem] border border-black/10 bg-white shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/35 px-4 pb-4 pt-12 backdrop-blur-sm sm:items-center sm:py-6">
+          <section className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-[1.5rem] border border-black/10 bg-white shadow-2xl">
             <div className="border-b border-zinc-200 bg-[#fffdf8] px-6 py-5">
               <p className="text-sm font-bold uppercase tracking-[0.22em] text-red-600">Cancel reservation</p>
               <h2 className="mt-2 text-2xl font-black">確認取消訂位？</h2>

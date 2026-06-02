@@ -182,7 +182,7 @@ export function AgentShopCard({ shop, rank }: Props) {
         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
           {rank}
         </span>
-        <span className="font-semibold">{shop.name}</span>
+        <span className="min-w-0 flex-1 truncate font-semibold">{shop.name}</span>
         {hasHotSeat && (
           <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
             🔥 Hot Seat 可搶

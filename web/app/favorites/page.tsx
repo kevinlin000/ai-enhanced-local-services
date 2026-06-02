@@ -140,7 +140,7 @@ export default function FavoritesPage() {
                             </Link>
                             <div className="flex flex-col gap-4 p-5">
                               <div>
-                                <div className="flex items-start justify-between gap-3">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                   <Link href={`/shops/${shop.shopId}`} className="text-xl font-black hover:text-emerald-700">
                                     {shop.name}
                                   </Link>
@@ -162,7 +162,7 @@ export default function FavoritesPage() {
                                   ) : null}
                                 </div>
                               </div>
-                              <div className="grid grid-cols-3 gap-2 text-sm">
+                              <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
                                 <div>
                                   <p className="text-xs text-zinc-400">評分</p>
                                   <p className="font-black">

@@ -118,12 +118,12 @@ export default function NotificationsPage() {
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <section className="rounded-[1.5rem] border border-black/10 bg-white p-5 shadow-xl shadow-black/5 md:p-6">
-            <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-2xl font-black">通知</h2>
                 <p className="mt-1 text-sm text-zinc-500">有位時會優先提醒，請盡快完成訂位。</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Button variant="outline" onClick={markAllRead} disabled={loading || unreadCount === 0 || markingAll}>
                   {markingAll ? "處理中..." : "全部已讀"}
                 </Button>
@@ -169,7 +169,7 @@ export default function NotificationsPage() {
                         {item.status === "UNREAD" ? "未讀" : "已讀"}
                       </span>
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                       {item.shopId ? (
                         <Link href={`/shops/${item.shopId}`}>
                           <Button size="sm" className="rounded-full bg-[#0b8a5b] hover:bg-[#087a50]">
