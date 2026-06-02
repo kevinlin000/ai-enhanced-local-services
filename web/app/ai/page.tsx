@@ -67,17 +67,22 @@ const DEMO_PAYMENT_METHODS = [
   {
     id: "card",
     label: "信用卡",
-    description: "TapPay sandbox test card",
+    description: "TapPay sandbox 測試卡",
   },
   {
     id: "line-pay",
     label: "LINE Pay",
-    description: "Demo wallet flow",
+    description: "錢包 demo flow",
   },
   {
     id: "apple-pay",
     label: "Apple Pay",
-    description: "Demo wallet flow",
+    description: "錢包 demo flow",
+  },
+  {
+    id: "jko-pay",
+    label: "街口支付",
+    description: "錢包 demo flow",
   },
 ] as const;
 
@@ -87,6 +92,9 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
   const [payError, setPayError] = useState<string | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<(typeof DEMO_PAYMENT_METHODS)[number]["id"]>("card");
+  const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
+  const [cardExpiry, setCardExpiry] = useState("12/30");
+  const [cardCcv, setCardCcv] = useState("123");
   const paid = current.status === "PAID";
   const confirmed = current.status === "CONFIRMED" || paid;
   const shopLabel = current.shop_name ?? `店家 ID ${current.shop_id ?? "-"}`;
@@ -96,6 +104,14 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
     if (!current.booking_code || paying) return;
     setPaying(true);
     setPayError(null);
+    if (selectedPaymentMethod === "card") {
+      const normalizedCard = cardNumber.replace(/\s/g, "");
+      if (!/^\d{16}$/.test(normalizedCard) || !/^\d{2}\/\d{2}$/.test(cardExpiry) || !/^\d{3,4}$/.test(cardCcv)) {
+        setPayError("請填入測試卡號、有效期限與 CCV。");
+        setPaying(false);
+        return;
+      }
+    }
     try {
       const response = await javaApi.payBookingWithTestCard(current.booking_code);
       if (!response.success) throw new Error(response.errorMsg ?? "付款失敗");
@@ -238,7 +254,7 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
                     本地 demo 不會扣款；正式上線應在這一步接 TapPay client confirmation 或第三方錢包授權。
                   </p>
                 </div>
-                <div className="grid gap-2 md:grid-cols-3">
+                <div className="grid gap-2 md:grid-cols-4">
                   {DEMO_PAYMENT_METHODS.map((method) => (
                     <button
                       key={method.id}
@@ -257,6 +273,50 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
                     </button>
                   ))}
                 </div>
+                {selectedPaymentMethod === "card" ? (
+                  <div className="rounded-xl border border-stone-200 bg-stone-50/80 p-3">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold text-stone-800">TapPay sandbox 信用卡資料</p>
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-stone-500">
+                        測試卡
+                      </span>
+                    </div>
+                    <div className="grid gap-2 md:grid-cols-[1.4fr_0.7fr_0.5fr]">
+                      <label className="text-[11px] font-medium text-stone-600">
+                        卡號
+                        <input
+                          value={cardNumber}
+                          onChange={(event) => setCardNumber(event.target.value)}
+                          inputMode="numeric"
+                          className="mt-1 h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-950"
+                          placeholder="4242 4242 4242 4242"
+                        />
+                      </label>
+                      <label className="text-[11px] font-medium text-stone-600">
+                        有效期限
+                        <input
+                          value={cardExpiry}
+                          onChange={(event) => setCardExpiry(event.target.value)}
+                          className="mt-1 h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-950"
+                          placeholder="MM/YY"
+                        />
+                      </label>
+                      <label className="text-[11px] font-medium text-stone-600">
+                        CCV
+                        <input
+                          value={cardCcv}
+                          onChange={(event) => setCardCcv(event.target.value)}
+                          inputMode="numeric"
+                          className="mt-1 h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-950"
+                          placeholder="123"
+                        />
+                      </label>
+                    </div>
+                    <p className="mt-2 text-[11px] leading-5 text-stone-500">
+                      這裡模擬 TapPay sandbox 欄位；正式環境需使用 TapPay iframe fields 取得 prime，不能把卡號送到自家 server。
+                    </p>
+                  </div>
+                ) : null}
                 <Button
                   size="sm"
                   className="w-full bg-amber-700 text-white hover:bg-amber-800"

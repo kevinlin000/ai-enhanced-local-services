@@ -17,10 +17,10 @@ interface BookingPolicy {
 }
 
 const TAIWAN_PAY = [
-  { code: 1, label: "信用卡", emoji: "💳", real: true },
-  { code: 2, label: "Line Pay", emoji: "📱", real: false },
-  { code: 3, label: "Apple Pay", emoji: "🍎", real: false },
-  { code: 4, label: "街口支付", emoji: "🟢", real: false },
+  { code: 1, label: "信用卡", status: "TapPay sandbox", real: true },
+  { code: 2, label: "LINE Pay", status: "demo", real: false },
+  { code: 3, label: "Apple Pay", status: "demo", real: false },
+  { code: 4, label: "街口支付", status: "demo", real: false },
 ];
 
 const TIME_SLOTS = [
@@ -425,13 +425,13 @@ export function BookingButton({
                 }
                 className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted text-sm flex items-center justify-between border"
               >
-                <span>{p.emoji} {p.label}</span>
+                <span className="font-medium">{p.label}</span>
                 <span
                   className={`text-xs ${
                     p.real ? "text-primary font-semibold" : "text-muted-foreground"
                   }`}
                 >
-                  {p.real ? "真實串接" : "demo"}
+                  {p.status}
                 </span>
               </button>
             ))}
