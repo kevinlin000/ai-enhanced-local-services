@@ -7,6 +7,7 @@ Checks:
 - pay-test retry is idempotent.
 - Backend rejects past-date reservations.
 - Ambiguous multi-branch brand bookings ask for branch selection before booking.
+- Repeating the same booking request in one Agent session reuses the existing booking.
 
 Prereqs: Java backend, AI service, MySQL, Qdrant, and Gemini env are running.
 """
@@ -152,6 +153,30 @@ def assert_pay_retry_idempotent(txn: dict[str, Any]) -> None:
     ok("pay-test retry is idempotent")
 
 
+def assert_agent_duplicate_booking_reuses_transaction(session_id: str, txn: dict[str, Any]) -> None:
+    events = stream_agent(
+        "幫我訂辛殿麻辣鍋明天晚上7點2人",
+        session_id,
+    )
+    tools = [event["name"] for event in events if event.get("type") == "tool"]
+    if "create_booking" in tools or "pay_booking_with_test_card" in tools:
+        fail(f"duplicate booking request should not create/pay again: tools={tools}")
+    done = next((event for event in events if event.get("type") == "done"), None)
+    if not done:
+        fail("duplicate booking request missing done event")
+    duplicate_txn = done.get("transaction")
+    if not isinstance(duplicate_txn, dict):
+        fail(f"duplicate booking request missing transaction: {done}")
+    if duplicate_txn.get("booking_code") != txn["booking_code"]:
+        fail(
+            "duplicate booking did not reuse original booking: "
+            f"original={txn['booking_code']} duplicate={duplicate_txn.get('booking_code')}"
+        )
+    if not duplicate_txn.get("duplicate"):
+        fail(f"duplicate booking transaction missing duplicate marker: {duplicate_txn}")
+    ok("duplicate Agent booking request reuses existing transaction")
+
+
 def assert_backend_rejects_past_date() -> None:
     yesterday = (date.today() - timedelta(days=1)).isoformat()
     response = httpx.post(
@@ -205,13 +230,15 @@ def main() -> None:
     txn: dict[str, Any] | None = None
     try:
         run_id = uuid.uuid4().hex[:10]
+        session_id = f"agent-booking-smoke-{run_id}"
         events = stream_agent(
             "幫我訂辛殿麻辣鍋明天晚上7點2人",
-            f"agent-booking-smoke-{run_id}",
+            session_id,
         )
         txn = assert_agent_transaction(events)
         assert_db_row(txn)
         assert_pay_retry_idempotent(txn)
+        assert_agent_duplicate_booking_reuses_transaction(session_id, txn)
         assert_backend_rejects_past_date()
         assert_ambiguous_branch_requires_clarification(run_id)
     finally:

@@ -1326,6 +1326,75 @@ def _booking_confirmation_narrative(transaction: dict) -> str:
     return "\n".join(base)
 
 
+def _booking_duplicate_narrative(transaction: dict) -> str:
+    shop_name = transaction.get("shop_name") or f"店家 ID {transaction.get('shop_id')}"
+    return "\n".join(
+        [
+            "您剛才已建立相同訂位，我不會重複下訂。",
+            "",
+            f"- 店家：{shop_name}",
+            f"- 人數：{transaction.get('people')} 人",
+            f"- 時間：{transaction.get('date')} {transaction.get('time')}",
+            f"- 訂位編號：`{transaction.get('booking_code')}`",
+        ]
+    )
+
+
+def _booking_key(shop_id: int | None, people: int | None, booking_date: str | None, booking_time: str | None) -> tuple | None:
+    if shop_id is None or people is None or not booking_date or not booking_time:
+        return None
+    return (int(shop_id), int(people), str(booking_date), str(booking_time))
+
+
+def _booking_key_from_tool_args(tool_args: dict) -> tuple | None:
+    from datetime import date as date_cls, timedelta
+
+    raw_shop_id = tool_args.get("shop_id")
+    raw_people = tool_args.get("people")
+    booking_date = tool_args.get("date") or (date_cls.today() + timedelta(days=1)).isoformat()
+    booking_time = tool_args.get("time") or "19:00"
+    try:
+        return _booking_key(int(raw_shop_id), int(raw_people), str(booking_date), str(booking_time))
+    except (TypeError, ValueError):
+        return None
+
+
+def _find_duplicate_booking_transaction(history: list[dict], tool_args: dict) -> dict | None:
+    target_key = _booking_key_from_tool_args(tool_args)
+    if target_key is None:
+        return None
+    for turn in reversed(history):
+        tx = turn.get("transaction") if isinstance(turn, dict) else None
+        if not isinstance(tx, dict) or tx.get("kind") != "booking":
+            continue
+        if tx.get("status") not in {"PAID", "CONFIRMED"}:
+            continue
+        existing_key = _booking_key(
+            tx.get("shop_id"),
+            tx.get("people"),
+            tx.get("date"),
+            tx.get("time"),
+        )
+        if existing_key == target_key:
+            duplicate = dict(tx)
+            duplicate["duplicate"] = True
+            return duplicate
+    return None
+
+
+def _latest_successful_booking_transaction(history: list[dict]) -> dict | None:
+    for turn in reversed(history):
+        tx = turn.get("transaction") if isinstance(turn, dict) else None
+        if not isinstance(tx, dict) or tx.get("kind") != "booking":
+            continue
+        if tx.get("status") not in {"PAID", "CONFIRMED"}:
+            continue
+        duplicate = dict(tx)
+        duplicate["duplicate"] = True
+        return duplicate
+    return None
+
+
 def _build_agent_recommendation_decision(query: str, tool_result: dict) -> AgentRecommendationDecision:
     shops = tool_result.get("shops", []) if isinstance(tool_result, dict) else []
     if not shops:
@@ -1745,6 +1814,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
     latest_search_result: dict = {}
     booking_result: dict | None = None
     payment_result: dict | None = None
+    final_transaction: dict | None = None
     direct_answer: str | None = None
 
     # Phase 1: tool-calling loop (sync) — yields tool events as each fires
@@ -1768,6 +1838,15 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             if not tools_used:
                 # Zero tool calls — answer already computed; fast path, chunk as-is
                 direct_answer = filter_output(response.text)
+                if _booking_intent(query):
+                    duplicate_transaction = _latest_successful_booking_transaction(history)
+                    if duplicate_transaction and (
+                        str(duplicate_transaction.get("booking_code") or "") in direct_answer
+                        or "訂過" in direct_answer
+                        or "已經訂" in direct_answer
+                    ):
+                        final_transaction = duplicate_transaction
+                        last_tool_result = {"transaction": duplicate_transaction}
             break
 
         tool_name = function_call.name
@@ -1782,6 +1861,12 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             if clarification:
                 direct_answer = clarification
                 last_tool_result = latest_search_result
+                break
+            duplicate_transaction = _find_duplicate_booking_transaction(history, tool_args)
+            if duplicate_transaction:
+                direct_answer = _booking_duplicate_narrative(duplicate_transaction)
+                final_transaction = duplicate_transaction
+                last_tool_result = {"transaction": duplicate_transaction}
                 break
 
         tool_result = await tool_fn(**tool_args)
@@ -1819,6 +1904,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 latest_search_result,
             )
             full_answer = _booking_confirmation_narrative(transaction)
+            final_transaction = transaction
             last_tool_result["transaction"] = transaction
         else:
             clarification = _booking_branch_clarification_from_search(query, last_tool_result)
@@ -1837,7 +1923,11 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             session_id,
             history + [
                 {"role": "user", "content": query},
-                {"role": "model", "content": full_answer},
+                {
+                    "role": "model",
+                    "content": full_answer,
+                    **({"transaction": final_transaction} if final_transaction else {}),
+                },
             ],
         )
 
