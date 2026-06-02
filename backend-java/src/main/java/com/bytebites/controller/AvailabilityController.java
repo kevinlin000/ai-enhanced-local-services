@@ -37,6 +37,12 @@ public class AvailabilityController {
         return availability.myWatches();
     }
 
+    @PostMapping("/watches/{id}/cancel")
+    @Transactional
+    public Result cancelWatch(@PathVariable Long id) {
+        return availability.cancelWatch(id);
+    }
+
     @GetMapping("/notifications")
     public Result myNotifications() {
         return availability.myNotifications();
@@ -45,5 +51,10 @@ public class AvailabilityController {
     @PostMapping("/notifications/{id}/read")
     public Result markRead(@PathVariable Long id) {
         return availability.markRead(id);
+    }
+
+    @PostMapping("/notifications/read-all")
+    public Result markAllRead() {
+        return availability.markAllRead();
     }
 }

@@ -23,6 +23,8 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [busyWatchId, setBusyWatchId] = useState<number | null>(null);
+  const [markingAll, setMarkingAll] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -64,6 +66,35 @@ export default function NotificationsPage() {
     }
   };
 
+  const markAllRead = async () => {
+    if (unreadCount === 0) return;
+    setMarkingAll(true);
+    setError("");
+    try {
+      const response = await javaApi.markAllNotificationsRead();
+      if (!response.success) throw new Error(response.errorMsg ?? "全部標記已讀失敗");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "全部標記已讀失敗");
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
+  const cancelWatch = async (id: number) => {
+    setBusyWatchId(id);
+    setError("");
+    try {
+      const response = await javaApi.cancelAvailabilityWatch(id);
+      if (!response.success) throw new Error(response.errorMsg ?? "取消追蹤失敗");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "取消追蹤失敗");
+    } finally {
+      setBusyWatchId(null);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-[#f4f0e7] px-4 py-8 text-[#171512] md:px-8">
       <section className="mx-auto max-w-5xl">
@@ -92,9 +123,14 @@ export default function NotificationsPage() {
                 <h2 className="text-2xl font-black">通知</h2>
                 <p className="mt-1 text-sm text-zinc-500">由真實 slot inventory 變化觸發。</p>
               </div>
-              <Button variant="outline" onClick={load} disabled={loading}>
-                重新整理
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={markAllRead} disabled={loading || unreadCount === 0 || markingAll}>
+                  {markingAll ? "處理中..." : "全部已讀"}
+                </Button>
+                <Button variant="outline" onClick={load} disabled={loading}>
+                  重新整理
+                </Button>
+              </div>
             </div>
 
             {error ? (
@@ -182,6 +218,19 @@ export default function NotificationsPage() {
                     <p className="mt-3 text-xs leading-5 text-zinc-500">
                       追蹤到 {watch.expiresAt}。觸發後此 watch 會轉為 TRIGGERED，並建立通知。
                     </p>
+                    {watch.status === "ACTIVE" ? (
+                      <div className="mt-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => cancelWatch(watch.id)}
+                          disabled={busyWatchId === watch.id}
+                          className="rounded-full"
+                        >
+                          {busyWatchId === watch.id ? "取消中..." : "取消追蹤"}
+                        </Button>
+                      </div>
+                    ) : null}
                   </article>
                 ))
               )}

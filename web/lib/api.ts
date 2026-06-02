@@ -326,6 +326,14 @@ export const javaApi = {
       `${CLIENT_JAVA_API}/api/availability/watches`,
       { headers: authOrDemoHeaders() },
     ),
+  cancelAvailabilityWatch: (id: number) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: { id: number; status: "CANCELED" } }>(
+      `${CLIENT_JAVA_API}/api/availability/watches/${id}/cancel`,
+      {
+        method: "POST",
+        headers: authOrDemoHeaders(true),
+      },
+    ),
   notifications: () =>
     fetchJson<{
       success: boolean;
@@ -337,6 +345,14 @@ export const javaApi = {
   markNotificationRead: (id: number) =>
     fetchJson<{ success: boolean; errorMsg?: string; data: { id: number; status: "READ" } }>(
       `${CLIENT_JAVA_API}/api/availability/notifications/${id}/read`,
+      {
+        method: "POST",
+        headers: authOrDemoHeaders(true),
+      },
+    ),
+  markAllNotificationsRead: () =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: { updated: number } }>(
+      `${CLIENT_JAVA_API}/api/availability/notifications/read-all`,
       {
         method: "POST",
         headers: authOrDemoHeaders(true),

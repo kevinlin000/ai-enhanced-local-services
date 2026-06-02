@@ -20,6 +20,7 @@ public class AvailabilityNotificationService {
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Taipei");
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_TRIGGERED = "TRIGGERED";
+    private static final String STATUS_CANCELED = "CANCELED";
     private static final String STATUS_UNREAD = "UNREAD";
     private static final String STATUS_READ = "READ";
 
@@ -132,6 +133,25 @@ public class AvailabilityNotificationService {
         ));
     }
 
+    public Result cancelWatch(Long watchId) {
+        Long userId = currentUserIdOrNull();
+        if (userId == null) return Result.fail("請先登入或使用 demo mode");
+        int updated = jdbcTemplate.update(
+                """
+                UPDATE tb_availability_watch
+                SET status = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND user_id = ? AND status = ?
+                """,
+                STATUS_CANCELED,
+                watchId,
+                userId,
+                STATUS_ACTIVE
+        );
+        return updated == 1
+                ? Result.ok(Map.of("id", watchId, "status", STATUS_CANCELED))
+                : Result.fail("此空位追蹤不存在或已結束");
+    }
+
     public Result markRead(Long notificationId) {
         Long userId = currentUserIdOrNull();
         if (userId == null) return Result.fail("請先登入或使用 demo mode");
@@ -146,6 +166,22 @@ public class AvailabilityNotificationService {
                 userId
         );
         return updated == 1 ? Result.ok(Map.of("id", notificationId, "status", STATUS_READ)) : Result.fail("通知不存在");
+    }
+
+    public Result markAllRead() {
+        Long userId = currentUserIdOrNull();
+        if (userId == null) return Result.fail("請先登入或使用 demo mode");
+        int updated = jdbcTemplate.update(
+                """
+                UPDATE tb_user_notification
+                SET status = ?, read_at = CURRENT_TIMESTAMP
+                WHERE user_id = ? AND status = ?
+                """,
+                STATUS_READ,
+                userId,
+                STATUS_UNREAD
+        );
+        return Result.ok(Map.of("updated", updated));
     }
 
     public void triggerIfAvailable(Long shopId, LocalDate bookingDate, String time, String tableType) {
