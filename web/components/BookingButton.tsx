@@ -91,6 +91,7 @@ export function BookingButton({
   const [policy, setPolicy] = useState<BookingPolicy | null>(null);
   const [bookingCode, setBookingCode] = useState<string | null>(null);
   const [holdExpiresAt, setHoldExpiresAt] = useState<string | null>(null);
+  const [allowDemoFallback, setAllowDemoFallback] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   // 訂位 form state
@@ -229,6 +230,7 @@ export function BookingButton({
   // 有訂金流程：TapPay credit card
   const handleCardSubmit = () => {
     setError("");
+    setAllowDemoFallback(false);
     if (holdExpired) {
       setError("此保留已逾期，請重新建立訂位");
       return;
@@ -260,9 +262,11 @@ export function BookingButton({
         .then((data) => {
           if (data.success) {
             setResult({ ...data.data, payLabel: "信用卡訂金", depositPaid: true });
+            setAllowDemoFallback(false);
             setStep("done");
           } else {
             setError(data.errorMsg || "支付失敗");
+            setAllowDemoFallback(Boolean(data.errorMsg?.includes("TapPay sandbox IP")));
             setStep("card-input");
           }
         })
@@ -280,6 +284,7 @@ export function BookingButton({
       return;
     }
     setError("");
+    setAllowDemoFallback(false);
     if (holdExpired) {
       setError("此保留已逾期，請重新建立訂位");
       return;
@@ -318,6 +323,7 @@ export function BookingButton({
     setPolicy(null);
     setBookingCode(null);
     setHoldExpiresAt(null);
+    setAllowDemoFallback(false);
   };
 
   if (step === "idle") {
@@ -565,7 +571,28 @@ export function BookingButton({
               style={{ height: 40 }}
             />
           </div>
-          {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
+          {error && (
+            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              <p className="font-semibold">{error}</p>
+              {allowDemoFallback ? (
+                <div className="mt-2 rounded-md border border-red-200 bg-white/75 p-2 leading-5">
+                  <p>
+                    TapPay iframe 已取得 prime；目前卡在 sandbox 商家後台 IP 白名單設定。
+                  </p>
+                  <p className="mt-1">
+                    本地展示可使用 demo 授權完成付款狀態；正式上線必須完成 TapPay 後台設定。
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleDemoPay("信用卡 Demo")}
+                    className="mt-2 w-full rounded-md bg-red-700 px-3 py-2 font-semibold text-white hover:bg-red-800"
+                  >
+                    使用 demo 授權完成付款狀態
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          )}
           <Button onClick={handleCardSubmit} className="w-full" disabled={holdExpired}>
             {holdExpired ? "保留已逾期" : `支付訂金 NT$ ${depositTotal.toLocaleString()}`}
           </Button>
