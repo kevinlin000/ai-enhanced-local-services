@@ -5,11 +5,27 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { CalendarDays, CheckCircle2, Clock, Store, UsersRound } from "lucide-react";
 import { javaApi, type MerchantShop, type MerchantSlot } from "@/lib/api";
-import { getToken } from "@/lib/auth";
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+function addDaysIso(days: number) {
+  const value = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .formatToParts(value)
+    .reduce<Record<string, string>>((acc, part) => {
+      acc[part.type] = part.value;
+      return acc;
+    }, {});
+  const year = parts.year;
+  const month = parts.month;
+  const day = parts.day;
+  return `${year}-${month}-${day}`;
 }
+
+const MIN_BOOKING_DATE = addDaysIso(1);
 
 function slotHealth(slot: MerchantSlot) {
   if (slot.capacity === 0) return { label: "關閉", tone: "bg-stone-100 text-stone-600" };
@@ -22,7 +38,7 @@ export default function MerchantPage() {
   const [token, setToken] = useState<string | null>(null);
   const [shops, setShops] = useState<MerchantShop[]>([]);
   const [selectedShopId, setSelectedShopId] = useState<number | null>(null);
-  const [date, setDate] = useState(todayIso());
+  const [date, setDate] = useState(MIN_BOOKING_DATE);
   const [tableType, setTableType] = useState("normal");
   const [slots, setSlots] = useState<MerchantSlot[]>([]);
   const [capacities, setCapacities] = useState<Record<string, number>>({});
@@ -46,15 +62,17 @@ export default function MerchantPage() {
   );
 
   useEffect(() => {
-    const savedToken = getToken();
-    setToken(savedToken);
+    // Merchant onboarding is not implemented yet; force demo merchant ownership.
+    // This avoids a consumer LINE token accidentally calling merchant APIs as a non-merchant.
+    const merchantToken = null;
+    setToken(merchantToken);
 
     let cancelled = false;
     async function loadShops() {
       setLoading(true);
       setError(null);
       try {
-        const response = await javaApi.merchantShops(savedToken);
+        const response = await javaApi.merchantShops(merchantToken);
         if (!response.success) throw new Error("無法載入店家權限");
         if (cancelled) return;
         setShops(response.data);
@@ -224,6 +242,7 @@ export default function MerchantPage() {
                   日期
                   <input
                     type="date"
+                    min={MIN_BOOKING_DATE}
                     value={date}
                     onChange={(event) => setDate(event.target.value)}
                     className="h-11 rounded-xl border border-stone-200 px-3 text-stone-900"

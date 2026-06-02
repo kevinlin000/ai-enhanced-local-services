@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -34,6 +35,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping({"/booking", "/api/booking"})
 public class BookingController {
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Taipei");
 
     private final BookingJpaRepository bookingRepo;
     private final IShopService shopService;
@@ -74,6 +76,10 @@ public class BookingController {
         return new TransactionTemplate(transactionManager, definition);
     }
 
+    private LocalDate today() {
+        return LocalDate.now(BUSINESS_ZONE);
+    }
+
     private Result reserveInTransaction(Map<String, Object> body) {
         if (body.get("shopId") == null) return Result.fail("shopId 必填");
         if (body.get("date") == null)   return Result.fail("date 必填");
@@ -93,10 +99,7 @@ public class BookingController {
         }
 
         if (people < 1 || people > 12) return Result.fail("訂位人數需介於 1-12 人");
-        if (bookingDate.isBefore(LocalDate.now())) return Result.fail("不能建立過去日期訂位");
-        if (bookingDate.isEqual(LocalDate.now()) && bookingTime.isBefore(LocalTime.now())) {
-            return Result.fail("不能建立過去時間訂位");
-        }
+        if (!bookingDate.isAfter(today())) return Result.fail("訂位日期需為明天或之後");
 
         String time = bookingTime.toString();
         String table = body.getOrDefault("tableType", "normal").toString();

@@ -1,7 +1,9 @@
 import json
 import logging
 import httpx
+from datetime import date as date_cls, datetime, timedelta
 from typing import AsyncIterator
+from zoneinfo import ZoneInfo
 from app import session_store
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import StreamingResponse
@@ -43,6 +45,10 @@ ai_requests = PromCounter("bytebites_ai_requests_total", "AI endpoint requests",
 ai_tokens = PromCounter("bytebites_ai_tokens_total", "Gemini token usage", ["model", "kind"])
 ai_latency = Histogram("bytebites_ai_latency_seconds", "AI endpoint latency", ["endpoint"])
 logger = logging.getLogger("bytebites.ai")
+
+
+def taipei_today() -> date_cls:
+    return datetime.now(ZoneInfo("Asia/Taipei")).date()
 
 from app.taxonomy import CATEGORY_BY_TYPE_ID as _tax_map
 
@@ -837,17 +843,18 @@ async def tool_create_booking(
     idempotency_key: str | None = None,
 ) -> dict:
     """建立訂位記錄，回 bookingCode + needsDeposit + depositTotal。"""
-    from datetime import date as date_cls, timedelta
+    today = taipei_today()
+    tomorrow = (today + timedelta(days=1)).isoformat()
 
     if not date:
-        date = (date_cls.today() + timedelta(days=1)).isoformat()
+        date = tomorrow
     else:
         try:
             requested_date = date_cls.fromisoformat(date)
-            if requested_date < date_cls.today():
-                date = (date_cls.today() + timedelta(days=1)).isoformat()
+            if requested_date <= today:
+                date = tomorrow
         except ValueError:
-            date = (date_cls.today() + timedelta(days=1)).isoformat()
+            date = tomorrow
     if not time:
         time = "19:00"
 
@@ -1018,12 +1025,13 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 
 
 def _agent_system_prompt() -> str:
-    from datetime import date as date_cls
+    today = taipei_today()
 
     return (
-        f"今天日期：{date_cls.today().isoformat()}（Asia/Taipei）。"
+        f"今天日期：{today.isoformat()}（Asia/Taipei）。"
         "解析「今天」「明天」「下週」等相對日期時必須以此為準。"
-        "禁止建立過去日期訂位；若不確定日期，使用明天。\n\n"
+        "今天不可訂位，最早可訂明天；若用戶說今天或未指定日期，使用明天。"
+        "禁止建立今天或過去日期訂位。\n\n"
         f"{AGENT_SYSTEM_PROMPT}"
     )
 
@@ -1356,12 +1364,18 @@ def _booking_key(shop_id: int | None, people: int | None, booking_date: str | No
 
 
 def _booking_key_from_tool_args(tool_args: dict) -> tuple | None:
-    from datetime import date as date_cls, timedelta
-
     raw_shop_id = tool_args.get("shop_id")
     raw_people = tool_args.get("people")
-    booking_date = tool_args.get("date") or (date_cls.today() + timedelta(days=1)).isoformat()
+    today = taipei_today()
+    tomorrow = (today + timedelta(days=1)).isoformat()
+    booking_date = tool_args.get("date") or tomorrow
     booking_time = tool_args.get("time") or "19:00"
+    try:
+        parsed_date = date_cls.fromisoformat(str(booking_date))
+        if parsed_date <= today:
+            booking_date = tomorrow
+    except ValueError:
+        booking_date = tomorrow
     try:
         return _booking_key(int(raw_shop_id), int(raw_people), str(booking_date), str(booking_time))
     except (TypeError, ValueError):

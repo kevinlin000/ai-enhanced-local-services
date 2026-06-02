@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping({"/merchant", "/api/merchant"})
 public class MerchantController {
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Taipei");
 
     private static final List<String> DEFAULT_TIMES = List.of(
             "17:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00"
@@ -54,6 +56,7 @@ public class MerchantController {
 
         LocalDate bookingDate = parseDate(date);
         if (bookingDate == null) return Result.fail("date 格式需為 YYYY-MM-DD");
+        if (!bookingDate.isAfter(today())) return Result.fail("僅可管理明天或之後的時段");
         if (!isSupportedTableType(tableType)) return Result.fail("tableType 僅支援 normal/bar/private");
 
         for (String time : DEFAULT_TIMES) {
@@ -95,6 +98,7 @@ public class MerchantController {
         if (dateValue == null) return Result.fail("date 必填");
         LocalDate bookingDate = parseDate(dateValue.toString());
         if (bookingDate == null) return Result.fail("date 格式需為 YYYY-MM-DD");
+        if (!bookingDate.isAfter(today())) return Result.fail("僅可管理明天或之後的時段");
 
         String tableType = String.valueOf(body.getOrDefault("tableType", "normal"));
         if (!isSupportedTableType(tableType)) return Result.fail("tableType 僅支援 normal/bar/private");
@@ -146,6 +150,10 @@ public class MerchantController {
     private Long requireUserId() {
         var user = UserHolder.getUser();
         return user == null ? null : user.getId();
+    }
+
+    private LocalDate today() {
+        return LocalDate.now(BUSINESS_ZONE);
     }
 
     private boolean ownsShop(Long userId, Long shopId) {

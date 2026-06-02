@@ -331,6 +331,30 @@ def assert_backend_rejects_past_date() -> None:
     ok(f"backend rejects past-date reservation ({yesterday})")
 
 
+def assert_backend_rejects_same_day() -> None:
+    today = date.today().isoformat()
+    response = httpx.post(
+        f"{JAVA_BACKEND_URL}/api/booking/reserve",
+        json={
+            "shopId": 10115,
+            "people": 2,
+            "date": today,
+            "time": "19:00",
+            "tableType": "normal",
+        },
+        timeout=15,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if payload.get("success") is not False:
+        fail(f"same-day booking was not rejected: {payload}")
+    if "明天" not in str(payload.get("errorMsg") or ""):
+        fail(f"same-day rejection did not explain next-day policy: {payload}")
+    if (payload.get("data") or {}).get("bookingCode"):
+        fail(f"same-day rejection returned a booking code: {payload}")
+    ok(f"backend rejects same-day reservation ({today})")
+
+
 def assert_ambiguous_branch_requires_clarification(run_id: str) -> None:
     events = stream_agent(
         "幫我訂刁民明天晚上7點2人",
@@ -374,6 +398,7 @@ def main() -> None:
         assert_backend_reserve_idempotency(run_id)
         assert_backend_slot_capacity(run_id)
         assert_backend_rejects_past_date()
+        assert_backend_rejects_same_day()
         assert_ambiguous_branch_requires_clarification(run_id)
     finally:
         if txn and not args.keep_booking:
