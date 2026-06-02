@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, MapPin, Star } from "lucide-react";
+import type { AbsaAspect } from "@/lib/api";
 import type { ShopReviewInsights } from "@/lib/reviewInsights";
 import { getBestShopCardPhoto } from "@/lib/shopPhotoManifest";
 import { proxyImageUrl } from "@/lib/photoProxy";
@@ -20,6 +21,14 @@ export type AgentShop = {
   signature_dishes?: string[] | null;
   ai_summary?: string | null;
   hot_seat_vouchers?: { id: number; title: string }[] | null;
+};
+
+// Positive-only framing for recommendation context
+const POSITIVE_HIGHLIGHTS: Record<string, string> = {
+  dishes: "招牌菜多人讚賞",
+  service: "桌邊服務貼心",
+  environment: "用餐氛圍舒適",
+  price: "性價比受肯定",
 };
 
 function StarRating({ rating }: { rating: number }) {
@@ -116,6 +125,43 @@ function ReviewCarousel({ shopId }: { shopId: number }) {
   );
 }
 
+function PositiveHighlights({ shopId }: { shopId: number }) {
+  const [highlights, setHighlights] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch(`/api/java/api/shop/${shopId}/absa`)
+      .then((r) => r.json())
+      .then((d: { data?: { aspects?: string } }) => {
+        const raw = d?.data?.aspects;
+        if (!raw) return;
+        const aspects = JSON.parse(raw) as AbsaAspect[];
+        const items = aspects
+          .filter((a) => {
+            const posCount = (a.positive_evidence ?? []).length;
+            const negCount = (a.negative_evidence ?? []).length;
+            return a.sentiment === "positive" || (a.sentiment === "mixed" && posCount > negCount);
+          })
+          .slice(0, 2)
+          .map((a) => POSITIVE_HIGHLIGHTS[a.aspect] ?? "")
+          .filter(Boolean);
+        setHighlights(items);
+      })
+      .catch(() => {});
+  }, [shopId]);
+
+  if (!highlights.length) return null;
+
+  return (
+    <div className="mt-3 border-t pt-3 flex flex-wrap gap-x-4 gap-y-1">
+      {highlights.map((h) => (
+        <span key={h} className="text-xs text-green-700 font-medium">
+          ✨ {h}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 type Props = {
   shop: AgentShop;
   rank: number;
@@ -202,6 +248,10 @@ export function AgentShopCard({ shop, rank }: Props) {
         </div>
       </div>
 
+      {/* Positive highlights */}
+      <div className="px-4 pb-4">
+        <PositiveHighlights shopId={shop.shop_id} />
+      </div>
     </div>
   );
 }
