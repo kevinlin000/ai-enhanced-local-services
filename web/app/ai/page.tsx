@@ -63,13 +63,34 @@ function selectRecommendedShops(
     .filter((shop): shop is AgentShop => Boolean(shop));
 }
 
+const DEMO_PAYMENT_METHODS = [
+  {
+    id: "card",
+    label: "信用卡",
+    description: "TapPay sandbox test card",
+  },
+  {
+    id: "line-pay",
+    label: "LINE Pay",
+    description: "Demo wallet flow",
+  },
+  {
+    id: "apple-pay",
+    label: "Apple Pay",
+    description: "Demo wallet flow",
+  },
+] as const;
+
 function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTransaction }) {
   const [current, setCurrent] = useState(transaction);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<(typeof DEMO_PAYMENT_METHODS)[number]["id"]>("card");
   const paid = current.status === "PAID";
   const confirmed = current.status === "CONFIRMED" || paid;
   const shopLabel = current.shop_name ?? `店家 ID ${current.shop_id ?? "-"}`;
+  const selectedPayment = DEMO_PAYMENT_METHODS.find((method) => method.id === selectedPaymentMethod);
 
   async function handleDemoPay() {
     if (!current.booking_code || paying) return;
@@ -84,7 +105,7 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
         status: "PAID",
         rec_trade_id: response.data.rec_trade_id,
         payment_amount: response.data.amount,
-        payment_note: response.data.note ?? "agent demo 付款，非真實 TapPay",
+        payment_note: `${selectedPayment?.label ?? "Demo"} 付款完成：${response.data.note ?? "非真實扣款"}`,
       });
     } catch (err) {
       setPayError(err instanceof Error ? err.message : "付款失敗，請再試一次");
@@ -210,18 +231,44 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
               <p className="mt-2 text-[11px] text-amber-800">{current.payment_note}</p>
             ) : null}
             {!paid && current.booking_code ? (
-              <div className="mt-3 space-y-2">
+              <div className="mt-4 space-y-3 rounded-xl border border-amber-200 bg-white/70 p-3">
+                <div>
+                  <p className="text-sm font-semibold text-amber-950">選擇付款方式</p>
+                  <p className="mt-1 text-[11px] leading-5 text-amber-800">
+                    本地 demo 不會扣款；正式上線應在這一步接 TapPay client confirmation 或第三方錢包授權。
+                  </p>
+                </div>
+                <div className="grid gap-2 md:grid-cols-3">
+                  {DEMO_PAYMENT_METHODS.map((method) => (
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() => setSelectedPaymentMethod(method.id)}
+                      className={`rounded-xl border p-3 text-left transition ${
+                        selectedPaymentMethod === method.id
+                          ? "border-amber-600 bg-amber-100 text-amber-950"
+                          : "border-stone-200 bg-white text-stone-700 hover:border-amber-300"
+                      }`}
+                    >
+                      <span className="block text-sm font-bold">{method.label}</span>
+                      <span className="mt-1 block text-[11px] leading-4 text-muted-foreground">
+                        {method.description}
+                      </span>
+                    </button>
+                  ))}
+                </div>
                 <Button
                   size="sm"
                   className="w-full bg-amber-700 text-white hover:bg-amber-800"
                   disabled={paying}
                   onClick={handleDemoPay}
                 >
-                  {paying ? "付款處理中..." : "立即支付訂金（Demo）"}
+                  {paying
+                    ? "付款處理中..."
+                    : `確認以${selectedPayment?.label ?? "Demo"}支付 NT$ ${
+                        current.deposit_total ?? current.payment_amount ?? "-"
+                      }`}
                 </Button>
-                <p className="text-[11px] leading-5 text-amber-800">
-                  Demo 會呼叫 sandbox pay-test；正式上線應改為 TapPay client confirmation。
-                </p>
                 {payError ? <p className="text-xs font-medium text-rose-700">{payError}</p> : null}
               </div>
             ) : null}
