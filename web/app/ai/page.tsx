@@ -66,8 +66,8 @@ function selectRecommendedShops(
 const DEMO_PAYMENT_METHODS = [
   {
     id: "card",
-    label: "信用卡",
-    description: "TapPay sandbox 測試卡",
+    label: "信用卡 Demo",
+    description: "聊天室快速確認，完整 TapPay flow 請到我的訂位",
   },
   {
     id: "line-pay",
@@ -304,7 +304,7 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
                 {selectedPaymentMethod === "card" ? (
                   <div className="rounded-xl border border-stone-200 bg-stone-50/80 p-3">
                     <div className="mb-2 flex items-center justify-between gap-3">
-                      <p className="text-xs font-semibold text-stone-800">TapPay sandbox 信用卡資料</p>
+                      <p className="text-xs font-semibold text-stone-800">Demo 信用卡確認</p>
                       <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-stone-500">
                         測試卡
                       </span>
@@ -341,7 +341,7 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
                       </label>
                     </div>
                     <p className="mt-2 text-[11px] leading-5 text-stone-500">
-                      這裡模擬 TapPay sandbox 欄位；正式環境需使用 TapPay iframe fields 取得 prime，不能把卡號送到自家 server。
+                      聊天室使用 demo confirmation，方便展示 Agent transaction；完整 TapPay iframe prime flow 已放在「我的訂位」付款頁。
                     </p>
                   </div>
                 ) : null}

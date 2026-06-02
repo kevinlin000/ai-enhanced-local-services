@@ -5,6 +5,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { javaApi, type MyBooking } from "@/lib/api";
 
+declare global {
+  interface Window {
+    TPDirect: any;
+  }
+}
+
 type PaymentMethod = "credit_card" | "line_pay" | "apple_pay" | "jkopay";
 
 const statusCopy: Record<MyBooking["status"], { label: string; tone: string; helper: string }> = {
@@ -83,10 +89,8 @@ export default function MyBookingsPage() {
   const [busyCode, setBusyCode] = useState<string | null>(null);
   const [paymentBooking, setPaymentBooking] = useState<MyBooking | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("credit_card");
-  const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
-  const [cardExpiry, setCardExpiry] = useState("12/30");
-  const [cardCcv, setCardCcv] = useState("123");
   const [paymentError, setPaymentError] = useState("");
+  const [sdkReady, setSdkReady] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   const loadBookings = async () => {
@@ -117,6 +121,60 @@ export default function MyBookingsPage() {
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const tryInit = () => {
+      if (typeof window === "undefined" || !window.TPDirect) return false;
+      try {
+        window.TPDirect.setupSDK(
+          parseInt(process.env.NEXT_PUBLIC_TAPPAY_APP_ID ?? "0", 10),
+          process.env.NEXT_PUBLIC_TAPPAY_APP_KEY ?? "",
+          process.env.NEXT_PUBLIC_TAPPAY_ENV || "sandbox",
+        );
+      } catch {
+        // TapPay SDK may already be initialized by another booking widget.
+      }
+      setSdkReady(true);
+      return true;
+    };
+
+    if (tryInit()) return;
+    const timer = window.setInterval(() => {
+      if (tryInit()) window.clearInterval(timer);
+    }, 200);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!paymentBooking || paymentMethod !== "credit_card" || !sdkReady) return;
+    const tryMount = () => {
+      if (!document.getElementById("my-bookings-tappay-number")) return false;
+      try {
+        window.TPDirect?.card.setup({
+          fields: {
+            number: { element: "#my-bookings-tappay-number", placeholder: "4242 4242 4242 4242" },
+            expirationDate: { element: "#my-bookings-tappay-expiry", placeholder: "MM / YY" },
+            ccv: { element: "#my-bookings-tappay-ccv", placeholder: "CCV" },
+          },
+          styles: {
+            input: { "font-size": "15px", color: "#171512" },
+            ":focus": { color: "#0b8a5b" },
+            ".valid": { color: "#171512" },
+            ".invalid": { color: "#dc2626" },
+          },
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    if (tryMount()) return;
+    const timer = window.setInterval(() => {
+      if (tryMount()) window.clearInterval(timer);
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, [paymentBooking, paymentMethod, sdkReady]);
+
   const openPayment = (booking: MyBooking) => {
     if (booking.holdExpiresAt && new Date(booking.holdExpiresAt).getTime() <= Date.now()) {
       setError("此保留已逾期，請重新整理後重新建立訂位");
@@ -126,23 +184,12 @@ export default function MyBookingsPage() {
     setPaymentBooking(booking);
     setPaymentMethod("credit_card");
     setPaymentError("");
-    setCardNumber("4242 4242 4242 4242");
-    setCardExpiry("12/30");
-    setCardCcv("123");
   };
 
   const closePayment = () => {
     if (busyCode) return;
     setPaymentBooking(null);
     setPaymentError("");
-  };
-
-  const validateCard = () => {
-    const digits = cardNumber.replace(/\D/g, "");
-    if (digits.length !== 16) return "請輸入 16 位測試卡號";
-    if (!/^\d{2}\/\d{2}$/.test(cardExpiry.trim())) return "有效期限格式需為 MM/YY";
-    if (!/^\d{3,4}$/.test(cardCcv.trim())) return "請輸入 3-4 位安全碼";
-    return "";
   };
 
   const confirmPayment = async () => {
@@ -152,17 +199,49 @@ export default function MyBookingsPage() {
       await loadBookings();
       return;
     }
-    if (paymentMethod === "credit_card") {
-      const validation = validateCard();
-      if (validation) {
-        setPaymentError(validation);
-        return;
-      }
-    }
-
     setBusyCode(paymentBooking.bookingCode);
     setError("");
     setPaymentError("");
+
+    if (paymentMethod === "credit_card") {
+      if (!window.TPDirect?.card) {
+        setPaymentError("TapPay SDK 尚未載入，請稍後再試");
+        setBusyCode(null);
+        return;
+      }
+      const status = window.TPDirect.card.getTappayFieldsStatus();
+      if (!status.canGetPrime) {
+        setPaymentError("請完整填寫 TapPay 測試卡資料");
+        setBusyCode(null);
+        return;
+      }
+      window.TPDirect.card.getPrime(async (result: any) => {
+        if (result.status !== 0) {
+          setPaymentError(`TapPay prime 取得失敗：${result.msg}`);
+          setBusyCode(null);
+          return;
+        }
+        try {
+          const response = await javaApi.payBookingByPrime({
+            prime: result.card.prime,
+            amount: paymentBooking.depositTotal,
+            bookingCode: paymentBooking.bookingCode,
+          });
+          if (!response.success) {
+            setPaymentError(response.errorMsg ?? "付款失敗");
+            return;
+          }
+          await loadBookings();
+          setPaymentBooking(null);
+        } catch (err) {
+          setPaymentError(err instanceof Error ? err.message : "付款失敗");
+        } finally {
+          setBusyCode(null);
+        }
+      });
+      return;
+    }
+
     try {
       const response = await javaApi.payBookingWithTestCard(paymentBooking.bookingCode);
       if (!response.success) {
@@ -377,7 +456,13 @@ export default function MyBookingsPage() {
                           <span className="block font-black">{method.label}</span>
                           <span className="mt-0.5 block text-xs text-zinc-500">{method.helper}</span>
                         </span>
-                        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-500">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-bold ${
+                            method.id === "credit_card"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-zinc-100 text-zinc-500"
+                          }`}
+                        >
                           {method.badge}
                         </span>
                       </button>
@@ -388,37 +473,44 @@ export default function MyBookingsPage() {
 
               {paymentMethod === "credit_card" ? (
                 <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                  <p className="mb-3 text-sm font-black">測試卡資料</p>
+                  <div className="mb-3 flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-black">TapPay Sandbox 信用卡</p>
+                      <p className="mt-1 text-xs leading-5 text-zinc-500">
+                        測試卡 4242 4242 4242 4242 / 任意未來日期 / CCV 123
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-emerald-700">
+                      取得 prime
+                    </span>
+                  </div>
                   <div className="grid gap-3">
-                    <label className="text-sm font-semibold">
-                      卡號
-                      <input
-                        value={cardNumber}
-                        onChange={(event) => setCardNumber(event.target.value)}
-                        className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 font-mono"
+                    <div>
+                      <label className="text-sm font-semibold">卡號</label>
+                      <div
+                        id="my-bookings-tappay-number"
+                        className="mt-1 h-11 rounded-xl border border-zinc-200 bg-white px-3 py-2"
                       />
-                    </label>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <label className="text-sm font-semibold">
-                        有效期限
-                        <input
-                          value={cardExpiry}
-                          onChange={(event) => setCardExpiry(event.target.value)}
-                          className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 font-mono"
+                      <div>
+                        <label className="text-sm font-semibold">有效期限</label>
+                        <div
+                          id="my-bookings-tappay-expiry"
+                          className="mt-1 h-11 rounded-xl border border-zinc-200 bg-white px-3 py-2"
                         />
-                      </label>
-                      <label className="text-sm font-semibold">
-                        CCV
-                        <input
-                          value={cardCcv}
-                          onChange={(event) => setCardCcv(event.target.value)}
-                          className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 font-mono"
+                      </div>
+                      <div>
+                        <label className="text-sm font-semibold">CCV</label>
+                        <div
+                          id="my-bookings-tappay-ccv"
+                          className="mt-1 h-11 rounded-xl border border-zinc-200 bg-white px-3 py-2"
                         />
-                      </label>
+                      </div>
                     </div>
                   </div>
                   <p className="mt-3 text-xs leading-5 text-zinc-500">
-                    Demo 使用 TapPay 測試卡格式；本頁不會產生真實扣款。
+                    信用卡會透過 TapPay sandbox iframe 取得 prime，再由後端呼叫 pay-by-prime。此為測試環境，不會產生真實扣款。
                   </p>
                 </div>
               ) : (
@@ -443,7 +535,11 @@ export default function MyBookingsPage() {
                 disabled={busyCode === paymentBooking.bookingCode}
                 className="bg-[#0b8a5b] px-6 hover:bg-[#087a50]"
               >
-                {busyCode === paymentBooking.bookingCode ? "付款處理中..." : "確認付款"}
+                {busyCode === paymentBooking.bookingCode
+                  ? "付款處理中..."
+                  : paymentMethod === "credit_card"
+                    ? "取得 TapPay prime 並付款"
+                    : "確認 demo 授權付款"}
               </Button>
             </div>
           </section>

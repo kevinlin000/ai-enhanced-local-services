@@ -229,6 +229,28 @@ export const javaApi = {
       headers: authOrDemoHeaders(true),
       body: JSON.stringify({ bookingCode }),
     }),
+  payBookingByPrime: (body: { prime: string; amount: number; bookingCode: string }) =>
+    fetchJson<{
+      success: boolean;
+      errorMsg?: string;
+      data: {
+        bookingCode: string;
+        rec_trade_id: string;
+        amount: number;
+        status: "PAID";
+        tappay_status: number;
+        msg?: string;
+      };
+    }>(`${CLIENT_JAVA_API}/api/payment/tappay/pay-by-prime`, {
+      method: "POST",
+      headers: authOrDemoHeaders(true),
+      body: JSON.stringify({
+        prime: body.prime,
+        amount: body.amount,
+        bookingCode: body.bookingCode,
+        orderId: Math.floor(Math.random() * 100000000),
+      }),
+    }),
   myBookings: () =>
     fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking[] }>(
       `${CLIENT_JAVA_API}/api/booking/my`,
