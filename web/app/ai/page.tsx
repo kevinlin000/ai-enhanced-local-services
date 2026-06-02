@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Bot, CalendarCheck, CreditCard, MapPin, Search, Sparkles, Trash2 } from "lucide-react";
+import { AlertTriangle, Bell, Bot, CalendarCheck, CreditCard, Heart, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { aiApi, javaApi, type SearchHit } from "@/lib/api";
+import { javaApi } from "@/lib/api";
 import { streamAgentResponse, type AgentTransaction } from "@/lib/agentStream";
 import { AgentShopCard, type AgentShop } from "@/components/AgentShopCard";
 import ReactMarkdown from "react-markdown";
@@ -16,37 +15,27 @@ import remarkGfm from "remark-gfm";
 
 const AI_API = "";
 
-type Mode = "search" | "recommend" | "agent";
-
 interface Msg {
   role: "user" | "ai";
   content: string;
-  hits?: SearchHit[];
   toolsUsed?: string[];
   shops?: AgentShop[];
   transaction?: AgentTransaction;
 }
 
-const PRESETS: Record<Mode, string[]> = {
-  search: ["中山站附近高級火鍋", "信義區熱門日式料理", "有 Hot Seat 的熱門餐廳"],
-  recommend: ["適合約會的高級餐廳", "商務請客台菜", "信義區難訂的餐廳"],
-  agent: ["信義區想吃火鍋", "中山站附近推薦", "幫我訂明天晚上 7 點 2 人"],
-};
+const PRESETS = [
+  "信義區想吃火鍋",
+  "推薦大安區美式漢堡",
+  "幫我訂辛殿麻辣鍋明天晚上 7 點 2 人",
+  "中山站附近適合約會的高級餐廳",
+];
 
-const CATEGORY_LABELS: Record<string, string> = {
-  hotpot: "火鍋",
-  yakiniku: "日式燒肉",
-  izakaya: "居酒屋",
-  japanese: "日式料理",
-  omakase: "無菜單料理",
-  steakhouse: "牛排館",
-  european: "義法 / 西式",
-  chinese: "中式料理",
-  korean: "韓式料理",
-  brunch: "美式料理",
-  "fine-dining": "高級餐廳",
-  "cafe-premium": "甜點 / 咖啡",
-};
+const PRODUCT_HINTS = [
+  { label: "AI 推薦", icon: Sparkles },
+  { label: "可直接訂位", icon: CalendarCheck },
+  { label: "額滿可等通知", icon: Bell },
+  { label: "可收藏回訪", icon: Heart },
+];
 
 function shopId(shop: AgentShop): number {
   return shop.shop_id;
@@ -398,17 +387,9 @@ function getOrCreateSessionId(): string {
 }
 
 export default function AiPage() {
-  const [mode, setMode] = useState<Mode>("recommend");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // non-agent mode (search / recommend)
-  const [answer, setAnswer] = useState<string | null>(null);
-  const [hits, setHits] = useState<SearchHit[]>([]);
-  const [toolUsed, setToolUsed] = useState<string | null>(null);
-
-  // agent mode — chat history
   const [messages, setMessages] = useState<Msg[]>([]);
   const [sessionId] = useState<string>(getOrCreateSessionId);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -425,31 +406,8 @@ export default function AiPage() {
     const params = new URLSearchParams(window.location.search);
     const q = params.get("q");
     if (!q) return;
-    setMode("agent");
     setQuery(q);
   }, []);
-
-  async function runSearchOrRecommend(q: string) {
-    setLoading(true);
-    setError(null);
-    setAnswer(null);
-    setHits([]);
-    setToolUsed(null);
-    try {
-      if (mode === "search") {
-        const r = await aiApi.search(q);
-        setHits(r.hits);
-      } else {
-        const r = await aiApi.recommend(q);
-        setAnswer(r.answer);
-        setHits(r.hits);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "AI 服務錯誤");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function sendAgentMessage(q: string) {
     if (!q.trim()) return;
@@ -532,288 +490,193 @@ export default function AiPage() {
 
   function handleRun(q: string) {
     if (!q.trim()) return;
-    if (mode === "agent") {
-      sendAgentMessage(q);
-    } else {
-      runSearchOrRecommend(q);
-    }
+    void sendAgentMessage(q);
   }
 
-  const modes: { key: Mode; label: string; icon: typeof Search; desc: string }[] = [
-    { key: "search", label: "語意搜尋", icon: Search, desc: "向量檢索 top-K 店家" },
-    { key: "recommend", label: "智能推薦", icon: Sparkles, desc: "RAG：檢索 + LLM 推薦理由" },
-    { key: "agent", label: "AI Chat", icon: Bot, desc: "多輪對話 · Redis session · Function calling" },
-  ];
-
-  const renderReason = (hit: SearchHit) => {
-    const parts: string[] = [];
-    if (hit.category) parts.push(CATEGORY_LABELS[hit.category] ?? hit.category);
-    if (hit.booking_difficulty) parts.push(hit.booking_difficulty);
-    if (hit.price_per_person) parts.push(hit.price_per_person);
-    else if (hit.avg_price) parts.push(`NT$ ${hit.avg_price}`);
-    if (hit.hot_seat_count) parts.push(`Hot Seat ${hit.hot_seat_count} 案`);
-    return parts.slice(0, 3).join(" · ");
-  };
-
   return (
-    <main className="mx-auto min-h-screen max-w-4xl px-4 py-8 md:px-8">
-      <h1 className="mb-2 text-3xl font-bold">AI 搜尋</h1>
-      <p className="text-muted-foreground mb-6">直接問場景，不用先懂分類。AI 會看語意、價位、預約難度、Hot Seat。</p>
-
-      {/* Mode tabs */}
-      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        {modes.map((m) => {
-          const Icon = m.icon;
-          return (
-            <Card
-              key={m.key}
-              onClick={() => setMode(m.key)}
-              className={`cursor-pointer transition ${
-                mode === m.key ? "border-primary bg-accent" : "hover:shadow"
-              }`}
-            >
-              <CardContent className="p-4">
-                <Icon className="mb-2 h-5 w-5" />
-                <div className="font-semibold">{m.label}</div>
-                <div className="text-muted-foreground mt-1 text-xs">{m.desc}</div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Preset badges */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        <span className="text-muted-foreground self-center text-sm">範例：</span>
-        {PRESETS[mode].map((preset) => (
-          <Badge
-            key={preset}
-            variant="outline"
-            className="cursor-pointer"
-            onClick={() => {
-              setQuery(preset);
-              handleRun(preset);
-            }}
-          >
-            {preset}
-          </Badge>
-        ))}
-      </div>
-
-      {mode !== "agent" && (
-        <div className="mb-6 rounded-2xl border bg-muted/30 p-4">
-          <p className="text-sm font-medium">推薦問法</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {["適合約會", "高級火鍋", "商務請客", "中山站附近", "有 Hot Seat"].map((tip) => (
-              <span key={tip} className="rounded-full border bg-background px-3 py-1 text-xs text-muted-foreground">
-                {tip}
-              </span>
-            ))}
+    <main className="min-h-screen bg-[#f6f1e8] px-4 py-6 md:px-8">
+      <section className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-2xl shadow-black/10">
+          <div className="border-b bg-[#123326] px-5 py-6 text-white md:px-8">
+            <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.32em] text-emerald-200">
+                  ByteBites Concierge
+                </p>
+                <h1 className="mt-3 text-4xl font-black tracking-tight md:text-6xl">
+                  AI Chat
+                </h1>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-white/70">
+                  直接說需求。找餐廳、比較選項、訂位、付款、額滿改設空位通知，全部由 Agent 自己決定該用哪個 tool。
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearChat}
+                className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-black text-white/90 hover:bg-white/10"
+              >
+                <Trash2 className="h-4 w-4" />
+                清空對話
+              </button>
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* ── Agent: chat UI ── */}
-      {mode === "agent" ? (
-        <div className="flex flex-col gap-3">
-          {/* Chat history */}
-          <div ref={scrollRef} className="flex flex-col gap-3 max-h-[70vh] min-h-[12rem] overflow-y-auto rounded-xl border p-4 bg-muted/20">
-            {messages.length === 0 && (
-              <p className="text-muted-foreground text-sm text-center mt-8">
-                開始對話吧！可以問「信義區想吃火鍋」或「幫我訂明天晚上」
-              </p>
-            )}
+          <div className="border-b bg-[#fbfaf6] px-5 py-4 md:px-8">
+            <div className="flex flex-wrap gap-2">
+              {PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => handleRun(preset)}
+                  disabled={loading}
+                  className="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-bold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-60"
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div
+            ref={scrollRef}
+            className="flex max-h-[68vh] min-h-[520px] flex-col gap-4 overflow-y-auto bg-[#fffdf8] p-4 md:p-6"
+          >
+            {messages.length === 0 ? (
+              <div className="m-auto max-w-xl text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-800">
+                  <Bot className="h-8 w-8" />
+                </div>
+                <h2 className="mt-5 text-2xl font-black">今晚想吃什麼？</h2>
+                <p className="mt-2 text-sm leading-7 text-zinc-500">
+                  不需要先選搜尋模式。像跟真人 concierge 說話一樣描述需求，Agent 會自己做語意搜尋、推薦、訂位或建立付款流程。
+                </p>
+              </div>
+            ) : null}
+
             {messages.map((m, i) => (
               <div
                 key={i}
                 className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
               >
-                <div className={m.role === "user" ? "max-w-[80%]" : "w-full"}>
+                <div className={m.role === "user" ? "max-w-[82%]" : "w-full"}>
                   <div
-                    className={`px-3 py-2 rounded-2xl text-sm ${
+                    className={`rounded-3xl px-4 py-3 text-sm shadow-sm ${
                       m.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap"
-                        : "bg-muted rounded-bl-sm"
+                        ? "rounded-br-sm bg-emerald-800 text-white"
+                        : "rounded-bl-sm border border-black/5 bg-white text-zinc-800"
                     }`}
                   >
                     {m.role === "user" ? (
-                      m.content
+                      <div className="whitespace-pre-wrap">{m.content}</div>
                     ) : (
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <div className="prose prose-sm max-w-none">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {m.content}
                         </ReactMarkdown>
                       </div>
                     )}
                   </div>
-                  {m.toolsUsed && m.toolsUsed.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {m.toolsUsed.map((t) => (
-                        <Badge key={t} variant="secondary" className="text-[10px] px-1.5 py-0">
-                          {t}
+                  {m.toolsUsed && m.toolsUsed.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {m.toolsUsed.map((tool) => (
+                        <Badge key={tool} variant="secondary" className="rounded-full text-[10px]">
+                          {tool}
                         </Badge>
                       ))}
                     </div>
-                  )}
+                  ) : null}
                 </div>
-                {m.shops && m.shops.length > 0 && (
+                {m.shops && m.shops.length > 0 ? (
                   <div className="mt-3 w-full space-y-3">
                     {m.shops.map((shop, rank) => (
                       <AgentShopCard key={shop.shop_id} shop={shop} rank={rank + 1} />
                     ))}
                   </div>
-                )}
+                ) : null}
                 {m.transaction ? (
                   <AgentBookingConfirmationCard transaction={m.transaction} />
                 ) : null}
               </div>
             ))}
-            {loading && (
+
+            {loading ? (
               <div className="flex justify-start">
-                <div className="px-3 py-2 rounded-2xl text-sm bg-muted rounded-bl-sm text-muted-foreground animate-pulse">
-                  思考中...
+                <div className="rounded-3xl rounded-bl-sm border border-black/5 bg-white px-4 py-3 text-sm text-zinc-500 shadow-sm">
+                  正在查詢可訂狀態與推薦理由...
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
 
-          {/* Input row */}
-          <div className="flex gap-2">
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="輸入你的需求..."
-              onKeyDown={(e) => e.key === "Enter" && !loading && handleRun(query)}
-              disabled={loading}
-            />
-            <Button onClick={() => handleRun(query)} disabled={loading || !query.trim()}>
-              {loading ? "..." : "送出"}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClearChat}
-              title="清空對話"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-          <p className="text-[10px] text-muted-foreground">
-            Session：{sessionId} · Redis 30 分鐘內重整可繼續對話
-          </p>
-        </div>
-      ) : (
-        /* ── Search / Recommend: single-turn UI ── */
-        <>
-          <div className="mb-3 flex gap-2">
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="輸入你的需求..."
-              onKeyDown={(e) => e.key === "Enter" && handleRun(query)}
-            />
-            <Button onClick={() => handleRun(query)} disabled={loading || !query.trim()}>
-              {loading ? "..." : "送出"}
-            </Button>
-          </div>
-
-          {error && (
-            <Card className="mb-4 border-red-300 bg-red-50">
-              <CardContent className="p-4 text-sm text-red-700">{error}</CardContent>
-            </Card>
-          )}
-
-          {answer && (
-            <Card className="mb-4">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Sparkles className="h-4 w-4" />
-                  AI 回應
-                  {toolUsed && (
-                    <Badge variant="secondary" className="ml-2 text-xs">
-                      tool: {toolUsed}
-                    </Badge>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="whitespace-pre-wrap">{answer}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {hits.length > 0 && (
-            <div>
-              <h3 className="mb-3 font-semibold">檢索結果</h3>
-              <Separator className="mb-3" />
-              <div className="space-y-3">
-                {hits.map((h) => (
-                  <Link key={h.shop_id} href={`/shops/${h.shop_id}`}>
-                    <Card className="cursor-pointer transition hover:shadow">
-                      <CardContent className="p-4">
-                        {h.hot_seat_count ? (
-                          <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2">
-                            <p className="text-[11px] font-medium text-amber-800">
-                              Hot Seat 限時搶位
-                            </p>
-                            <p className="mt-0.5 text-[11px] text-amber-700">
-                              目前有 {h.hot_seat_count} 個熱門時段方案
-                            </p>
-                          </div>
-                        ) : null}
-
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="font-medium">{h.name}</div>
-                            <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-                              {h.district ? (
-                                <span className="inline-flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {h.district}
-                                </span>
-                              ) : null}
-                              {h.district && h.mrt_station ? <span>·</span> : null}
-                              {h.mrt_station ? <span>捷運{h.mrt_station}</span> : null}
-                            </div>
-                          </div>
-                          <Badge variant="outline" className="text-xs shrink-0">
-                            score {h.score.toFixed(3)}
-                          </Badge>
-                        </div>
-
-                        {renderReason(h) ? (
-                          <p className="mt-3 text-[11px] font-medium text-foreground/80">
-                            {renderReason(h)}
-                          </p>
-                        ) : null}
-
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {h.category ? (
-                            <Badge variant="secondary" className="text-[11px]">
-                              {CATEGORY_LABELS[h.category] ?? h.category}
-                            </Badge>
-                          ) : null}
-                          {(h.atmosphere_tags ?? []).slice(0, 3).map((tag) => (
-                            <Badge key={`${h.shop_id}-${tag}`} variant="outline" className="text-[11px]">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-
-                        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                          {h.price_per_person ? <p>價位：{h.price_per_person}</p> : null}
-                          {h.booking_difficulty ? <p>預約難度：{h.booking_difficulty}</p> : null}
-                          {h.signature_dishes?.[0] ? <p>招牌菜：{h.signature_dishes[0]}</p> : null}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
+          <div className="border-t bg-white p-4 md:p-5">
+            <div className="flex gap-2">
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="例如：幫我訂辛殿麻辣鍋明天晚上 7 點 2 人"
+                onKeyDown={(event) => event.key === "Enter" && !loading && handleRun(query)}
+                disabled={loading}
+                className="h-12 rounded-full border-zinc-200 bg-[#fbfaf6] px-5"
+              />
+              <Button
+                onClick={() => handleRun(query)}
+                disabled={loading || !query.trim()}
+                className="h-12 rounded-full bg-emerald-800 px-6 font-black hover:bg-emerald-900"
+              >
+                {loading ? "處理中" : "送出"}
+              </Button>
             </div>
-          )}
-        </>
-      )}
+            <p className="mt-2 text-[11px] text-zinc-400">
+              Session：{sessionId} · Redis 30 分鐘內重整可繼續對話
+            </p>
+          </div>
+        </div>
+
+        <aside className="space-y-4">
+          <div className="rounded-[2rem] border border-black/10 bg-[#111b16] p-5 text-white shadow-xl shadow-black/10">
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-emerald-200">Why one chat</p>
+            <h2 className="mt-3 text-2xl font-black">你不用知道背後是哪個模式。</h2>
+            <p className="mt-3 text-sm leading-7 text-white/65">
+              語意搜尋、推薦、訂位、付款、空位通知都是內部能力。使用者只需要把需求說清楚。
+            </p>
+          </div>
+
+          <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm">
+            <h3 className="text-lg font-black">Agent 可以做什麼</h3>
+            <div className="mt-4 space-y-3">
+              {PRODUCT_HINTS.map((hint) => {
+                const Icon = hint.icon;
+                return (
+                  <div key={hint.label} className="flex items-center gap-3 rounded-2xl border border-zinc-100 bg-[#fbfaf6] p-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-800">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <p className="font-bold">{hint.label}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm">
+            <h3 className="text-lg font-black">快速入口</h3>
+            <div className="mt-4 grid gap-2">
+              <Link href="/shops" className="rounded-2xl border px-4 py-3 text-sm font-bold hover:bg-zinc-50">
+                探索餐廳
+              </Link>
+              <Link href="/my-bookings" className="rounded-2xl border px-4 py-3 text-sm font-bold hover:bg-zinc-50">
+                我的訂位
+              </Link>
+              <Link href="/notifications" className="rounded-2xl border px-4 py-3 text-sm font-bold hover:bg-zinc-50">
+                空位通知
+              </Link>
+              <Link href="/favorites" className="rounded-2xl border px-4 py-3 text-sm font-bold hover:bg-zinc-50">
+                收藏餐廳
+              </Link>
+            </div>
+          </div>
+        </aside>
+      </section>
     </main>
   );
 }
