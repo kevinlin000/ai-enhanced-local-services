@@ -76,6 +76,54 @@ class PlacesClient:
         retry=retry_if_exception_type((httpx.HTTPStatusError, httpx.RequestError)),
         reraise=True,
     )
+    def search_text(
+        self,
+        text_query: str,
+        lat: float | None = None,
+        lng: float | None = None,
+        radius: int = 5000,
+        max_results: int = MAX_RESULTS,
+    ) -> list[dict[str, Any]]:
+        body: dict[str, Any] = {
+            "textQuery": text_query,
+            "includedType": "restaurant",
+            "maxResultCount": max_results,
+            "languageCode": "zh-TW",
+            "regionCode": "TW",
+        }
+        if lat is not None and lng is not None:
+            body["locationBias"] = {
+                "circle": {
+                    "center": {"latitude": lat, "longitude": lng},
+                    "radius": float(radius),
+                }
+            }
+
+        headers = {
+            **self.headers,
+            "X-Goog-FieldMask": (
+                "places.id,places.displayName,places.formattedAddress,"
+                "places.location,places.rating,places.userRatingCount,"
+                "places.priceLevel,places.primaryType,places.types"
+            ),
+        }
+        with httpx.Client(timeout=self.timeout) as client:
+            response = client.post(
+                f"{self.base_url}/places:searchText",
+                headers=headers,
+                json=body,
+            )
+            if response.is_error:
+                self._raise(response)
+            payload = response.json()
+            return payload.get("places", [])
+
+    @retry(
+        stop=stop_after_attempt(4),
+        wait=wait_exponential(multiplier=2, min=2, max=20),
+        retry=retry_if_exception_type((httpx.HTTPStatusError, httpx.RequestError)),
+        reraise=True,
+    )
     def get_place_details(self, place_id: str) -> dict[str, Any]:
         headers = {
             **self.headers,
