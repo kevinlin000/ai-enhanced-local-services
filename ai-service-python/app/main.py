@@ -75,6 +75,7 @@ CATEGORY_HINTS = {
     "euro": {"義式", "法式", "義法", "歐陸", "義大利麵", "pasta", "pizza", "披薩"},
     "chinese": {"中菜", "中式", "台菜", "熱炒", "烤鴨", "港式", "粵菜"},
     "korean": {"韓式", "韓國料理", "豆腐鍋"},
+    "vegetarian": {"素食", "蔬食", "全素", "蛋奶素", "vegan", "vegetarian"},
     "fine-dining": {"高級餐廳", "高檔餐廳", "fine dining", "精緻料理", "鐵板燒"},
     "cafe": {"咖啡", "咖啡廳", "下午茶", "甜點"},
 }
@@ -89,6 +90,7 @@ CATEGORY_FALLBACK_KEYWORDS = {
     "euro": {"義大利麵", "燉飯", "牛小排燉飯", "法式", "歐陸", "pasta", "pizza", "披薩"},
     "chinese": {"台菜", "熱炒", "烤鴨", "粵菜", "港點", "中菜"},
     "korean": {"韓式", "豆腐鍋", "炸雞", "石鍋拌飯"},
+    "vegetarian": {"素食", "蔬食", "全素", "蛋奶素", "vegan", "vegetarian"},
     "fine-dining": {"fine dining", "高級餐廳", "高檔餐廳", "套餐", "品酒", "鐵板燒"},
     "cafe": {"咖啡", "拿鐵", "手沖", "甜點", "下午茶", "蛋糕"},
 }
@@ -121,6 +123,14 @@ DISTRICT_HINTS = {
     "信義": {"信義區", "信義"},
     "大安": {"大安區", "大安"},
     "松山": {"松山區", "松山"},
+    "中正": {"中正區", "中正"},
+    "士林": {"士林區", "士林"},
+    "內湖": {"內湖區", "內湖"},
+    "南港": {"南港區", "南港"},
+    "文山": {"文山區", "文山", "木柵", "景美", "萬芳"},
+    "大同": {"大同區", "大同"},
+    "萬華": {"萬華區", "萬華", "西門"},
+    "北投": {"北投區", "北投", "天母"},
 }
 
 STATION_NEIGHBORHOODS = {
@@ -286,6 +296,8 @@ def _category_slug_from_payload(payload: dict) -> str:
         return "chinese"
     if "韓式" in category:
         return "korean"
+    if "素食" in category or "蔬食" in category:
+        return "vegetarian"
     if "brunch" in category or "美式" in category:
         return "american"
     if "高級" in category:
@@ -816,14 +828,13 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
         # Prefer authoritative taxonomy. Text fallback only exists for legacy
         # payloads that do not yet carry category_slug.
         strict_category = slug_category or text_category
-        if strict_category:
-            raw_hits = strict_category
-            logger.warning(
-                "search_strict_category_filter query=%r categories=%s strict=%s",
-                query,
-                constraints["categories"],
-                [hit.get("name") for hit in strict_category[:8]],
-            )
+        raw_hits = strict_category
+        logger.warning(
+            "search_strict_category_filter query=%r categories=%s strict=%s",
+            query,
+            constraints["categories"],
+            [hit.get("name") for hit in strict_category[:8]],
+        )
 
     if constraints["districts"]:
         strict_district = [
@@ -833,14 +844,13 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
                 for target in constraints["districts"]
             )
         ]
-        if strict_district:
-            raw_hits = strict_district
-            logger.warning(
-                "search_strict_district_filter query=%r districts=%s strict=%s",
-                query,
-                constraints["districts"],
-                [hit.get("name") for hit in strict_district[:8]],
-            )
+        raw_hits = strict_district
+        logger.warning(
+            "search_strict_district_filter query=%r districts=%s strict=%s",
+            query,
+            constraints["districts"],
+            [hit.get("name") for hit in strict_district[:8]],
+        )
 
     if constraints["stations"]:
         strict_station = [
@@ -848,14 +858,14 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             if _station_proximity_score(constraints, hit) > 0
             or any(target.lower() in str(hit.get("mrt_station") or "").lower() for target in constraints["stations"])
         ]
-        if strict_station:
+        if strict_station or not constraints["districts"]:
             raw_hits = strict_station
-            logger.warning(
-                "search_strict_station_filter query=%r stations=%s strict=%s",
-                query,
-                constraints["stations"],
-                [hit.get("name") for hit in strict_station[:8]],
-            )
+        logger.warning(
+            "search_strict_station_filter query=%r stations=%s strict=%s",
+            query,
+            constraints["stations"],
+            [hit.get("name") for hit in strict_station[:8]],
+        )
 
     return raw_hits[:top_k]
 
