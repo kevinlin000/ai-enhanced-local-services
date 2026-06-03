@@ -8,12 +8,21 @@ import json
 import sqlite3
 from pathlib import Path
 
-from detail_coverage import ROOT, SCRAPER_DIR, active_shops, load_env, media_shop_ids, sqlite_overview
+from detail_coverage import (
+    ROOT,
+    SCRAPER_DIR,
+    active_shops,
+    load_env,
+    media_shop_ids,
+    mongo_review_shop_ids,
+    sqlite_overview,
+)
 
 
 DEFAULT_OUTPUTS = {
     "overview-missing": SCRAPER_DIR / "shops_overview_missing.txt",
     "media-missing": SCRAPER_DIR / "shops_media_missing.txt",
+    "reviews-missing": SCRAPER_DIR / "shops_reviews_missing.txt",
 }
 
 
@@ -35,7 +44,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--mode",
-        choices=("overview-missing", "media-missing"),
+        choices=("overview-missing", "media-missing", "reviews-missing"),
         default="overview-missing",
     )
     parser.add_argument("--limit", type=int, default=0, help="0 means no limit")
@@ -46,8 +55,12 @@ def main() -> None:
     shops = active_shops()
     if args.mode == "overview-missing":
         covered = set(sqlite_overview())
-    else:
+    elif args.mode == "media-missing":
         covered, _ = media_shop_ids()
+    else:
+        covered, mongo_error = mongo_review_shop_ids()
+        if mongo_error:
+            raise SystemExit(f"cannot generate reviews queue: {mongo_error}")
 
     targets = [shop for shop in shops if shop.id not in covered]
     if args.limit > 0:
