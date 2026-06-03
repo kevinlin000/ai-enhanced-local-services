@@ -5,6 +5,7 @@ from html import unescape
 from pathlib import Path
 
 from pymongo import MongoClient
+from pymongo.errors import PyMongoError, ServerSelectionTimeoutError
 
 
 OUT = Path("/Users/kevinlintingwei/projects/ai-enhanced-local-services/web/data/shop-media.json")
@@ -130,11 +131,24 @@ def load_overview_metadata() -> dict[str, dict]:
         conn.close()
 
 
-def main() -> None:
-    client = MongoClient("mongodb://localhost:27017")
+def load_existing_media() -> dict[str, dict[str, object]]:
+    if not OUT.exists():
+        return {}
     try:
+        data = json.loads(OUT.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    shops = data.get("shops") if isinstance(data, dict) else None
+    if not isinstance(shops, dict):
+        return {}
+    return {str(shop_id): payload for shop_id, payload in shops.items() if isinstance(payload, dict)}
+
+
+def load_review_media() -> tuple[dict[str, list[tuple[str, int]]], dict[str, tuple[int, int]], str | None]:
+    client = MongoClient("mongodb://localhost:27017", serverSelectionTimeoutMS=3000)
+    try:
+        client.admin.command("ping")
         collection = client["bytebites_reviews"]["google_reviews"]
-        overview_by_shop = load_overview_metadata()
         docs = collection.find(
             {"shop_id": {"$exists": True}},
             {"shop_id": 1, "user_images": 1, "description": 1, "rating": 1, "_id": 0},
@@ -164,39 +178,81 @@ def main() -> None:
                     continue
                 score = photo_score(url, text, doc.get("rating"))
                 grouped[key].append((url, score))
-
-        shops_payload = {}
-        for shop_id, urls in grouped.items():
-            shop_payload = build_shop_payload(urls, text_stats.get(shop_id, (0, 0)))
-            overview = overview_by_shop.get(shop_id, {})
-            overview_urls = [normalize_url(url) for url in overview.get("overview_photo_urls", []) if url]
-            if overview_urls:
-                overview_ranked = sorted(
-                    ((url, photo_score(url, "", 5)) for url in overview_urls),
-                    key=lambda item: item[1],
-                    reverse=True,
-                )
-                preferred_overview = [url for url, score in overview_ranked if score >= -2]
-                overview_gallery = preferred_overview or [url for url, _score in overview_ranked]
-                merged = overview_gallery + [normalize_url(url) for url in shop_payload["galleryUrls"] if normalize_url(url) not in overview_gallery]
-                shop_payload["coverUrl"] = merged[0] if merged else None
-                shop_payload["galleryUrls"] = merged[:8]
-                shop_payload["photoUrls"] = merged[:8]
-            if overview:
-                shop_payload["overview"] = {
-                    key: value
-                    for key, value in overview.items()
-                    if key in {"price_overview", "price_report_count", "price_buckets", "popular_time", "visit_duration"}
-                    and value not in (None, "", [], {})
-                }
-            shops_payload[shop_id] = shop_payload
-
-        payload = {"shops": shops_payload}
-        OUT.parent.mkdir(parents=True, exist_ok=True)
-        OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(json.dumps({"shops": len(payload["shops"]), "out": str(OUT)}, ensure_ascii=False))
+        return grouped, text_stats, None
+    except (PyMongoError, ServerSelectionTimeoutError, OSError) as exc:
+        return {}, {}, f"{exc.__class__.__name__}: {exc}"
     finally:
         client.close()
+
+
+def apply_overview(shop_payload: dict[str, object], overview: dict) -> None:
+    overview_urls = [
+        normalize_url(url)
+        for url in [overview.get("overview_cover_url"), *(overview.get("overview_photo_urls") or [])]
+        if url
+    ]
+    if overview_urls:
+        overview_ranked = sorted(
+            ((url, photo_score(url, "", 5)) for url in overview_urls),
+            key=lambda item: item[1],
+            reverse=True,
+        )
+        preferred_overview = [url for url, score in overview_ranked if score >= -2]
+        overview_gallery = preferred_overview or [url for url, _score in overview_ranked]
+        existing_gallery = [
+            normalize_url(str(url))
+            for url in shop_payload.get("galleryUrls", [])
+            if normalize_url(str(url)) not in overview_gallery
+        ]
+        merged = overview_gallery + existing_gallery
+        shop_payload["coverUrl"] = merged[0] if merged else None
+        shop_payload["galleryUrls"] = merged[:8]
+        shop_payload["photoUrls"] = merged[:8]
+
+    overview_payload = {
+        key: value
+        for key, value in overview.items()
+        if key in {"price_overview", "price_report_count", "price_buckets", "popular_time", "visit_duration"}
+        and value not in (None, "", [], {})
+    }
+    if overview_payload:
+        shop_payload["overview"] = overview_payload
+
+
+def main() -> None:
+    existing_by_shop = load_existing_media()
+    overview_by_shop = load_overview_metadata()
+    grouped, text_stats, mongo_error = load_review_media()
+
+    shops_payload = {}
+    for shop_id in sorted(set(existing_by_shop) | set(grouped) | set(overview_by_shop), key=int):
+        if shop_id in grouped:
+            shop_payload = build_shop_payload(grouped.get(shop_id, []), text_stats.get(shop_id, (0, 0)))
+        else:
+            shop_payload = dict(existing_by_shop.get(shop_id, {}))
+            shop_payload.setdefault("photoUrls", [])
+            shop_payload.setdefault("coverUrl", None)
+            shop_payload.setdefault("galleryUrls", [])
+        overview = overview_by_shop.get(shop_id, {})
+        if overview:
+            apply_overview(shop_payload, overview)
+        shops_payload[shop_id] = shop_payload
+
+    payload = {"shops": shops_payload}
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(
+        json.dumps(
+            {
+                "shops": len(payload["shops"]),
+                "overview_shops": len(overview_by_shop),
+                "review_media_shops": len(grouped),
+                "mongo_error": mongo_error,
+                "out": str(OUT),
+            },
+            ensure_ascii=False,
+        )
+    )
 
 
 if __name__ == "__main__":
