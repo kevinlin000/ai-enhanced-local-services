@@ -8,6 +8,14 @@ export type ShopOverview = {
   visit_duration?: string;
 };
 
+export type ManifestReview = {
+  author?: string;
+  rating?: number;
+  text?: string;
+  publishTime?: string | null;
+  source?: string;
+};
+
 type PhotoPayload = {
   shops?: Record<
     string,
@@ -16,6 +24,7 @@ type PhotoPayload = {
       coverUrl?: string | null;
       galleryUrls?: string[];
       overview?: ShopOverview;
+      reviews?: ManifestReview[];
     }
   >;
 };
@@ -60,6 +69,10 @@ export function getShopPhotoUrlsFromManifest(shopId: number): string[] {
 
 export function getShopOverview(shopId: number): ShopOverview | null {
   return PHOTO_DATA.shops?.[String(shopId)]?.overview ?? null;
+}
+
+export function getShopManifestReviews(shopId: number): ManifestReview[] {
+  return PHOTO_DATA.shops?.[String(shopId)]?.reviews?.filter((review) => review.text) ?? [];
 }
 
 export function getShopCoverPhoto(shopId: number): string | null {

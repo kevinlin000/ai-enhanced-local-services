@@ -1,12 +1,5 @@
 import { getExtractedShop } from "@/lib/extractedShops";
-
-type RawReview = {
-  author?: string | null;
-  rating?: number | null;
-  text?: string | null;
-  publish_time?: string | null;
-  source?: string | null;
-};
+import { getShopManifestReviews } from "@/lib/shopPhotoManifest";
 
 export type ReviewLanguage = "zh" | "ja" | "ko" | "en";
 
@@ -156,21 +149,35 @@ function attachLabels(
 
 export async function getShopReviewInsights(shopId: number): Promise<ShopReviewInsights | null> {
   const shop = await getExtractedShop(shopId);
-  if (!shop) return null;
+  const manifestReviews = getShopManifestReviews(shopId);
+  if (!shop && !manifestReviews.length) return null;
 
-  const dishes = parseList(shop.ai_extracted?.signature_dishes);
-  const overallRating = shop.rating ?? 4.0;
+  const dishes = parseList(shop?.ai_extracted?.signature_dishes);
+  const overallRating = shop?.rating ?? 4.0;
 
-  const reviews = (shop.reviews ?? []).map((review) => {
-    const text = normalizeText(review.text);
-    return {
-      author: review.author ?? "匿名評論",
-      rating: Number(review.rating ?? 0),
-      text,
-      publishTime: review.publish_time ?? null,
-      language: detectLanguage(text),
-    };
-  });
+  const legacyReviews = (shop?.reviews ?? []).map((review) => ({
+    author: review.author ?? "匿名評論",
+    rating: Number(review.rating ?? 0),
+    text: normalizeText(review.text),
+    publishTime: review.publish_time ?? null,
+  }));
+
+  const manifestMapped = manifestReviews.map((review) => ({
+    author: review.author ?? "匿名評論",
+    rating: Number(review.rating ?? 0),
+    text: normalizeText(review.text),
+    publishTime: review.publishTime ?? null,
+  }));
+
+  const seenReviews = new Set<string>();
+  const reviews = [...manifestMapped, ...legacyReviews]
+    .map((review) => ({ ...review, language: detectLanguage(review.text) }))
+    .filter((review) => {
+      const key = `${review.author}:${review.text}`;
+      if (!review.text || seenReviews.has(key)) return false;
+      seenReviews.add(key);
+      return true;
+    });
 
   const nonEmpty = reviews.filter((r) => r.text);
 

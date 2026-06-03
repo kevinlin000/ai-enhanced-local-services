@@ -4,6 +4,8 @@ import sqlite3
 from html import unescape
 from pathlib import Path
 
+from datetime import datetime
+
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError, ServerSelectionTimeoutError
 
@@ -144,28 +146,92 @@ def load_existing_media() -> dict[str, dict[str, object]]:
     return {str(shop_id): payload for shop_id, payload in shops.items() if isinstance(payload, dict)}
 
 
-def load_review_media() -> tuple[dict[str, list[tuple[str, int]]], dict[str, tuple[int, int]], str | None]:
+def normalize_review_text(value: object) -> str:
+    if isinstance(value, dict):
+        for key in ("zh", "zh-TW", "zh-Hant", "en"):
+            text = value.get(key)
+            if text:
+                return re.sub(r"\s+", " ", str(text)).strip()
+        return re.sub(r"\s+", " ", " ".join(str(v) for v in value.values() if v)).strip()
+    return re.sub(r"\s+", " ", str(value or "")).strip()
+
+
+def iso_datetime(value: object) -> str | None:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, str) and value:
+        return value
+    return None
+
+
+def build_review_payload(reviews: list[dict[str, object]], limit: int = 30) -> list[dict[str, object]]:
+    seen: set[str] = set()
+    ranked: list[dict[str, object]] = []
+    for review in reviews:
+        text = normalize_review_text(review.get("description"))
+        if len(text) < 20:
+            continue
+        author = str(review.get("author") or "匿名評論").strip()
+        key = f"{author}:{text}"
+        if key in seen:
+            continue
+        seen.add(key)
+        ranked.append(
+            {
+                "author": author,
+                "rating": float(review.get("rating") or 0),
+                "text": text,
+                "publishTime": iso_datetime(review.get("review_date")),
+                "source": str(review.get("source") or "Google Maps"),
+            }
+        )
+
+    ranked.sort(
+        key=lambda item: (
+            1 if float(item.get("rating") or 0) >= 4 else 0,
+            len(str(item.get("text") or "")),
+            str(item.get("publishTime") or ""),
+        ),
+        reverse=True,
+    )
+    return ranked[:limit]
+
+
+def load_review_media() -> tuple[
+    dict[str, list[tuple[str, int]]],
+    dict[str, tuple[int, int]],
+    dict[str, list[dict[str, object]]],
+    str | None,
+]:
     client = MongoClient("mongodb://localhost:27017", serverSelectionTimeoutMS=3000)
     try:
         client.admin.command("ping")
         collection = client["bytebites_reviews"]["google_reviews"]
         docs = collection.find(
             {"shop_id": {"$exists": True}},
-            {"shop_id": 1, "user_images": 1, "description": 1, "rating": 1, "_id": 0},
+            {
+                "shop_id": 1,
+                "user_images": 1,
+                "description": 1,
+                "rating": 1,
+                "author": 1,
+                "review_date": 1,
+                "source": 1,
+                "_id": 0,
+            },
         )
 
         grouped: dict[str, list[tuple[str, int]]] = {}
         text_stats: dict[str, tuple[int, int]] = {}
+        reviews_by_shop: dict[str, list[dict[str, object]]] = {}
         for doc in docs:
             shop_id = doc.get("shop_id")
             if not shop_id:
                 continue
             key = str(shop_id)
             grouped.setdefault(key, [])
-            text = doc.get("description")
-            if isinstance(text, dict):
-                text = " ".join(v or "" for v in text.values())
-            text = str(text or "").strip()
+            reviews_by_shop.setdefault(key, []).append(doc)
+            text = normalize_review_text(doc.get("description"))
             total, bad = text_stats.get(key, (0, 0))
             if text:
                 total += 1
@@ -178,9 +244,10 @@ def load_review_media() -> tuple[dict[str, list[tuple[str, int]]], dict[str, tup
                     continue
                 score = photo_score(url, text, doc.get("rating"))
                 grouped[key].append((url, score))
-        return grouped, text_stats, None
+        review_payloads = {shop_id: build_review_payload(reviews) for shop_id, reviews in reviews_by_shop.items()}
+        return grouped, text_stats, review_payloads, None
     except (PyMongoError, ServerSelectionTimeoutError, OSError) as exc:
-        return {}, {}, f"{exc.__class__.__name__}: {exc}"
+        return {}, {}, {}, f"{exc.__class__.__name__}: {exc}"
     finally:
         client.close()
 
@@ -222,10 +289,10 @@ def apply_overview(shop_payload: dict[str, object], overview: dict) -> None:
 def main() -> None:
     existing_by_shop = load_existing_media()
     overview_by_shop = load_overview_metadata()
-    grouped, text_stats, mongo_error = load_review_media()
+    grouped, text_stats, reviews_by_shop, mongo_error = load_review_media()
 
     shops_payload = {}
-    for shop_id in sorted(set(existing_by_shop) | set(grouped) | set(overview_by_shop), key=int):
+    for shop_id in sorted(set(existing_by_shop) | set(grouped) | set(overview_by_shop) | set(reviews_by_shop), key=int):
         if shop_id in grouped:
             shop_payload = build_shop_payload(grouped.get(shop_id, []), text_stats.get(shop_id, (0, 0)))
         else:
@@ -236,6 +303,9 @@ def main() -> None:
         overview = overview_by_shop.get(shop_id, {})
         if overview:
             apply_overview(shop_payload, overview)
+        reviews = reviews_by_shop.get(shop_id)
+        if reviews:
+            shop_payload["reviews"] = reviews
         shops_payload[shop_id] = shop_payload
 
     payload = {"shops": shops_payload}
