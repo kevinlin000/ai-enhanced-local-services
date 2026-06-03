@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import argparse
 from pathlib import Path
 from google import genai
 from google.genai import types
@@ -13,6 +14,7 @@ log = structlog.get_logger()
 
 EMBEDDING_DIM = 768
 COLLECTION = os.getenv("QDRANT_COLLECTION", "bytebites_shops")
+DEFAULT_EMBED_SLEEP_SECONDS = float(os.getenv("QDRANT_EMBED_SLEEP_SECONDS", "0.3"))
 
 
 def _load_category_slugs() -> dict[int, str]:
@@ -85,9 +87,9 @@ def embed_text(client, text):
     return result.embeddings[0].values
 
 
-def main():
+def main(embed_sleep_seconds: float = DEFAULT_EMBED_SLEEP_SECONDS):
     shops = fetch_shops_from_db()
-    log.info("fetched_from_db", count=len(shops))
+    log.info("fetched_from_db", count=len(shops), embed_sleep_seconds=embed_sleep_seconds)
 
     gemini = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     qdrant = QdrantClient(url=os.getenv("QDRANT_URL", "http://localhost:6333"))
@@ -126,7 +128,8 @@ def main():
             }
             points.append(PointStruct(id=shop["id"], vector=vector, payload=payload))
             log.info("embedded", idx=i+1, total=len(shops), name=shop["name"], text_preview=text[:80])
-            time.sleep(0.3)  # rate limit 防護
+            if embed_sleep_seconds > 0:
+                time.sleep(embed_sleep_seconds)
         except Exception as e:
             log.error("embed_failed", name=shop["name"], error=str(e))
 
@@ -140,5 +143,48 @@ def main():
     log.info("collection_info", points_count=info.points_count)
 
 
+def sync_payloads_only():
+    """Update Qdrant filter payloads without re-embedding, useful after metadata fixes."""
+    shops = fetch_shops_from_db()
+    log.info("fetched_from_db_for_payload_sync", count=len(shops))
+
+    qdrant = QdrantClient(url=os.getenv("QDRANT_URL", "http://localhost:6333"))
+    synced = 0
+
+    for shop in shops:
+        payload = {
+            "shop_id": shop["id"],
+            "name": shop["name"],
+            "district": shop["district"],
+            "category": shop["category_name"],
+            "category_slug": CATEGORY_SLUG_BY_TYPE_ID.get(shop["type_id"]),
+            "type_id": shop["type_id"],
+            "score": shop["score"],
+            "avg_price": shop["avg_price"],
+            "lat": shop["y"],
+            "lng": shop["x"],
+            "booking_difficulty": shop.get("booking_difficulty"),
+        }
+        qdrant.set_payload(collection_name=COLLECTION, payload=payload, points=[shop["id"]])
+        synced += 1
+        log.info("payload_synced", idx=synced, total=len(shops), shop_id=shop["id"], name=shop["name"])
+
+    info = qdrant.get_collection(COLLECTION)
+    log.info("payload_sync_done", synced=synced, points_count=info.points_count)
+
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--sync-payloads", action="store_true", help="sync Qdrant payload metadata without re-embedding")
+    parser.add_argument(
+        "--embed-sleep-seconds",
+        type=float,
+        default=DEFAULT_EMBED_SLEEP_SECONDS,
+        help="delay between Gemini embedding calls during full rebuild",
+    )
+    args = parser.parse_args()
+
+    if args.sync_payloads:
+        sync_payloads_only()
+    else:
+        main(embed_sleep_seconds=args.embed_sleep_seconds)

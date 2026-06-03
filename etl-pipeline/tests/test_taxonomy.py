@@ -134,3 +134,63 @@ def test_v20_ambiguous_hotpot_maps_to_hotpot():
         "ai_extracted": {"ai_summary": "麻辣鍋底、鴛鴦鍋與涮涮鍋。"},
     })
     assert result["primary_type_id"] == 2001
+
+
+def test_v20_steak_name_override_maps_to_american():
+    result = classify_shop({
+        "display_name": "B&B STEAK 福德店",
+        "primary_type": "restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "牛排、排餐與西式料理。"},
+    })
+    assert result["primary_type_id"] == 2010
+
+
+def test_v20_dessert_name_override_maps_to_cafe():
+    result = classify_shop({
+        "display_name": "初心菓寮",
+        "primary_type": "restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "甜點、茶飲與日式菓子。"},
+    })
+    assert result["primary_type_id"] == 2012
+
+
+def test_v20_wilsonpark_steak_wine_maps_to_american():
+    result = classify_shop({
+        "display_name": "WilsonPark 威爾森公園 （Steak & Wine）",
+        "primary_type": "restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "牛排、葡萄酒與西式餐點。"},
+    })
+    assert result["primary_type_id"] == 2010
+
+
+def test_v20_pin_tian_steak_maps_to_american():
+    result = classify_shop({
+        "display_name": "品田牧場 台北松山車站店",
+        "primary_type": "restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "豬排、排餐與套餐。"},
+    })
+    assert result["primary_type_id"] == 2010
+
+
+def test_v20_zhangmen_craft_beer_maps_to_izakaya():
+    result = classify_shop({
+        "display_name": "掌門精釀啤酒 內湖店",
+        "primary_type": "restaurant",
+        "types": ["restaurant", "bar", "food"],
+        "ai_extracted": {"ai_summary": "精釀啤酒、酒吧與下酒菜。"},
+    })
+    assert result["primary_type_id"] == 2003
+
+
+def test_v20_craft_beer_bar_maps_to_izakaya():
+    result = classify_shop({
+        "display_name": "來吧台北日式暢飲餐酒館 | 信義暢飲 | 酒吧 | 國父紀念館",
+        "primary_type": "restaurant",
+        "types": ["restaurant", "bar", "food"],
+        "ai_extracted": {"ai_summary": "暢飲、酒吧、精釀啤酒與下酒菜。"},
+    })
+    assert result["primary_type_id"] == 2003

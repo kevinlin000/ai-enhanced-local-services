@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import datetime
 import pymysql
 import structlog
+from app.normalizer import extract_district_from_address
 from app.taxonomy import classify_shop, extract_avg_price
 
 log = structlog.get_logger()
@@ -204,6 +205,10 @@ def load():
                     # 4. avg_price 從 ai_extracted
                     ai = shop.get("ai_extracted", {})
                     avg_price = extract_avg_price(ai.get("price_per_person", ""))
+                    district = extract_district_from_address(
+                        shop.get("formatted_address") or shop.get("address"),
+                        shop.get("district"),
+                    )
 
                     # 5. score = rating × 10
                     score = int((shop.get("rating") or 0) * 10)
@@ -219,7 +224,7 @@ def load():
                         name,
                         type_id,
                         "/icons/default.jpg",
-                        shop.get("district"),
+                        district,
                         shop.get("formatted_address", ""),
                         shop.get("longitude", 0),  # x = lng
                         shop.get("latitude", 0),   # y = lat
@@ -227,7 +232,7 @@ def load():
                         shop.get("user_rating_count", 0),
                         score,
                         "",  # open_hours 舊欄位、空字串
-                        shop.get("district"),
+                        district,
                         price_range,
                         place_id,
                     ))
@@ -351,6 +356,10 @@ def refresh_metadata_existing():
                 shop_id, name = row
                 avg_price = extract_avg_price(ai.get("price_per_person", ""))
                 score = int((shop.get("rating") or 0) * 10)
+                district = extract_district_from_address(
+                    shop.get("formatted_address") or shop.get("address"),
+                    shop.get("district"),
+                )
 
                 cur.execute(
                     """
@@ -367,7 +376,7 @@ def refresh_metadata_existing():
                         avg_price,
                         shop.get("user_rating_count", 0),
                         score,
-                        shop.get("district"),
+                        district,
                         PRICE_LEVEL_MAP.get(shop.get("price_level")) if shop.get("price_level") else None,
                         shop_id,
                     ),
@@ -409,15 +418,55 @@ def refresh_metadata_existing():
     log.info("metadata_refresh_done", refreshed=refreshed, missing=missing)
 
 
+def fix_districts_existing():
+    conn = pymysql.connect(
+        host=os.getenv("MYSQL_HOST", "localhost"),
+        port=int(os.getenv("MYSQL_PORT", "3306")),
+        user=os.getenv("MYSQL_USERNAME", "root"),
+        password=os.getenv("MYSQL_PASSWORD", "password"),
+        database=os.getenv("MYSQL_DATABASE", "hmdp"),
+        charset="utf8mb4",
+        autocommit=False,
+    )
+
+    updated = 0
+    unchanged = 0
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, name, district, address FROM tb_shop WHERE source = 'google_places' AND is_active = 1"
+            )
+            for shop_id, name, old_district, address in cur.fetchall():
+                new_district = extract_district_from_address(address, old_district)
+                if not new_district or new_district == old_district:
+                    unchanged += 1
+                    continue
+                cur.execute(
+                    "UPDATE tb_shop SET district = %s, area = %s, update_time = NOW() WHERE id = %s",
+                    (new_district, new_district, shop_id),
+                )
+                updated += 1
+                log.info("district_fixed", shop_id=shop_id, name=name, old_district=old_district, new_district=new_district)
+            conn.commit()
+    finally:
+        conn.close()
+
+    log.info("district_fix_done", updated=updated, unchanged=unchanged)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--reclassify", action="store_true", help="reclassify existing google_places shops by latest extracted json")
     parser.add_argument("--refresh-metadata", action="store_true", help="refresh existing google_places metadata by latest extracted json")
+    parser.add_argument("--fix-districts", action="store_true", help="correct existing google_places districts from formatted addresses")
     args = parser.parse_args()
 
     if args.reclassify:
         reclassify_existing()
     elif args.refresh_metadata:
         refresh_metadata_existing()
+    elif args.fix_districts:
+        fix_districts_existing()
     else:
         load()

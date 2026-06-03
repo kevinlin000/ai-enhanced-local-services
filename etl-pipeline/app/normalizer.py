@@ -1,13 +1,39 @@
 from app.models import ShopClean, ShopRaw
 
+TAIPEI_DISTRICTS = (
+    "中正",
+    "大同",
+    "中山",
+    "松山",
+    "大安",
+    "萬華",
+    "信義",
+    "士林",
+    "北投",
+    "內湖",
+    "南港",
+    "文山",
+)
+
+
+def extract_district_from_address(address: str | None, fallback: str | None = None) -> str:
+    """Prefer the real Google address district; crawler target district is only fallback."""
+    text = address or ""
+    for district in TAIPEI_DISTRICTS:
+        if f"{district}區" in text:
+            return district
+    return fallback or ""
+
 
 def normalize_place(place: dict, district: str) -> ShopRaw:
     location = place.get("location") or {}
     display_name = place.get("displayName") or {}
+    formatted_address = place.get("formattedAddress")
+    resolved_district = extract_district_from_address(formatted_address, district)
     return ShopRaw(
         place_id=place.get("id", ""),
         display_name=display_name.get("text"),
-        formatted_address=place.get("formattedAddress"),
+        formatted_address=formatted_address,
         latitude=location.get("latitude"),
         longitude=location.get("longitude"),
         rating=place.get("rating"),
@@ -15,7 +41,7 @@ def normalize_place(place: dict, district: str) -> ShopRaw:
         price_level=place.get("priceLevel"),
         primary_type=place.get("primaryType"),
         types=place.get("types") or [],
-        district=district,
+        district=resolved_district,
         source_payload=place,
     )
 
