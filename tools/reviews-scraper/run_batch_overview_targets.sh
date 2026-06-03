@@ -58,16 +58,33 @@ CURRENT_SHOP_ID=""
 MAX_ATTEMPTS=${MAX_ATTEMPTS:-3}
 write_progress
 
-mongo_count() {
-  local company="$1"
+sqlite_overview_count() {
+  local shop_id="$1"
   "$PYTHON" -c "
-from pymongo import MongoClient
+import json
+import sqlite3
+import sys
+
+db_path = sys.argv[1]
+target_shop_id = str(sys.argv[2])
+
 try:
-    c = MongoClient('mongodb://localhost:27017', connectTimeoutMS=3000)
-    n = c['bytebites_reviews']['google_reviews'].count_documents({'company': '$company'})
-    print(n); c.close()
-except: print(0)
-" 2>/dev/null || echo 0
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute('SELECT overview_metadata FROM places WHERE overview_metadata IS NOT NULL')
+    count = 0
+    for (raw,) in cur.fetchall():
+        try:
+            data = json.loads(raw) if isinstance(raw, str) else {}
+        except Exception:
+            continue
+        if str(data.get('shop_id') or '') == target_shop_id:
+            count += 1
+    conn.close()
+    print(count)
+except Exception:
+    print(0)
+" "$SCRAPER_DIR/reviews.db" "$shop_id" 2>/dev/null || echo 0
 }
 
 build_search_url() {
@@ -119,8 +136,8 @@ YAML
   t1=$(date +%s)
   log "scraper exit rc=$rc elapsed=$((t1-t0))s shop_id=$shop_id"
 
-  cnt=$(mongo_count "$name")
-  log "mongo count company='$name' count=$cnt"
+  cnt=$(sqlite_overview_count "$shop_id")
+  log "sqlite overview count shop_id=$shop_id count=$cnt"
   [ "$rc" -eq 0 ] && [ "$cnt" -gt 0 ]
 }
 
