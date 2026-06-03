@@ -1,6 +1,7 @@
 import os
 import json
 import time
+from pathlib import Path
 from google import genai
 from google.genai import types
 from qdrant_client import QdrantClient
@@ -12,6 +13,15 @@ log = structlog.get_logger()
 
 EMBEDDING_DIM = 768
 COLLECTION = os.getenv("QDRANT_COLLECTION", "bytebites_shops")
+
+
+def _load_category_slugs() -> dict[int, str]:
+    taxonomy_path = Path(__file__).resolve().parents[2] / "shared" / "taxonomy.json"
+    taxonomy = json.loads(taxonomy_path.read_text())
+    return {category["type_id"]: category["slug"] for category in taxonomy.get("categories", [])}
+
+
+CATEGORY_SLUG_BY_TYPE_ID = _load_category_slugs()
 
 
 def fetch_shops_from_db():
@@ -106,6 +116,7 @@ def main():
                 "name": shop["name"],
                 "district": shop["district"],
                 "category": shop["category_name"],
+                "category_slug": CATEGORY_SLUG_BY_TYPE_ID.get(shop["type_id"]),
                 "type_id": shop["type_id"],
                 "score": shop["score"],
                 "avg_price": shop["avg_price"],

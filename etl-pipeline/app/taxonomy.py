@@ -24,6 +24,8 @@ PRIMARY_TYPE_MAP = {
     "italian_restaurant": 2007,
     "french_restaurant": 2007,
     "european_restaurant": 2007,
+    "pizza_restaurant": 2007,
+    "spanish_restaurant": 2007,
     "bistro": 2007,
     "gastropub": 2007,
     "mediterranean_restaurant": 2007,
@@ -44,6 +46,8 @@ PRIMARY_TYPE_MAP = {
     "american_restaurant": 2010,
     "australian_restaurant": 2010,
     "mexican_restaurant": 2010,
+    "hamburger_restaurant": 2010,
+    "breakfast_restaurant": 2010,
     "hot_dog_restaurant": 2010,
     "bar_and_grill": 2010,
     "steak_house": 2010,
@@ -51,12 +55,19 @@ PRIMARY_TYPE_MAP = {
     "coffee_shop": 2012,
     "dessert_shop": 2012,
     "pastry_shop": 2012,
+    "tea_house": 2012,
     "food_court": 2008,
     "restaurant": 2008,
     "bar": 2003,
 }
 
 FALLBACK_PRIMARY_TYPE_VALUES = {"restaurant", "food_court", None, ""}
+AMBIGUOUS_PRIMARY_TYPE_VALUES = FALLBACK_PRIMARY_TYPE_VALUES | {
+    "asian_restaurant",
+    "barbecue_restaurant",
+    "middle_eastern_restaurant",
+    "seafood_restaurant",
+}
 
 NAME_PRIMARY_OVERRIDES = (
     ("鼎泰豐", 2008),
@@ -75,6 +86,7 @@ NAME_PRIMARY_OVERRIDES = (
     ("梨谷韓式鐵板烤肉", 2002),
     ("一番地", 2001),
     ("竹村居酒屋", 2003),
+    ("古記雞.私房菜.居酒屋", 2003),
     ("武侍酒", 2003),
     ("板前屋", 2003),
     ("呼嚕小酒館", 2007),
@@ -85,11 +97,39 @@ NAME_PRIMARY_OVERRIDES = (
     ("徙巷小餐酒", 2007),
     ("HOOTERS", 2010),
     ("Bogart's", 2010),
+    ("Fa Burger", 2010),
+    ("Takeout Burger", 2010),
+    ("Takeout burger", 2010),
+    ("Juicy Bun", 2010),
+    ("樂子", 2010),
+    ("M One Cafe", 2010),
+    ("BRUN不然", 2010),
+    ("Second Floor", 2010),
+    ("貳樓", 2010),
+    ("TankQ", 2010),
+    ("BT BURGER", 2010),
+    ("BURGER OUT", 2010),
+    ("莫克漢堡", 2010),
     ("大樹先生的家", 2010),
     ("小倉庫食研所", 2010),
     ("軟食力", 2010),
+    ("Pastaio", 2007),
+    ("Pastai", 2007),
+    ("Pizzeria", 2007),
+    ("Trattoria", 2007),
+    ("gonnaEAT", 2007),
+    ("AN58", 2007),
+    ("Hanna Pasta", 2007),
+    ("HANNA Pasta", 2007),
+    ("A Beach", 2007),
+    ("A-LI阿理義式廚房", 2007),
     ("布納咖啡館", 2012),
     ("2J CAFE", 2012),
+    ("Uh huh cafe", 2012),
+    ("嗯哼咖啡", 2012),
+    ("正當冰", 2012),
+    ("波赫士", 2012),
+    ("貳號基地Cafe", 2012),
     ("疍宅", 2012),
     ("深夜裡的法國手工甜點", 2012),
     ("悠悠龍貓咖啡", 2012),
@@ -100,6 +140,8 @@ NAME_PRIMARY_OVERRIDES = (
     ("VEGANala", 2005),
     ("雞老闆", 2008),
     ("泰和樓", 2008),
+    ("紅翻天", 2008),
+    ("秦味館", 2008),
 )
 
 BUFFET_KEYWORDS = {"自助餐", "buffet", "百匯", "cafeteria"}
@@ -110,9 +152,12 @@ HOTPOT_KEYWORDS = {
 YAKINIKU_KEYWORDS = {"燒肉", "烤肉", "和牛燒肉", "牛舌", "韓式烤肉"}
 IZAKAYA_KEYWORDS = {"居酒屋", "串燒", "酒場", "炭烤鰻魚飯"}
 VEGETARIAN_KEYWORDS = {"蔬食", "vegan", "vegetarian", "素食"}
-CAFE_KEYWORDS = {"甜點", "蛋糕", "下午茶", "手工甜點"}
-BRUNCH_KEYWORDS = {"早午餐", "brunch", "漢堡", "diner", "burger"}
-EUROPEAN_KEYWORDS = {"義式", "義大利", "法式", "歐陸", "pasta", "燉飯"}
+CAFE_KEYWORDS = {"甜點", "蛋糕", "下午茶", "手工甜點", "咖啡", "coffee", "cafe", "手沖", "拿鐵"}
+BRUNCH_KEYWORDS = {"早午餐", "brunch", "漢堡", "diner", "burger", "美式", "班尼迪克"}
+EUROPEAN_KEYWORDS = {
+    "義式", "義大利", "法式", "歐陸", "pasta", "燉飯", "pizza", "披薩",
+    "pizzeria", "trattoria", "西班牙", "spanish", "義大利麵",
+}
 JAPANESE_KEYWORDS = {"壽司", "生魚片", "拉麵", "天婦羅", "懷石", "沾麵", "烏龍麵"}
 CHINESE_KEYWORDS = {"台菜", "滬菜", "粵菜", "港點", "熱炒", "台式", "川菜", "客家", "小籠包", "麵食", "鵝肉"}
 STEAK_TAG_KEYWORDS = {"牛排", "steak"}
@@ -170,7 +215,7 @@ def _base_primary_type_id(shop: dict) -> int:
 
 def _should_run_keyword_correction(shop: dict) -> bool:
     primary_type = shop.get("primary_type")
-    return primary_type in FALLBACK_PRIMARY_TYPE_VALUES
+    return primary_type in AMBIGUOUS_PRIMARY_TYPE_VALUES
 
 
 def _apply_name_override(text: str, current_type_id: int) -> tuple[int, bool]:
@@ -191,12 +236,12 @@ def _apply_keyword_correction(text: str, current_type_id: int) -> int:
         return 2002
     if _contains_any(text, IZAKAYA_KEYWORDS) and current_type_id not in {2007, 2010}:
         return 2003
-    if _contains_any(text, CAFE_KEYWORDS):
-        return 2012
-    if _contains_any(text, BRUNCH_KEYWORDS) and current_type_id not in {2007}:
-        return 2010
     if _contains_any(text, EUROPEAN_KEYWORDS):
         return 2007
+    if _contains_any(text, BRUNCH_KEYWORDS) and current_type_id not in {2007}:
+        return 2010
+    if _contains_any(text, CAFE_KEYWORDS):
+        return 2012
     if _contains_any(text, JAPANESE_KEYWORDS) and current_type_id not in {2001, 2002, 2003}:
         return 2004
     if _contains_any(text, CHINESE_KEYWORDS):

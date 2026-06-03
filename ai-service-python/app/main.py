@@ -69,31 +69,43 @@ CATEGORY_HINTS = {
     "hotpot": {"火鍋", "鍋物", "麻辣鍋", "涮涮鍋", "shabu"},
     "yakiniku": {"燒肉", "烤肉", "yakiniku"},
     "izakaya": {"居酒屋", "串燒", "宵夜", "下酒"},
-    "japanese": {"日料", "日本料理", "壽司", "拉麵", "懷石"},
+    "japanese": {"日式", "日式料理", "日料", "日本料理", "壽司", "拉麵", "懷石"},
     "omakase": {"無菜單", "omakase"},
-    "steakhouse": {"牛排", "排餐", "steak"},
-    "european": {"義式", "法式", "義法", "歐陸", "義大利麵"},
+    "american": {"美式", "漢堡", "早午餐", "brunch", "牛排", "排餐", "steak"},
+    "euro": {"義式", "法式", "義法", "歐陸", "義大利麵", "pasta", "pizza", "披薩"},
     "chinese": {"中菜", "中式", "台菜", "熱炒", "烤鴨", "港式", "粵菜"},
     "korean": {"韓式", "韓國料理", "豆腐鍋"},
-    "brunch": {"brunch", "早午餐", "美式", "漢堡"},
     "fine-dining": {"高級餐廳", "高檔餐廳", "fine dining", "精緻料理", "鐵板燒"},
-    "cafe-premium": {"咖啡", "咖啡廳", "下午茶", "甜點"},
+    "cafe": {"咖啡", "咖啡廳", "下午茶", "甜點"},
 }
 
 CATEGORY_FALLBACK_KEYWORDS = {
     "hotpot": {"火鍋", "鍋物", "麻辣鍋", "酸菜白肉鍋", "涮涮屋", "涮涮鍋", "壽喜燒", "羊肉爐", "湯頭", "鴛鴦鍋", "鍋底"},
     "yakiniku": {"燒肉", "烤肉", "牛舌", "和牛燒肉"},
     "izakaya": {"居酒屋", "串燒", "烤串", "酒場"},
-    "japanese": {"壽司", "生魚片", "拉麵", "天婦羅", "鰻魚飯"},
+    "japanese": {"日式", "日式料理", "日料", "日本料理", "壽司", "生魚片", "拉麵", "天婦羅", "鰻魚飯"},
     "omakase": {"無菜單", "板前", "omakase"},
-    "steakhouse": {"牛排", "肋眼", "菲力", "排餐"},
-    "european": {"義大利麵", "燉飯", "牛小排燉飯", "法式", "歐陸"},
+    "american": {"美式", "漢堡", "早午餐", "brunch", "牛排", "肋眼", "菲力", "排餐", "班尼迪克蛋"},
+    "euro": {"義大利麵", "燉飯", "牛小排燉飯", "法式", "歐陸", "pasta", "pizza", "披薩"},
     "chinese": {"台菜", "熱炒", "烤鴨", "粵菜", "港點", "中菜"},
     "korean": {"韓式", "豆腐鍋", "炸雞", "石鍋拌飯"},
-    "brunch": {"早午餐", "brunch", "漢堡", "班尼迪克蛋"},
     "fine-dining": {"fine dining", "高級餐廳", "高檔餐廳", "套餐", "品酒", "鐵板燒"},
-    "cafe-premium": {"咖啡", "拿鐵", "手沖", "甜點"},
+    "cafe": {"咖啡", "拿鐵", "手沖", "甜點", "下午茶", "蛋糕"},
 }
+
+CATEGORY_ALIASES = {
+    "brunch": "american",
+    "steakhouse": "american",
+    "european": "euro",
+    "cafe-premium": "cafe",
+}
+
+SUPPORTED_CATEGORY_SLUGS = set(CATEGORY_FALLBACK_KEYWORDS)
+
+
+def _canonical_category_slug(slug: str | None) -> str:
+    normalized = str(slug or "").strip().lower()
+    return CATEGORY_ALIASES.get(normalized, normalized)
 
 STATION_HINTS = {
     "中山站": {"中山", "中山站"},
@@ -214,7 +226,9 @@ def _extract_query_constraints(query: str) -> dict:
     categories = []
     for category, keywords in CATEGORY_HINTS.items():
         if any(keyword.lower() in query_lower for keyword in keywords):
-            categories.append(category)
+            canonical_category = _canonical_category_slug(category)
+            if canonical_category not in categories:
+                categories.append(canonical_category)
 
     wants_hot_seat = any(keyword in query_lower for keyword in ("hot seat", "熱座", "搶位", "限量", "秒殺"))
     wants_nearby = any(keyword in query_lower for keyword in ("附近", "nearby"))
@@ -237,7 +251,7 @@ def _extract_query_constraints(query: str) -> dict:
 
 
 def _category_slug_from_payload(payload: dict) -> str:
-    explicit_slug = str(payload.get("category_slug") or "").lower()
+    explicit_slug = _canonical_category_slug(payload.get("category_slug"))
     if explicit_slug:
         return explicit_slug
 
@@ -265,19 +279,19 @@ def _category_slug_from_payload(payload: dict) -> str:
     if "無菜單" in category:
         return "omakase"
     if "牛排" in category:
-        return "steakhouse"
+        return "american"
     if "義法" in category:
-        return "european"
+        return "euro"
     if "中式" in category:
         return "chinese"
     if "韓式" in category:
         return "korean"
     if "brunch" in category or "美式" in category:
-        return "brunch"
+        return "american"
     if "高級" in category:
         return "fine-dining"
     if "咖啡" in category:
-        return "cafe-premium"
+        return "cafe"
     return ""
 
 
@@ -557,7 +571,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
         results = qdrant.query_points(
             collection_name=settings.qdrant_collection,
             query=emb_resp.embeddings[0].values,
-            limit=max(top_k * 4, 12),
+            limit=max(top_k * 12, 60),
         ).points
 
         for result in results:
@@ -571,6 +585,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
                     "score": float(result.score),
                     "category": payload.get("category"),
                     "category_slug": payload.get("category_slug"),
+                    "type_id": payload.get("type_id"),
                     "avg_price": payload.get("avg_price"),
                     "ai_summary": payload.get("ai_summary"),
                     "signature_dishes": _parse_json_list(payload.get("signature_dishes")),
@@ -784,6 +799,63 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             [h.get("name") for h in strict_nearby[:8]],
             [h.get("name") for h in loose_nearby[: max(0, MIN_STRICT + 3 - len(strict_nearby))]],
         )
+
+    if constraints["categories"]:
+        slug_category = [
+            hit for hit in raw_hits
+            if _semantic_category_slug(hit) in constraints["categories"]
+        ]
+        text_category = [
+            hit for hit in raw_hits
+            if any(
+                keyword.lower() in _payload_text(hit)
+                for requested in constraints["categories"]
+                for keyword in CATEGORY_FALLBACK_KEYWORDS.get(requested, set())
+            )
+        ]
+        # Prefer authoritative taxonomy. Text fallback only exists for legacy
+        # payloads that do not yet carry category_slug.
+        strict_category = slug_category or text_category
+        if strict_category:
+            raw_hits = strict_category
+            logger.warning(
+                "search_strict_category_filter query=%r categories=%s strict=%s",
+                query,
+                constraints["categories"],
+                [hit.get("name") for hit in strict_category[:8]],
+            )
+
+    if constraints["districts"]:
+        strict_district = [
+            hit for hit in raw_hits
+            if any(
+                target.lower() == str(hit.get("district") or "").lower()
+                for target in constraints["districts"]
+            )
+        ]
+        if strict_district:
+            raw_hits = strict_district
+            logger.warning(
+                "search_strict_district_filter query=%r districts=%s strict=%s",
+                query,
+                constraints["districts"],
+                [hit.get("name") for hit in strict_district[:8]],
+            )
+
+    if constraints["stations"]:
+        strict_station = [
+            hit for hit in raw_hits
+            if _station_proximity_score(constraints, hit) > 0
+            or any(target.lower() in str(hit.get("mrt_station") or "").lower() for target in constraints["stations"])
+        ]
+        if strict_station:
+            raw_hits = strict_station
+            logger.warning(
+                "search_strict_station_filter query=%r stations=%s strict=%s",
+                query,
+                constraints["stations"],
+                [hit.get("name") for hit in strict_station[:8]],
+            )
 
     return raw_hits[:top_k]
 

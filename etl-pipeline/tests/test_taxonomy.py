@@ -17,7 +17,7 @@ APPROVED_PRIMARY_TYPE_IDS = {
     10105: 2003, 10106: 2011, 10107: 2002, 10108: 2012, 10109: 2008, 10110: 2007,
     10111: 2008, 10112: 2010, 10113: 2008, 10114: 2008, 10115: 2001, 10116: 2008,
     10117: 2008, 10118: 2008, 10119: 2008, 10120: 2008, 10121: 2008, 10122: 2010,
-    10123: 2008, 10124: 2005, 10125: 2007, 10126: 2008, 10127: 2001, 10128: 2001,
+    10123: 2008, 10124: 2008, 10125: 2007, 10126: 2008, 10127: 2001, 10128: 2001,
     10129: 2008, 10130: 2008, 10131: 2001, 10132: 2008, 10133: 2012, 10134: 2008,
     10135: 2008, 10136: 2010, 10137: 2001, 10138: 2007, 10139: 2005, 10140: 2010,
     10141: 2008, 10142: 2010, 10143: 2008, 10144: 2001, 10145: 2008, 10146: 2008,
@@ -94,3 +94,43 @@ def test_classifier_fixture_10104_buffet_premium():
     assert result["primary_type_id"] == 2011
     assert result["badges"] == ["高級"]
     assert "景觀" in result["tags"]
+
+
+def test_v20_burger_restaurant_maps_to_american():
+    result = classify_shop({
+        "display_name": "Fa Burger",
+        "primary_type": "restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "美式漢堡、薯條與早午餐。"},
+    })
+    assert result["primary_type_id"] == 2010
+
+
+def test_v20_pasta_restaurant_maps_to_euro():
+    result = classify_shop({
+        "display_name": "Pastaio 光復店",
+        "primary_type": "restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "現做義大利麵、pizza 與燉飯。"},
+    })
+    assert result["primary_type_id"] == 2007
+
+
+def test_v20_cafe_restaurant_maps_to_cafe():
+    result = classify_shop({
+        "display_name": "山角咖啡",
+        "primary_type": "restaurant",
+        "types": ["restaurant", "cafe"],
+        "ai_extracted": {"ai_summary": "咖啡、手沖、甜點與下午茶。"},
+    })
+    assert result["primary_type_id"] == 2012
+
+
+def test_v20_ambiguous_hotpot_maps_to_hotpot():
+    result = classify_shop({
+        "display_name": "麻辣鍋物研究所",
+        "primary_type": "asian_restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "麻辣鍋底、鴛鴦鍋與涮涮鍋。"},
+    })
+    assert result["primary_type_id"] == 2001

@@ -131,6 +131,30 @@ PRICE_LEVEL_MAP = {
     "PRICE_LEVEL_VERY_EXPENSIVE": 4,
 }
 
+def load_all_extracted_shops() -> list[dict]:
+    """Load every extracted Places file and keep the latest row per place_id."""
+    raw_dir = Path("data/raw")
+    shops_by_place_id: dict[str, dict] = {}
+    for path in sorted(raw_dir.glob("places_extracted_*.json")):
+        try:
+            data = json.loads(path.read_text())
+        except Exception as exc:
+            log.warning("skip_invalid_extracted_file", file=str(path), error=str(exc))
+            continue
+        for shop in data.get("shops", []):
+            place_id = shop.get("place_id")
+            if place_id:
+                shops_by_place_id[place_id] = shop
+    return list(shops_by_place_id.values())
+
+
+def load_extracted_shops_by_place_id() -> dict[str, dict]:
+    return {
+        shop["place_id"]: shop
+        for shop in load_all_extracted_shops()
+        if shop.get("place_id")
+    }
+
 def load():
     # 讀最新 extracted json
     raw_dir = Path("data/raw")
@@ -247,11 +271,8 @@ def load():
 
 
 def reclassify_existing():
-    raw_dir = Path("data/raw")
-    latest = sorted(raw_dir.glob("places_extracted_*.json"))[-1]
-    log.info("reading_for_reclassify", file=str(latest))
-    data = json.loads(latest.read_text())
-    shops = data["shops"]
+    shops_by_place_id = load_extracted_shops_by_place_id()
+    log.info("reading_for_reclassify", extracted_shops=len(shops_by_place_id))
 
     conn = pymysql.connect(
         host=os.getenv("MYSQL_HOST", "localhost"),
@@ -268,17 +289,14 @@ def reclassify_existing():
 
     try:
         with conn.cursor() as cur:
-            for shop in shops:
-                place_id = shop["place_id"]
-                new_type_id = smart_type_id(shop)
-                cur.execute(
-                    "SELECT id, type_id, name FROM tb_shop WHERE place_id = %s AND source = 'google_places'",
-                    (place_id,),
-                )
-                row = cur.fetchone()
-                if not row:
-                    continue
-                shop_id, old_type_id, name = row
+            cur.execute(
+                "SELECT id, type_id, name, place_id FROM tb_shop WHERE source = 'google_places' AND is_active = 1"
+            )
+            for shop_id, old_type_id, name, place_id in cur.fetchall():
+                shop = shops_by_place_id.get(place_id) or {"place_id": place_id}
+                shop_for_classify = dict(shop)
+                shop_for_classify["display_name"] = name or shop.get("display_name")
+                new_type_id = smart_type_id(shop_for_classify)
                 if old_type_id == new_type_id:
                     unchanged += 1
                     continue
