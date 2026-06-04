@@ -237,6 +237,36 @@ function ExpandableText({
   );
 }
 
+function DataGapCallout({
+  title,
+  body,
+  actionHref,
+  actionLabel,
+}: {
+  title: string;
+  body: string;
+  actionHref?: string;
+  actionLabel?: string;
+}) {
+  return (
+    <div className="rounded-2xl border bg-stone-50 p-6">
+      <div className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">Data pending</div>
+      <div className="mt-2 text-xl font-semibold">{title}</div>
+      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">{body}</p>
+      {actionHref && actionLabel ? (
+        <a
+          href={actionHref}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 inline-flex rounded-full border px-4 py-2 text-sm font-medium hover:bg-background"
+        >
+          {actionLabel}
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
 export function ShopDetailTabs(props: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
 
@@ -478,9 +508,9 @@ export function ShopDetailTabs(props: Props) {
             </a>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">餐廳照片</h3>
-            {firstPhoto ? (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">餐廳照片</h3>
+              {firstPhoto ? (
               <div className="space-y-4">
                 <div className="aspect-[16/9] overflow-hidden rounded-2xl border bg-muted/20">
                   <img src={firstPhoto} alt={props.photoFallbackLabel} className="h-full w-full object-cover" />
@@ -495,14 +525,13 @@ export function ShopDetailTabs(props: Props) {
                   </div>
                 ) : null}
               </div>
-            ) : (
-              <div className="rounded-2xl border bg-gradient-to-br from-stone-100 via-amber-50 to-orange-100 p-8">
-                <div className="text-xs font-mono text-muted-foreground">PHOTO COVER</div>
-                <div className="mt-2 text-2xl font-semibold">{props.photoFallbackLabel}</div>
-                <p className="mt-3 max-w-xl text-sm text-muted-foreground leading-relaxed">
-                  這家店目前先以展示封面呈現；之後若補進更多實景或菜色照，這裡會優先更新成真實照片。
-                </p>
-              </div>
+              ) : (
+                <DataGapCallout
+                  title="照片資料正在補齊"
+                  body="這家店目前尚未匯入足夠的實景照片。ByteBites 會優先展示真實 Google Maps 或評論照片，不用靜態假圖填版面。"
+                  actionHref={mapsHref}
+                  actionLabel="先到 Google Maps 查看"
+                />
             )}
           </div>
         </div>
@@ -542,14 +571,25 @@ export function ShopDetailTabs(props: Props) {
 
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Google 顧客評論</h3>
-            <p className="text-sm text-muted-foreground">
-              從 {props.reviewTotal} 則評論中整理，以下先挑 5 則最能幫你判斷菜色、服務、環境與值不值得訂位的內容。
-            </p>
-            <div className="space-y-8">
-              {props.selectedReviews.map((review, index) => (
-                <ReviewCard key={`${review.author}-${index}`} review={review} />
-              ))}
-            </div>
+            {props.selectedReviews.length > 0 ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  從 {props.reviewTotal} 則評論中整理，以下先挑 {Math.min(5, props.selectedReviews.length)} 則最能幫你判斷菜色、服務、環境與值不值得訂位的內容。
+                </p>
+                <div className="space-y-8">
+                  {props.selectedReviews.map((review, index) => (
+                    <ReviewCard key={`${review.author}-${index}`} review={review} />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <DataGapCallout
+                title="評論資料正在補齊"
+                body={`目前已知道 Google 顯示約 ${props.reviewTotal.toLocaleString()} 則評論，但詳細評論內容尚未完成匯入。這裡先不生成假摘要，避免把不完整資料包裝成結論。`}
+                actionHref={mapsHref}
+                actionLabel="先到 Google Maps 查看評論"
+              />
+            )}
           </div>
         </div>
       ) : null}

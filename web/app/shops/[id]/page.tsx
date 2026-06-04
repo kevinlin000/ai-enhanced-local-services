@@ -579,7 +579,7 @@ export default async function ShopDetailPage({
               平均消費
             </div>
             <div className="font-mono text-2xl font-bold">
-              {overview?.price_overview ?? (shop.avgPrice ? `$${shop.avgPrice}` : ai?.pricePerPerson ?? "—")}
+              {overview?.price_overview ?? (shop.avgPrice ? `$${shop.avgPrice}` : ai?.pricePerPerson ?? "價格待補")}
             </div>
           </div>
           <div className="rounded-xl border p-4">
