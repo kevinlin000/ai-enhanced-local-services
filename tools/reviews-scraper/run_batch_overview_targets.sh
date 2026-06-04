@@ -102,10 +102,11 @@ def clean_name(value: str) -> str:
     text = re.sub(r"\s+", " ", text)
     # Keep search queries to the actual shop name; SEO suffixes reduce match quality.
     text = re.split(r"[／/]", text, maxsplit=1)[0].strip()
+    text = re.sub(r"[【\\[].*$", "", text).strip()
     text = re.split(r"[｜|]", text, maxsplit=1)[0].strip()
     text = re.sub(r"[\(（][^\)）]*$", "", text).strip()
     text = re.split(
-        r"\s+(?:台北|臺北|士林區|大安區|信義區|中山區|內湖區|南港區|松山區|北投區|餐廳|餐酒館|酒吧|活動|生日|企業|推薦|包場|美食|燒肉|火鍋|聚餐)",
+        r"\s+(?:台北|臺北|士林區|大安區|信義區|中山區|內湖區|南港區|松山區|北投區|石牌|天母|公館|萬隆|餐廳|餐酒館|酒吧|活動|生日|企業|推薦|包場|美食|燒肉|火鍋|聚餐)",
         text,
         maxsplit=1,
     )[0].strip()
