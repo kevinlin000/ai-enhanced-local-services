@@ -55,7 +55,7 @@ FAIL=0
 CURRENT_IDX=0
 CURRENT_SHOP=""
 CURRENT_SHOP_ID=""
-MAX_ATTEMPTS=${MAX_ATTEMPTS:-3}
+MAX_ATTEMPTS=${MAX_ATTEMPTS:-2}
 MAX_REVIEWS=${MAX_REVIEWS:-40}
 write_progress
 
@@ -72,13 +72,16 @@ address = sys.argv[2]
 def clean_name(value: str) -> str:
     text = (value or "").strip()
     text = re.sub(r"\s+", " ", text)
+    # Google Maps search degrades when SEO keyword stuffing remains in names.
+    text = re.split(r"[／/]", text, maxsplit=1)[0].strip()
     text = re.split(r"[｜|]", text, maxsplit=1)[0].strip()
+    text = re.sub(r"[\(（][^\)）]*$", "", text).strip()
     text = re.split(
-        r"\s+(?:台北|臺北|士林區|大安區|信義區|中山區|餐廳|餐酒館|酒吧|活動|生日|企業|推薦|包場)",
+        r"\s+(?:台北|臺北|士林區|大安區|信義區|中山區|內湖區|南港區|松山區|北投區|餐廳|餐酒館|酒吧|活動|生日|企業|推薦|包場|美食|燒肉|火鍋|聚餐)",
         text,
         maxsplit=1,
     )[0].strip()
-    text = text.strip(" -—－｜|")
+    text = text.strip(" -—－｜|／/")
     return text or (value or "").strip()
 
 def area_hint(value: str) -> str:
@@ -152,16 +155,21 @@ businesses:
       shop_id: $shop_id
 YAML
 
-  local t0 t1 cnt
+  local t0 t1 cnt scrape_log
+  scrape_log="/tmp/bytebites-priority-reviews-${shop_id}.log"
   t0=$(date +%s)
   log "launch priority_reviews shop_id=$shop_id name=$name max_reviews=${MAX_REVIEWS}"
-  "$PYTHON" -u "$SCRAPER_DIR/start.py" scrape --config "$SCRAPER_DIR/config_single.yaml" 2>&1
-  rc=$?
+  "$PYTHON" -u "$SCRAPER_DIR/start.py" scrape --config "$SCRAPER_DIR/config_single.yaml" 2>&1 | tee "$scrape_log"
+  rc=${PIPESTATUS[0]}
   t1=$(date +%s)
   log "scraper exit rc=$rc elapsed=$((t1-t0))s shop_id=$shop_id"
 
   cnt=$(mongo_count "$shop_id" "$name")
   log "mongo count shop_id=$shop_id company='$name' count=$cnt"
+  if [ "$cnt" -eq 0 ] && grep -Eqi "limited view|No review cards found|No cards found for 5\\+ iterations" "$scrape_log"; then
+    log "fast_fail_limited_view shop_id=$shop_id"
+    return 2
+  fi
   [ "$rc" -eq 0 ] && [ "$cnt" -gt 0 ]
 }
 
@@ -177,13 +185,21 @@ for entry in "${SHOPS[@]}"; do
 
   attempt=1
   while true; do
-    if run_shop "$shop_id" "$name" "$address"; then
+    run_shop "$shop_id" "$name" "$address"
+    shop_rc=$?
+    if [ "$shop_rc" -eq 0 ]; then
       if [ "$attempt" -eq 1 ]; then
         log "shop success shop_id=$shop_id"
       else
         log "shop success_after_retry shop_id=$shop_id attempt=$attempt"
       fi
       SUCCESS=$((SUCCESS+1))
+      break
+    fi
+
+    if [ "$shop_rc" -eq 2 ]; then
+      log "shop failed_limited_view_no_retry shop_id=$shop_id attempt=$attempt"
+      FAIL=$((FAIL+1))
       break
     fi
 
