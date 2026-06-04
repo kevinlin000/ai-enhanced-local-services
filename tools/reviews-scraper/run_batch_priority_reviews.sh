@@ -69,15 +69,25 @@ print(f'https://www.google.com/maps/search/{query}')
 }
 
 mongo_count() {
-  local company="$1"
+  local shop_id="$1" company="$2"
   "$PYTHON" -c "
+import sys
 from pymongo import MongoClient
+
+shop_id = int(sys.argv[1])
+company = sys.argv[2]
+
 try:
-    c = MongoClient('mongodb://localhost:27017', connectTimeoutMS=3000)
-    n = c['bytebites_reviews']['google_reviews'].count_documents({'company': '$company'})
-    print(n); c.close()
-except: print(0)
-" 2>/dev/null || echo 0
+    client = MongoClient('mongodb://localhost:27017', connectTimeoutMS=3000)
+    collection = client['bytebites_reviews']['google_reviews']
+    n = collection.count_documents({'shop_id': shop_id})
+    if n == 0:
+        n = collection.count_documents({'company': company})
+    print(n)
+    client.close()
+except Exception:
+    print(0)
+" "$shop_id" "$company" 2>/dev/null || echo 0
 }
 
 run_shop() {
@@ -123,8 +133,8 @@ YAML
   t1=$(date +%s)
   log "scraper exit rc=$rc elapsed=$((t1-t0))s shop_id=$shop_id"
 
-  cnt=$(mongo_count "$name")
-  log "mongo count company='$name' count=$cnt"
+  cnt=$(mongo_count "$shop_id" "$name")
+  log "mongo count shop_id=$shop_id company='$name' count=$cnt"
   [ "$rc" -eq 0 ] && [ "$cnt" -gt 0 ]
 }
 
