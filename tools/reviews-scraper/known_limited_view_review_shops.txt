@@ -1,0 +1,10 @@
+# Google Maps review pages that repeatedly returned limited-view / no review cards.
+# Keep these out of automated review queues to avoid wasting 3 attempts per shop.
+# Format: shop_id|name|reason
+10215|Google limited-view|review cards unavailable after repeated attempts
+10220|Google limited-view|review cards unavailable after repeated attempts
+10228|Google limited-view|review cards unavailable after repeated attempts
+10252|山上走走 日式燒肉台北華山店|review cards unavailable after repeated attempts
+10253|聚日式鍋物 台北南昌店|review cards unavailable after repeated attempts
+10420|新馬辣經典麻辣鍋-公館店|review cards unavailable after repeated attempts
+10617|歐買尬日式海鮮串燒 市民一店|review cards unavailable after repeated attempts

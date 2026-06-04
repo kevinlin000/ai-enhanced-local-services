@@ -24,6 +24,7 @@ DEFAULT_OUTPUTS = {
     "media-missing": SCRAPER_DIR / "shops_media_missing.txt",
     "reviews-missing": SCRAPER_DIR / "shops_reviews_missing.txt",
 }
+DEFAULT_REVIEW_EXCLUDE_FILE = SCRAPER_DIR / "known_limited_view_review_shops.txt"
 
 
 def safe_field(value: str) -> str:
@@ -38,6 +39,23 @@ def write_targets(path: Path, shops: list) -> None:
     except ValueError:
         display_path = path
     print(f"generated {len(lines)} targets -> {display_path}")
+
+
+def load_excluded_shop_ids(path: Path | None) -> set[int]:
+    if not path or not path.exists():
+        return set()
+
+    excluded: set[int] = set()
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        shop_id_text = line.split("|", 1)[0].strip()
+        try:
+            excluded.add(int(shop_id_text))
+        except ValueError:
+            raise SystemExit(f"invalid shop_id in exclude file {path}: {raw_line}")
+    return excluded
 
 
 def priority_key(shop) -> tuple:
@@ -62,6 +80,14 @@ def main() -> None:
         default="priority",
         help="priority sorts by review count/rating first; id keeps deterministic inventory order",
     )
+    parser.add_argument(
+        "--exclude-file",
+        type=Path,
+        help=(
+            "optional shop_id blacklist. For reviews-missing, defaults to "
+            "known_limited_view_review_shops.txt"
+        ),
+    )
     args = parser.parse_args()
 
     load_env()
@@ -75,7 +101,12 @@ def main() -> None:
         if mongo_error:
             raise SystemExit(f"cannot generate reviews queue: {mongo_error}")
 
-    targets = [shop for shop in shops if shop.id not in covered]
+    exclude_file = args.exclude_file
+    if args.mode == "reviews-missing" and exclude_file is None:
+        exclude_file = DEFAULT_REVIEW_EXCLUDE_FILE
+    excluded = load_excluded_shop_ids(exclude_file)
+
+    targets = [shop for shop in shops if shop.id not in covered and shop.id not in excluded]
     if args.order == "priority":
         targets.sort(key=priority_key)
     if args.limit > 0:
@@ -83,6 +114,8 @@ def main() -> None:
 
     output = args.output or DEFAULT_OUTPUTS[args.mode]
     write_targets(output, targets)
+    if excluded:
+        print(f"excluded {len(excluded)} known limited-view shops")
 
 
 if __name__ == "__main__":
