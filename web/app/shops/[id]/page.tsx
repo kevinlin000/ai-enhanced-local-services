@@ -23,6 +23,10 @@ type SimilarShopCard = {
   photoUrl?: string | null;
 };
 
+type RankedSimilarShopCard = SimilarShopCard & {
+  sortKey: number[];
+};
+
 function parseTags(raw?: string) {
   if (!raw) return [];
   try {
@@ -278,7 +282,7 @@ function buildIntroText({
   return lastPunct > 180 ? clipped.slice(0, lastPunct + 1) : `${clipped}...`;
 }
 
-function toFallbackSimilarCards(items: Awaited<ReturnType<typeof getSimilarShops>>): SimilarShopCard[] {
+function toFallbackSimilarCards(items: Awaited<ReturnType<typeof getSimilarShops>>): RankedSimilarShopCard[] {
   return items.map((item) => ({
     shopId: item.shopId,
     name: item.name,
@@ -287,21 +291,32 @@ function toFallbackSimilarCards(items: Awaited<ReturnType<typeof getSimilarShops
     avgPrice: undefined,
     reason: item.reason,
     photoUrl: proxyImageUrl(getBestShopCardPhoto(item.shopId)),
+    sortKey: [10, item.score, getBestShopCardPhoto(item.shopId) ? 1 : 0],
   }));
 }
 
-function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): SimilarShopCard[] {
+function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): RankedSimilarShopCard[] {
+  const basePrice = baseShop.avgPrice ?? 0;
+
   return candidates
     .filter((candidate) => candidate.id !== baseShop.id && !isLegacySeedShop(candidate.id))
     .map((candidate) => {
       const sameDistrict = Boolean(baseShop.district && candidate.district === baseShop.district);
       const sameMrt = Boolean(baseShop.mrtStation && candidate.mrtStation === baseShop.mrtStation);
       const areaClose = Boolean(baseShop.area && candidate.area === baseShop.area);
+      const candidatePrice = candidate.avgPrice ?? 0;
+      const similarPrice = Boolean(
+        basePrice > 0 &&
+        candidatePrice > 0 &&
+        Math.abs(candidatePrice - basePrice) <= Math.max(250, basePrice * 0.35),
+      );
+      const hasPhoto = Boolean(getBestShopCardPhoto(candidate.id));
 
       let reason = "同類型口袋名單";
       if (sameDistrict) reason = `同類型・${candidate.district}`;
       else if (sameMrt) reason = `同類型・${candidate.mrtStation}`;
       else if (areaClose) reason = `同類型・${candidate.area}`;
+      else if (similarPrice) reason = "同類型・價位相近";
       else if (candidate.district) reason = `同類型・${candidate.district}`;
 
       return {
@@ -313,9 +328,12 @@ function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): SimilarS
         reason,
         photoUrl: proxyImageUrl(getBestShopCardPhoto(candidate.id)),
         sortKey: [
+          5,
           sameDistrict ? 1 : 0,
           sameMrt ? 1 : 0,
           areaClose ? 1 : 0,
+          similarPrice ? 1 : 0,
+          hasPhoto ? 1 : 0,
           candidate.score ?? 0,
           candidate.comments ?? 0,
         ],
@@ -327,9 +345,35 @@ function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): SimilarS
         if (diff !== 0) return diff;
       }
       return a.name.localeCompare(b.name, "zh-Hant");
+    });
+}
+
+function mergeSimilarCards(...groups: RankedSimilarShopCard[][]): SimilarShopCard[] {
+  const seen = new Set<number>();
+  return groups
+    .flat()
+    .filter((candidate) => {
+      if (seen.has(candidate.shopId)) return false;
+      seen.add(candidate.shopId);
+      return true;
+    })
+    .sort((a, b) => {
+      const max = Math.max(a.sortKey.length, b.sortKey.length);
+      for (let i = 0; i < max; i += 1) {
+        const diff = (b.sortKey[i] ?? 0) - (a.sortKey[i] ?? 0);
+        if (diff !== 0) return diff;
+      }
+      return a.name.localeCompare(b.name, "zh-Hant");
     })
     .slice(0, 4)
-    .map(({ sortKey: _sortKey, ...item }) => item);
+    .map((item) => ({
+      shopId: item.shopId,
+      name: item.name,
+      district: item.district,
+      avgPrice: item.avgPrice,
+      reason: item.reason,
+      photoUrl: item.photoUrl,
+    }));
 }
 
 export default async function ShopDetailPage({
@@ -370,8 +414,7 @@ export default async function ShopDetailPage({
     ? await javaApi.shopsByCategory(categorySlug, 1, 18).catch(() => null)
     : null;
   const categorySimilar = buildCategorySimilarCards(shop, sameCategoryRes?.data ?? []);
-  const similarShops =
-    categorySimilar.length > 0 ? categorySimilar : toFallbackSimilarCards(fallbackSimilar).slice(0, 4);
+  const similarShops = mergeSimilarCards(toFallbackSimilarCards(fallbackSimilar), categorySimilar);
 
   const hotSeatStockMap = new Map(
     (hotSeatRes?.data ?? []).map((offer) => [offer.id, offer.stock]),
