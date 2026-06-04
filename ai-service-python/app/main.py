@@ -260,22 +260,10 @@ def _extract_query_constraints(query: str) -> dict:
     }
 
 
-def _category_slug_from_payload(payload: dict) -> str:
+def _authoritative_category_slug(payload: dict) -> str:
     explicit_slug = _canonical_category_slug(payload.get("category_slug"))
     if explicit_slug:
         return explicit_slug
-
-    text = _payload_text(payload)
-    if any(keyword.lower() in text for keyword in {"鐵板燒", "fine dining", "高級餐廳", "高檔餐廳"}):
-        return "fine-dining"
-    if any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["hotpot"]):
-        return "hotpot"
-    if any(keyword.lower() in text for keyword in {"拉麵", "壽司", "生魚片", "鰻魚飯", "天婦羅"}):
-        return "japanese"
-    if any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["yakiniku"]):
-        return "yakiniku"
-    if any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["izakaya"]):
-        return "izakaya"
 
     category = str(payload.get("category") or "").lower()
     if "火鍋" in category:
@@ -307,7 +295,30 @@ def _category_slug_from_payload(payload: dict) -> str:
     return ""
 
 
+def _category_slug_from_payload(payload: dict) -> str:
+    authoritative_slug = _authoritative_category_slug(payload)
+    if authoritative_slug:
+        return authoritative_slug
+
+    text = _payload_text(payload)
+    if any(keyword.lower() in text for keyword in {"鐵板燒", "fine dining", "高級餐廳", "高檔餐廳"}):
+        return "fine-dining"
+    if any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["hotpot"]):
+        return "hotpot"
+    if any(keyword.lower() in text for keyword in {"拉麵", "壽司", "生魚片", "鰻魚飯", "天婦羅"}):
+        return "japanese"
+    if any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["yakiniku"]):
+        return "yakiniku"
+    if any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["izakaya"]):
+        return "izakaya"
+    return ""
+
+
 def _semantic_category_slug(payload: dict) -> str:
+    authoritative_slug = _authoritative_category_slug(payload)
+    if authoritative_slug:
+        return authoritative_slug
+
     text = _payload_text(payload)
     if any(keyword.lower() in text for keyword in {"鐵板燒", "fine dining", "高級餐廳", "高檔餐廳"}):
         return "fine-dining"
@@ -813,12 +824,18 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
         )
 
     if constraints["categories"]:
-        slug_category = [
+        authoritative_category = [
             hit for hit in raw_hits
-            if _semantic_category_slug(hit) in constraints["categories"]
+            if _authoritative_category_slug(hit) in constraints["categories"]
+        ]
+        legacy_semantic_category = [
+            hit for hit in raw_hits
+            if not _authoritative_category_slug(hit)
+            and _semantic_category_slug(hit) in constraints["categories"]
         ]
         text_category = [
             hit for hit in raw_hits
+            if not _authoritative_category_slug(hit)
             if any(
                 keyword.lower() in _payload_text(hit)
                 for requested in constraints["categories"]
@@ -827,12 +844,15 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
         ]
         # Prefer authoritative taxonomy. Text fallback only exists for legacy
         # payloads that do not yet carry category_slug.
-        strict_category = slug_category or text_category
+        strict_category = authoritative_category or legacy_semantic_category or text_category
         raw_hits = strict_category
         logger.warning(
-            "search_strict_category_filter query=%r categories=%s strict=%s",
+            "search_strict_category_filter query=%r categories=%s authoritative=%s legacy=%s text=%s strict=%s",
             query,
             constraints["categories"],
+            [hit.get("name") for hit in authoritative_category[:8]],
+            [hit.get("name") for hit in legacy_semantic_category[:8]],
+            [hit.get("name") for hit in text_category[:8]],
             [hit.get("name") for hit in strict_category[:8]],
         )
 

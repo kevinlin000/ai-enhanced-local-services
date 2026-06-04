@@ -40,6 +40,13 @@ def write_targets(path: Path, shops: list) -> None:
     print(f"generated {len(lines)} targets -> {display_path}")
 
 
+def priority_key(shop) -> tuple:
+    """Prioritize shops likely to appear in browse/recommendation surfaces."""
+    comments = shop.comments or 0
+    rating = shop.rating or 0.0
+    return (-comments, -rating, shop.id)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -49,6 +56,12 @@ def main() -> None:
     )
     parser.add_argument("--limit", type=int, default=0, help="0 means no limit")
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--order",
+        choices=("priority", "id"),
+        default="priority",
+        help="priority sorts by review count/rating first; id keeps deterministic inventory order",
+    )
     args = parser.parse_args()
 
     load_env()
@@ -63,6 +76,8 @@ def main() -> None:
             raise SystemExit(f"cannot generate reviews queue: {mongo_error}")
 
     targets = [shop for shop in shops if shop.id not in covered]
+    if args.order == "priority":
+        targets.sort(key=priority_key)
     if args.limit > 0:
         targets = targets[: args.limit]
 
