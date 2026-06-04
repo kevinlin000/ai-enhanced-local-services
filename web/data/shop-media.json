@@ -20773,91 +20773,521 @@
       "photoUrls": [
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHi3tVUZuhMTXqpUVJON0OjGu1v2K_mBDBYvBI8cjnKLVEsfV-gUShkrlgg8lIdVRuMnU7ivcDQ_W2pkfq-YBXnzmodW9-NERx0DVxE95mShYvTef7z7tbHxDrrtNqWuGwv6MLyNDg7O1jo=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAF942uZ19F_BCYyrabxvnCbvX0AnQ0KFoFza4YqNxAaVhmDZ8Yke3y8_FAF-iKYJxcEzzw00sGikHtJ7ZqT7W5A_Mf-3Y_Ehrz4Nye9yjtD6bYS35_hHN2PoPPVyjN3Q1svAOCsV8HMutZp=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEDO6516H6Qr_PsIg65c4IyHfQfcL_Zqxj7c2oOXu-YqwDiVqgmVWBq8JgOdyBHcMu87yNrLGPwjrv7XipC9ub3zSdGIZOfZNYQHdV5x4rvjsj0CN3MEZSu2nngwxzDQu7C4juoxlV1tLX9=w529-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHWnoo5H62FwWfG25rCJqst3Uhpi1HgjIfdH3hXlmrxw-1lPchjBkcrKYPaQkSpyo2L_Xlxk3c7gC8-iP9Mx0baXOjb41fer7qb9gD1c3bNpr4alPSm0DULZfQWp__IZjmwktQoqqA6B8gc=w529-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGiEvCJLwSJDVD8Hn-rIJYTcI_erMjse22iaKeJ16M45IHHTjE83-m1XS3wZPmpKpurQonZ_YbfVz39AAhDmgyFlPcSq35nuFN57JGstn73UkPYi_u1-k1qFoT7vdb4s-LqrcryRmWEn6PJ=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHGt-7QEKX8zd9_Tn7RZFb2LGeA2JizqWaNDVQUQxHlVH7yYTcCdCu9Y9ph7X02MrA7q_xxktYY4FdUaqxFabnkJZuJvyYZIf9mGtELQFd1yv1kLndyI1nEP4I6h7cW92MsCJdn3g=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEnDQ8ehCQXGZyUGL_0RLrnyoG3c1kgqIaV1ChaJmbpS6ftJciPATfBLMxiLhrdBIonIsMLRsrSqrsKoQ4H-_wm6Rt07Q-Y3WLycHgsGGN3wfWgkSsb-vY4sp91t4vkLzRVVBk3=w447-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAH_Ff97tIHvbn2xPs6EkOULIM-v7q4h4KJJhv0SLyP_48w1cul9yn63HdJvrLkKEfVDB9hvXysjjNm5Y798wW5ltCtayDTCP_fcnpoYAFN8CO4BRI2Dk5cNGhbyIP7jIPSJHJ3Bee8Nu-4=w397-h298-k-no"
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAG8y4Mmd0Z1ex4DgTszURdEdzsmVtqUc419hqsBjdseTpRtsBVOT0v7UgKse4es_70stWpX8LAHp_-2tnzCBbiIb82WbP67IVD-HG-ZIXKAxt-Mep_J85FOAFU5PFyG4t05vKuK=w447-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEm9PTfNEWnEUus1taS4Gb4yWqEE2dG8yjORdMLeX0HNQ22df07d-xCxqRavgLGv5eQbPknCPjIeB2C59gsVN9GeKh-DuXKOEabPCJVFcJqr9l8GO2VE4pFXiRBVxfrIVIF_TDYlWRW9hw=w397-h298-k-no",
+        "https://lh3.googleusercontent.com/grass-cs/ANxoTn1SY3tUX3np8sFAFcMGuw9MQC8L8jiOn7xrZzY3AHYzLJjg89_ogQdYtozeo1tHIKLfEevgz5tIIVLa8gZoo3WIdSt7a2h-gdi11Wg7pT7_KBi5lintDbdz39zmDvVf1extw1TU5N_7ktmo=w300-h225-p-k-no"
       ],
       "coverUrl": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHi3tVUZuhMTXqpUVJON0OjGu1v2K_mBDBYvBI8cjnKLVEsfV-gUShkrlgg8lIdVRuMnU7ivcDQ_W2pkfq-YBXnzmodW9-NERx0DVxE95mShYvTef7z7tbHxDrrtNqWuGwv6MLyNDg7O1jo=w397-h298-k-no",
       "galleryUrls": [
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHi3tVUZuhMTXqpUVJON0OjGu1v2K_mBDBYvBI8cjnKLVEsfV-gUShkrlgg8lIdVRuMnU7ivcDQ_W2pkfq-YBXnzmodW9-NERx0DVxE95mShYvTef7z7tbHxDrrtNqWuGwv6MLyNDg7O1jo=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAF942uZ19F_BCYyrabxvnCbvX0AnQ0KFoFza4YqNxAaVhmDZ8Yke3y8_FAF-iKYJxcEzzw00sGikHtJ7ZqT7W5A_Mf-3Y_Ehrz4Nye9yjtD6bYS35_hHN2PoPPVyjN3Q1svAOCsV8HMutZp=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEDO6516H6Qr_PsIg65c4IyHfQfcL_Zqxj7c2oOXu-YqwDiVqgmVWBq8JgOdyBHcMu87yNrLGPwjrv7XipC9ub3zSdGIZOfZNYQHdV5x4rvjsj0CN3MEZSu2nngwxzDQu7C4juoxlV1tLX9=w529-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHWnoo5H62FwWfG25rCJqst3Uhpi1HgjIfdH3hXlmrxw-1lPchjBkcrKYPaQkSpyo2L_Xlxk3c7gC8-iP9Mx0baXOjb41fer7qb9gD1c3bNpr4alPSm0DULZfQWp__IZjmwktQoqqA6B8gc=w529-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGiEvCJLwSJDVD8Hn-rIJYTcI_erMjse22iaKeJ16M45IHHTjE83-m1XS3wZPmpKpurQonZ_YbfVz39AAhDmgyFlPcSq35nuFN57JGstn73UkPYi_u1-k1qFoT7vdb4s-LqrcryRmWEn6PJ=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHGt-7QEKX8zd9_Tn7RZFb2LGeA2JizqWaNDVQUQxHlVH7yYTcCdCu9Y9ph7X02MrA7q_xxktYY4FdUaqxFabnkJZuJvyYZIf9mGtELQFd1yv1kLndyI1nEP4I6h7cW92MsCJdn3g=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEnDQ8ehCQXGZyUGL_0RLrnyoG3c1kgqIaV1ChaJmbpS6ftJciPATfBLMxiLhrdBIonIsMLRsrSqrsKoQ4H-_wm6Rt07Q-Y3WLycHgsGGN3wfWgkSsb-vY4sp91t4vkLzRVVBk3=w447-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAH_Ff97tIHvbn2xPs6EkOULIM-v7q4h4KJJhv0SLyP_48w1cul9yn63HdJvrLkKEfVDB9hvXysjjNm5Y798wW5ltCtayDTCP_fcnpoYAFN8CO4BRI2Dk5cNGhbyIP7jIPSJHJ3Bee8Nu-4=w397-h298-k-no"
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAG8y4Mmd0Z1ex4DgTszURdEdzsmVtqUc419hqsBjdseTpRtsBVOT0v7UgKse4es_70stWpX8LAHp_-2tnzCBbiIb82WbP67IVD-HG-ZIXKAxt-Mep_J85FOAFU5PFyG4t05vKuK=w447-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEm9PTfNEWnEUus1taS4Gb4yWqEE2dG8yjORdMLeX0HNQ22df07d-xCxqRavgLGv5eQbPknCPjIeB2C59gsVN9GeKh-DuXKOEabPCJVFcJqr9l8GO2VE4pFXiRBVxfrIVIF_TDYlWRW9hw=w397-h298-k-no",
+        "https://lh3.googleusercontent.com/grass-cs/ANxoTn1SY3tUX3np8sFAFcMGuw9MQC8L8jiOn7xrZzY3AHYzLJjg89_ogQdYtozeo1tHIKLfEevgz5tIIVLa8gZoo3WIdSt7a2h-gdi11Wg7pT7_KBi5lintDbdz39zmDvVf1extw1TU5N_7ktmo=w300-h225-p-k-no"
       ],
       "overview": {
         "price_overview": "$800-1,000",
         "price_buckets": [
           "$800-1,000"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "小米",
+          "rating": 5.0,
+          "text": "台北市大安區｜和牛涮台北忠孝東店_王品旗下和牛火鍋吃到飽、肉片 花枝滑 好好吃、鯛魚燒不要錯過_東區吃宵夜的好去處！ 和牛涮台北忠孝東店，位於東區頂好商圈，從捷運忠孝復興站或忠孝敦化站出來都只要走兩三分鐘，同一棟樓的同一樓層還有王品集團的另一家餐廳《享鴨》。 和牛涮台北忠孝東店在Google 擁有近3萬則評論，獲得4.8顆星的超高評價！！是王品旗下和牛火鍋吃到飽，但來這裡不只是吃日式火鍋，必吃的還有鯛魚燒和霜淇淋晶凍，黑糖蜜珍珠、以及和牛三吃：涮和牛片、極上牛肉咖哩飯、炙燒和牛壽司，種類豐富又美味，很幸福～～ 和牛涮忠孝店有提供深夜不限時優惠，活動到2025/12/31止，週一至週四晚上9點後入場，可不限時吃到凌晨2點，超適合夜貓族來這裡吃宵夜聊天😛 如果是最低的方案，成人只要458元，最貴的價位也不到千元，在台北市的火鍋選擇中 真的非常划算。 和牛涮價格區間參考 (成人價，加一成服務費) 入門款: 498元起（安格斯/豚雞套餐）。 中階款: 768元（極上和牛套餐）。 高階款: 858元（頂級和牛套餐），包含A5和牛、和牛壽司、鯛魚燒吃到飽。 鯛魚燒是跟店員點了以後，店員在旁邊的鯛魚燒機現點現作，有原味和焦糖卡士達兩種口味可選，拿到鯛魚燒時還熱騰騰的，可以自己在魚嘴中擠霜淇淋，享受冰火兩重口感，外殼酥脆，內裡溫熱綿密 內餡香甜，配上冰涼的霜淇淋，好好吃，好喜歡啊～💕💕💕 霜淇淋提供了兩種口味：上厚奶茶和北海道牛奶冰淇淋，口感順滑 濃郁，可以去加上放在飲料機旁邊的現煮黑糖珍珠、日式晶凍、黃豆粉、黑糖蜜，好好吃～～🥰🥰🥰 和牛黑咖哩是《和牛涮忠孝東店》的特色之一，咖哩裡面加了黑巧克力，但好像沒什麼人在拿😂 《和牛涮忠孝東店》的火鍋是鴛鴦鍋，一邊放固定的湯底—干貝昆布鍋，另一邊可在五種湯底中任選一種：椒香麻辣鍋、九州蒜味鍋、一番鮮牛鍋、味噌雞白湯鍋。 今天選了干貝昆布鍋+九州蒜味鍋，兩種湯底放蔬菜和肉片都好吃！！ 肉片品質很不錯，吃到到肉的鮮甜，肉質彈嫩💕💕 蔬菜吧的種類也超多，有我愛的生豆皮、花枝漿、木耳、水蓮、玉米筍~~~吃的很開心～😍😍 晚上九點多來，可以慢慢吃慢慢聊到半夜兩點，完全沒有時間壓力，在忙完一整天後來和牛涮吃宵夜，獲得很愜意的一餐💕🫠 #台北美食 #吃到飽麻辣鍋 #日式火鍋 #大安區吃到飽 #台北東區吃到飽 #大安區美食 #和牛火鍋 #和牛涮 #東區聚餐 #大安區火鍋吃到飽 #和牛 #東區打卡景點 #東區美食 #頂好商圈日式火鍋 #和牛吃到飽 #大安區網美景點 #鯛魚燒 #頂好商圈美食 #捷運美食 #捷運忠孝復興站美食 #忠孝復興吃到飽 #忠孝敦化吃到飽 #忠孝復興火鍋 #忠孝敦化火鍋",
+          "publishTime": "2026-01-05T02:12:22",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Jeff Kao",
+          "rating": 4.0,
+          "text": "看和牛涮網路評價不錯，於是帶壽星長輩來這裡家庭聚餐兼慶祝。這裡是共鍋非一人一鍋，不過可以選鴛鴦兩種口味所以如用餐的人有口味上的差異至少可以點幫助。 首先我們訂的是11點半，但因11點就營業加上我們提早到就先入場了。入場後用餐時間為兩個小時，一開始覺得會不夠所以吃比較匆忙，但是其實蠻足夠的因為加點的肉盤上的很快，加上服務非常良好，所以吃得蠻開心的。蔬菜個人也推薦水蓮及芋頭，不過來這邊就是主攻肉盤，而我們點的是次貴的每人$768不含服務費，個人覺得贈送的和牛壽司一貫吃起來普普而鯛魚燒沒有吃過，但是兩樣都是容易填飽肚子的食物所以不會去選最高價的來無限續（當然多了兩種和牛選擇但第一次來沒有特別想嘗試）。 我點了鴛鴦雙拼壽喜燒及麻辣鍋(要額外每個人加$49及$29)，壽喜燒因為有附一顆生食雞蛋且是甜醬油湯底涮肉好吃，麻辣鍋則是不辣就有點花椒香味所以不太推。一開始店員會每個品項各提供兩盤但我沒有點雞肉，豬肉則其實不錯(國產脆皮豬五花真的是口感脆)。但這裡都叫和牛涮當然主攻牛肉！個人最推極上和牛雪花再來是安格斯雪花牛及安格斯霜降牛。和牛咖哩飯偏鹹所以只吃了一小碗。飲料及甜點還有霜淇淋也都算可以。 唯一要小小抱怨的是一開始去自助蔬菜區夾菜時，被推車的匆忙年輕男店員撞到左腳跟(因為那天下大雨所以穿拖鞋)，當下超痛而且回家後有瘀青(照片是事發後的第四天還是沒消），雖然當下店員有說抱歉但是真的建議要小心因為走道及動線不寬敞。",
+          "publishTime": "2025-11-06T02:12:22",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Michael Fu",
+          "rating": 5.0,
+          "text": "用餐地點很方便 靠近捷運忠孝復興站 東區商圈這邊 很適合逛街後來這邊用餐約會 店內用餐環境舒服 用餐方式鴛鴦鍋 有不少湯底可以選 建議直接點768價位可升級壽喜燒 壽喜燒味道真的很不錯 涮牛肉超香ㄚ 服務品質很不錯 因為是王品體系的 很在乎客人用餐體驗 這次點到非768方案 但湯底仍提供加價升級壽喜燒 有桌邊服務鈴不用怕不好意思叫店員 加湯加水也不用自己來 自助吧 有豐富的火鍋料 蔬菜 飲料 甜點 冰淇淋 咖喱…. 喜歡和牛壽司或鯛魚燒可以升級套餐或單點 總體來說 以這個價位來說可以說是首選火鍋選擇 最便宜的方案只吃豬雞肉配自助吧也是不錯的 牛肉不用吃到和牛也很好吃了 用餐尖峰時刻建議先訂位",
+          "publishTime": "2025-11-06T02:12:30",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Anina Chang",
+          "rating": 5.0,
+          "text": "初次造訪，之前都是吃王品集團下的「聚」火鍋，這次特地帶家人慶生品嚐和牛涮。長輩非常高興，吃得心滿意足。 澳洲金牌純血牛肉：極品大推！ 極上和牛雪花：富含油花入口即化 極上和牛霜降：帶點兒筋 極上和牛胸腹：有嚼勁的口感 野菜區不用多說，各樣想吃的菜應有盡有，大白菜煮完好鮮甜啊！南瓜及芋頭不用煮很久就熟了，推薦鮮牛肉漿冰淇淋，好吃。 這次是點基本湯頭+雞白湯，後續可能煮太久，覺得湯頭有點鹹，可請服務人員加熱開水。 最後，我會為了炙燒和牛壽司、鯛魚燒（有黑糖味）再度回訪，忘了拍照了，因為都在吃😋😋😋吃完會想念💕",
+          "publishTime": "2026-02-04T02:12:25",
+          "source": "Google Maps"
+        },
+        {
+          "author": "david yu",
+          "rating": 5.0,
+          "text": "我們點了特賞豚鷄套餐、極上和牛套餐，肉品的部分新鮮味美，尤其推薦雞腿肉、極上和牛雪花、極上和牛胸腹肉。 菜盤自助吧區選擇也多樣，重點是乾淨新鮮，有各式蔬菜、還有鮮肉漿、海鮮漿、牛肉漿…. 醬料區選擇也很多，除一般的沙茶醬之外，還有紫蘇醬、照燒醬、極上和牛辣醬… 線上打卡，還加送蛤蠣一盤～ 服務人員也很親切的介紹說明～ 甜點部分，抹茶晶凍+極上黑珍珠+黃豆粉，淋上少許的黑糖蜜，真好吃； 最後是北海道牛奶+極上厚奶茶霜淇淋，口感醇厚。 現在外面火鍋店很多，和牛涮有做出跟一般火鍋店差異化，值得推薦。",
+          "publishTime": "2026-02-04T02:12:24",
+          "source": "Google Maps"
+        },
+        {
+          "author": "吳秉真",
+          "rating": 4.0,
+          "text": "服務人員態度非常好，選擇的是和牛858加一成的宵夜九點後五小時吃到飽活動。只是和牛的油脂沒有想像中的油潤，有點小失望。 和牛握炙燒壽司香氣夠，米飯軟，只是和牛要有牙口咬； 最喜歡的是鯛魚燒，外脆內軟加上冰淇淋真的很好吃，沒有特別喜歡甜點的我吃了四個； 自助餐檯的菜色還可以，但12點多就不補菜準備收了； 一點出的時候握壽司跟飲料也開始整理，若到兩點僅剩肉盤及冰淇淋機。 可以理解要打烊需要先整理，不過12點多就要撤青菜類就有點過早，如果不是服務人員態度極佳，不然只想給三顆星。",
+          "publishTime": "2026-01-05T02:12:23",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Jewel",
+          "rating": 5.0,
+          "text": "果然是王品集團的品質. 裝潢氣氛超好,位置很寬敞. 服務人員非常親切仔細. 自助吧的食材都很新鮮,味道也很好. 湯頭算是中規中矩 牛肉也都蠻好吃的.(這次是點頂級和牛餐) 雞肉不推. 甜點大推,鯛魚燒現烤很讚,冰淇淋搭晶凍和粉圓,超美味. 和牛壽司也很好吃. 因為是頂級和牛餐,可以無限續點. 整體,很推 自助吧選擇很多樣. 看個人想吃哪些肉品,有不同的價位選擇. 同桌的價位要一致. 和牛壽司和鯛魚燒除非很愛,想吃到飽,不然實際吃下來,一個嚐鮮就夠了.",
+          "publishTime": "2026-03-06T02:12:21",
+          "source": "Google Maps"
+        },
+        {
+          "author": "游端端",
+          "rating": 5.0,
+          "text": "平日1️⃣中午用餐 無訂位12:30到 等待後位差不多一小時 人手不足～ 很久沒吃了 來忠孝店吃看看 選頂和牛8百多➕10% 肉質還不錯 壽司較普通（涮樂和牛的較好吃） 黑和飯也普通 鯛魚燒與甜點比較突出 兌換蛤蜊加入雞湯 湯頭升級了 整體吃起來還是不錯 王品的服務依然到位 過了用餐時間～吃起來比較不擁擠了～",
+          "publishTime": "2026-01-05T02:12:28",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Anita",
+          "rating": 5.0,
+          "text": "喜歡火鍋🍲？ hotpot lover!? 快來和牛刷🥳🤙 超愛雪花牛❤️還有炙燒和牛壽司🍣 湯底也超喜歡，自助式菜品選擇超多且新鮮、丸子也超好吃😋 咖哩🍛牛太下飯了～ 甜點🍦自己做還有黃豆粉、粉圓等等，不管吃幾次都不膩🙌🙏 感謝王品和服務業的夥伴們的付出🫶🏻 #foodielienini",
+          "publishTime": "2026-01-05T02:12:27",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Jake Su",
+          "rating": 5.0,
+          "text": "蔬菜新鮮 吧台種類蠻多的 葉菜根莖類 火鍋料都有 不吃牛肉也有豬雞吃到飽的選項 服務親切周到（我們那桌是一位楊副理） 甜點的抹茶凍和晶凍很清爽 價格也合理 65歲以上有銀髮價 有肉有菜 飯麪 飲料 霜淇淋 cp高 可以吃很飽 交通方便離捷運很近",
+          "publishTime": "2026-03-06T02:12:22",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ashley Wu",
+          "rating": 5.0,
+          "text": "整體下來，覺得很喜歡！ 很好吃的和牛吃到飽！ 肉質好吃、蔬菜吧豐富！ 這次點壽喜燒 鴛鴦鍋 有專人先服務涮壽喜燒肉 覺得很貼心，也好吃～ 謝謝打卡招待的文蛤，大顆又好吃，有驚艷到，下次可以單點試試看～ 下次會再二訪～",
+          "publishTime": "2026-01-05T02:12:28",
+          "source": "Google Maps"
+        },
+        {
+          "author": "桓",
+          "rating": 5.0,
+          "text": "非常喜愛和牛涮 和牛肉質很好，湯也好喝，自助菜品跟副餐種類多，飲料多樣，牛肉咖喱熬煮濃郁好吃。 其他肉類也好吃，幾吃過很多次，沒被雷過，涮肉吃多了就點個幾貫和牛壽司，吃飽餐後再點一個鯛魚燒夾霜淇淋，完美。",
+          "publishTime": "2026-02-04T02:12:27",
+          "source": "Google Maps"
+        },
+        {
+          "author": "卓玉婷",
+          "rating": 5.0,
+          "text": "連平日都一定要訂位 因為CP值很高訂位幾乎都是滿滿的 候補，幾乎沒有機會 服務非常好，食材也很新鮮 我們點第二個價位再加價多壽喜燒 1小時就吃飽了，不用到兩小時 但這價格吃那麼多盤肉CP值真的是很高",
+          "publishTime": "2025-12-06T02:12:24",
+          "source": "Google Maps"
+        },
+        {
+          "author": "enya YANG",
+          "rating": 5.0,
+          "text": "和牛涮忠孝店用餐環境很棒， 用餐時間從90分鐘，改成兩個小時是個非常好的制度，讓我們有時間可以品嚐，菜盤跟甜點飲料咖啡也非常得好好吃，想吃和牛火鍋與炙燒和牛握壽司，和牛涮忠孝店不錯的好地方。",
+          "publishTime": "2025-12-06T02:12:27",
+          "source": "Google Maps"
+        },
+        {
+          "author": "NN LAN",
+          "rating": 5.0,
+          "text": "我只吃豬肉，很感動有吃到飽價位又佛心，不柴不肥！ 醬料的部分很用心，幾乎都有！ 上菜速度快（不會續點等半天） 服務生很用心，態度都很好！ 時間到就進場，人多但不會讓客戶等！ 員工訓練超好👍",
+          "publishTime": "2025-12-06T02:12:29",
+          "source": "Google Maps"
+        },
+        {
+          "author": "fei fei Wang",
+          "rating": 5.0,
+          "text": "推薦令宜服務員💁‍♀️ 來吃好多次～不變的是「食材新鮮好吃、服務態度很好」！！ 對於同行者有不吃牛肉，和牛涮是ㄧ個很棒的選擇！！",
+          "publishTime": "2026-04-05T02:12:23",
+          "source": "Google Maps"
+        },
+        {
+          "author": "布小達",
+          "rating": 5.0,
+          "text": "今天吃中午餐，選擇一人768+10%方案，環境佳，服務好，肉質好，甜品也讚讚的！！飽足滿足又開心的一餐。生意興隆建議要訂位。",
+          "publishTime": "2025-12-06T02:12:24",
+          "source": "Google Maps"
+        },
+        {
+          "author": "kelly chen",
+          "rating": 5.0,
+          "text": "乾淨服務好 食材多 自助吧菜類 飲料甜點 冰淇淋吃到飽 湯頭跟其他分店比較屬於清淡， 取餐空間也比較級擁擠一點。",
+          "publishTime": "2025-11-06T02:12:26",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Linus Hsiao",
+          "rating": 5.0,
+          "text": "與家人聚餐，環境明亮整潔 服務人員態度良善，餐點選擇多樣化 食材品質佳，價位合理 整體用餐體驗感受良好",
+          "publishTime": "2025-11-06T02:12:30",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Yu Sea",
+          "rating": 5.0,
+          "text": "整體很棒的體驗，服務親切，肉質、自助吧、甜點好吃，湯底清澈，不會太油，和牛也是。",
+          "publishTime": "2026-03-06T02:12:29",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10247": {
       "photoUrls": [
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGiQ4nH6cXrHMeMvuyDdkn1ETV7tBdgbNL5fEYd_3Uhjr8CzYll1CtVHPcaRuC-fPAIi0THewCRepqtsaqkfwlK8eG53UHE4gO0I-sIk54MyldmxKiOUMZijDpHoJ347wDyzFYVCJSXiuoH=w774-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGiQ4nH6cXrHMeMvuyDdkn1ETV7tBdgbNL5fEYd_3Uhjr8CzYll1CtVHPcaRuC-fPAIi0THewCRepqtsaqkfwlK8eG53UHE4gO0I-sIk54MyldmxKiOUMZijDpHoJ347wDyzFYVCJSXiuoH=w774-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGFR0Zh74jd8_Bb4aogcNF1A07sTLbhd4IdsXNej7oYgumZ4VjWzBncVwPAn-UdnVS3Cg9FK7h_NdOC_VGZEBc42aygCstuZRtwX4IuWElcCVmbWIuh4XrKI9glTHncLaCf8y1VDWnceTvo=w461-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGAHC3-pNsenoUAtCexlQ0A5SbPTzM-yiKmbPyrXMJD1cA8QESLbWN3xkCARdqumYDvPUnlR-HUSrbSpEvYZOHYLgJ5b30aNPvtfItf3GqYP41Bv7oNi4oGtI7qqN61W1nkL2aZjzAes1NI=w461-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFNUv30r2TfIXwu9oFvXBJ_LkGZecBU7x5KwSLdQWNxEC8DSoz4wUIxwThIOc8Ok99DANmfKX5g6nh1nRNKJrYXbEdcnRi72IYHuUi95wWbkGzVUtK2DLohgFdJXDVftZlsMN4IL5jp2dU=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGwKeHzC4QWjkqSuwpOgXeJ_WVBA-WHnT2oUezM6gjnc9llFtlNZrEp8LhzyuCX0iVyfak685ysESOx-gJHZgMK5SOtjLQ3DNxzGoQ4m8PVRXJLpmVAPsIBsrWUZwOS6y5BJ5tNN2cWEA3b=w397-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAE6zdSopLbkQaj7xF3RL7-aQB4ovpNVfZFcEAQ8_YtNI8lFVLApgmaS4bMWuLR_1TnBe1Nk9j4wt5OtQfMfu4Fd-XhzKKwzAzpIl8YRYmD_tk6cHkZe_P6WF0LGRcUwwgFHvogXtuL0elF6=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGKCoM6yxuWuHf1Ved39OIIEKWtwC_hBBwyAHnSLecVkZ6Y6Co25MU5jsDrr5pYbrM16HIP48HPopYu6UD9Ra8oekrcHigxnG2WdhztWy13_ruhkRUiaSsivgKYC5mRJJZh1b0hWH9ZVZo=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAF6-s9AXhRmvp1oY8zhED0b8zCtP5WXFgO3Xmv2wL8DRRxrdy484Z7j74_3ddlcd8o7q7xENesUEI0JG489RbNnMfQ0Vg9xKeMwh9eGAgENIrWT267JegmrMK5txd27AfP4ASWifwVLNHSs=w374-h298-k-no"
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGWBNXL-yOewc4WTtXBQbwn8kvgE7lbphaBaecgcxKQRIKhliyZlOT0xJJT_pWv1uQ9jTD3bG6mGPwyT0u_-RqXtTpry2PQpMMk-MpiXdCif4n966i4sgAur6-q-4wDM6MxJiD3ZV0D46xU=w374-h298-k-no",
+        "https://lh3.googleusercontent.com/grass-cs/ANxoTn1n4YXFF5zSSKojwA6pjp0nYwhNKuy57dFCG2nlmdlO6bOzozDKiBYh5ze9cNUXFSGIV5r3ekTpYznMa8h16NOuVdz7xN4FLx0gRRpVt_Z63wLFueDpnxiKaWxFl9S-UO6aUteSCmgLt-01=w300-h225-p-k-no"
       ],
       "coverUrl": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGiQ4nH6cXrHMeMvuyDdkn1ETV7tBdgbNL5fEYd_3Uhjr8CzYll1CtVHPcaRuC-fPAIi0THewCRepqtsaqkfwlK8eG53UHE4gO0I-sIk54MyldmxKiOUMZijDpHoJ347wDyzFYVCJSXiuoH=w774-h298-k-no",
       "galleryUrls": [
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGiQ4nH6cXrHMeMvuyDdkn1ETV7tBdgbNL5fEYd_3Uhjr8CzYll1CtVHPcaRuC-fPAIi0THewCRepqtsaqkfwlK8eG53UHE4gO0I-sIk54MyldmxKiOUMZijDpHoJ347wDyzFYVCJSXiuoH=w774-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGiQ4nH6cXrHMeMvuyDdkn1ETV7tBdgbNL5fEYd_3Uhjr8CzYll1CtVHPcaRuC-fPAIi0THewCRepqtsaqkfwlK8eG53UHE4gO0I-sIk54MyldmxKiOUMZijDpHoJ347wDyzFYVCJSXiuoH=w774-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGFR0Zh74jd8_Bb4aogcNF1A07sTLbhd4IdsXNej7oYgumZ4VjWzBncVwPAn-UdnVS3Cg9FK7h_NdOC_VGZEBc42aygCstuZRtwX4IuWElcCVmbWIuh4XrKI9glTHncLaCf8y1VDWnceTvo=w461-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGAHC3-pNsenoUAtCexlQ0A5SbPTzM-yiKmbPyrXMJD1cA8QESLbWN3xkCARdqumYDvPUnlR-HUSrbSpEvYZOHYLgJ5b30aNPvtfItf3GqYP41Bv7oNi4oGtI7qqN61W1nkL2aZjzAes1NI=w461-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFNUv30r2TfIXwu9oFvXBJ_LkGZecBU7x5KwSLdQWNxEC8DSoz4wUIxwThIOc8Ok99DANmfKX5g6nh1nRNKJrYXbEdcnRi72IYHuUi95wWbkGzVUtK2DLohgFdJXDVftZlsMN4IL5jp2dU=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGwKeHzC4QWjkqSuwpOgXeJ_WVBA-WHnT2oUezM6gjnc9llFtlNZrEp8LhzyuCX0iVyfak685ysESOx-gJHZgMK5SOtjLQ3DNxzGoQ4m8PVRXJLpmVAPsIBsrWUZwOS6y5BJ5tNN2cWEA3b=w397-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAE6zdSopLbkQaj7xF3RL7-aQB4ovpNVfZFcEAQ8_YtNI8lFVLApgmaS4bMWuLR_1TnBe1Nk9j4wt5OtQfMfu4Fd-XhzKKwzAzpIl8YRYmD_tk6cHkZe_P6WF0LGRcUwwgFHvogXtuL0elF6=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGKCoM6yxuWuHf1Ved39OIIEKWtwC_hBBwyAHnSLecVkZ6Y6Co25MU5jsDrr5pYbrM16HIP48HPopYu6UD9Ra8oekrcHigxnG2WdhztWy13_ruhkRUiaSsivgKYC5mRJJZh1b0hWH9ZVZo=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAF6-s9AXhRmvp1oY8zhED0b8zCtP5WXFgO3Xmv2wL8DRRxrdy484Z7j74_3ddlcd8o7q7xENesUEI0JG489RbNnMfQ0Vg9xKeMwh9eGAgENIrWT267JegmrMK5txd27AfP4ASWifwVLNHSs=w374-h298-k-no"
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGWBNXL-yOewc4WTtXBQbwn8kvgE7lbphaBaecgcxKQRIKhliyZlOT0xJJT_pWv1uQ9jTD3bG6mGPwyT0u_-RqXtTpry2PQpMMk-MpiXdCif4n966i4sgAur6-q-4wDM6MxJiD3ZV0D46xU=w374-h298-k-no",
+        "https://lh3.googleusercontent.com/grass-cs/ANxoTn1n4YXFF5zSSKojwA6pjp0nYwhNKuy57dFCG2nlmdlO6bOzozDKiBYh5ze9cNUXFSGIV5r3ekTpYznMa8h16NOuVdz7xN4FLx0gRRpVt_Z63wLFueDpnxiKaWxFl9S-UO6aUteSCmgLt-01=w300-h225-p-k-no"
       ],
       "overview": {
         "price_buckets": [
           "$400-600"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "Tai Yi Tseng",
+          "rating": 5.0,
+          "text": "睽違三年沒吃的尬鍋！王品集團旗下的品牌~之前第一次吃就覺得很喜歡了但一直沒有機會二訪~這次終於來了🥹❤️ 這次點的主餐是牛雞雙拼$359送來的時候雞跟想像中的有點不一樣 雖然還是好吃！ 自助吧超級讚！大陸妹 水晶餃 尬字魚餅 豆皮全部吃到飽😻跟本就是我的天堂 尤其水晶餃驚艷的好吃！也可以來這裡實現豆皮自由🥳 唯一小缺點 填問卷送的炸蛋太油了 油到有點反胃…甜點有花生口味冰淇淋超級讚~再加上配料做點綴～真的太飽了 但是非常的滿足 一定還要再來吃尬鍋！記得一定要訂位 一個小時半吃的有一點小趕要注意時間！！",
+          "publishTime": "2025-11-06T02:15:26",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ching Ching",
+          "rating": 5.0,
+          "text": "終於知道這一間的評價為什麼很好了！服務人員態度很親切，店長（我猜想，忘記看她的職稱和名字了）也很棒！我們第一次過來這邊用餐，安排坐的位置冷氣超級不冷，邊吃會邊流汗的那種，在店內填寫評論原本以為應該沒人看，沒想到反應的問題店長立即過來幫忙處理，有調整冷氣還有有過來詢問要不要幫我們換位置，不過想說他們要多整理一次桌子會很麻煩，我們就沒換位置，而且冷氣調整後的確有涼爽多了，至少沒在流汗了😅！後來店長還招待了一盤炸麻吉，果然還是王品集團旗下的品牌！服務真的很棒👍！下次有機會還會再來",
+          "publishTime": "2025-11-06T02:15:33",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Sasaron",
+          "rating": 4.0,
+          "text": "不知道是不是因為開在西門町，很多外國朋友都會來排隊，人潮滿滿，排隊要等蠻久，需提前預約訂位 蒜頭蛤蜊雞 湯底濃厚，用料實在，裡面的蛤蜊和雞肉很多加上點的肉，以女生的胃口會很飽。 蔬菜種類繁多，自助式很不錯👍 甜點只有霜淇淋陪花生粉、黑糖粿、棉花糖，還可以。 飲料品種較少，希望開放更多無糖飲品比如沒有咖啡機。",
+          "publishTime": "2026-03-06T02:15:28",
+          "source": "Google Maps"
+        },
+        {
+          "author": "James H Terre",
+          "rating": 5.0,
+          "text": "酒香薑煸麻油炒雞鍋 (99) + 寶島鮮魚 (289) / 金銀蒜頭蛤蜊炒雞湯 (99) + 寶島鮮魚 (289) / 台式三杯雞炒雞湯 (99) + 寶島鮮魚 (289) / 真香無骨鹹酥雞 (109) / 主廚特製油蔥雞 (109)",
+          "publishTime": "2026-03-06T02:15:32",
+          "source": "Google Maps"
+        },
+        {
+          "author": "施JOHNJOHN",
+          "rating": 5.0,
+          "text": "果然很難訂位，到了現場一堆人都在補位，建議提早訂位，雖然很早就訂位但到了現場發現沒座位，服務人員也是很緊張想排除座位給我們大概等了一會就有（後續他們也致歉送我們一份炸豆腐蠻有誠意），食材上好吃，飯也是可做雞油飯無限吃，推推",
+          "publishTime": "2026-03-06T02:15:26",
+          "source": "Google Maps"
+        },
+        {
+          "author": "A. Chang",
+          "rating": 4.0,
+          "text": "湯頭點了蛤蜊蒜雞湯（好喝，推薦）跟剝皮辣椒雞湯（略辣，偏鹹） / 雞腿肉還算嫩，青菜吧的選擇還算多，火鍋料的品質跟味道也不錯 / 冰淇淋還有佐料可以搭配 / 聽說豬油拌飯還不錯？下次可以試試",
+          "publishTime": "2026-02-04T02:15:35",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Eva Lee",
+          "rating": 5.0,
+          "text": "很有誠意的台式火鍋，經典石頭火鍋香氣十足。內用的蔬菜與副食自助吧乾淨多樣，連飲料都很用心。環境復古時尚，服務親切有活力。地點方便且營業時間長，非常適合朋友聚會，整體 CP 值很高。",
+          "publishTime": "2026-01-05T02:15:31",
+          "source": "Google Maps"
+        },
+        {
+          "author": "林楚琇（Julie）",
+          "rating": 5.0,
+          "text": "推薦他們的冰淇淋，+麵茶和黑糖醬，原本豆奶和花生都不是我會吃的口味，但後來超愛😍 實話說自助吧內容和選擇一般，但補得還滿勤的 裝潢也加分不少，在西門這個地點，我覺得價位也算過得去",
+          "publishTime": "2026-03-06T02:15:28",
+          "source": "Google Maps"
+        },
+        {
+          "author": "吳家禎",
+          "rating": 4.0,
+          "text": "雙人套餐擺盤很有儀式感， 湯頭普遍偏鹹，尤其是沙茶鍋；自助沙拉吧不會特別少，且補菜很勤；飲料冰淇淋白飯也都有，限時90分鐘，就是中規中矩的一家店。服務生也都算親切。",
+          "publishTime": "2025-12-06T02:15:34",
+          "source": "Google Maps"
+        },
+        {
+          "author": "婷",
+          "rating": 5.0,
+          "text": "原味石頭鍋，湯頭超好喝，蒜頭雞湯鍋，湯頭像蜆精很鮮美好喝，牛肉也很好吃，飲料都是有糖，如果有無糖冰飲的話，就100分啦",
+          "publishTime": "2026-02-04T02:15:37",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Annie Wang",
+          "rating": 5.0,
+          "text": "第一次來西門店 有自助蔬菜吧 可以自由選擇自己喜歡的 青菜都很新鮮 湯頭也很棒 朋友吃素食鍋也說湯頭好吃😋 下次再來",
+          "publishTime": "2026-03-06T02:15:38",
+          "source": "Google Maps"
+        },
+        {
+          "author": "SH H",
+          "rating": 4.0,
+          "text": "豬油加紅蔥頭與醬油膏配上白飯，古早味的記憶。蔥花裡面加了洋蔥，對想單加蔥的人是一種困擾。有青菜自助吧可吃到飽。",
+          "publishTime": "2026-03-06T02:15:34",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ming Lin",
+          "rating": 5.0,
+          "text": "蔥油飯超級香且是免費，一定要加豬油，個人鍋且蔬菜拿到飽cp值高，店員都很友善，位子蠻大的，是可以舒服用餐的地方",
+          "publishTime": "2026-03-06T02:15:25",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Yuan Liu",
+          "rating": 5.0,
+          "text": "生日有送壽桃，還蠻有趣的，湯頭選金銀蒜頭蛤蜊炒雞湯蠻有特色的，還有點一個油蔥麵線，很好吃😋",
+          "publishTime": "2025-12-06T02:15:36",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Gary Liu",
+          "rating": 5.0,
+          "text": "很有台味的火鍋店，食材新鮮好吃，服務人員熱情親切，假日用餐時間需要等待比較久才會入座。",
+          "publishTime": "2026-03-06T02:15:27",
+          "source": "Google Maps"
+        },
+        {
+          "author": "徐藝緁",
+          "rating": 5.0,
+          "text": "青菜和火鍋料都是自助吧 還有冰淇淋、飲料 CP值很高、服務也很好",
+          "publishTime": "2026-03-06T02:15:36",
+          "source": "Google Maps"
+        },
+        {
+          "author": "早安咪咪小喵喵",
+          "rating": 3.0,
+          "text": "去台北西門的尬鍋台式潮鍋用餐，整體感受有些矛盾。先說服務部分，男服務人員態度熱情親切，讓人感覺很舒服，但女服務員在店內走動時不太注意路線，甚至不太會避讓，稍微影響了用餐氛圍。餐點方面，飯的口感偏黏，對於需要拌飯的客人來說並不太適合，吃起來會有些困擾。自助吧檯設計成兩面，但實際上菜色一模一樣，沒有增加選擇性；玉米乾硬不甜，芋頭即使煮得很爛依然是鬆散偏硬的口感，顯得有些可惜。吧檯區空間也偏小，飯、飲料、冰品與醬料集中在同一區，取用時容易擁擠，動線設計不佳。不過，冰品與飲料的味道還不錯，尤其豆漿和花生系列都有濃郁風味。肉品部分表現良好，鮮度和品質都有一定水準，這點值得肯定。但以目前的價位來看，市場上還有更多選擇，性價比略顯不足。整體而言，適合嘗鮮，但若追求更全面的用餐體驗，或許會考慮其他火鍋品牌。",
+          "publishTime": "2025-10-07T02:15:29",
+          "source": "Google Maps"
+        },
+        {
+          "author": "CPY",
+          "rating": 3.0,
+          "text": "🐷3.9 湯頭還行，秀珍菇蠻好吃，冰品和雲朵還不錯。 但我覺得整體沒什麼亮點，菜沒有築間多，肉整體偏少，cp 值石二鍋高很多，吃到後面就不知道吃什麼了，就算沒有非常飽，可能就像其他評論說的，這邊的服務算是相對有特色的。 套餐 1299+雞豚套餐 349 左右",
+          "publishTime": "2026-01-05T02:15:32",
+          "source": "Google Maps"
+        },
+        {
+          "author": "曾子嘎嘎",
+          "rating": 3.0,
+          "text": "食物 🍲: 《牛豬尬》348元 + 10% 肉品質量很低 肉片很薄賣相不佳 自助吧的菜還算不錯 該給的都有給 冰淇淋也是不夠濃郁 偏普通 付款 💳: 可現金、刷卡 總評 ⭐️: 以王品集團的等級來說 非常失望 完全沒有該有的水準 還是吃石二鍋就好",
+          "publishTime": "2026-04-05T02:15:24",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Vicky Chuang",
+          "rating": 3.0,
+          "text": "金銀蒜頭蛤蠣雞湯真的太鹹 加了兩杯熱開水才剛剛好⋯ 帶皮豬五花肉質不錯 好像因為快打烊飲料機台都有點髒兮兮 喝飲料的杯子都沒有了沒有再補 只能都用熱飲杯裝 有事先訂位了，提早到但等定位時間了還是要等⋯⋯",
+          "publishTime": "2025-12-06T02:15:30",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10248": {
       "photoUrls": [
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGJAEdj_yLamVbrzTvN7H8KUehS21Tv8hpW5bbswZJId-NXhe02ab2w-1ndINZ9lTrfpxem3f5ZWH9ZqB0AQlmk31t0SK2BPSJBjBLNNcC8WBy7gNdhfrnjCTwzYwfB4SpHbeAwxi-GfzU=w645-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGJAEdj_yLamVbrzTvN7H8KUehS21Tv8hpW5bbswZJId-NXhe02ab2w-1ndINZ9lTrfpxem3f5ZWH9ZqB0AQlmk31t0SK2BPSJBjBLNNcC8WBy7gNdhfrnjCTwzYwfB4SpHbeAwxi-GfzU=w645-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAG53NcqFOctHv6zsSQxfzuZiuCNe_FMMLDizTjhd04yk7_ZxHojSVRfaIFGAux9xvs5O-is4lf7cVpoEsosvuGxyVF5QIAI6Vh5xfnPYSg-1Tkn5XztSnCKYu3czE7HiSTRk37_=w408-h305-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAG53NcqFOctHv6zsSQxfzuZiuCNe_FMMLDizTjhd04yk7_ZxHojSVRfaIFGAux9xvs5O-is4lf7cVpoEsosvuGxyVF5QIAI6Vh5xfnPYSg-1Tkn5XztSnCKYu3czE7HiSTRk37_=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAF2Jx2whoVusKp_SE2ZdJCZZZ_tPgSowDaSu1dsqJtVNGmQmWoyCt-ViD_l8YXDEGaX4PKdn7MtukNd4YOOALjkQvrjZrYs74lLGSa8RXlcRqaJ2CbvjBDUJN1r3arW34wgWcmNVSaLwzw=w529-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGxi_VvNKTHEkMsE7pwcO3Ko_fdsriwLQkC2W4Gd7q5xfxxW-bnc58J5eY2v6ojEOljs_BpdhZg_r5CrpVvKxxnjS8Pc3GpgB0CulxHUMewCH4SETbQN9_iBhXMCwnbJjI-b124=w408-h305-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGxi_VvNKTHEkMsE7pwcO3Ko_fdsriwLQkC2W4Gd7q5xfxxW-bnc58J5eY2v6ojEOljs_BpdhZg_r5CrpVvKxxnjS8Pc3GpgB0CulxHUMewCH4SETbQN9_iBhXMCwnbJjI-b124=w408-h305-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGxi_VvNKTHEkMsE7pwcO3Ko_fdsriwLQkC2W4Gd7q5xfxxW-bnc58J5eY2v6ojEOljs_BpdhZg_r5CrpVvKxxnjS8Pc3GpgB0CulxHUMewCH4SETbQN9_iBhXMCwnbJjI-b124=w397-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGQ-rG7_Y-Tx-KH47SljyY2R0B_je8HfRFUNyzz9XnPr4QwFIUTdBWOPLipLfzmHIRC2RHga0X37oayfb7q_bGwvcNYHzy5mwDe5XTuEerOMULAjUeYDY9irmVGQSMq-V_PQNXrYzcpp08=w529-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFrKq87wEGyKjid8jntXovFomw1FHqLwMcs6waHu4i4DijHib068KOtrXYHPGHgac6wf7zDMT43abv8rNKGjartARRSgEbszAppdTrhBVqgqJ17Kfp43-cPHsFypqD3cPidDdY=w407-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHAnyW5GcX-7IQgKeGpm2okCh_JpemOcrhPe9LTXCja2AE-kYXPBuw4v6lUFP7-iP_Siet0LmEjeIz_qAv0g0VFs2R9EOu923_9lDqtFEOTXMmK-XqkZdzZmgw7rwmuwpSSn6jr=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFKZhbIfYzv5rZKMJ7lOpJL6vaRJb_ZsMQ_BJTM5sCszDusQtqrrzaOgE2hDvEdqyMl92TBjv2IIMl_PxISXgldHXEeUpZUOr36tUypqOrK4nozs91jmYdvFduj_Dl5koKsqIh_cg=w397-h298-k-no"
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFKZhbIfYzv5rZKMJ7lOpJL6vaRJb_ZsMQ_BJTM5sCszDusQtqrrzaOgE2hDvEdqyMl92TBjv2IIMl_PxISXgldHXEeUpZUOr36tUypqOrK4nozs91jmYdvFduj_Dl5koKsqIh_cg=w397-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAE_cwyT4jzMZnG13ndM_N60e8DX4pm5fSDyKEp1wC6uA_iGXkUoBc4gAUbA43_83w2nSfCIbj5RrdgTIwNuo5P02dzT0H4G9boT0584xUQJB5HLSa3bjQQ3kfWDCPDw73oUmymygJ-PaSd6=w397-h298-k-no"
       ],
-      "coverUrl": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGJAEdj_yLamVbrzTvN7H8KUehS21Tv8hpW5bbswZJId-NXhe02ab2w-1ndINZ9lTrfpxem3f5ZWH9ZqB0AQlmk31t0SK2BPSJBjBLNNcC8WBy7gNdhfrnjCTwzYwfB4SpHbeAwxi-GfzU=w645-h298-k-no",
+      "coverUrl": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGxi_VvNKTHEkMsE7pwcO3Ko_fdsriwLQkC2W4Gd7q5xfxxW-bnc58J5eY2v6ojEOljs_BpdhZg_r5CrpVvKxxnjS8Pc3GpgB0CulxHUMewCH4SETbQN9_iBhXMCwnbJjI-b124=w408-h305-k-no",
       "galleryUrls": [
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGJAEdj_yLamVbrzTvN7H8KUehS21Tv8hpW5bbswZJId-NXhe02ab2w-1ndINZ9lTrfpxem3f5ZWH9ZqB0AQlmk31t0SK2BPSJBjBLNNcC8WBy7gNdhfrnjCTwzYwfB4SpHbeAwxi-GfzU=w645-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGJAEdj_yLamVbrzTvN7H8KUehS21Tv8hpW5bbswZJId-NXhe02ab2w-1ndINZ9lTrfpxem3f5ZWH9ZqB0AQlmk31t0SK2BPSJBjBLNNcC8WBy7gNdhfrnjCTwzYwfB4SpHbeAwxi-GfzU=w645-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAG53NcqFOctHv6zsSQxfzuZiuCNe_FMMLDizTjhd04yk7_ZxHojSVRfaIFGAux9xvs5O-is4lf7cVpoEsosvuGxyVF5QIAI6Vh5xfnPYSg-1Tkn5XztSnCKYu3czE7HiSTRk37_=w408-h305-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAG53NcqFOctHv6zsSQxfzuZiuCNe_FMMLDizTjhd04yk7_ZxHojSVRfaIFGAux9xvs5O-is4lf7cVpoEsosvuGxyVF5QIAI6Vh5xfnPYSg-1Tkn5XztSnCKYu3czE7HiSTRk37_=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAF2Jx2whoVusKp_SE2ZdJCZZZ_tPgSowDaSu1dsqJtVNGmQmWoyCt-ViD_l8YXDEGaX4PKdn7MtukNd4YOOALjkQvrjZrYs74lLGSa8RXlcRqaJ2CbvjBDUJN1r3arW34wgWcmNVSaLwzw=w529-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGxi_VvNKTHEkMsE7pwcO3Ko_fdsriwLQkC2W4Gd7q5xfxxW-bnc58J5eY2v6ojEOljs_BpdhZg_r5CrpVvKxxnjS8Pc3GpgB0CulxHUMewCH4SETbQN9_iBhXMCwnbJjI-b124=w408-h305-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGxi_VvNKTHEkMsE7pwcO3Ko_fdsriwLQkC2W4Gd7q5xfxxW-bnc58J5eY2v6ojEOljs_BpdhZg_r5CrpVvKxxnjS8Pc3GpgB0CulxHUMewCH4SETbQN9_iBhXMCwnbJjI-b124=w408-h305-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGxi_VvNKTHEkMsE7pwcO3Ko_fdsriwLQkC2W4Gd7q5xfxxW-bnc58J5eY2v6ojEOljs_BpdhZg_r5CrpVvKxxnjS8Pc3GpgB0CulxHUMewCH4SETbQN9_iBhXMCwnbJjI-b124=w397-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGQ-rG7_Y-Tx-KH47SljyY2R0B_je8HfRFUNyzz9XnPr4QwFIUTdBWOPLipLfzmHIRC2RHga0X37oayfb7q_bGwvcNYHzy5mwDe5XTuEerOMULAjUeYDY9irmVGQSMq-V_PQNXrYzcpp08=w529-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFrKq87wEGyKjid8jntXovFomw1FHqLwMcs6waHu4i4DijHib068KOtrXYHPGHgac6wf7zDMT43abv8rNKGjartARRSgEbszAppdTrhBVqgqJ17Kfp43-cPHsFypqD3cPidDdY=w407-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHAnyW5GcX-7IQgKeGpm2okCh_JpemOcrhPe9LTXCja2AE-kYXPBuw4v6lUFP7-iP_Siet0LmEjeIz_qAv0g0VFs2R9EOu923_9lDqtFEOTXMmK-XqkZdzZmgw7rwmuwpSSn6jr=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFKZhbIfYzv5rZKMJ7lOpJL6vaRJb_ZsMQ_BJTM5sCszDusQtqrrzaOgE2hDvEdqyMl92TBjv2IIMl_PxISXgldHXEeUpZUOr36tUypqOrK4nozs91jmYdvFduj_Dl5koKsqIh_cg=w397-h298-k-no"
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFKZhbIfYzv5rZKMJ7lOpJL6vaRJb_ZsMQ_BJTM5sCszDusQtqrrzaOgE2hDvEdqyMl92TBjv2IIMl_PxISXgldHXEeUpZUOr36tUypqOrK4nozs91jmYdvFduj_Dl5koKsqIh_cg=w397-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAE_cwyT4jzMZnG13ndM_N60e8DX4pm5fSDyKEp1wC6uA_iGXkUoBc4gAUbA43_83w2nSfCIbj5RrdgTIwNuo5P02dzT0H4G9boT0584xUQJB5HLSa3bjQQ3kfWDCPDw73oUmymygJ-PaSd6=w397-h298-k-no"
       ],
       "overview": {
         "price_overview": "$200-400",
-        "price_report_count": 976,
+        "price_report_count": 988,
         "price_buckets": [
           "$200-400"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "鴿子柴",
+          "rating": 5.0,
+          "text": "✨✨✨ 雙月食品社 濟南店 ✨✨✨ 📍 位置｜台北市中正區 這間連續多年蟬聯米其林必比登推薦的名店，CP 值真的非常高，價格平實卻能享用到星級水準。店內環境明亮且服務專業，雖然排隊人潮眾多，但流動速度算快。整體給人一種對食材非常有堅持的感覺，是台北市內想要進補、喝好湯的首選餐廳，專業度與美味程度都令人相當滿意。 星級肯定的湯頭與誠意滿滿的份量，讓每一次用餐都覺得既划算又暖心。 🅿️ 停車資訊：俥亭時代寓所 uTagGo、台大醫院國際會議中心停車場、附近路邊停車格。 💳 付款方式：LINE Pay、信用卡、現金付款。 🥣 干貝燉雞腿湯 小干貝的份量多到驚人，雞腿肉給得大方且肉質大多很嫩，整盅湯多到滿出來。最誇張的是裡面的高麗菜，多到像是丟了半顆進去一樣，湯頭吸滿了蔬菜的鮮甜與枸杞的香氣，喝起來非常過癮！ 🍜 黑松露拌麵 超級迷人的黑松露香氣，是目前心目中的第一名首選！麵條 Q 彈可口，均勻裹上濃郁的松露醬汁，每一口都是高級感十足的美味。 🐟 富士吻仔山拌飯 滿到真的像一座山的吻仔魚，誠意十足！雖然拌勻後味道稍微偏鹹一點，但搭配飯裡的靈魂醬油真的十分美味，是吻仔魚愛好者的天堂。 🥗 台灣高麗菜 高麗菜本身超級甜，讓人非常喜歡，不過有時候會吃到比較粗壯的菜根，如果能更多一點鮮嫩的葉子部分就更完美了。 🥣 紅燒金鮮鱸魚 半片鱸魚的呈現方式很有特色，肉質新鮮紮實，搭配一旁的紅燒醬汁鹹甜適中，味道還不錯。 🦴 月亮骨肉 帶有脆骨與肉的口感，能補充足夠的蛋白質，吃起來十分美味且有嚼勁。 🩹 米血糕 口感非常 Q 嫩，調味適中，會讓人忍不住想再多點一份來享用。 🐷 豬耳朵 滷味的味道表現較為中規中矩，雖然也不錯吃，但相對其他驚豔的菜色來說，記憶點比較一般。",
+          "publishTime": "2026-02-04T02:16:31",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ape Matsa",
+          "rating": 5.0,
+          "text": "稍微排了一下隊伍，大約20分鐘 干貝燉雞腿湯$250 很多干貝，雞肉是Q的肉質很讚 湯超級好喝，滿滿的料和青菜 超愛! 紅燒金鮮鱸魚(少刺)$130 真的沒有什麼刺，很好入口，一下子就吃完了 雙月乾蚵$150 蚵仔大部分都很肥美，吃下去塞滿嘴巴 100%的滿足感 愛恨椒芝麵(請拌開)$80 這個麵是會讓我想要，現場買調理包回家煮的那種 我喜歡! 油飯$35 比較普通一點，配一下甜辣醬好吃一點 下一次我會想要點阿甘剝皮辣椒雞腿湯試試看 滷味，不知道為什麼看起來比較不吸引我 位子比較擁擠，但料理很實在!",
+          "publishTime": "2026-03-06T02:16:30",
+          "source": "Google Maps"
+        },
+        {
+          "author": "News HK",
+          "rating": 5.0,
+          "text": "IG：cordelia_hksite 多人食到要拎籌😵‍💫其他排隊餐廳我唔會等 但呢間等緊嘅時候 已經可以落定單叫廚房煮定😳 所以感覺上都唔係等咗好耐👍🏻 乾蚵鮮美份量勁多😚 甜不辣魚片😍係食過最好味嘅滷水魚蛋類 直接再打包帶走幾塊😋 愛恨椒芝麵都可以買返去自己煮🤤 但定價幾匪夷所思🫢 現場食台幣$80😮 買返去一包都要$75🫨仲要自己煮🤣 特登搭車去排隊都值得😌 但其實機場都有分店🤩仲要唔使排隊 唔知係咪一樣咁好味呢🤭 #台灣小食 #台北美食 #台北美食推薦",
+          "publishTime": "2026-02-04T02:16:33",
+          "source": "Google Maps"
+        },
+        {
+          "author": "胖過頭",
+          "rating": 5.0,
+          "text": "每次都需要排隊等候的雙月食品社，主打養生雞湯、魯肉飯、拌麵、滷味等家常菜，累積到2024年已經蟬聯7年必比登推薦喔！ 雞湯真的很推！點了蒜頭雞湯，滿滿高麗菜煮後湯本身非常清甜！好喝！雞肉也好吃，不愧必比登推薦！ 雞肉配上雙月自家辣椒醬油，超級美味😋 愛恨椒芝麵，拌著芝麻香入鼻，花椒入口，帶著微辣和微麻的口感，小辣很開胃也算好吃！ 「滷味」的部分倒沒有很驚艷，但每一樣東西都好吃美味.！ 如果不需等太久，以後會常來👍",
+          "publishTime": "2026-01-05T02:16:34",
+          "source": "Google Maps"
+        },
+        {
+          "author": "IRIS Huang",
+          "rating": 5.0,
+          "text": "今晚路過雙月濟南店，又忍不住走進去享受那熟悉的美味。味道依舊穩定得令人安心，湯頭濃郁卻清爽，食材新鮮，份量也一樣給得大方，吃完超滿足！ 這次還鼓起勇氣第一次嘗試鴨腸，結果完全被驚艷到！處理得非常乾淨沒有任何異味，口感脆彈、咬下去超爽，吸滿湯汁後更是香氣十足，完全顛覆我對鴨腸的想像。👍 每次來雙月都覺得物有所值，品質穩定，吃得開心又放心，下次還會再來大啖一碗！",
+          "publishTime": "2025-12-06T02:16:31",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Jackie Lin",
+          "rating": 5.0,
+          "text": "雙月食品社的蒜頭雞湯，散發著濃郁的雞香味，加上蒜味鮮甜喝起來口感鮮美，滋味濃郁。它的湯色金黃透亮，清澈無雜質，讓人一看就知道是經過用心熬製而成。喝下這碗湯，溫暖舒適的感覺瞬間籠罩全身，尤其是整個味道非常清新，沒有油膩感讓人忍不住一口接一口地喝下去。富士山午仔魚飯香醇爽口，還有濃郁入味的百葉豆腐，最後飲料仙草雲飲清涼香甜綿密，吃完感受幸福。",
+          "publishTime": "2025-12-06T02:16:36",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Rachel",
+          "rating": 5.0,
+          "text": "十一點半到，排了半個小時。排隊指示清晰，人多也不怕。愛恨椒芝麵真的很好吃，麻椒和芝麻香氣十足，麵條口感也很棒。干貝雞湯湯頭非常鮮甜，干貝超多。湯裡頭有三大塊雞肉，也有很多高麗菜，脆甜。吻仔魚飯超濃郁，滷肉飯的豬皮入口即化。兩個飯都是滿滿的油蔥香氣。沒有一樣不好吃，一定會再回來！",
+          "publishTime": "2026-04-05T02:16:30",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Athena Chen",
+          "rating": 5.0,
+          "text": "干貝雞湯 湯頭非常清甜鮮美 干貝放了不少 會為了湯頭回訪 雞肉相對普通 沒有特別的味道 雞汁飯記得攪拌均勻 上層都是酥 醬在比較下面 也是美味噴香 朋友點的蒜頭雞湯 蒜味剛剛好 帶點清甜 仙草雲飲真的有在喝雲的感覺 加上仙草顆粒 真的愛上這個口感 酸梅汁冰鎮後更好喝",
+          "publishTime": "2026-04-05T02:16:31",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Mandy Su",
+          "rating": 5.0,
+          "text": "第一次光顧 室內座位區稍微擁擠 併桌會有全透明隔板 建議可貼一半霧面 不然對坐時有點尷尬😳 今日點了 愛恨椒芝麵～ 5🌟 麵條Q彈 醬料香辣 黑麻油雞腿湯～ 5🌟 滿滿的一碗雞腿肉 搭配高麗菜湯頭清爽 台灣高麗菜～ 4🌟 一般般 整體來說 是會再光顧的一家店",
+          "publishTime": "2026-02-04T02:16:32",
+          "source": "Google Maps"
+        },
+        {
+          "author": "NoBody Xu",
+          "rating": 4.0,
+          "text": "干貝雞湯，湯鮮料味美，小缺點雞肉風乾有點久。 愛恨椒芝麵，麵條口感彈牙，醬汁吸附夠力，像是全家版本的全面升級版。 松露麵，偏甜口，搭配蒜酥很不錯吃，但鹹一點會更好。 整體物廉價美，進補同時又可以滿足味蕾，有經過附近的首選！",
+          "publishTime": "2026-02-04T02:16:32",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Janis Lee",
+          "rating": 5.0,
+          "text": "這次用餐整體非常滿意。雙月的餐點口味清爽卻有層次，小魚乾油飯香氣十足不油膩，蚵仔新鮮肥美、醬汁提味剛好；湯品溫潤順口，喝得到用心熬煮的甘甜。小菜表現穩定、搭配度高，份量剛好不負擔，是會讓人想再回訪的安心好味道。",
+          "publishTime": "2026-02-04T02:16:35",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Kevin K",
+          "rating": 5.0,
+          "text": "蛤蜊雞湯鮮甜好喝，高麗菜保留脆度非常好吃！愛恨椒芝麵與魯肉飯都是必點主食！！鱸魚湯較少人介紹推薦，魚肉新鮮口感鮮嫩非常好吃，可以按個人口味加酒或不加酒都可以。連續8年必比登推薦值得來嚐鮮！！",
+          "publishTime": "2026-02-04T02:16:32",
+          "source": "Google Maps"
+        },
+        {
+          "author": "陳希涵",
+          "rating": 5.0,
+          "text": "懷念的這一味 剝皮辣椒湯跟愛恨交織麵真的超級好吃 無敵！ 不過滷味就有點微微失望，是不錯但沒有到驚艷，就是中規中矩 但整體真的超棒，服務也很好，然後大部分的餐點都是驚艷的程度，很喜歡！",
+          "publishTime": "2026-02-04T02:16:34",
+          "source": "Google Maps"
+        },
+        {
+          "author": "台北大神",
+          "rating": 5.0,
+          "text": "這是第二次來雙月用餐、上次已經是15年前了，物超所值、在中餐來說我們點了兩份拌麵和魩魚飯、牡蠣、高麗菜、 干貝雞腿湯、虱目魚薑絲湯都在水準之上、只能給五顆星了！",
+          "publishTime": "2026-02-04T02:16:31",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Yijin Kou",
+          "rating": 5.0,
+          "text": "可事前預約，可帶嬰兒車。 位子安排友善，對於帶嬰兒的父母來說非常的便利！ 料理好吃，適合帶父母來用餐，價格也相對親民🌟 …",
+          "publishTime": "2026-03-06T02:16:34",
+          "source": "Google Maps"
+        },
+        {
+          "author": "stay73520",
+          "rating": 5.0,
+          "text": "剝皮辣椒雞湯辣椒很辣，雞肉很嫩好吃 雞油飯好吃 油豆腐很入味、很下飯",
+          "publishTime": "2026-03-06T02:16:35",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Sammi Fang",
+          "rating": 1.0,
+          "text": "規矩很多。愛恨椒之麵還可，喜歡麻醬麵的人可考慮。雞湯還不錯。滷味很鹹，海帶很軟，菜市場麵攤的都還比較好吃。蚵仔不錯。松露麵蠻膩的。孩子吃了一直找水，店家沒提供水也沒賣水。這家店的口味真的鹹又重，建議至少可賣礦泉水，不然孩子快崩潰。 規矩超多，首先抽號碼牌，可理解。然後人要到才能進場，也理解。但人到了才讓我點餐，然後也不能先坐進去再點，還得現在外面機器點，然後陽光那麼大一直反光站在機台前根本無法好好閱讀菜單，一開始整個用餐心情就很煩躁了。用餐的氛圍跟process能否顧及一下。。。到底是為了要吃到什麼得帶著一家老小過那麼多關才能坐到位子上。以後不會再來了。",
+          "publishTime": "2026-03-06T02:16:30",
+          "source": "Google Maps"
+        },
+        {
+          "author": "范氏秋江",
+          "rating": 3.0,
+          "text": "菜算不錯吃，量有一點少。但重點是服務員有一點趕人態度很差，我們吃大概30分鍾左右而已，剩下小孩在吃飯。有一位女生服務臉有一點嚴肅一直想收走盤子，明明看到這盤子我們在用， 她還說 「有方便收走嗎？不方便沒關係」 我還沒回答她，她就生氣走了。一個字 「不好意思」 她沒說，感覺是小孩吃太慢怎麼還沒走趕人趕人，超不舒服的",
+          "publishTime": "2026-02-04T02:16:35",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Irene",
+          "rating": 3.0,
+          "text": "空間比青島店大很多 入內有2台機器可以自行點餐 但無論是麵食、滷味都比青島店鹹很多…. 這次點干貝雞湯，小干貝很多，湯也清甜 但松露麵跟滷味的部分，鹹度掌握不好，很可惜….",
+          "publishTime": "2026-03-06T02:16:34",
+          "source": "Google Maps"
+        },
+        {
+          "author": "satin Kup",
+          "rating": 2.0,
+          "text": "鱸魚湯上來就是溫的，還沒吃幾口就涼了！麵線不是手工，是機器麵線 口感不好！這次沒有點明星商品，吃起來很失望！",
+          "publishTime": "2026-02-04T02:16:35",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10249": {
       "photoUrls": [
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGeLCIFeO4IbBVQtnyo1xDz4oo-peyr7uNFCqnUdGSOpdRZ1RFIh5NI-6Kg_PKcgIlSX8W2tfdI5D27_jlNAxH3aXsltFd5YOm9WIssu4QakIJpEzAW8nL7l8nSg-dnmoFSSX0i7A=w427-h240-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGeLCIFeO4IbBVQtnyo1xDz4oo-peyr7uNFCqnUdGSOpdRZ1RFIh5NI-6Kg_PKcgIlSX8W2tfdI5D27_jlNAxH3aXsltFd5YOm9WIssu4QakIJpEzAW8nL7l8nSg-dnmoFSSX0i7A=w427-h240-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGeLCIFeO4IbBVQtnyo1xDz4oo-peyr7uNFCqnUdGSOpdRZ1RFIh5NI-6Kg_PKcgIlSX8W2tfdI5D27_jlNAxH3aXsltFd5YOm9WIssu4QakIJpEzAW8nL7l8nSg-dnmoFSSX0i7A=w530-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHtSaDTLl4ANneuxzyMMivV3Ex2cFpL3uSNY4ggOimCe50_lCC_fww3_RXDt3jMBVfh64eBZPs-Gcc2H49d9_KSp5TsZ2pAu2UrJqOeE4uqkM9mrMpQEW4O_6t-KUwK1fu4po7MyQ=w447-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFipHEbH_k3vk-oGMCusVilOaqvwOLPXxY8K0b9NSyu39GlwiI4lWIa82jX4wnPkie_maxVr3cLmzYdeZ9kM4k4XQLmzIklgMp5cG3rqwacAXxzqyO5VWAmro0IrM-GnrwEDQP31Q=w447-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFiHHnhFr6-BD9qXyu4rhm1A8vWztR_kRJtylzauN3-_gcqP9THP9W6EYkSiuL2MLRH-3tuv0Z7ZaoTwh15BJ_tdIrPRf4-3X_mB272UAjBRDEOaljpd2b6mkqxXVCNz_xJatTX=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHy1iMjAs_CciprAgQS75iq4sf6X60M_2XmBd-WyH0LSMaznYlHt3OjjYINtUHeDdgyRHXuehQiMcg5LA-MZvpzdXmEQFq3DtvmUbCVekOxU6hlM2xdMmBHIzZarN4p2LpCwKJS=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAG2Z_d7WCpGMUsta-PBof3xVElzZY47Jqo2x6sNG-32N_77zSJCrR143cP7G99SULUU7rbmokhCWBBJDTx8FJMZYN1UzfUw1FgAClUifmYPz4n3Y07b1680IZuECOFShuIn4JnlrA=w401-h298-k-no",
@@ -20868,7 +21298,7 @@
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGeLCIFeO4IbBVQtnyo1xDz4oo-peyr7uNFCqnUdGSOpdRZ1RFIh5NI-6Kg_PKcgIlSX8W2tfdI5D27_jlNAxH3aXsltFd5YOm9WIssu4QakIJpEzAW8nL7l8nSg-dnmoFSSX0i7A=w427-h240-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGeLCIFeO4IbBVQtnyo1xDz4oo-peyr7uNFCqnUdGSOpdRZ1RFIh5NI-6Kg_PKcgIlSX8W2tfdI5D27_jlNAxH3aXsltFd5YOm9WIssu4QakIJpEzAW8nL7l8nSg-dnmoFSSX0i7A=w427-h240-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGeLCIFeO4IbBVQtnyo1xDz4oo-peyr7uNFCqnUdGSOpdRZ1RFIh5NI-6Kg_PKcgIlSX8W2tfdI5D27_jlNAxH3aXsltFd5YOm9WIssu4QakIJpEzAW8nL7l8nSg-dnmoFSSX0i7A=w530-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHtSaDTLl4ANneuxzyMMivV3Ex2cFpL3uSNY4ggOimCe50_lCC_fww3_RXDt3jMBVfh64eBZPs-Gcc2H49d9_KSp5TsZ2pAu2UrJqOeE4uqkM9mrMpQEW4O_6t-KUwK1fu4po7MyQ=w447-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFipHEbH_k3vk-oGMCusVilOaqvwOLPXxY8K0b9NSyu39GlwiI4lWIa82jX4wnPkie_maxVr3cLmzYdeZ9kM4k4XQLmzIklgMp5cG3rqwacAXxzqyO5VWAmro0IrM-GnrwEDQP31Q=w447-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFiHHnhFr6-BD9qXyu4rhm1A8vWztR_kRJtylzauN3-_gcqP9THP9W6EYkSiuL2MLRH-3tuv0Z7ZaoTwh15BJ_tdIrPRf4-3X_mB272UAjBRDEOaljpd2b6mkqxXVCNz_xJatTX=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHy1iMjAs_CciprAgQS75iq4sf6X60M_2XmBd-WyH0LSMaznYlHt3OjjYINtUHeDdgyRHXuehQiMcg5LA-MZvpzdXmEQFq3DtvmUbCVekOxU6hlM2xdMmBHIzZarN4p2LpCwKJS=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAG2Z_d7WCpGMUsta-PBof3xVElzZY47Jqo2x6sNG-32N_77zSJCrR143cP7G99SULUU7rbmokhCWBBJDTx8FJMZYN1UzfUw1FgAClUifmYPz4n3Y07b1680IZuECOFShuIn4JnlrA=w401-h298-k-no",
@@ -20876,51 +21306,337 @@
       ],
       "overview": {
         "price_overview": "$200-400",
-        "price_report_count": 516,
+        "price_report_count": 522,
         "price_buckets": [
           "$200-400"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "青豆",
+          "rating": 5.0,
+          "text": "🍜 台北必比登的家常滋味｜雙月食品社 。。。。。。。。。。。。。。。。。 2018 年至 2025 年連續獲得 #米其林指南必比登推薦， 讓 雙月食品社 成為台北雞湯系美食中極具代表性的存在。 雖然現在已有多家分店，我仍選擇來到 #青島創始店。 營業前，店門口已聚集數十位等待的食客， 店員在門口忙著招呼、疏導排隊動線， 並協助客人使用 QR Code 點餐，還有當日活動的免費麵條登記。 時間一到開門，隊伍很快向前流動， 不到十分鐘，我便已入座點餐。 這樣的節奏，其實很像台北人的日常—— 忙碌，但總能為一碗湯停下腳步。 🌶️ 阿甘剝皮辣椒雞腿湯 。。。。。。。。。。。。。。。。。。 湯一端上桌， 整條剝皮辣椒沉在湯中。 咬下去時略帶脆度， 醃漬後的甘甜與青辣椒本身的辛辣同時釋放。 雞肉使用仿土雞腿， 肉質比一般肉雞緊實， 卻不像老土雞那樣纖維粗硬。 那種彈牙而不柴的口感， 正是許多人愛上這碗湯的原因。 雞皮略厚，帶著膠質， 長時間燉煮後讓湯頭浮出一層清亮油脂香。 高麗菜在湯底釋放甜味， 枸杞則像點點紅色星子漂浮其間。 喝下去時， 辣、甜、雞油香彼此交織。 忽然想起一句古詩： 「人間至味是清歡。」 —— 蘇軾 有時候最讓人記住的味道， 其實只是這樣一碗溫熱的湯。 🐚 蛤蜊燉雞腿湯 。。。。。。。。。。。。。。。。。 這碗湯更像是海與山的對話。 蛤蜊選用當日新鮮食材， 本身含有豐富的 琥珀酸， 這也是海鮮鮮味的重要來源。 當蛤蜊與雞腿一起燉煮時， 海的鹹鮮與雞湯的甘甜慢慢融合。 高麗菜依然是湯底的靈魂， 讓整體味道多了一層蔬菜的柔甜。 這碗湯的味道很乾淨。 像冬天晚餐桌上母親端出的第一碗湯。 沒有複雜調味， 卻讓人一口接一口。 🌶️ 愛恨椒芝麵 。。。。。。。。。。。。。。。。。 這道名字就很有戲。 愛與恨，辣與麻。 麵條選用較厚實的寬版麵條， 上桌時灑著細緻辣椒粉與蔥花。 攪拌後， 花椒的麻感先輕輕碰觸舌尖， 辣度慢慢浮現。 最後留下的，是濃郁的芝麻香氣。 那種層層疊疊的味道， 像城市生活的情緒。 辛辣、忙碌、疲憊， 最後仍被一點溫暖的香氣包覆。 🐟 富士吻仔山拌飯 。。。。。。。。。。。。。。。。。 對我來說， 它其實有點像一碗升級版貓飯。 最上層鋪滿細緻的吻仔魚， 魚身細小卻鮮甜，沒有腥味。 第二層是金黃油蔥酥。 酥香一碰熱飯就散發香氣。 最底層是粒粒分明的白米飯， 米粒之間已悄悄滲入蔥油香。 把整碗拌開後， 魚鮮、油蔥、米香一起湧出。 簡單，卻非常療癒。 就像小時候 把白飯、醬油、魚鬆拌在一起的那種幸福。 🦪 台北老店雙月乾蚵 。。。。。。。。。。。。。。。。。 蚵仔選用當日新鮮食材， 店內可依喜好選擇熟成度。 擺盤後淋上蒜泥醬， 底下鋪著清脆豆芽菜。 一口入口： 蚵仔的海味 蒜香的刺激 豆芽的爽脆 三種口感同時出現。 是很台灣、很家常的味道。 🍲 一碗湯的城市記憶 。。。。。。。。。。。。。。。。。 像 雙月食品社 這樣的店， 其實很接近台灣飲食的核心。 不是華麗料理， 而是日常裡最耐吃的味道。 雞湯、拌飯、麵食、蚵仔。 每一道都像某段生活記憶—— 加班後的一碗湯、 雨天的一碗麵、 或是旅行途中短暫的休息。 忽然想到 蘇軾 另一句話： 「且將新火試新茶，詩酒趁年華。」 有時候， 一頓飯不只是填飽肚子。 它其實是在提醒我們—— 生活再忙， 也要記得坐下來， 好好喝一碗湯。",
+          "publishTime": "2026-04-05T02:17:30",
+          "source": "Google Maps"
+        },
+        {
+          "author": "潘浩柜",
+          "rating": 5.0,
+          "text": "📍 地點與環境 位於捷運善導寺站附近，在大路邊不難找，連續多年的米其林必比登的光環，但店內空間其實很侷促，桌距非常近，基本上就是「併桌地獄」。環境乾淨，但不算安靜，完全不是讓你悠閒聊天的地方，比較像是「戰場」，吃完就要趕快撤退讓位給下一組客人。建議避開用餐尖峰，或是要有排隊30分鐘起跳的心理準備。 🍽 餐點體驗 🍲干貝燉雞湯 來這裡沒點湯真的等於白來。雙月主打「湯肉分離煮法」，雞肉保有彈性不乾柴。 湯頭非常厲害，雖然是用小顆珠貝，但量足！！！將海味徹底釋放！！！ 整碗湯喝起來已經不只是單純的高麗菜雞湯甜，而是充滿了濃郁的鮮味，海鮮與雞湯完美交織，喜歡海味的一定要點這道湯！ 🍜愛恨椒芝麵 這道名字取得很中二，但味道真的有記憶點。入口是濃郁的芝麻醬香，緊接著花椒的微麻感在舌尖擴散，層次感很棒。 但這裡要給個嚴重警告：這麵一定要上桌後光速拌開、盡快吃完！我就是拍照拍了一下，就有感受到麵條稍微「坨」成一塊，雖也好吃但總覺得不完美。 🦪東石鮮蚵 這道完全是在直球對決食材新鮮度。 蚵仔每顆都飽滿肥美可見，完全沒有縮水，熟度恰到好處，簡單淋點醬油膏就能點綴食材的美味，喜歡鮮蚵的務必不要錯過～ 🐟紅燒金鮮鱸魚排 鱸魚排已經去骨，對不愛挑刺的人很友善。魚肉細緻軟嫩，紅燒醬汁鹹香適中，帶有一點點膠質感。這道菜表現得四平八穩，配飯吃很剛好，但相較於雞湯的驚艷，這道屬於「好吃的家常菜」等級。 🍗雞汁拌飯 比起愛恨椒芝麵，這道就顯得比較樸實無華。 上面鋪了一些雞肉絲，淋上雞油跟油蔥酥，香氣是有的，飯煮得也不錯，粒粒分明。跟外面的雞油飯、雞絲飯比，這雞汁拌飯絕對是贏的，喜歡吃飯的不用猶豫，直接點起來！！！ 💁‍♂️ 服務與用餐氛圍 生意好到爆炸，但服務人員的態度意外地還算親切，點餐流程SOP化，上菜速度極快。 有點擁擠，吃飯會略有壓力，但真的現場吃比較好吃！！！",
+          "publishTime": "2026-01-05T02:17:32",
+          "source": "Google Maps"
+        },
+        {
+          "author": "SCOTT LIU",
+          "rating": 5.0,
+          "text": "當天點了愛恨椒芝麵、油飯、雙月乾蚵、米血糕、豆皮、豬耳朵、黑麻油燉雞腿湯、蒜好好燉雞腿湯，當天的生意真的很好，不過幸好店家對於號碼牌的流程都有做控管，現場也有座位可以坐著等，而且店家會奉茶給等待民眾，非常貼心。椒麻麵部分，麵體偏寬，有彈性，且椒麻味非常香，有一點辣度，非常好吃！油飯部分就中規中矩，要加一點調味醬比較有味道。三個滷味表現十分亮眼，味道都有滷進去，有滷透真的好吃，來的客人一定要點小菜👍乾蚵很新鮮，吃起來沒有意味，大小顆混合，裡面有鋪豆芽菜，調味不重，想讓客人吃出蚵的鮮味！湯的部分份量非常足夠，雞腿肉給很多塊而且又大，裡面還有很足夠的高麗菜及蒜頭，整個湯頭喝起來非常鮮甜，冬天來上一碗真的很幸福；黑麻油部分則是多了一股麻油的香氣，湯頭表現依舊水準之上，但建議可以2人點一碗湯，因為份量真的很夠啊！在台北以這種價格吃到這樣的食物，真的很值得，難怪鄰近的濟南店生意也是一樣好，真的好吃😋",
+          "publishTime": "2025-12-06T02:17:35",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Sandra Tsai",
+          "rating": 5.0,
+          "text": "雙月的雞湯依舊維持著一貫份量充足兼顧美味的最高品質❤️雖然價格偏高但真的很好吃～ 內用座位相鄰有點狹窄，這間分店排隊時間較長，但整體感受都很不錯！ - 干貝雞湯：小干貝完全很嫩，高麗菜也很鮮甜，但雞腿肉有點太硬，肉纖維有點卡牙縫，不過依然瑕不掩瑜，湯頭仍然讓人意猶未盡👍🏻 - 牛蒡瘦肉湯：牛蒡量多，有點中藥材微苦但回甘口味，肉片和高麗菜也很適口，湯頭好喝 - 愛恨椒芝麵：麵Q微辣調味正好！花椒味讓麻醬變得不太膩口，但還是要配湯比較清爽😂 - 富士吻仔魚飯：鮮嫩吻仔魚+酥脆油蔥酥+醬油，超級好吃❤️確實小朋友會很喜歡 - 鵝腸豆芽、鮮蚵：鵝腸及鮮蚵都燙得很嫩，鮮蚵下疊著豆芽讓視覺效果看起來很驚人，但其實份量適中剛好🤣，配飯配麵都很美味！",
+          "publishTime": "2026-02-04T02:17:31",
+          "source": "Google Maps"
+        },
+        {
+          "author": "CJ Lin",
+          "rating": 5.0,
+          "text": "台北雙月食品社 青島店整體用餐體驗相當滿意。店內環境明亮乾淨，以木質裝潢搭配溫暖燈光，空間雖不算寬敞，但動線規劃良好，用餐氛圍舒適且帶有家庭感，即使尖峰時段人潮較多，仍能維持整潔與秩序。 服務方面採半自助取餐模式，點餐流程清楚，店員態度親切且出餐速度快，翻桌率高但不會讓人感到壓迫。 餐點表現是最大亮點，雞湯清甜濃郁、雞腿軟嫩入味，搭配高麗菜與蛤蜊湯品更顯鮮甜；乾拌麵香氣足、口感Q彈，小菜如油豆腐與燙豆芽也相當開胃，整體屬於溫補又不油膩的台式養生風味。 交通方面，餐廳鄰近捷運善導寺站，步行即可抵達，周邊公車路線多，開車亦有停車場可利用，交通便利。 整體而言，是台北兼具美味、健康與便利性的必比登推薦高人氣雞湯名店。",
+          "publishTime": "2026-03-06T02:17:31",
+          "source": "Google Maps"
+        },
+        {
+          "author": "愛莉絲",
+          "rating": 5.0,
+          "text": "我今天特地和老公從桃園而來，中午11:50抵達，店內已客滿，門口有10多位客人在候位！我們大約等了25分鐘，就入座。（突然想到，如果下雨天 在外面排隊就辛苦了🤣🤣🤣）。 今天點了愛恨椒芝麵、油飯、阿甘剝皮辣椒雞腿湯、狠切豆干、月亮骨肉。合計內用 消費420元。外帶富士吻仔山拌飯、黑松露扮麵，合計164元。 今天點的餐每項我都很喜歡很滿足，用餐座位雖然很窄，可是座位下有置物籃 是很貼心周全。服務人員很厲害英文很強，國際化管理很不錯。 建議：客人還在用餐時，不宜急著收餐具，那給人有「趕客人的感覺」。我相信在店內用餐的客人，不會留在那聊天的，因為場地本身就不是聊天好場所。客人水準很高，用完餐，定會快閃的。",
+          "publishTime": "2026-03-06T02:17:29",
+          "source": "Google Maps"
+        },
+        {
+          "author": "yameme",
+          "rating": 5.0,
+          "text": "家中長輩很喜歡喝雞湯，剛好有機會可以一同前來品嚐。 主角燉雞湯必點（干貝燉雞腿+蛤蜊燉雞腿），長輩非常喜歡，我自己也覺得很好吃，用料豐富紮實，調味也很到位。 酸菜意麵的甜酸滋味，外加麵體的口感非常喜歡。另外又點了滷味小菜，滷的也剛好不過鹹或不入味，非常搭配主餐。 另外店員因為長輩的關係，主動招待一份麵線，讓我覺得店家真的非常貼心。 有著米其林推薦的多年加持，與其餐點的精緻度與服務態度，雙月的價位真的不算貴，而且好吃，相信不久之後還會再來品嚐其他品項的美食，極推薦。",
+          "publishTime": "2026-02-04T02:17:32",
+          "source": "Google Maps"
+        },
+        {
+          "author": "En",
+          "rating": 5.0,
+          "text": "這是我第一次來吃雙月食品社 點了愛恨椒芝麵、阿甘剝皮辣椒燉雞腿湯、 躺平豆皮、雙月油飯 每一樣我都覺得好好吃！ 其中愛恨椒芝麵是我回家後最念念不忘的味道 從麵的軟硬度到醬汁的包覆度還有口味上都非常優秀 強烈推薦愛恨椒芝麵我的第一名🥇 剝皮辣椒雞湯真的是料滿到我想說我要怎麼喝😂 非常溫潤的雞湯超級適合冬天來一碗的🥈 另外雖然餐期時段人潮很多 但店內的阿姨都超級親切而且都會關心口味上的問題",
+          "publishTime": "2026-03-06T02:17:35",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Saki",
+          "rating": 5.0,
+          "text": "第一次來消費，排隊等待時外面服務員很細心看到我手拿著東西沒有地方可以放，還問我需不需要袋子可以拿給我裝，覺得貼心。儘管那時我尚未消費！ 進去用餐時，位置有點小但服務員也貼心告知座位下有置物籃，服務讓人覺得滿意。 食物都很好吃、份量足夠、價格實惠，尤其湯品料多實在，會讓我再下次回訪！也讓我願意分享給別人～ 是讓人愉快的吃飯體驗👍",
+          "publishTime": "2026-04-05T02:17:30",
+          "source": "Google Maps"
+        },
+        {
+          "author": "H",
+          "rating": 5.0,
+          "text": "第二次來青島店 服務一樣非常親切愛恨椒芝麵一樣好吃 麵體Q椒麻香氣搭配芝麻醬真的超級完美 蒜頭雞腿湯也很好喝 內容物是三塊雞肉高麗菜蒜頭枸杞 滷味部分我覺得都很優秀 吸汁花干真的吸飽飽的湯汁真的超讚 剛看到一個網友評論實在看不下去 現場熱湯超級燙的唷如果自己要叫外送 不到現場吃還要要求燙口的話 我覺得你偏奧客了好難看😄",
+          "publishTime": "2026-04-05T02:17:31",
+          "source": "Google Maps"
+        },
+        {
+          "author": "hui-fen ying",
+          "rating": 5.0,
+          "text": "每次要來吃，看到排隊人潮而作罷。今天特地在11點開店進來。好開心😀食物美味、服務人員專業，貼心推薦的每道都那麼好吃，雙椒麵Q又有勁道，鮮蚵就是海的味道，滷味樣樣好吃。吻仔魚飯也太炫了吧！最後我要介紹雞湯，讓人驚艷啊，來試試看吧，你就會成為主顧了❤️",
+          "publishTime": "2026-03-06T02:17:35",
+          "source": "Google Maps"
+        },
+        {
+          "author": "St",
+          "rating": 5.0,
+          "text": "我是在阜杭豆漿的飯糰賣完了沒吃飽，所以去雙月吃第二攤，但年紀大了，吃完愛恨交織麵，讚嘆花椒的麻和香很美味，但之後的湯和蚵仔都吃不太下⋯那個湯的雞腿真的很多肉，一個人來吃要備好空的胃來比較不會浪費。下次想試試選蚵仔弄全熟會是怎樣的味道。",
+          "publishTime": "2025-12-06T02:17:37",
+          "source": "Google Maps"
+        },
+        {
+          "author": "CIARA CHEN",
+          "rating": 5.0,
+          "text": "松露麵跟椒麻麵真的超級好吃，醬料給的也很剛好不會太少也不會太多，再搭配小菜吃的很開心～ 干貝雞腿湯也很鮮很好喝，料超多的！唯一可惜的是我個人喜歡燉的更軟嫩的雞肉，今天的雞肉吃起來QQ的對我來說有點偏硬～比較不喜翻😅",
+          "publishTime": "2026-03-06T02:17:33",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Val Lee",
+          "rating": 5.0,
+          "text": "2026.1.16晚上6點半來訪。內用抽號待位，會有服務人員詢問用餐是否到齊，到齊後會提供QR code點單、付款。 餐點精緻美味，來訪外國遊客多，適合1至4人來訪。 🚻 內附廁所一間。 🅿️ 附近路邊停車格。",
+          "publishTime": "2026-02-04T02:17:36",
+          "source": "Google Maps"
+        },
+        {
+          "author": "TZU-MIN CHANG",
+          "rating": 5.0,
+          "text": "排隊時間比較長但是值得，餐點整體都好吃，愛恨椒芝麵花椒味跟芝麻醬比例剛好，一吃就喜歡上，滷花干也意外不錯。剝皮辣椒瘦肉湯的湯頭鮮甜，辣椒有辣度不吃辣的話要小心。服務人員親切勤快，會想再訪。",
+          "publishTime": "2026-03-06T02:17:33",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Chun ting Kwok",
+          "rating": 5.0,
+          "text": "推薦愛恨椒芝麵和雞腿湯。雞腿湯的雞肉很嫩滑，一點兒味道都沒有。愛恨椒芝麵的口味是我很喜歡的味道。雖然我不吃蚵仔，但雙月乾蚵的蚵仔也很大顆。而且這裏的職員很親切。",
+          "publishTime": "2026-01-05T02:17:36",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Yung-Chen Cheng",
+          "rating": 5.0,
+          "text": "真的好吃！麵條很筋道，椒麻也很香，剝皮辣椒很夠味，湯頭鮮甜讓人一口接著一口，美中不足的是雞肉偏乾，整體下來很值得！",
+          "publishTime": "2026-03-06T02:17:36",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Kevin Huang",
+          "rating": 5.0,
+          "text": "果然是米其林，來用餐就能理解，從餐點到服務都確實讓人覺得超乎期待，價格也會讓人高攀不起，非常推薦",
+          "publishTime": "2026-03-06T02:17:37",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Troy Chung",
+          "rating": 5.0,
+          "text": "吃過新加坡的雙月，再吃台灣雙月本店，才知道台灣的雞肉及蔬菜更好吃！連小菜都美味實惠！👍👍👍",
+          "publishTime": "2026-03-06T02:17:36",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ming H",
+          "rating": 3.0,
+          "text": "之前路過人多。 某日， 第一次吃， 需要等約15分鐘， 用餐位置偏少偏小， 點套餐+飯吃有點擠， 點麵、飯， 愛恨椒芝麵沒那麼喜歡， 雞汁飯大勝～ 喜歡鱸魚、雞肉蛤蜊湯； 店員態度好。 希望台中能有分店。",
+          "publishTime": "2026-02-04T02:17:37",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10250": {
       "photoUrls": [
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFod97NEXIsiksaI0gY2qyzK724WPobgJUn94Yn8V0fuZu0Q7IriEMfNDs24WBk0FoOTLk-cN6hmpio8v0z2fx_QYmb_LlLTfyDB2y-8RCVqQuvOfK6OzMCzPqpY1hoD1hsj74=w408-h306-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFod97NEXIsiksaI0gY2qyzK724WPobgJUn94Yn8V0fuZu0Q7IriEMfNDs24WBk0FoOTLk-cN6hmpio8v0z2fx_QYmb_LlLTfyDB2y-8RCVqQuvOfK6OzMCzPqpY1hoD1hsj74=w408-h306-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFod97NEXIsiksaI0gY2qyzK724WPobgJUn94Yn8V0fuZu0Q7IriEMfNDs24WBk0FoOTLk-cN6hmpio8v0z2fx_QYmb_LlLTfyDB2y-8RCVqQuvOfK6OzMCzPqpY1hoD1hsj74=w397-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEkQlKK3OjAbhS5leV1-4tJE9xcMJkOGv5Ly18nu-kkPVr14NnBcFxRB1aVZmnmyhSt84kugvyRaaEduljNB6f6OKVK8VCSNRqLGpKuNYZY1q7G9bW7gKpes9Sko0127q1IkcTEk9c0GFeU=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEYs2RFHsEkYBhP3skOcj_2rdLLj-zTR63Gl6tNACJ5z93d8jQ7zaclTccALNy_zub7MQ4a0zPZET3MxdxMoZLjRN6KojMpjIAnJf9uWQfHDe4Ng6ihx94hiKd4ym75tFMP6hHm=w529-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAELTRDHW8T5t1zWhMAjMGcisYr8Vg4ihxKVpFuelTdqLTTSpXbRc-dulO8wWA9aILfxEYdr00rEidyIUSKqfO6G4AZYivFyYtshFlCsIELqQUgtgGY_7EE_UPt_pNuCfk_901NB=w446-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHwlUNOU4eDDIQ6vxepNmcRInVDd6OlVMwIdW-xfgrm6w6Z8nR5wP9xS2XyFniGj1kOOtns-4nl7X7hwmzIijxt_kxTyYSwt8vILMTABzEoLe-TmyxSc7e-9mJRev9kkw7Pt1lj5EVqLKJZ=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEyBCj0ez83orUdUGv64vhxQv3Jk3byj_UICkHvBUgI6v4y2N7ULFfO3a0azAzQFv1YXy1Uy7qB7QoBxzH5OYocS8RngIfxzNX-7ym37TkJ9dw6UCyQ_T9PofZS7C_PK6HvmVVUSjC9IrWP=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAG5zyAecYfaQCq-m8U8x3tLlpkuMV6rDbSIABmiU4q3j6m-6UazHfh_GDtdtU2F5d8Nd7ju3qC0kRse6Kaz15FBABnkZonA9cSQNKL3TDaDKpPEUh4hlet5nndlLK2Qd9g3UcgTMgVx1_yK=w397-h298-k-no"
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGFgpf3-DAGDLVKl65x_B98o2vo2SbnuqVCaoSt7eQXK8F3O7u2WyS4ThUH1G24OZ_xutmE6dxlSOQ75v6EOo6zdlGWMDDx7XQW7mN1Ov0WKu52OnsASyXOvR-Ig26rbDPcGfbc0fOkeeXC=w397-h298-k-no"
       ],
       "coverUrl": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFod97NEXIsiksaI0gY2qyzK724WPobgJUn94Yn8V0fuZu0Q7IriEMfNDs24WBk0FoOTLk-cN6hmpio8v0z2fx_QYmb_LlLTfyDB2y-8RCVqQuvOfK6OzMCzPqpY1hoD1hsj74=w408-h306-k-no",
       "galleryUrls": [
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFod97NEXIsiksaI0gY2qyzK724WPobgJUn94Yn8V0fuZu0Q7IriEMfNDs24WBk0FoOTLk-cN6hmpio8v0z2fx_QYmb_LlLTfyDB2y-8RCVqQuvOfK6OzMCzPqpY1hoD1hsj74=w408-h306-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFod97NEXIsiksaI0gY2qyzK724WPobgJUn94Yn8V0fuZu0Q7IriEMfNDs24WBk0FoOTLk-cN6hmpio8v0z2fx_QYmb_LlLTfyDB2y-8RCVqQuvOfK6OzMCzPqpY1hoD1hsj74=w408-h306-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFod97NEXIsiksaI0gY2qyzK724WPobgJUn94Yn8V0fuZu0Q7IriEMfNDs24WBk0FoOTLk-cN6hmpio8v0z2fx_QYmb_LlLTfyDB2y-8RCVqQuvOfK6OzMCzPqpY1hoD1hsj74=w397-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEkQlKK3OjAbhS5leV1-4tJE9xcMJkOGv5Ly18nu-kkPVr14NnBcFxRB1aVZmnmyhSt84kugvyRaaEduljNB6f6OKVK8VCSNRqLGpKuNYZY1q7G9bW7gKpes9Sko0127q1IkcTEk9c0GFeU=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEYs2RFHsEkYBhP3skOcj_2rdLLj-zTR63Gl6tNACJ5z93d8jQ7zaclTccALNy_zub7MQ4a0zPZET3MxdxMoZLjRN6KojMpjIAnJf9uWQfHDe4Ng6ihx94hiKd4ym75tFMP6hHm=w529-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAELTRDHW8T5t1zWhMAjMGcisYr8Vg4ihxKVpFuelTdqLTTSpXbRc-dulO8wWA9aILfxEYdr00rEidyIUSKqfO6G4AZYivFyYtshFlCsIELqQUgtgGY_7EE_UPt_pNuCfk_901NB=w446-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHwlUNOU4eDDIQ6vxepNmcRInVDd6OlVMwIdW-xfgrm6w6Z8nR5wP9xS2XyFniGj1kOOtns-4nl7X7hwmzIijxt_kxTyYSwt8vILMTABzEoLe-TmyxSc7e-9mJRev9kkw7Pt1lj5EVqLKJZ=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEyBCj0ez83orUdUGv64vhxQv3Jk3byj_UICkHvBUgI6v4y2N7ULFfO3a0azAzQFv1YXy1Uy7qB7QoBxzH5OYocS8RngIfxzNX-7ym37TkJ9dw6UCyQ_T9PofZS7C_PK6HvmVVUSjC9IrWP=w397-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAG5zyAecYfaQCq-m8U8x3tLlpkuMV6rDbSIABmiU4q3j6m-6UazHfh_GDtdtU2F5d8Nd7ju3qC0kRse6Kaz15FBABnkZonA9cSQNKL3TDaDKpPEUh4hlet5nndlLK2Qd9g3UcgTMgVx1_yK=w397-h298-k-no"
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGFgpf3-DAGDLVKl65x_B98o2vo2SbnuqVCaoSt7eQXK8F3O7u2WyS4ThUH1G24OZ_xutmE6dxlSOQ75v6EOo6zdlGWMDDx7XQW7mN1Ov0WKu52OnsASyXOvR-Ig26rbDPcGfbc0fOkeeXC=w397-h298-k-no"
       ],
       "overview": {
         "price_overview": "$600-800",
         "price_buckets": [
           "$600-800"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "wei",
+          "rating": 5.0,
+          "text": "享鴨初體驗，雙人套餐的內容還蠻豐富的，餐點這次先選擇以店家推薦的菜色為主，加點鴨架芋頭米粉湯（180元）整體吃下來非常飽，部分餐點必須外帶才能解決得了。（題外話，外帶的提袋有保溫效果，很精緻漂亮。） 最推薦的當然就是烤鴨（兩人點半隻差不多）前面片鴨有一道鴨皮搭配砂糖，一入口油香四溢，脆中帶汁，真是一絕。 片下的鴨大部分只有略帶脆皮，只有三片左右是鴨皮為主，那就是極致美味的所在，建議直接吃不要配餅。 其他的片鴨搭配手感荷葉餅，佐以享鴨特調的三種醬（大黃瓜絲、甜麵醬、享鴨花椒鹽）捲成像潤餅那樣一口塞，味道很有層次，滿足挑剔的味蕾不會單調。 芋香鴨架米粉有股鴨油香氣，米粉口感很好不軟爛也不硬恰到好處，湯也蠻濃郁，冬天喝起來暖呼呼，湯裡面有很多帶碎骨的鴨肉鴨皮別有一番風味，很值得加點，我個人回訪必點。 陳釀梅子雞球是酸酸甜甜的味道，很下飯，份量也不少，可以點，這個現場一下就會吃光不太可能剩。 瑤柱醬爆蘿蔔糕屬於重口味，第一口有點辣勁，蔥段香氣很濃可以搭配著吃，適合當下酒菜或配飲料，冷掉也還蠻好吃。 蠔油醬爆牛肉（王品app送的不在套餐組合，不過回訪我會單點）有種燒烤風味，牛肉的肉香十足，口感軟嫩，佐以大量洋蔥絲一起炒，香氣四溢蠻令人驚艷，喜歡吃牛的會很愛。 總結：整體環境雖然略嫌擁擠，高朋滿座到整間店都塞滿，但服務人員態度都蠻好的，菜色風味也很不錯，烤鴨（尤其是片鴨的鴨皮）真是美味，有機會會再回訪。",
+          "publishTime": "2026-02-04T02:18:26",
+          "source": "Google Maps"
+        },
+        {
+          "author": "North",
+          "rating": 4.0,
+          "text": "📍餐廳：享鴨（王品集團） 👥用餐人數：4 人 💵總費用：約 NT$4,000（2人套餐 + 單點） 餐點與口味 此次點的是「2人套餐」再補單點菜品，整體份量以 4 人共享來說剛剛好不會過飽。 烤鴨切片油脂分布均勻，外皮酥脆，帶嚼感不膩口，搭配餅皮與酸甜醬料食用平衡感好。附餐配料如青蔥、小黃瓜與甜麵醬，皆新鮮到位，組合起來風味層次明確。 配餐中蔬食與熱菜調理細緻，鹹度偏溫和不搶味，適合與烤鴨搭配。 用餐體驗 桌邊片鴨動作俐落，服務人員介紹帶節奏，整體用餐氣氛與服務水準符合王品系統期待。 餐點上桌速度穩定，不拖時間也不堆積。 價格與評價 以四人 NT$4,000 左右的價格，份量、品質與服務整體而言算是合理，屬於可接受的中高價位聚餐選項。 總結 享鴨的整體水準穩定，屬於想吃烤鴨又不想踩雷時的安全牌。餐點精緻度與服務一致性優於多數傳統鴨店，聚餐氛圍舒適，適合家庭聚會、紀念日或款待客人時選擇。",
+          "publishTime": "2025-11-06T02:18:29",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Hello Hello",
+          "rating": 4.0,
+          "text": "6人用餐，點了4人份+2人份套餐 烤鴨有1.5隻 片鴨部分覺得量可以再多一些 鴨肉香氣比較不足，包肉片的皮偏Q，不太喜歡 蘿蔔糕/外皮脆脆的，味道很不錯 蜜漬番茄/酸酸甜甜，好吃 蒸蛋、豆腐煲/口味也都不錯 鴨鬆/不好吃，鴨肉味道過重 蒜香鴨架/肉質很嫩、味道類似鹹酥雞，這道也不錯 芋頭米粉/湯頭不錯，覺得這道鴨肉太多，應該多留一些給片鴨或蒜酥鴨架 蒸魚/一般 雞球/甜甜的，不錯吃 甜點/布丁，帶點鹹味，滿特別的 奶凍/不會太甜 白木耳蓮子湯/濃稠的口感，味道可以",
+          "publishTime": "2026-01-05T02:18:29",
+          "source": "Google Maps"
+        },
+        {
+          "author": "陳映吟",
+          "rating": 4.0,
+          "text": "更新 打四通終於接通，店經理後續處理重做餐點送來，修改評分內容，最後有筷子的是重做的餐點 非常差勁 點外送$1600套餐，吃高麗菜想說怎麼都是黑黑的屑屑，還有一股怪味像塑膠味 吃鴨架才發現都燒焦了味道跟高麗菜的怪味一模一樣廚師燒焦還出菜給客人，照片是我夾出燒焦部分放到高麗菜上 廚師為什麼不洗鍋子，點的是清炒高麗菜欸 廚師烹調手法再怎樣也不會調成這樣，電話打了三通沒有店員要接",
+          "publishTime": "2026-02-04T02:18:28",
+          "source": "Google Maps"
+        },
+        {
+          "author": "蔡瑋瑋",
+          "rating": 5.0,
+          "text": "首次享用，3人點了四人套餐3080元（不含服務費），每道菜口味都好吃，沒有雷到且份量不小氣算足夠，鴨皮酥脆沾點白糖口感加分，手感荷葉餅皮很有彈性很Q，鴨肉有汁不柴很順口，鴨骨架芋頭米粉很入味湯汁及米粉充滿芋香入味，真的很讚的一道菜，翡翠魚卵炊蛋好吃到令人驚豔，祘酥鴨肉好吃，總之都好吃，價錢雖不便宜，但很美味！服務員態度也很nice！有機會會再回訪。",
+          "publishTime": "2026-02-04T02:18:25",
+          "source": "Google Maps"
+        },
+        {
+          "author": "James H Terre",
+          "rating": 4.0,
+          "text": "招牌片皮鴨一隻 (1980) - 荷葉餅 + 配料 / 翠玉鴨架湯 (210) / 琥珀生菜鴨鬆 (180) / 冰糖醬香鴨翅 (210) / 蔥餅捲鴨肉 (220) / 獨門蒜酥鴨下巴 (270) / 豉汁芥藍苗 (260) / 乾樹子水蓮 (250) / 麻油嫩菠菜 (250) / 四喜烤麩 (160)",
+          "publishTime": "2026-03-06T02:18:27",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Felix 淞Jay",
+          "rating": 5.0,
+          "text": "梅子雞：第二名 生日鴨翅：第三名，有外面滷鴨翅的等級 砂糖片鴨：第一名，無話可說，糖直接沾滿 水蓮：第一名 蒜炸鴨架：第二名但已經吃不下了 魚卵炊蛋：第一名，超級好吃，可以吃超多飯 銀耳：超級好吃的甜點，必點 基本上都有水準的餐點，量也很多，不像某鴨x餐廳，雙人餐價格也差不多，然後每道菜都只能各吃一兩口。",
+          "publishTime": "2026-02-04T02:18:27",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Faline Chen",
+          "rating": 5.0,
+          "text": "過年經過碰碰運氣，感覺收獲意外之喜。烤鴨的醬料很別緻，與鴨架料理品嚐起來都很不錯。 特別推薦麻油嫩菠菜，一上桌就充滿香氣：蘿蔔糕的口感與椒鹽梅花豬的味道也令人驚豔，服務人員則同樣服務細緻、態度客氣，是願意再回訪的餐廳！",
+          "publishTime": "2026-03-06T02:18:27",
+          "source": "Google Maps"
+        },
+        {
+          "author": "brian chang",
+          "rating": 4.0,
+          "text": "首訪享鴨，點了4人暢快享鴨套餐，小菜擺盤精緻，師傅在餐桌展示全鴨後再片鴨，表現中規中矩，餅皮份量充足，芋香鴨架湯米粉湯頭甘甜，應是最佳品項，蒜酥鴨架偏乾柴不知道是否炸過久？甜品表現不錯👍！蔥段追加需要另計費用！",
+          "publishTime": "2026-02-04T02:18:25",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Vivian Fox",
+          "rating": 5.0,
+          "text": "這是二訪，不管怎樣服務都超好，鴨肉是熟成鴨肉，師傅會在你面前肢解鴨鴨，麵皮Q彈好吃，生日的甜點是芝麻鴨包超可愛又超好吃，之前還給我一顆超可愛的氣球，如果有過敏的食物也會幫忙調整，整體而言都是太讚了。",
+          "publishTime": "2025-12-06T02:18:30",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Jak Hsu",
+          "rating": 5.0,
+          "text": "大部分的餐點都不錯，招牌烤鴨香嫩可口汁水多汁非常推薦，服務人員的服務也不錯，隨叫隨到都很客氣還會主動問客人需要什麼，餐廳的氣氛也非常好，但是就是有點擁擠的感覺，但還是可以的，非常不錯推薦的餐廳。",
+          "publishTime": "2026-03-06T02:18:29",
+          "source": "Google Maps"
+        },
+        {
+          "author": "豆芽菜王子",
+          "rating": 4.0,
+          "text": "兩人套餐份量足夠，每一道菜都很有特色，片鴨的table show也很精彩，烤鴨搭配餅皮還有醬汁非常好吃，甘樹子炒水蓮味道也非常好，還有微辣的瑤柱醬爆蘿蔔糕也炒的乾香入味。",
+          "publishTime": "2026-03-06T02:18:25",
+          "source": "Google Maps"
+        },
+        {
+          "author": "梁谷好",
+          "rating": 5.0,
+          "text": "餐點好吃！炒牛肉和蒸蛋可能因為没配白飯有點鹹！招牌烤鴨好吃！芋頭米粉鴨架湯也棒！每道菜都不錯！希望之後菜色多點變化！才能品嚐更多美食！服務好！用餐時間人很多！要先訂位！",
+          "publishTime": "2026-02-04T02:18:26",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Gina Teng",
+          "rating": 5.0,
+          "text": "點兩人套餐三人享用，份量很夠 烤鴨好吃，有附蔥絲和黃瓜絲吃起來很清爽 梅子雞球必點 酸酸甜甜好吃！ 服務人員服務很親切，也會幫忙提醒份量 整體來說很推，下次會再來",
+          "publishTime": "2025-11-06T02:18:30",
+          "source": "Google Maps"
+        },
+        {
+          "author": "萊夫方程式Life Eq.",
+          "rating": 5.0,
+          "text": "適合想吃台菜又想吃烤鴨 要請朋友吃飯的人 師傅會在你面前片鴨 餅皮的份量也很多 吃不了吃到飽的人來吃這個剛好 P.S. 那個鴨腿可以直接讓我啃嗎",
+          "publishTime": "2026-03-06T02:18:26",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ziza Chiang",
+          "rating": 5.0,
+          "text": "烤鴨真的很好吃 皮脆肉嫩 搭配的荷葉餅很有彈性 口感很好 另外特別推薦 翡翠魚卵蒸蛋 跟 金沙海鮮豆腐煲 味道很有層次 適合家庭聚會的餐廳",
+          "publishTime": "2026-02-04T02:18:31",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Yman Su",
+          "rating": 5.0,
+          "text": "今天服務4-4的許博惟先生服務非常好，臨場反應也相當優秀，遇到問題時的處理方式讓人感到相當舒適及感動，餐廳請到這種員工真的賺到，超級推薦",
+          "publishTime": "2026-03-06T02:18:31",
+          "source": "Google Maps"
+        },
+        {
+          "author": "陳小美",
+          "rating": 5.0,
+          "text": "跟朋友家人一起來，10幾人分坐兩大桌，每桌點6人份套餐，再另外單點菜，烤鴨上桌前還有片鴨秀，有趣，雖然價位不便宜，但是，真的好吃，值得。",
+          "publishTime": "2025-11-06T02:18:30",
+          "source": "Google Maps"
+        },
+        {
+          "author": "潘.韋廷",
+          "rating": 5.0,
+          "text": "鴨肉以外的餐點風味也有出色的水準，原本只是不想加價，因此將剩餘的骨頭肉原味呈現，沒想到比切片的部位還更好吃！服務人員態度也很親切。",
+          "publishTime": "2026-03-06T02:18:32",
+          "source": "Google Maps"
+        },
+        {
+          "author": "吃貨",
+          "rating": 5.0,
+          "text": "第一次來，餐點都好好吃😋 服務人員都很親切👍👍 今天點雙人套餐，份量很大，兩個人吃不完🤤 忘記自己有粥還點了兩份炒飯🤣 吃超飽🤭🤭",
+          "publishTime": "2025-12-06T02:18:31",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10252": {
       "photoUrls": [
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGoF3Nym7zdEXV3eAO_kC1jhnC9H9vUtzeigfawO_XfS3KxoJUx410HBh_ot1h25xrJzlEemCmGHTDUsYdvxmMqK4e9IYOH20fgjGhE3SA8t9J0GzCbrc6zB2PDz_3kbuo-j_Dtqw=w122-h92-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGoF3Nym7zdEXV3eAO_kC1jhnC9H9vUtzeigfawO_XfS3KxoJUx410HBh_ot1h25xrJzlEemCmGHTDUsYdvxmMqK4e9IYOH20fgjGhE3SA8t9J0GzCbrc6zB2PDz_3kbuo-j_Dtqw=w122-h92-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHB38mLfF7K1D_MOGf_NpjIwoT5G_iXlVIZWW5mibTdqUJk3HIE8AJuCHLww7aaPs80qr3QbhMzbd5__d0PGN5dmNMt2X_uY8t6QsE3WHMRRRJ5VOrdFMZehUivrnH3lCBzwhsfEjkzPqRl=w122-h92-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEf15ar60myK0ouzqYGD_v-bAhK7OztSoB9z5P8U0X_GQjSi_gWE6UpIk1-ihYjB0zUwi8ziZvpRiwDycklH14YDkB-NVTXGS2llYH8DxPYYr5pLwlFcxDJALoCgV8tFk8O1MJuF73xM6J3=w122-h92-k-no"
       ],
       "coverUrl": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGoF3Nym7zdEXV3eAO_kC1jhnC9H9vUtzeigfawO_XfS3KxoJUx410HBh_ot1h25xrJzlEemCmGHTDUsYdvxmMqK4e9IYOH20fgjGhE3SA8t9J0GzCbrc6zB2PDz_3kbuo-j_Dtqw=w122-h92-k-no",
       "galleryUrls": [
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGoF3Nym7zdEXV3eAO_kC1jhnC9H9vUtzeigfawO_XfS3KxoJUx410HBh_ot1h25xrJzlEemCmGHTDUsYdvxmMqK4e9IYOH20fgjGhE3SA8t9J0GzCbrc6zB2PDz_3kbuo-j_Dtqw=w122-h92-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGoF3Nym7zdEXV3eAO_kC1jhnC9H9vUtzeigfawO_XfS3KxoJUx410HBh_ot1h25xrJzlEemCmGHTDUsYdvxmMqK4e9IYOH20fgjGhE3SA8t9J0GzCbrc6zB2PDz_3kbuo-j_Dtqw=w122-h92-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHB38mLfF7K1D_MOGf_NpjIwoT5G_iXlVIZWW5mibTdqUJk3HIE8AJuCHLww7aaPs80qr3QbhMzbd5__d0PGN5dmNMt2X_uY8t6QsE3WHMRRRJ5VOrdFMZehUivrnH3lCBzwhsfEjkzPqRl=w122-h92-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEf15ar60myK0ouzqYGD_v-bAhK7OztSoB9z5P8U0X_GQjSi_gWE6UpIk1-ihYjB0zUwi8ziZvpRiwDycklH14YDkB-NVTXGS2llYH8DxPYYr5pLwlFcxDJALoCgV8tFk8O1MJuF73xM6J3=w122-h92-k-no"
       ],
       "overview": {
@@ -21534,7 +22250,149 @@
         "price_buckets": [
           "$400-600"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "Bennett",
+          "rating": 5.0,
+          "text": "位於南京東路巷弄內的「今日魚市」（原丼賞和食），是許多生魚片愛好者的口袋名單。這裡延承了以往的高水準，一踏入店內就能感受到熱鬧的用餐氛圍，非常適合下班後想犒賞味蕾的饕客。店內主打份量驚人的生魚片丼飯，每一片魚肉都切得極厚且質地鮮甜，尤其是那亮澤動人的鮭魚與海鮮拼盤，鋪滿到幾乎看不見底下的醋飯，視覺與味覺的澎湃感同時爆棚！ 除了招牌丼飯，這裡的味增湯更是誠意十足，隨便一撈都是滿滿的鮮魚肉塊，湯頭濃郁鮮甜，喝得出職人的堅持。整體而言，今日魚市完美平衡了食材品質與平實價格，那種大口吃肉、大啖海味的爽快感，讓人每一口都吃得出新鮮與滿足。如果你在找尋一處物超所值、能讓靈魂被海鮮填滿的日式餐館，這間南京東路的隱藏實力派絕對不會讓你失望！",
+          "publishTime": "2026-03-06T02:28:35",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ying",
+          "rating": 5.0,
+          "text": "只能說這裡非常的棒，也很實惠 我覺得我很會吃了！力壯的那種！ 真的非常飽！真的不用怕吃不飽！ 如果有一些忌諱的部分也可以請店員跟師傅幫忙調整一下餐點！人很好，只是說人手有限，我覺得請大家耐心跟見諒❤️❤️❤️ 剛好有緣結識 好的店員 仕展👈非常推他 如果你很E的話 也可以主動找他瞭解。 開開心心約會 跟開開心心 吃飯！ 氣氛還不錯， 很chill自在。 人其實、可能非常多，還是建議訂位。",
+          "publishTime": "2026-01-05T02:28:41",
+          "source": "Google Maps"
+        },
+        {
+          "author": "North",
+          "rating": 4.0,
+          "text": "四人用餐，建議定位～ 生意很好的日料店，可惜9點打烊～ 基本上生魚片系列不論是視覺或是味覺都是一種享受，但在於熟時丼系列，肉品的味道比較重（不論是豬或是牛），是蠻可惜的～ 另外加入會員，會有無酒精飲品兌換券，是芒果康普茶，不知道是本身康普茶味道還是杯子的味道，有種說不出來的腳臭味@@，四杯都只淺嚐就放棄了。 清酒整體來說濃度一般，甜度偏高，但容器很有在日本喝清酒的感覺。",
+          "publishTime": "2026-01-05T02:28:36",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Time I",
+          "rating": 5.0,
+          "text": "位於南京東路二段大樓地下室...... 目前來這用餐至少六次，今天男人聚會臨時起意到這用餐！ 眼看時間接近休息詢問店員是否可以用餐！ 店員很客氣說請進 原先想要點螃蟹可惜售完 因此點了兩份爆鮭滿滿丼！ 等待期間先喝免費鮮味十足味噌湯 店員此時上餐，沒令人失望視覺享受讓你可以盡情拍照 而生魚片吃的也爽快..... 整體而言-在北市這價位其實算是平價又美味 下次還會再來用餐",
+          "publishTime": "2025-12-06T02:28:44",
+          "source": "Google Maps"
+        },
+        {
+          "author": "張文豪",
+          "rating": 5.0,
+          "text": "星期六中午在附近找餐廳吃飯，意外看到這一間位於地下室的丼飯定食，跟小孩老婆共點了四份定食，份量足夠，食材新鮮，有干貝丶溫泉蛋丶小鮑魚等數樣小菜，自助味噌湯也是滿滿的料，和牛滿天星定食，價格雖然高一點，但是值得，有5片和牛跟滿滿的小干貝，上面鋪滿了了鮭魚卵、金箔、松露，吃起來非常過癮，加入會員送三片鮪魚生魚片，很新鮮，不錯吃，覺得運氣很好，不用排隊價格實惠又好吃的餐廳",
+          "publishTime": "2026-03-06T02:28:37",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Nash Huang",
+          "rating": 5.0,
+          "text": "南京東路上 入口不太明顯 很容易錯過 下去之後B1裡面風格很有特色 也蠻寬敞 用餐環境非常舒適 味增湯很有誠意 裡面肉塊很多 還是採用自助式的方式 讓你喝到爽 擺盤相當用心 簡直是藝術品般的呈現 讓你拍好拍滿 食材來說相當新鮮 給的料很多 但是醋飯來說就顯得有點低調 沒什麼特色 整體來說還是不錯的 期待下次再來 再",
+          "publishTime": "2026-01-05T02:28:45",
+          "source": "Google Maps"
+        },
+        {
+          "author": "David Chang",
+          "rating": 5.0,
+          "text": "評論沒有送東西，真好評來的！第一次吃除了上菜快之外，食材還很鮮美，烤鮪魚下巴的肉超多，酥脆軟嫩，店內半自助，湯水自取，但那個味增湯的料也是給的大方，有蝦頭去熬，還有許多無刺魚肉，不小心就喝了三碗，這價位真的是可以，下次會再來 服務半自助：掃碼點餐、結帳收幣機自結（只收現金）、茶水餐具自取、收10%清潔費",
+          "publishTime": "2025-12-06T02:28:40",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Cole Mr.",
+          "rating": 5.0,
+          "text": "今天突然想吃點生魚片丼飯，跑到這找了下才發覺原來在地下室😅，但餐廳內保持明亮。 點的是武士丼份量比想像中多上不少，怕你吃不完飯還附贈一顆蛋拌飯吃。 生魚片厚度足、海膽蟹膏都是新鮮，至於忙起來就不清楚，畢竟是當天中午第一個人。 整體評價推測",
+          "publishTime": "2026-03-06T02:28:39",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Chen Ricky",
+          "rating": 5.0,
+          "text": "2025/11/23 抽號碼牌等了一個小時 赤白寶盒個人覺得CP值蠻高的 鮭魚 比目魚 赤蝦 干貝 味道不錯也新鮮 不過飯有醬料好像可以不用加 小菜倒是普通了點 友人點的極上寶盒他覺得還好 蝦頭還黑黑的XD",
+          "publishTime": "2025-12-06T02:28:38",
+          "source": "Google Maps"
+        },
+        {
+          "author": "王百翔",
+          "rating": 5.0,
+          "text": "剛好中午🕛來用餐🍽️，味增湯🥣有滿滿的魚肉🐟還有蝦🦐醬，超級濃郁好喝，店內滿滿日式風格，喝湯🥣就蠻飽了，主餐肉還行，飯🍚也不錯，下次可以在來吃吃其他餐點🥘好回味增湯唷～一定要來喝好幾碗的啦",
+          "publishTime": "2026-01-05T02:28:46",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Rio",
+          "rating": 4.0,
+          "text": "生魚片類整體都相當出色、新鮮度很到位；相較之下，牛豬肉的肉味偏重，風味上略顯搶戲。餐廳氛圍不錯，雖位於地下室但環境仍算舒適，只是樓梯狹小、逃生動線稍讓人擔心。距離捷運站非常近，交通便利。",
+          "publishTime": "2026-01-05T02:28:39",
+          "source": "Google Maps"
+        },
+        {
+          "author": "York Chen",
+          "rating": 5.0,
+          "text": "四人用餐，建議訂位 有味增湯（早來的話料滿多的）跟檸檬水可自取 炙燒品項多，和不太吃生魚片的親友也很適合共享餐點 餐點普遍都擺盤滿漂亮、滿好吃的 評論送哈密瓜霜淇淋🍦",
+          "publishTime": "2026-02-04T02:28:37",
+          "source": "Google Maps"
+        },
+        {
+          "author": "張宸誌",
+          "rating": 5.0,
+          "text": "已經來吃好幾次了，店名雖換，但是品質還是一樣穩定。 丼飯好吃、份量夠，配料也很新鮮，吃完很有滿足感。 服務態度很好，整體體驗加分，之後還會再帶朋友來！",
+          "publishTime": "2026-03-06T02:28:34",
+          "source": "Google Maps"
+        },
+        {
+          "author": "粉圓撞奶茶",
+          "rating": 5.0,
+          "text": "今天來換壽星禮 鮭魚龍蝦披薩壽司 好吃 很飽 😋 生魚片船 與烤肉串 嫩雞串也不貴！ 味增湯魚皮 肉 喝到飽 服務也很不錯喔！ 評價還會再送冰淇淋",
+          "publishTime": "2026-03-06T02:28:47",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Kueifu Cheng",
+          "rating": 5.0,
+          "text": "第一次用餐點了Top 3武士丼，食材新鮮同時可以吃到多様海鮮，味噌湯也很美味，下次帶家人及朋友一起同享。",
+          "publishTime": "2026-04-05T02:28:50",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Jeffrey Chang",
+          "rating": 5.0,
+          "text": "兩年前吃過後便經常來吃，時隔一年沒來之後發現如今更新設備，使用點餐機讓服務更加通順於現代，品項依舊絕佳",
+          "publishTime": "2026-03-06T02:28:50",
+          "source": "Google Maps"
+        },
+        {
+          "author": "張瑋軒",
+          "rating": 5.0,
+          "text": "用餐環境很舒適 味增魚湯很讚！超級多料喝到飽！ 餐點美味！值得再訪！但記得預約！😂",
+          "publishTime": "2026-02-04T02:28:43",
+          "source": "Google Maps"
+        },
+        {
+          "author": "張喬惠",
+          "rating": 5.0,
+          "text": "食材非常新鮮 CP質高👍 下次會再帶朋友親臨此店 推薦給大家",
+          "publishTime": "2026-03-06T02:28:45",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Angel Lin",
+          "rating": 3.0,
+          "text": "2025/10/19初訪 有發票,有收服務費 點餐後先付款 只是機器沒有投零錢,要用紙鈔付款 要訂位才立刻有座位 周遭環境還算乾淨,廁所雖小,只有男女各一間,但滿乾淨 座位算多吧, 只是我們那桌有點小 真不知店家是怎麼安排座位的,5人坐在4人桌上吃 ,體感是真的很不好 店家是真不怕你吃,自助味增湯每搖一勺都可搖到滿滿的魚肉,只是有點鹹",
+          "publishTime": "2025-11-06T02:28:49",
+          "source": "Google Maps"
+        },
+        {
+          "author": "蔡佳臻",
+          "rating": 3.0,
+          "text": "自助味噌湯有很多魚蝦邊角料，但口味不平衡，太鹹容易膩；茶碗蒸內含一個蟹肉棒，上面放不好吃的蒟蒻，不必點，太甜；定食配菜很沒誠意，又有蒟蒻跟奇怪的絲，簡單來說建議單點松阪豬就好；寶盒散壽司不錯，可以點；椅子很難坐，不舒服",
+          "publishTime": "2026-03-06T02:28:48",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10338": {
       "photoUrls": [
@@ -21557,6 +22415,148 @@
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGOwNHsP3VUC4tDPvAWFAm3LnJFAeC36R57_TwB4EF5wcJOEDiKkDeGG5K1a4shOYs9BL-LfSI-P5T-ng_8QDJr4kd4L-TxevQPsmWLwnOUL3hk83ny9wcBYJlwk_Sa4ZycUoeO=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGXU5Nkn7qV6YPlWWCcXMNNpy8m8iTf6f1Pp02Y90e8MFlMHIejOO-cMGb4diUiU6ETgbBHPWl-ldhkeRBA7h_5Q0vD-1Fw4r6ijnMW2E_jFqqRZpA-YEELMIAqbaG5OSGui1CzsA=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAECQBpaFF0dFkmpeZqe7L0bzv7Y0utCyayIvwWWWBtMQjit63V0WaSKCIMkDG48l0PxOqvRAa-moycRX9Ld6cfZD12vtnJ91zMGqr7gjJIutlp87J8li8qx06nUPHPCMLNSCySV=w532-h298-k-no"
+      ],
+      "reviews": [
+        {
+          "author": "施宇軒",
+          "rating": 5.0,
+          "text": "與老婆一輩子一次的婚禮獻給了 青青食尚花園會館—星空之森 想要辦戶外婚禮的各位 一定要選擇星空之森的場地，真的非常非常漂亮！ 所有賓客一致好評場地漂亮 空間很大非常舒適 並且還有全台最大的螢幕背板 放上您的婚紗照畫質也非常的清楚 大拇指等級的👍👍👍 首先還是要感謝婚顧：Sinta 細心的解說青青各個廳房的優缺點 帶看的過程中以及討論都不會有強迫推銷的感覺 耐心的解決我們的反對問題，聊天過程也舒服 甚至還幫我們爭取了不少的福利 想參觀的各位 可以指定婚顧：Sinta 一定不會失望的 推推👍👍 因為本次的婚禮流程非常非常的緊湊 包含了 小女兒的抓周、二寶的性別趴 媽媽的生日 所有的一切 都是由婚企/主持人：舒程一手包辦 我們只負責訂道具、帶上自己的婚紗照 還有位上禮，就這麼簡單 剩下的所以細節全都是婚企/主持人：舒程搞定的 真的是大大的感謝🥹🥹🥹 一直以為婚禮會非常的繁忙 但在舒程的細心幫助下 真的輕鬆許多😍 而且主持的功力 也是相當了得 當天的流程完全沒有卡頓、也沒有出差錯 舒程主持也是把氛圍照顧的很好 不會因為活動很緊湊，而忽略掉細節！！！ 彩排流程 也是耐心的說明、講解 來青青辦婚禮 不找舒程真的真的一定會後悔^_^ 最後也要感謝小管家：佳璇當天大熱天從頭跟著新娘跟到尾幫忙提裙擺 幫忙扶新娘 幫忙準備道具 幫忙拿餐食進新娘房，生怕新娘餓肚子🥹🥹 時時刻刻跟在新娘身邊 而且在文定儀式時，因為家人疏忽沒有準備紅包袋 佳璇反應很快立馬幫我準備紅包袋,使這個文定儀式 順利圓滿成功這間沒有任停頓 從來沒看過那麼認真的員工 😍😍",
+          "publishTime": "2025-11-06T02:34:16",
+          "source": "Google Maps"
+        },
+        {
+          "author": "fanfan cat (帆帆貓)",
+          "rating": 5.0,
+          "text": "🍽 美食亮點（婚宴菜色真的很強） 佛跳牆湯頭濃郁到幸福爆棚， 料多實在。 上湯焗烤龍蝦彈牙奶香， 賓客一致好評。 摩卡咖啡豬肋排超驚喜！ 甜香咖啡味＋軟嫩肋排的組合意外超搭。 紫紅雙喜富貴圓 （地瓜球＋山藥球＋爆米花） 超可愛，外酥內綿，吃起來像幸福小煙火 在嘴裡「蹦」一下。 甜點有檸檬派＋哈根達斯完美收尾。 🌿 環境亮點（台北最像國外的婚禮場地之一） 落羽松大道真的美翻， 每次來都拍爆記憶卡。 星河池畔證婚區輕透浪漫， 下雨也不怕。 森之教堂的自然光美的像開濾鏡。 白馬＋馬車儀式太夢幻， 完全童話系婚禮。 宴客後還能去泳池派對， 直接變身國外婚禮 vibe！ 📸 拍照友善度 光線好、角落美，我自己也超愛在青青拍照。 新人＋賓客怎麼拍都能當封面。 🌟 總結 想找 台北森林系婚禮＋戶外證婚＋高水準美食 的新人，真的一定要把青青食尚列入清單 第一名！",
+          "publishTime": "2025-12-06T02:34:12",
+          "source": "Google Maps"
+        },
+        {
+          "author": "羅欣潔",
+          "rating": 4.0,
+          "text": "在台北士林就能輕鬆一睹落羽松的夢幻景色 上百棵高聳挺立的落羽松落羽松由綠、紅、橘層層交疊渲染，有如瞬移韓劇浪漫場景，沿著花園步道自然延伸，隨著天氣與光線變化，呈現出不同層次的視覺效果。步道旁的白雪木同樣綻放，像白雪般為森林增添一抹純淨與冬日美感。 落羽松 × 白雪木×大草坪 多景同框，美的像一幅圖畫。 園區內人氣打卡點星月童話、北歐小虹屋，在落羽松變色季節更顯繽紛夢幻。 除了冬季限定的落羽松，景觀泳池池畔旁提供英式風味下午茶奢華饗宴。我個人對食材及飲料沒有很合意，整場的午茶氛園給80分，場景佔60分。而且我們的座位是一個臨時組裝的桌子。感受很打折。有預約下午茶的來賓費用有含入場門場。有免費停車場很多車位很方便。",
+          "publishTime": "2026-02-04T02:34:11",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Wing Chi Cheung",
+          "rating": 5.0,
+          "text": "這間婚宴會館整體感覺很不錯，很適合辦婚禮或拍婚紗。場地滿大的，佈置也很有氣氛，還有一座小教堂，拍照起來真的很浪漫。不管是戶外風景還是室內空間，都很好取景，隨便拍都很上相，對喜歡拍照打卡的人來說會很加分。 這裡也有提供餐點給賓客，菜色算是中規中矩，味道不差，但也沒有特別驚艷的地方，就是安全牌路線。如果對吃的要求很高，可能會覺得普通，不過整體用餐環境還算舒服。 我覺得這裡最大的優點還是風景漂亮，整體氛圍很好，很適合想要留下美美照片、重視場地感覺的新人。辦完婚禮照片一定很好看，當天賓客也會覺得環境很有質感，是個偏重「美景加分」的婚宴場地。",
+          "publishTime": "2026-03-06T02:34:10",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ken Liu",
+          "rating": 5.0,
+          "text": "離台北市鬧區附近的一個戶外BBQ。 沒有一般燒肉店的擁擠，半露天的環境，寬敞的用餐空間，非常適合跟朋友來聚會。 缺點也是優點：對台北人來說是個捷運到不了的地方，其實可以從捷運站坐計程車到達這個遠離塵囂的祕境。 餐點：會先上一整份份量充足的基本盤，食材皆有水準之上，而菜單的加點品項也充滿誠意（品項雖不多，但都是好肉）。 服務與時間：充滿熱情的服務，不會讓人感受到壓力的用餐時間。 心得：優惠的價格，祕境般的燒肉體驗。希望能狗繼續保持並生意興隆，因此這次給了店家5顆星。",
+          "publishTime": "2026-02-04T02:34:11",
+          "source": "Google Maps"
+        },
+        {
+          "author": "好聰明",
+          "rating": 5.0,
+          "text": "想要結婚新人們，趕緊照過來！ 這裡，整個會館芬圍實在是太美了！ 讓人無法想像， 在台北市有這樣， 高尚又美麗婚宴會館， 以前， 朋友的姪子在此辨婚禮， 我當晚來参加宴會， 只感覺菜色澎湃好食， 色香味俱全， 實在物超所值， CP值感覺很高， 今天，值得我來推薦大家一下！ 那晚，因為婚禮上的匆忙， 也没刻意去到處逛々， 今天白天專程來看看， 順便拍照留念到此一遊， 說真的！ 還真的太漂亮了！ 不信！你們來逛逛就知道， 我没浮誇！",
+          "publishTime": "2026-02-04T02:34:13",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Tao-Yu Cha",
+          "rating": 4.0,
+          "text": "餐點非常美味，擺盤很用心，服務生上菜時會仔細說明餐點內容，餐點內容與價格相符。 場地不太舒適，是半戶外的場地，雖然有冷氣但是感受不太到冷氣的存在，有水冷扇時不時會吹到腳，不然真的會熱到吃不下東西，但是有時會突然變成熱風。 上菜速度非常慢，ㄧ小時只上了3道菜，就算想趕快吃飽飯逃到有冷氣的天堂也沒辦法🥲 有很小杯的餐前飲料，喝完之後就只剩下很淡的檸檬水要撐到最後甜點環節才會有飲料，不曉得為什麼沒有提供飲料隨餐上的選項🥲 …",
+          "publishTime": "2025-10-07T02:34:16",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ray Hsu",
+          "rating": 5.0,
+          "text": "青青食尚會館好佛心 1/11-1/14免費開放入園 可以欣賞滿滿的落羽松 搭配花園內可愛的造景 今天太陽公公露臉 染橘紅的落羽松沐浴在陽光下 真的超級美～～～💛🧡❤️ 人潮很多，但可以把握偶爾空景的時機 趕快按下快門😆真的好美的地方～ 可以順遊旁邊的原住民文化主題公園 落羽松及水池倒影交織如詩如畫 至善園也推薦去走走唷",
+          "publishTime": "2026-02-04T02:34:12",
+          "source": "Google Maps"
+        },
+        {
+          "author": "陳崴盛",
+          "rating": 5.0,
+          "text": "在森林與光影之間 婚禮不只是儀式 而是一段被自然祝福的時刻 落羽松靜靜佇立 陽光穿過樹梢 白色建築與水色倒影 把愛情襯得剛剛好 有些畫面 不用多說 就已經很浪漫 #婚禮夢想 #青青食尚花園會館 #落羽松婚禮 #森林系婚禮 #自然光婚禮 #婚禮廣場 #光崴攝盛影",
+          "publishTime": "2026-02-04T02:34:14",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Chiafen Tsou",
+          "rating": 5.0,
+          "text": "2026/01/13 落羽松季節免費開放入園參觀，還提供熱紅茶，雖然免費但服務人員都很熱心服務，非常佛心。 會館佔地廣，教堂、大草原、室內室外證婚場地很適合辦婚禮。 若開車在會館入口處亦有停車場，參觀完可順道走過婆婆橋至對面原住民公園觀賞環湖落羽松美景。",
+          "publishTime": "2026-02-04T02:34:15",
+          "source": "Google Maps"
+        },
+        {
+          "author": "黃淑絹",
+          "rating": 4.0,
+          "text": "發現青青食尚花園的落雨松紅了，老闆佛心來者免費開放入園參觀，但只有1/11-14，選擇1/13這一天比較有空就趕緊過來參觀一下，本來只想要來20分鐘，沒想到一呆就兩個多小時，真的很漂亮！ 拜訪日期： 2026年1月13日",
+          "publishTime": "2026-02-04T02:34:15",
+          "source": "Google Maps"
+        },
+        {
+          "author": "郭宸如",
+          "rating": 4.0,
+          "text": "感謝✨林玉婷小姐服務人員🙎‍♀️，處理事情很快速，人又親切熱情、笑容滿面，感謝今天的幫忙，下次來消費希望還能遇到她 青青食尚會館消費還能看落羽松實在太棒，超美，一整片都是落羽松，也不會很多人很好拍 超級出片📷✨❤️ …",
+          "publishTime": "2026-02-04T02:34:15",
+          "source": "Google Maps"
+        },
+        {
+          "author": "黃榮輝",
+          "rating": 5.0,
+          "text": "園區蠻大的！很棒的婚宴會館！園區種植了很多的落雨松，1月份的現在是適合觀賞的時間！停車位也蠻多的！觀賞完落雨松順別人在園區用餐這次使用的是經典套餐還算蠻精緻、好吃！目前入園門票是150，可折抵餐飲！推薦大家前往！",
+          "publishTime": "2026-02-04T02:34:12",
+          "source": "Google Maps"
+        },
+        {
+          "author": "旅朲",
+          "rating": 4.0,
+          "text": "餐點非常美味，擺盤很用心，當天當區服務生駿豐還不錯上菜時會仔細說明餐點內容，餐點內容與價格相符。 整體還不錯，環境尚可，廁所乾淨，只是小可惜車位太少，但這也不能怪店家了，因為畢竟空間有限！",
+          "publishTime": "2026-01-05T02:34:14",
+          "source": "Google Maps"
+        },
+        {
+          "author": "CHUNJU W",
+          "rating": 5.0,
+          "text": "很美的婚筵場地，造景用心，N年前也是在這宴客，硬體設施維護的不錯，今年才知有落羽松可觀賞，且有幾天是免費參觀，再來感受一下幸福氛圍，服務人員親切主動招呼。",
+          "publishTime": "2026-02-04T02:34:13",
+          "source": "Google Maps"
+        },
+        {
+          "author": "tpklaus huang",
+          "rating": 5.0,
+          "text": "20260113 沒想到這裡面這麼漂亮，真的非常適合婚宴，今天是落羽松變色季節免費開放進場拍照，環境幽雅、景色好漂亮！",
+          "publishTime": "2026-02-04T02:34:15",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Linson Lin",
+          "rating": 5.0,
+          "text": "青青時尚花園會館：大約有20年沒到此，趁年度免費開放入場進來拍攝落羽松，確實很漂亮，值得一遊及順便在此用餐賞景。",
+          "publishTime": "2026-02-04T02:34:13",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Vv鴨子（eziyamimi）",
+          "rating": 5.0,
+          "text": "落羽松真的超美的 隨便拍都好看 可以帶寵物自由落地走動很棒 可惜下午茶比較普通～",
+          "publishTime": "2026-02-04T02:34:16",
+          "source": "Google Maps"
+        },
+        {
+          "author": "ANNY CHEN",
+          "rating": 2.0,
+          "text": "風景很美，環境漂亮，但一點都不清幽，可能是今天開放給不用餐的遊客，所以，一邊用餐，旁邊都有人一直拍照，甚至跑到桌邊拍，感覺很差;再加上商家一直播放加line的廣播，另外一邊又有某電信聚餐唱歌的聲音，兩邊夾殺下，真的變成了災難...。雖然建議服務人員把聚餐那邊的門關上，但最後還是沒做，吃飯變成了一種折磨，可惜了今天的好天氣跟這樣的環境。。。 至於餐點的部分，雖然要一直催但以價位來說餐本身還可以，服務人員也很有禮貌。",
+          "publishTime": "2026-02-04T02:34:11",
+          "source": "Google Maps"
+        },
+        {
+          "author": "李北鼻",
+          "rating": 3.0,
+          "text": "環境優美，氣氛很好。歌手讓氣氛更活絡了，謝謝親切的服務員們。打卡寫評論才能玩DIY聖誕花圈。可能天氣冷，自助餐拿到的餐點乾乾的，吃得不太習慣",
+          "publishTime": "2026-01-05T02:34:15",
+          "source": "Google Maps"
+        }
       ]
     },
     "10339": {
@@ -21587,7 +22587,149 @@
         "price_buckets": [
           "$400-600"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "Karen",
+          "rating": 4.0,
+          "text": "超級可愛牛奶鍋🐻 必點的對吧！ 牛奶湯底熊進鍋直接泡湯♨️放上起司毛巾直接開吃！ 雙人瀑布肉真的很壯觀，個人覺得雪花牛帶油脂比較不澀，但翼板牛肉也不錯，兩種牛搭配牛奶鍋豪不衝突，只是牛奶湯底較濃郁，吃到最後難免會稍微膩口 必須誇誇的野菜放題，大愛牛奶白菜，蔬菜都很新鮮！甚至還可以自製海鮮漿，青菜愛好者請夾爆，店員隨時都會補滿，不怕你吃。如果是大食客也不用怕，多款主食，你一定能吃得飽 衡陽店的服務品質不太好：結帳帶位全部擠在門口，那天用餐結帳櫃檯突然沒有人，也沒有其他員工發現，或自動來處理櫃檯前方擁擠的人潮，送餐點的服務員也微脫線，需要餐具但上了餐點缺沒有同時拿來，後來是攔截經過的其他服務生，希望之後能改進。但聚日式鍋物是個能吃飽喝好，能好好聚餐的餐廳🍲 🏷️雙人雙牛瀑布聚：NT$1688 🏷️板腱牛肉：NT$498 🏷️札幌熊起司牛奶湯：NT$79 🏷️北海道昆布湯：免費 🐈‍⬛此分店在2樓，行動不便者需斟酌",
+          "publishTime": "2025-12-06T02:36:01",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Thermal",
+          "rating": 5.0,
+          "text": "之前跟朋友衝去吃這家日式火鍋，整體體驗超級愉快！從進門開始就能感受到店裡的氛圍很放鬆不拘謹，裝潢帶點日式簡約風格，座位也不擁擠，很適合聚餐或跟同好一起慢慢吃🍲。湯底選擇多樣，我特別喜歡他們的昆布跟麻辣湯頭，味道醇厚、香氣足，重點是不會死鹹，吃到最後一口還是很舒服。 配料品質也讓人印象深刻，肉片切得厚薄適中、油花分布均勻，涮起來口感彈牙又 juicy；海鮮拼盤也很新鮮，蝦子和干貝都甜甜的👍。菜盤份量給得很有誠意，蔬菜種類多樣、色彩繽紛，看起來很營養。 服務部分真的大推，店員態度親切，上菜速度快，還會注意我們鍋裡的狀況，適時補湯或提醒換網，讓人覺得很貼心。價格方面以火鍋來說算合理，尤其如果加上飲料吧或小點，一頓吃下來很有飽足感，不會覺得荷包太吃重💸。 交通也方便，附近有捷運走過來一下就到，吃完還可以到週邊逛逛，整體來說是會想再訪的火鍋店！🍻",
+          "publishTime": "2026-01-05T02:36:00",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Wendy Wen",
+          "rating": 4.0,
+          "text": "這次在「聚」家聚，整體感覺非常不錯！現在的點餐方式是只要選一份主食（肉品或海鮮），其他副食、蔬菜、火鍋料到甜點，全部採自助式吃到飽。我很喜歡這種方式，大家可以依照自己的喜好和食量取用，不會造成浪費，也吃得更滿足👍 食材新鮮度有水準，選擇也算不少。最讓我驚喜的是甜點區：自己擠霜淇淋後，可以加上蜜紅豆（口感很專業）、黑糖珍珠（偏硬）、荔枝波波球、日式蕨餅（單吃也好吃）、巧克力醬⋯，外面單買一杯大概都要破百，這裡直接自助吃到飽，聚真的很有誠意🥰 不過遺憾是----日式抹茶霜淇淋只短暫供應一下就沒了，後來整晚都只有札幌牛乳口味，我們一直等到離開仍沒等到抹茶🥲 如果未來自助區能再加上水果，整體豐富度會更上一層樓😊 我們是週四晚上來的，沒想到竟然客滿，強烈建議一定要提前訂位！",
+          "publishTime": "2025-12-06T02:36:02",
+          "source": "Google Maps"
+        },
+        {
+          "author": "B W.",
+          "rating": 4.0,
+          "text": "吃得蠻趕的，尤其是帶著小孩，一邊顧小孩、一邊煮、還要去拿菜、拿調料、拿餐盤等，有種很忙碌的感覺，正覺得終於坐下來安定的可以好好吃的時候，服務人員就出現提醒時間了，瞬間轉戰鬥模式，吃很著急，吃得好累啊。小孩還吃很慢，吃得心裡更著急。 對第一次來的顧客而言，菜單很難第一時間看懂怎麼點，服務人員讓自己掃碼就去忙了，有加收服務費，覺得應該至少介紹一下。好不容易再找來服務人員，回答也很著急，少了以往王品服務的特色。和牛吃起來不如costco的牛小排火鍋肉片嫩，整體覺得CP值不高。 吸引人的是他們有壽星優惠，壽星還是值得來吃一頓火鍋的。",
+          "publishTime": "2026-01-05T02:36:01",
+          "source": "Google Maps"
+        },
+        {
+          "author": "吃na",
+          "rating": 5.0,
+          "text": "服務態度很好，忙前忙後真的辛苦店員了💖😋 推薦壽喜燒$49的湯底，我覺得調得剛剛好，不用沾其他醬料就夠鹹了。 自助吧的蔬菜很新鮮，店員時不時會補貨，還有冬瓜、年糕這種酷酷的東東。 副食也吃到飽，烏龍麵的份量很剛好！不是一大份，給你撐到死我很喜歡。 冰淇淋有抹茶（草）跟牛奶，還有巧克力醬、黑糖醬，巧克力碎片跟棉花糖、蜜紅豆、珍珠能加。 不吃草的人瘋狂喇巧克力醬就對了，很好吃，耶。 然後拜託拜託，爆爆珠給我去掉。 唯一有差的是，後面的客人超吵看影片外放超大聲，還有人煮火鍋煮到操灰答，真的是希望新年驅魔這些怕咪呀。",
+          "publishTime": "2026-04-05T02:36:02",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Lab.",
+          "rating": 4.0,
+          "text": "生日當天用餐，壽星五折優惠券只能在單人鍋使用＆單價高者折扣，雙人肉瀑布不能用有點可惜。 泡菜湯有酸不會很辣很對味，吃完身上味道重。葉菜類有三種，其中大陸妹較不新鮮，尾端黑黑的要自己手動摘除。鮮蝦魚片鍋有三種魚，其中之一土味較重，蝦子很新鮮。日式餃丸有香菜味、牛肉漿彈牙牛味重、海鮮漿都好吃。 用餐時間人爆多工作人員很忙可以理解，但是也不用表現如此厭世？收餐人員倒是比較熱心。 想在熱門時間去用餐的，請自己控制好用餐時間，一入座馬上開始倒計時喔，剩九分鐘時才來提醒時間快到，沒多久就會把桌上收的一乾二淨，吃得非常趕。",
+          "publishTime": "2025-11-06T02:36:03",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Emmanuel Lee (Emma)",
+          "rating": 5.0,
+          "text": "王品集團的火鍋老品牌聚日式鍋物，終於有機會來體驗，直接選了聚日式鍋物經典北海道牛奶鍋。 點完餐直衝自助吧夾滿一盤蔬菜，補充青菜的時刻真是令人大興奮🥰！盛一碗壽喜燒飯、倒好一杯香醇黑豆漿，把熊造型奶塊入鍋後，就可以開動！ 聚日式鍋物自助吧吃到飽，100分鐘內想吃的，與朋友盡情吃超開心。",
+          "publishTime": "2026-03-06T02:36:00",
+          "source": "Google Maps"
+        },
+        {
+          "author": "YW C",
+          "rating": 5.0,
+          "text": "食材新鮮好吃，以前聚是由服務生拿所有的肉、菜、醬料及主食到桌上，客人比較方便閒聊，服務生點餐送菜送飲料特別辛苦。開放食材吧後食物不限量，但每個人都要起身5-6次，用餐尖峰客人走來走去擠在一起會很混亂，兩種供餐方式各有利弊，我個人是比較喜歡以前的用餐方式，但不影響我對這家餐廳的喜愛！",
+          "publishTime": "2026-03-06T02:36:00",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Linda Chang",
+          "rating": 4.0,
+          "text": "建議一定要先預約，因為報到之後還要等候帶位，大概等15到20分鐘。用餐只有100分鐘，大約在用餐90分鐘後就會開始清理桌面，提醒剩餘時間，食材算新鮮。",
+          "publishTime": "2025-12-06T02:36:04",
+          "source": "Google Maps"
+        },
+        {
+          "author": "蕭世文",
+          "rating": 4.0,
+          "text": "吃火鍋就是喜歡有提供圍兜兜及桌邊數位鈴的服務 讚 餐點尚可 可惜沒有提供勺子且需共鍋用餐 下午13:30 進場可用餐到17:00 蠻適合用餐聊是非",
+          "publishTime": "2025-12-06T02:36:05",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Miss Ma",
+          "rating": 5.0,
+          "text": "肉片似乎有點單薄 好在蔬菜可以吃到飽 可是100分鐘真的很趕 似乎學生比較適合吃這麼快 一般有點年紀的似乎吃的很辛苦 甜點都還沒嘗到 時間就到了",
+          "publishTime": "2026-01-05T02:36:02",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ya Mariennn",
+          "rating": 5.0,
+          "text": "好吃！超愛，CP值很高 更：服務還是很不錯，當日壽星套餐有半價 牛丼幾乎八成都是洋蔥這點可能要改一下",
+          "publishTime": "2026-01-05T02:36:06",
+          "source": "Google Maps"
+        },
+        {
+          "author": "張小容",
+          "rating": 5.0,
+          "text": "點了鮮菇湯底，味道好，甜點好吃，荔枝波波球很特別，蔬菜吃到飽，肉質也不錯，希望蔬菜種類可再多一點",
+          "publishTime": "2026-01-05T02:36:06",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Martin Hsieh (馬丁謝)",
+          "rating": 5.0,
+          "text": "食材新鮮，座位舒適空間寬敞。李先生和櫃檯的吳小姐服務專業親切，熱心協助長輩下載app和註冊。",
+          "publishTime": "2025-12-06T02:36:05",
+          "source": "Google Maps"
+        },
+        {
+          "author": "HsinYu",
+          "rating": 5.0,
+          "text": "肉的品質沒到驚艷，但也還不錯！ 自助吧很不錯，種類多也都還蠻好吃的！青菜看起來蠻新鮮～",
+          "publishTime": "2026-04-05T02:36:01",
+          "source": "Google Maps"
+        },
+        {
+          "author": "ssuussaannn s",
+          "rating": 5.0,
+          "text": "好吃cp值又高，服務員在我們去夾菜時主動幫忙蓋外套袋真的很貼心，有被暖心到",
+          "publishTime": "2026-04-05T02:36:06",
+          "source": "Google Maps"
+        },
+        {
+          "author": "古宗翰",
+          "rating": 5.0,
+          "text": "蠻好吃的。沙拉吧很棒。蝦滑盡量吃。甜點也超棒",
+          "publishTime": "2026-03-06T02:36:05",
+          "source": "Google Maps"
+        },
+        {
+          "author": "旅行家6967",
+          "rating": 3.0,
+          "text": "1.消費模式是單點的肉或海鮮之外，其他諸如青菜、菇類、丸子、飲料、霜淇淋都是自助式吃到飽，質感還可以。我點了單人海鮮鍋，另外加100元的牛肉，加一成服務費，價格870左右，蝦與扇貝的新鮮度差強人意。如果是愛吃肉的消費者去吃同價位的吃到飽也許比較划算。 2.櫃檯那位店員非常忙，辛苦了。 3.餐具沒洗乾淨，都油油的。",
+          "publishTime": "2025-11-06T02:36:04",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Men",
+          "rating": 3.0,
+          "text": "1/4星期日晚上去，現場就像員工們的戰場根本做不贏，聽著左隔壁說沒筷子，右隔壁又沒衛生紙，收旁邊桌噴酒精拿這麼高又對我這的方向，當下真的很無言，建議不要假日去。很像夜市。",
+          "publishTime": "2026-02-04T02:36:07",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ren Wang",
+          "rating": 3.0,
+          "text": "鮮🦪比夜市蚵仔煎還小隻⋯⋯ 其他靠自助吧撐起來，接待只有一位，手忙腳亂，沒辦法好好接待預約客。",
+          "publishTime": "2025-11-06T02:36:04",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10340": {
       "photoUrls": [
@@ -21753,7 +22895,149 @@
         "price_buckets": [
           "$200-400"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "丸子",
+          "rating": 5.0,
+          "text": "首先被兩家拉麵店開再一起的奇觀給震驚到了~~ 想不到戰區就在我眼前啊!! 也很想不到 我會淋著大雨走了快半小時來千雲吃麵，吃完再淋回轉運站，想不到以為很短的路程 因為下了雨 整個步調走起來卻如此緩慢啊XDD 不過還是成功吃到了，點了濃厚雞白...在雲林吃慣了家鄉開的雞白湯專門店，沒吃過其他家 來試試看也好！ 也點了好像必點的雞肉醬親子飯跟+麵...看到桌上好多調味料，真的是心情大好~很喜歡加一些調味 避免吃到不夠鹹或不夠濃厚，可以自己來調味！ 首先拉麵跟加麵很快端上來，雞肉醬親子飯則是比較晚了一些 但吃麵的時候，熱度都還很夠 真的很不錯，這點很加分 店內生意也很好但不吵雜，冷氣也很強 且還能保持這種溫度真的很舒服！ 麵體似乎是從日本進口而來，嚼境很不錯 也很好入口～叉燒跟舒肥的部分，因為太餓 沒太多細嚐就直接吞進去了~~口感算不錯 不至於不好吃就是 只是配置的份量似乎不多。 湯頭的部分，可能一開始我就先加了千雲的獨家辣油..所以應該沒破壞到太多味道吧(笑 湯的味道覺得算不會太腥 算清爽的雞湯～整碗算是中上的表現，雞肉醬親子飯的部分，控肉很好吃～是很少嚐到的味道 加上上面那科大蛋黃，攪拌之後 口感更上一層樓 整口吃進去，直接在嘴裡開party了。 另外有看到炸物的部分，日式唐陽雞嗎? 本來想點但有點小貴，還是收手了，有機會下次再來吃～整體用餐環境跟設備都不錯，還有我特別喜歡用掃描點餐跟電子支付的部分...如果可以直接線上點餐後直接順便付費，都不用讓店員更忙碌的話是最好了~~謝謝當天服務的各位辛苦的內外場們，有機會會再光臨。",
+          "publishTime": "2025-08-08T02:39:53",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Andrea Peng",
+          "rating": 5.0,
+          "text": "🍜招牌濃雞白湯拉麵 💰350 一碗標配有： 👉🏻大叉燒2片：攤開來快跟碗一樣大，最外圈應該是淹的時候有沾一圈黑胡椒，好吃沒有腥味，也保留口感，調味適中，搭配偏鹹的湯頭與拉麵是好的。 👉🏻自製雞肉球3小顆：主觀最喜歡的配料，吃得到柚子醬的味道，調味很好，比較清淡所以顯得配麵更好。 👉🏻雞胸肉叉燒3片：由於是低溫調理的舒肥雞，超級嫩，又有厚度，很好吃。 👉🏻其他配料：整顆水煮糖心蛋，熟度適當；蔥絲（覺得比蔥花的口感好）喜歡吃蔥的配麵剛好，最上點綴一小撮柚子醬。 👉🏻麵體：可選硬度，我選偏硬，實際吃很滿意，但不確定煮的時候是否拉麵撈上來有濾淨煮麵水，還是因為雞湯太濃郁，所以吃起來有點稠，但麵體整體是好吃的，就是很吸湯汁，真的「蠻咸的」。 👉🏻湯頭：有原配濃湯與清湯可選，不過因為第一次來吃，先選擇濃湯。 第一口真的好喝，非常濃郁也一點雞腥味都無，只是搭配麵吃真的非常鹹，因為與🇯🇵是相同濃鹹度😍 建議全部吃完，先喝開水簌簌口，再單喝湯，其實喝得出來店家真的熬湯很用心👍🏻 不過個人口味覺得還是太鹹了，如果換清湯，我應該會喝完。 最後推薦：敢吃辣一定要加加看他們自製的辣油、大蒜辣椒，很讚。 在非用餐時段用餐，裡面雖無坐滿，也有5～6組客人。",
+          "publishTime": "2026-03-06T02:39:19",
+          "source": "Google Maps"
+        },
+        {
+          "author": "CHU",
+          "rating": 4.0,
+          "text": "📍雞白湯拉麵（細麵） 📍選麵硬 📍額外多點一顆蛋 是沒有切一整顆的+35 📍一片叉燒肉（蠻大片的）兩塊雞胸肉 叉燒肉是黑胡椒味的 薄片 還蠻少見 但可能我剛好咬到筋稍稍難咬開 是瘦肉不是有油香的叉燒 愛有油脂香的人可能要考慮 湯的部分我是先還沒攪開前先喝了一口 還蠻鹹的 後來第二口把洋蔥跟蔥攪拌開之後再喝就好很多 但吃到後面還是很鹹 會喝不完的那種 可以跟店員要清湯 店員會用杯子接一杯類似柴魚高湯的東西給你，加進去確實會沒這麼鹹 但會多一股柴魚味 麵選擇硬麵 但不是真的很硬的那種 個人覺得偏外面的正常 吃到一半可以撈一些麵出來加他們家的陳年大蒜辣椒 還蠻香的不會太辣 有種吃了兩款拉麵的感覺 哀居追蹤會送你一盤小菜 然後google評論會再送一個 我這次是只有選擇哀居追蹤 小菜是送涼拌雞叉燒 適合加他們家的大蒜辣椒 總的來說我覺得是一間中規中矩的拉麵店 沒有特別優秀的地方 但也沒有特別差的地方 路過想吃拉麵又沒有人的話可以吃 但不會特別為了他跑過來的程度",
+          "publishTime": "2026-03-06T02:39:30",
+          "source": "Google Maps"
+        },
+        {
+          "author": "謝武勳",
+          "rating": 4.0,
+          "text": "期待越大，失望就越大，下次如果看到店家有打卡五星送小菜飲料的，我都想直接跳過了。 麵體本身的小麥香氣與Q彈的口感不錯，炸雞與餃子本身調味與蘸醬都很中規中矩，燒肉飯也是安全的味道，就是太小碗了。 柚香雞白湯拉麵，剛上來時，雞肉丸還是冷的，湯底本身味道很淡，吃到後面湯是越來越鹹，甚至有點發苦味，沾麵的醬，味道也是超淡，直接喝一口都覺得是我吃太鹹嗎？怎麼沾麵湯應該要很厚實才對，吃完麵體後給的高湯，也是湯粉沖泡的😔，味道一整個不OK，除了麵體本身好吃外，還不如自己煮的泡麵，兩杯飲料只有七分滿，是杯子太大還是本來就這麼少，槽點滿滿的店家，就是一個吃粗飽，每一樣都是接近安全偏中下。優點就是廁所衛生紙放好放滿，還有提供衛生棉，還勉強算加分，但麻煩可以洗刷乾淨一點嗎？很多地方都積灰塵，需要加強的地方真的不少。",
+          "publishTime": "2026-01-05T02:39:26",
+          "source": "Google Maps"
+        },
+        {
+          "author": "歐曜瑋",
+          "rating": 4.0,
+          "text": "麵屋千雲最明顯的優點是雞白湯湯頭非常濃郁，風味厚實、層次感明確，喜歡重口味的人應該會很滿意。不過對部分人來說可能偏濃、偏鹹，但店家提供可自行加入清湯調整濃度的設計，我認為相當加分，能讓客人依照個人口味微調，加入清湯後整體平衡度更符合我的習慣。 叉燒部分同時有雞叉燒與豬叉燒，雞叉燒表現不錯，口感嫩、味道乾淨，是這家比較有特色的亮點。豬叉燒則黑胡椒味較重，再加上蔥、蒜等配料，整體風味稍微偏複雜，若與一蘭相比，我個人仍較偏好一蘭的豬叉燒呈現。 麵條口感整體水準不錯，但如果直接對比一蘭，我還是稍微偏好一蘭的麵體表現。半熟蛋這裡的表現略勝一點，但差距不算非常大。整體而言，雞白湯特色鮮明、可調整濃度的設計實用，雖然部分配料風味稍重，但仍是值得再訪的店家。",
+          "publishTime": "2026-03-06T02:39:22",
+          "source": "Google Maps"
+        },
+        {
+          "author": "小熊",
+          "rating": 5.0,
+          "text": "第一次來千雲林森店，整體感覺相當舒服，店內氛圍溫暖乾淨，座位雖不多但動線順，進門就能聞到淡淡的雞湯香味，蠻療癒的。這次點了清湯系的拉麵，湯頭喝起來細緻順口，帶著淡淡的油香卻不厚重，鹹度也算剛好，是會讓人忍不住喝到見底的那種。麵條軟硬度掌握得不錯，有彈性但不會硬到搶味，搭配的雞叉燒肉質滑嫩、豬叉燒也不會柴，配蔥絲都讓整碗湯多了一點層次感。小菜部分表現中規中矩，但份量適中，搭著拉麵一起吃算是舒服的搭配。店員態度也蠻親切，整體節奏不會讓人有壓力。算是吃完會覺得放鬆、心情不錯的一家店，下次還會想試試其他湯頭。",
+          "publishTime": "2025-12-06T02:39:35",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Yeh Vanessa Fish",
+          "rating": 5.0,
+          "text": "中午時分的林森沒什麼人，千雲旁邊也有另一間拉麵店。整體來說千雲的氛圍很時尚，不太像是拉麵店，走精緻路線。第一次來訪，點了比較清淡的柚子清湯，濃淡適中。但是湯上面浮著一層雞油，所以選硬細麵也是很快泡軟。真的是很燙！冬天比較能保溫。雞肉非常軟嫩，雞肉丸子調味也很好，沒有怪味。用餐下來覺得唯一的小遺憾是店家太大方，追蹤打卡會送小菜，結果又送了一小疊涼拌雞肉 😅我比較想要配菜啊～希望下次店家可以讓客人自行選擇。但是，他們家的陳年蒜味辣椒很好吃！後面我都是配著麵。",
+          "publishTime": "2025-11-06T02:39:38",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ming yeh",
+          "rating": 4.0,
+          "text": "營業時間從11：00到凌晨4點，中間時段沒有休息，喜歡這種型態的拉麵店，可以不用在選在用餐尖峰期跟人苦苦排隊，自由選擇自己適合的時間來吃，林森店內的空間相比光華店略小，環境則是一樣維持的算乾淨 雞白湯的湯頭依舊濃郁不膩，麵體細麵也是個人喜歡的口感，另外一碗沾麵的麵體就是粗厚帶有嚼勁，只是可惜湯汁沒能好好吸附麵條，表現不算好，感覺還是雞白湯拉麵略勝一籌，而35元一顆的半熟蛋，賣相跟吃起來都像是水煮蛋，蛋黃明顯就是過熟，是這次的一大敗筆",
+          "publishTime": "2025-11-06T02:39:43",
+          "source": "Google Maps"
+        },
+        {
+          "author": "徐睿騏",
+          "rating": 5.0,
+          "text": "第一次到麵屋千雲林森店用餐： 本次點的餐點為： 招牌濃厚雞白湯拉麵 🍜、 招牌柚香塩味雞湯拉麵、 濃厚雞白湯拉麵、 湯及拉麵都好吃😋 店面裝潢氛圍：店內採用現代日式木質裝潢，氛圍溫暖且專業。除了吧檯坐位，也有用餐的四人區坐位，環境比一般狹窄的拉麵店更適合小聚。 服務品質：員工數量充足，櫃檯接待人員妹妹態度很親切，我有重覆點菜，細心的提醒我是否要調整一下改餐的內容。出餐節奏掌握得宜。儘管需要排隊，但整體的服務流程很流暢👍。",
+          "publishTime": "2026-03-06T02:39:20",
+          "source": "Google Maps"
+        },
+        {
+          "author": "祚",
+          "rating": 5.0,
+          "text": "第一次來到 麵屋 千雲，真的被驚艷到了！ 叉燒飯的肉質鮮嫩多汁，鹹香中帶著恰到好處的甜味，讓人一口接一口停不下來。拉麵的湯頭濃郁卻不會覺得油膩，入口清爽又帶有層次感，喝到最後一口都覺得回味無窮。麵條彈牙有勁，和湯頭的融合度非常高。 整體用餐體驗非常滿意，環境乾淨舒適，服務也很貼心，真心推薦給喜歡拉麵的朋友！五星好評絕對值得！ 🌟🌟🌟🌟🌟",
+          "publishTime": "2025-10-07T02:39:40",
+          "source": "Google Maps"
+        },
+        {
+          "author": "姜太",
+          "rating": 4.0,
+          "text": "開到凌晨的拉麵店，宵夜時段也吃得到美味。雞白湯很濃厚，不像很多主打雞白湯的店家，口感真的淡到不行。配料給得也不賴，除了雞肉也有兩塊大片叉燒。湯頭裡有柑橘跟洋蔥等，還挺解膩的。麵是細麵，可以選正常或偏硬。配菜的話唐揚雞表現普普，不過餃子很好吃，還有分炸或煎的，以及豬肉或雞肉餡料。內用環境挺明亮舒適的。",
+          "publishTime": "2025-11-06T02:39:39",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Doris",
+          "rating": 5.0,
+          "text": "經過很多次 還有身邊朋友 的推薦我這次終於踏進來了！ 服務人員不錯 環境也不錯因為是凌晨00:00這次很幸運不用排隊. 點了 雞白湯拉麵、煙燻五選三、沾麵、餃子 （沾麵需要較長時間唷！） 煙燻個人我是吃不慣🥲🥲🥲（純屬個人口味） 其他都很好吃！ 餃子本身味道很夠我是覺得不用額外去沾醬",
+          "publishTime": "2026-04-05T02:39:27",
+          "source": "Google Maps"
+        },
+        {
+          "author": "黃旺旺",
+          "rating": 5.0,
+          "text": "初次來用餐，店員的服務態度和善親切； 選擇叉燒雞白湯拉麵，拉麵湯頭如日本在地口味一樣偏鹹，如此可以讓麵體吸附湯頭味道，而且店員說可以加淡高湯以減少鹹度； 不過我把鹹湯頭用來搭配白飯做成湯泡飯，個人覺得味道很剛好又好吃😆",
+          "publishTime": "2025-11-06T02:39:45",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Bryant LIU",
+          "rating": 4.0,
+          "text": "初次在台挑戰沾麵！ 麵體偏硬、Q 彈有勁， 雞白湯頭夠濃。 雖然沾醬濃稠度略遜於日本道地口味 ，但整體水準不錯。 推薦一定要加他們的辣椒， 香氣非常出色！ 美中不足的是， 地板有點油。",
+          "publishTime": "2026-04-05T02:39:24",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Hsin yu Chou",
+          "rating": 4.0,
+          "text": "招牌的湯頭味道比較好 鍋貼吃起來的味道跟一般的有點不一樣 有一個酸的味道，應該是內餡的肉處理方式不同 柚子茶夠冰，不過一樣是用黃金柚子醬泡的，稍微可惜",
+          "publishTime": "2026-03-06T02:39:28",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Chyau-Shyang “Jose Luis” Jang",
+          "rating": 5.0,
+          "text": "好吃的雞白湯拉麵！ 湯頭有魚介風味，很順口。如果湯太鹹可以加清湯，符合大眾口味。 最後，追中他們IG會送小菜（冷盤菜）。 這家一定可以回來再享受！",
+          "publishTime": "2025-11-06T02:39:50",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Sylvia",
+          "rating": 4.0,
+          "text": "柚香鹽味雞白湯拉麵$250，喝起來不會太鹹，但吃完後喉嚨乾乾的很渴。雞肉和雞肉丸子肉質細緻。 紫蘇雞肉煎餃$150，好吃。",
+          "publishTime": "2026-03-06T02:39:31",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Yukiya (伊庭兒)",
+          "rating": 5.0,
+          "text": "招牌雞白湯，雞湯味濃、叉燒嫩👍🏻 煙燻起司真的超好吃！！！！吃完想再外帶的那種❤️ 煙燻竹輪、德式香腸也很香很好吃👍🏻",
+          "publishTime": "2026-03-06T02:39:42",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Eric Yang (Eric)",
+          "rating": 5.0,
+          "text": "麵體厚實有嚼勁、湯題濃郁，二訪後發現沾麵加熱更好吃，來不及拍照就吃完了",
+          "publishTime": "2026-04-05T02:39:36",
+          "source": "Google Maps"
+        },
+        {
+          "author": "aRRAN",
+          "rating": 3.0,
+          "text": "雞肉燒肉飯的味道算是安全牌，吃起來順口但份量小到有點失落，還沒開始享受就已經吃完。沾麵的問題更明顯：湯底本身偏鹹帶苦，越吃越鹹，最後甚至出現苦味。沾麵湯理應厚實、有層次，但這碗完全不在狀況內。吃到一半我加了高湯想調整味道，結果整碗直接 GG，變得稀又不協調。唯一可取的大概只有麵條本身 Q 彈，但整體仍有不少需要改善的地方，品質像是「為了打卡送餐」而勉強端出的水準。 另外，我第一次喝到這麼稀的可爾必思，像是被加了好幾倍水；餃子味道普通到記不起來；毛豆竟然軟爛得不可思議。更尷尬的是，旁邊看完展來用餐的日本客人也說味道不到地道，與在日本吃到的沾麵完全不能相比。整體體驗只能說差強人意，希望店家能真正用心調整。",
+          "publishTime": "2026-01-05T02:39:23",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10420": {
       "photoUrls": [],
@@ -21791,7 +23075,149 @@
         "price_buckets": [
           "$800-1,600"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "許智昇",
+          "rating": 4.0,
+          "text": "【用餐日期】 2025年10月10日 (五） 【用餐心得】 以下是當日用餐所遇到的突發狀況、缺失、以及十道必吃菜餚推薦 【突發狀況】 當天餐廳的照明設備出包 導致 烤鴨&港點的餐台 黑到幾乎看不清食物的狀況 也未見人員來協助處理 【缺失】 1.甜點是真正的\"限量\" 其中最夯的\"茅台起司\" / 照片上有 在不到8點前就被拿光了 但是居然沒有補充 而是換了其它種類的蛋糕來充數 2.有廣告不實的嫌疑 當季活動 各式「干貝料理」 雖料理名稱有干貝 但實際吃到的卻是「珠貝」 【必吃十道菜餚】 1.鮭魚生魚片 2.披薩 3.現煎天使紅蝦 4.烤深蠔 5.茅台起司 / 限量 6.干貝燒賣 7.德國豬腳 8.無骨雞腿 9.蛤蜊湯 / 干貝鮮魚湯 10.米布丁 【補充】 1.報到&收費 需要在櫃檯先結帳 才能進行報到手續 2.提早進場 用餐時間為 17:30～21:00 17:20就開始開放陸續進場 【總結】 我喜歡這裡的餐點與服務 與饗食天堂相比 少了人潮的擁擠與喧囂 多了一分的悠然與自得 儘管仍有些許的缺失 算不上完美 但希望下次再訪時能有所改善 推薦 👍",
+          "publishTime": "2025-11-06T02:14:23",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Una",
+          "rating": 4.0,
+          "text": "菜色算多，吃了好幾次除了季節限定以外幾乎沒什麼變化，但口味穩定品質也一如既往的好。 平日中午用餐人潮一樣很多，略顯吵雜。 海鮮🦐🦑🦀🐟 很新鮮，蝦子很甜、淡菜很大顆、螃蟹蠻大隻的但肉偏少、生魚片選擇也很多！ 熱菜 片皮烤鴨的麵皮略厚，但肉很嫩口味好。 港式蘿蔔糕表面酥脆味道非常香。 榴槤披薩果肉搭配起士口味鹹香甜，一出爐就秒殺。 土瓶蒸很清甜，喝了好幾壺！ 建議每樣都可以嚐一點點，喜歡的再回頭多拿~ 甜點❌個人不推薦吃 整體口味偏糟糕，比外面麵包店現成的還不好吃。蛋糕麵包類口感乾乾的很甜、果凍奶酪類吃起來像速成粉做的... 糖水類、摩摩喳喳那區可以嚐一些當飯後甜點，但整體口味還是偏死甜。 結尾可以吃水果或喝點飲料咖啡聊天就好🍎🍊🍌🥝🫐🍇",
+          "publishTime": "2026-02-04T02:14:19",
+          "source": "Google Maps"
+        },
+        {
+          "author": "J W",
+          "rating": 5.0,
+          "text": "和朋友一起來吃中餐，這是第二次來，上次是吃下午茶，星期二中午11:30AM到，不用排隊，但是人蠻多的，有中日港泰及歐美料理，食物選項非常多，大部分的人應該吃一部分就吃不下去了，從生魚片開始，鮪魚切的很厚，非常新鮮美味，旗魚生魚片也不錯，章魚壽司,章魚很脆，義式無骨雞腿味道不錯，泰式椒麻雞，炸的很脆，特制的醬汁，澆上去，味道很不錯，我吃了兩盤，三杯魷魚，味道也不錯，鐵板魷魚比較沒有味道，叉燒肉味道也不錯，蘿蔔糕非常嫩，嗨，酥皮玉米濃湯，外皮非常酥，好像碰到就會粉碎，湯的味道不錯，飲料無限暢飲，可惜沒有無糖可樂，還有德國啤酒，也是無限暢飲，快到一點半，就有人來提醒用餐時間快到了，這次用餐經驗非常好，下次還會再來。",
+          "publishTime": "2026-02-04T02:14:18",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Pei-Chung Yang",
+          "rating": 5.0,
+          "text": "這次來體驗豐food的龍蝦之夜，同時還有體驗到猜黑鮪魚重量與現場殺魚的表演，豐food的自助餐除了龍蝦之外也有很多不同地區的美食可以吃，從台南的牛肉湯到外國特色小吃都有囊括在內，且各種肉品都很鮮美，除了個是美味佳餚以外，軟性飲料的選擇也是非常多樣化，從常見的汽水機到各種新鮮果汁任君選擇，喝膩了軟性飲料也還有白酒、紅酒與幾款啤酒可以選擇，另外也可以自己調些雞尾酒，正餐吃完還有很多的甜點與水果可以享用，真的不怕飲食不均衡 說回到主角的龍蝦，一開始不用急著去排隊，不如先去享用其他美食，大概過了半小時後就沒什麼人在排隊並實現龍蝦自由吃，清蒸龍蝦非常肉質非常甜美，蝦肉也是富有彈性，真的大推",
+          "publishTime": "2026-01-05T02:14:22",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Sha “Yusha” 游",
+          "rating": 5.0,
+          "text": "口味偏大眾取向，想吃什麼基本都能找到，衝著海鮮來，生魚片和冷蝦果然沒讓人失望，品質在自助餐裡算中上，動線、分區清楚、環境明亮，也有一些特別的料理，很快就能知道自己想要吃什麼，適合聚餐與想一次吃多國料理的人。我個人最推薦的是「烤鳳梨」，算是比較冷門，(因為它旁邊的玉米筍沒了但是還是很多鳳梨...)，烤過後的鳳梨清甜多汁，不但完全不酸，還非常解膩，真心希望更多人能發現它的好!第二推薦是「現沖牛肉湯」，可以依喜好加香菜、薑絲、蔥，調味自由又有趣，牛肉片的品質也不錯，沒有腥味，最後就是烤生蠔，也是很飽滿大顆，我覺得以這樣的價位能吃到這樣的品質，算是推推一波。下次可以來有龍蝦之夜~",
+          "publishTime": "2025-12-06T02:14:20",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Wu JiaWei",
+          "rating": 4.0,
+          "text": "豐 FOOD 海陸百匯 是由 典華幸福機構（典華婚宴會館）在其台北大直旗艦館一樓打造的自助 Buffet 餐廳品牌，主打 海陸百匯、多國料理吃到飽。提供 海鮮、肉類、日式、中式、西式、泰式、港式等種類 多元料理，菜色豐富超過百道以上。 ￼也有 現點現做料理（如現切牛排、現片烤鴨、壽司、海鮮吧），甜點、冰淇淋、飲品也很豐富。可以搭配 紅白酒、啤酒（部分時段無限暢飲）、以及其他飲料。 ￼餐廳座位寬敞、氣氛舒適，適合家庭聚餐、朋友聚會或商務用途。 此次為下午茶時段，付款方式多元。",
+          "publishTime": "2026-01-05T02:14:24",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ethan Ethan",
+          "rating": 5.0,
+          "text": "龍蝦之夜，一人一隻波龍。 另外有吃到飽的清蒸龍蝦。清蒸熱騰騰出爐，跟其他家只有冰冷龍蝦的buffet 相比就是比較好吃。而且排龍蝦速度很快，基本可以一直排一直吃。 龍蝦自由就是爽~ 其他餐點.... 我就是來吃龍蝦的...當然先吃爆龍蝦再說，其他只是配菜不重要🤣 服務也很好...一吃完空盤馬上服務生就過來收拾，非常有效率。 最後還給了龍蝦vip卡，一年內不限次數來用餐就送龍蝦!!",
+          "publishTime": "2026-02-04T02:14:23",
+          "source": "Google Maps"
+        },
+        {
+          "author": "擬之物語",
+          "rating": 5.0,
+          "text": "距離上次來此用餐已經過去了15個年頭，當然整體環境`服務`菜色也大不相同。唯一讓我驚豔的還是烤牛排，不僅肉質鮮嫩多汁，而且跟記憶中的味道一模一樣！同等價位的自助餐吃到飽餐廳根本比不上的品質。🤩 其他菜色則算是正常表現😁 比較遺憾的是兩種蒸螃蟹，不但沒蟹黃蟹膏之外還肉瘦到吃起來粉粉地。還有蒸生蠔也都太熟過頭了，完全吃不出海味。😓",
+          "publishTime": "2026-01-05T02:14:19",
+          "source": "Google Maps"
+        },
+        {
+          "author": "吳祥瑞",
+          "rating": 4.0,
+          "text": "內湖典華飯店ㄧ樓buffet,內湖美麗華百貨旁，好吃的歐式自助餐，菜樣算多，有下午茶時段較經濟，沒有桌號點菜之精緻現炒煮煎菜，有現煮飽魚粥、蛤蠣湯等，cp值高！（壽星只能四人行才有優待爲遺珠之憾。）",
+          "publishTime": "2026-03-06T02:14:22",
+          "source": "Google Maps"
+        },
+        {
+          "author": "PATTY LU",
+          "rating": 5.0,
+          "text": "憑名片享88折、姓名裡有符合一個字享紅蟳米糕一份！ 服務人員非常多，收盤效率高，維持桌面整潔！大推這裡的各特色料理！雖然賓客多，但出餐補上新料理速度快！",
+          "publishTime": "2026-03-06T02:14:17",
+          "source": "Google Maps"
+        },
+        {
+          "author": "林長青",
+          "rating": 5.0,
+          "text": "這家吃到飽餐廳，搭乘捷運（美麗華捷運站3號出口）即可到達，餐點多元且不錯吃，服務品質也不賴，很適合聚餐！！",
+          "publishTime": "2026-03-06T02:14:20",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Judy chen",
+          "rating": 5.0,
+          "text": "整體感覺都不錯，餐點多樣，補菜速度快，環境也很整潔，工作人員都很親切，沙拉吧區蔬菜類能多點會更好。",
+          "publishTime": "2026-02-04T02:14:22",
+          "source": "Google Maps"
+        },
+        {
+          "author": "李佳蓉",
+          "rating": 4.0,
+          "text": "食材新鮮美味，種類豐富多元，素食者也能吃盡興；地下停車場位於地下二樓，消費滿一千元可折抵一小時。",
+          "publishTime": "2025-11-06T02:14:25",
+          "source": "Google Maps"
+        },
+        {
+          "author": "走小月",
+          "rating": 5.0,
+          "text": "好吃 樣式多 用餐環境好 挑高空間感很棒 CP值高",
+          "publishTime": "2026-03-06T02:14:19",
+          "source": "Google Maps"
+        },
+        {
+          "author": "蘇東坡",
+          "rating": 2.0,
+          "text": "這次來到 劍南路站的豐FOOD海陸百匯，因為下午茶時段推出「兩人同行、一人半價」的優惠，所以決定趁機來試試。這是我第一次吃下午茶時段的餐期，體驗下來最大的感想就是——兩小時真的完全不夠。整場幾乎都在快速塞食物進嘴裡，根本沒時間細細品味美食。觀察周圍，大直這邊的客群明顯不同，許多客人看起來都是有閒有錢、慢條斯理地享受每一道菜，而我只能狼吞虎嚥，頓時覺得自己還是得好好讀書、多賺錢，才有本事吃得從容😌。 餐廳主打「多國料理」，但實際上更像是各國料理的大雜燴。菜色種類不少，但大多屬於普通等級，沒什麼創意或亮點。沙拉種類稀少、生魚片普通，一些像現沖牛肉湯、港式點心、豬腳、牛排等菜色幾乎是吃到飽餐廳的標準配備。最特別的地方反而是碳水化合物異常豐富。滿滿的焗烤通心粉、奶油義大利麵等重口味料理，幾乎每一道都能讓你吃到撐、吃到昏昏欲睡。肉類品項則偏少，好像也沒有看到羊肉。 可能因為是下午茶時段，補菜速度相當緩慢，許多檯面上的菜色明顯放了一段時間，冷菜偏多。牛排台也要等很久才會有人出來切。披薩和乳酪條則是完全不推，起司都冷掉了，口感糊又膩。整場吃下來，米布丁和德國豬腳算是唯一值得一提的亮點，其他大多不及格。 甜點部分更是令人失望。完全沒有吃到飽餐廳應有的水準，蛋糕種類普通，綠色那塊原以為是戚風蛋糕，結果只是鬆散的海綿蛋糕。冰淇淋雖是 Haagen-Dazs，但只有最基本的抹茶、巧克力等幾種口味，讓人感覺非常敷衍。最離譜的是居然沒有餅乾甜筒，只提供小火鍋店那種給小孩吃的配料。奶油年糕則是放到冷掉又硬，完全吃不下去。 直到看到一堆人在排「車輪餅」時，我才恍然大悟——原來這裡的主打甜點是這些「平價系美食」。芋泥、紅豆、奶油，甚至楊枝甘露、摩摩喳喳這類甜品，在這些客群眼裡或許很「新奇」。也因此整間餐廳的甜點與菜色方向，就圍繞著這類「看起來多元、實際平庸」的食物。說實話，車輪餅真的離譜，要是開心果口味我還能理解，但芋泥跟紅豆……？ 服務方面，收盤子的速度飛快 食物剛拿起來吃一口，盤子就被收走 吃個飯下來一直被打斷 不知道是服務生閒不下來還是怎樣 今天下午茶時段一個人 $722，老實說，這間店唯一值得來的理由就是「便宜」。如果預算有限、想吃到飽又不講究品質的人，也許可以考慮；但同樣的價錢在其他地方絕對能吃到更好的食材與菜色。雖然不一定是吃到飽，但整體滿足感一定更高。真的沒必要花七百多元吃一堆碳水、冷菜和油膩的食物。",
+          "publishTime": "2025-11-06T02:14:20",
+          "source": "Google Maps"
+        },
+        {
+          "author": "紅豆",
+          "rating": 1.0,
+          "text": "餐點讓人失望，第一次來用餐，還吃到一坨沒散的鹽巴，調味不是太鹹就是太甜，烤物明顯是烤好後放著備用，並沒有現烤！還能看到膳臺後方擺放已烤好備起來放的香魚跟鮭魚烤物，真的完全扣分，香魚吃起來超乾柴，一吃就很明顯。鴉片用白麵皮包，吃起來不搭。紅豆餅餡料過甜！甜品區沒有一樣好吃，楊枝甘露喝起來好怪，熟食區部分保溫不佳，吃起來都像是煮好很久放著。覺得不錯、好吃的烤蝦還限量，已經花一千多快在餐點上，吃起來真的不優，不會再二訪，也不推朋友來吃，覺得饗食才是首選",
+          "publishTime": "2025-12-06T02:14:24",
+          "source": "Google Maps"
+        },
+        {
+          "author": "川楓流",
+          "rating": 2.0,
+          "text": "2月7日去吃下午茶。港式煎台師父（女的）回顧客話很不耐煩。切生魚片的師父跟甜點師父補菜快，台式小吃煎台那一區補菜速度一般，除此之外其他所有櫃檯都補菜很慢！。菜色一般，口味也普通。甜點吃起來口感也是普通。有一位服務生收餐具時，也沒問還要不要，就直接收了，讓人感覺很差。同等價位，吃完第一輪菜，第二輪不知道有什麼比較好吃。個人感覺響食天堂比較好，不建議大家來這裏吃。",
+          "publishTime": "2026-03-06T02:14:17",
+          "source": "Google Maps"
+        },
+        {
+          "author": "DEM",
+          "rating": 3.0,
+          "text": "1.停車方便(可折抵) 2.空間明亮 3.食物稍嫌沒有記憶點，大多比較不會「哇」的感覺，整體最記得甜點有一區楊枝甘露摩摩喳喳，還有地瓜球可以吃，地瓜球真的是看了就想夾的東西🤣 相對高級的內容反而忘了😅，但不同季有不同的內容也會影響體驗與新鮮感 4.個人認為以這個價位來說，屬於一次店，價格上也有其它更佳的選擇，可以選到價格更低也會想再訪的店",
+          "publishTime": "2026-03-06T02:14:18",
+          "source": "Google Maps"
+        },
+        {
+          "author": "小丸子吃喝玩樂",
+          "rating": 3.0,
+          "text": "平日下午茶$849+10% 這個價位就能享用啤酒暢飲跟海鮮 我覺得CP值蠻高的 食材又豐盛 選擇性超多 啤酒杯有握把超貼心 唯一小缺點就是 食材補得有些慢 📍推薦：泰式料理、一鴨三吃、牛肉湯、海鮮區、現煮區",
+          "publishTime": "2025-11-06T02:14:25",
+          "source": "Google Maps"
+        },
+        {
+          "author": "ZONG-HAN JHOU",
+          "rating": 1.0,
+          "text": "發現被刪評論，故重新上傳。 9/22 用餐 餐點跟服務不錯，但是下午茶不開冷氣就很過份了，熱到瘋狂飆汗，沒胃口，瘋狂灌飲料。這是一種經營策略嗎？",
+          "publishTime": "2026-03-06T02:14:24",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10509": {
       "photoUrls": [
@@ -21819,7 +23245,149 @@
         "price_buckets": [
           "$400-800"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "盧美妏",
+          "rating": 5.0,
+          "text": "【食在台北：solo pasta 】 老字號義大利餐廳能屹立不搖、天天滿座， 靠的是絕對的硬實力！ 本來只是來吃久違的「鴨肝曠世奇派」， 意外變成安排完整的整套菜單， 人生總是有許多小意外，這次卻是驚喜連連。 「鐵鍋煎小九孔」酥香開場，必須配酒； 500 盤的「拿坡里燉章魚」當然不能錯過， 不愧是 solo pasta 多年招牌菜， 西班牙旅行團友楊姐說，這是全世界最好的。 主角「鴨肝曠世奇派」製作繁複，耗時 6 天！ 整塊的鴨肝肥嫩細滑，外面裹上焦糖堅果， 搭配的布里歐麵包意外出色，實在太完美！ 最讓我意外的是甜點，本來看菜單意興闌珊， 啊不就是那些常見的義大利甜點， 沒想到一吃驚為天人！未免太好吃！ 尤其喜歡「一刀流藍紋巴斯克乳酪蛋糕」， 一把刀切在蛋糕上，分開兩層不同口味， 一層是一般巴斯克，一層是藍紋乳酪巴斯克， 單吃混合都超美味！！！太厲害了～ 其他甜點奶酪、巧克力布丁也都頗有亮點！ 除了餐點，外場服務令人驚艷， 餐廳夥伴熱情專業，效率和服務水準極高， 換盤子和餐具的頻率超過米其林餐廳了， 為用餐過程增色不少！ 這些年吃了這麼多話題餐酒館、義大利餐廳， 回到 solo pasta 還是紮實穩妥的美好， 無論是簡單吃、聚餐、吃大餐，豐儉由人， 能確定的是一定美味！情緒價值也給好給滿！ 心滿意足的一餐（飽） ❤️",
+          "publishTime": "2025-10-07T02:36:58",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Spooky Yu",
+          "rating": 5.0,
+          "text": "大年初五下午剛好經過附近，沒訂位的狀況下很幸運的有位置可以用餐。 三個人點了小羊膝套餐（含拿坡里超簡單炸海鮮、自製香腸肉末炒普利亞貓耳朵麵、提拉米蘇）、另外又加點特大綠蘆筒溫泉蛋與36月帕瑪森老起司。 綠蘆筍新鮮脆嫩，跟溫泉蛋和起司味道很搭； 貓耳朵麵的口感超棒的，一朵朵Q彈有嚼勁又不會太硬，香腸肉末有著微微辣味，花椰菜切碎碎保留脆脆口感，麵跟肉末蔬菜完美融合，味道夠又不會太重。 炸海鮮裡面有一個鰻魚花椰菜球，口感非常神奇，有著芋泥般的口感；炸海鮮不會有油膩的感覺；主菜羊膝的肉一撥就骨肉分離了，肉一點都不會乾柴，帶著一點膠質，旁邊的馬鈴薯泥非常好吃，有種說不出的香氣，總覺得有股橘子香氣。 原本還點了一個燻鴨胸義大利麵，不過被漏掉了，因為也蠻飽的就沒有請店家補上，貓耳朵麵口感很好，原本蠻期待另一款麵，沒嚐到覺得有點可惜，不過也是下次再訪的理由。 套餐附的提拉米蘇很好吃，沒有過重的酒味；另外因為漏了一道麵，店家補送了一個老奶奶檸檬派，兩個甜點都很棒，檸檬派酸甜夠味又不會太膩，搭配一杯熱咖啡剛剛好。 餐廳整體很舒適、氣氛也很好，另外服務人員也都很親切，餐點口味沒話說，每道都好吃。",
+          "publishTime": "2026-03-06T02:36:54",
+          "source": "Google Maps"
+        },
+        {
+          "author": "雯婷",
+          "rating": 4.0,
+          "text": "晚上的燈光昏黃，蠻有氣氛的，但環境有點吵雜，座位也略顯擁擠。其中一間女廁，坐在馬桶上的話，膝蓋會頂到牆壁。 所有的餐點口味都蠻特別的，很有異國風情，餐點份量中等，兩個人沒點酒水吃了1800，不餓但也不特別飽。 拿坡里燉章魚：章魚燉到牠的肉質嚼勁消失，個人有點不習慣，但調味配上下方的鷹嘴豆泥蠻好吃的。 炸海鮮：麵衣薄，吃得到海鮮的味道，擠上有些檸檬更好吃。 貓耳朵麵：跟燉章魚一樣獲選為五百盤料理，雖然是豬肉末跟花椰菜這種很台式的材料，但調味跟一般義大利麵店很不同，可惜我嘴拙吃不出來有哪些味道😂 羊排：肉質算嫩，也蠻有羊味的，配菜的馬鈴薯跟生菜也都好吃。 甜點的份量不大，兩人吃點兩份也不會太有負擔。西西里起司捲，外皮略油，但內餡柔滑、柑橘味明顯，還不錯。提拉米蘇是刷星展卡送的，底部很濕，是盤子上會有水痕的那種，不太習慣，但味道OK。",
+          "publishTime": "2026-01-05T02:36:57",
+          "source": "Google Maps"
+        },
+        {
+          "author": "映宇",
+          "rating": 5.0,
+          "text": "歡迎追蹤IG看更多👉：yingeatfood 🔸拿坡里燉章魚 / $320 🔸巴薩醋燻鴨胸奶油義大利麵 / $330 🔸羅馬起司培根義大利麵 / $330 🔸提拉米蘇 / $160 燉章魚本來以為要跟牙齒來場耐力賽，結果章魚無敵軟嫩。沒有過多的調味，幾乎全靠章魚本身淡淡的海味撐場，沒想到光這樣就非常好吃，也可以搭配鷹嘴豆泥一起吃，但這見仁見智，我個人覺得沒到很搭。 巴薩醋燻鴨胸奶油義大利麵的醋酸非常剛好，把所有食材的味道拉得更立體，不會搶戲反而更提味。麵條彈牙帶勁，不是那種軟爛的麵，會吸附醬汁，越吃越上頭，鴨胸又嫩又香，燻味在嘴裡慢慢散開。 羅馬起司培根義大利麵的麵條，完整被濃稠起司包覆，吃到最後會有點小膩，起司控會很愛。 提拉米蘇作為結尾很稱職，口感綿密，蛋糕體濕潤不乾，味道濃郁且不膩，像是在餐後溫柔地幫你畫上一個句點。",
+          "publishTime": "2026-02-04T02:36:59",
+          "source": "Google Maps"
+        },
+        {
+          "author": "拾味南子",
+          "rating": 4.0,
+          "text": "整體好大於不好，基本上看著網友推薦評論點的，沒想到還是被網友雷到了哈。 1. 拿坡里章魚，章魚腳很香配底下的馬鈴薯泥剛剛好 MVP 2.鴨肝曠世奇派那道麵包酥脆 （但我第一次吃鴨肝 口感有點特別 不喜歡 不好吃） 3. 鐵板煎小九孔的麵包屑好吃（九孔腥味有點重，不好吃…而且要用手，我有點潔癖） 4. 南瓜湯好喝，味道很濃郁，香草粉加太多有點影響味道 5. 鴨胸義大利麵很好吃！墨魚義大利麵有點辣 （我是愛吃辣的人，但這個辣沒有提味的作用，所以我不喜歡） 6. 柑橘巧克力塔，柑橘片跟巧克力平衡的很巧妙，但就還行哈 7. 巴斯克乳酪蛋糕，tbh I don’t get it.",
+          "publishTime": "2026-01-05T02:36:56",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Joann",
+          "rating": 4.0,
+          "text": "據說在台北是老字號的店家， 實際到現場生意真的非常得好， 即便是錯開用餐尖峰時段人也是很多， 會建議一定要事先訂位比較保險！ 這次用餐經驗偏普通， 有事前預訂，但現場還是等了快20分鐘才有桌位入座，上餐速度也偏慢，雖然可能因為中間有人力不足、客人之類的狀況，答案如果希望用餐節奏順一點可能要稍微考慮 餐點有點入圍500盤的章魚🐙這道的章魚處理的想當軟嫩，非常厲害，口味上搭配薯泥很特別，但不到驚艷，可點可不點 然後比較有記憶點的是提拉米蘇，比起一班蛋糕店，口感更有質感，是細膩的感覺！",
+          "publishTime": "2026-01-05T02:37:00",
+          "source": "Google Maps"
+        },
+        {
+          "author": "陳Emily",
+          "rating": 4.0,
+          "text": "14天前開放訂位 這點跟其他店家不一樣 要特別記得 不然真的會忘記 哈 用餐環境還不錯 但桌子距離很近 用餐當天餐廳沒有滿 但是蠻吵的 點了兩種義大利麵 味道如其他評論真的都偏鹹 麵體看評價有說偏硬 但自己覺得還OK 算適中 🐙拿坡里燉章魚：看到很多人推所以點來吃，很嫩好吃👍👍👍 🥙皮耶蒙特熱水澡沙拉：醬很好吃 🍝自製香腸肉末炒普利亞貓耳朵麵：這個我們蠻喜歡的 🍝煙火女義大利細麵：真的很鹹 🐮米蘭白酒慢燉小牛膝：沒有特別感想",
+          "publishTime": "2025-10-07T02:37:00",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Jelly J",
+          "rating": 5.0,
+          "text": "1.牛尾麵很好吃，份量很大自己吃完會有點膩！但調味很棒，牛尾非常軟嫩，輕輕切就肉骨剝離，還有黑巧克力🍫粉跟牛肉原來那麼搭配欸！ 2.肉醬義大利麵的肉醬，是我目前看過最大塊的肉了🤣，應該要改叫肉塊義大利麵，很好吃😋 3.提拉米蘇是酒味很重，底部的麵包體很濕潤的那種。 4.炸海鮮也很好吃，我朋友超愛。 5.章魚🐙腳我好喜歡欸！很有嚼勁搭配鷹嘴豆泥，更好吃了😋",
+          "publishTime": "2026-03-06T02:36:55",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Yu Ho",
+          "rating": 4.0,
+          "text": "這次請廚師配餐 包括前菜、沙拉、主餐、排餐、甜點、茶飲 整體都還不錯 鵝肝本身不是很kah-ì 章魚腳有點軟（預期是比較khiū-khiū的口感） 蘆筍配旁邊的醬…嗯 生菜盤推～新鮮，直接吃沒有菜味，大蒜醬濃郁good Pasta三品，辣的（堤魚）最推薦 肉醬就先不用 牛排和羊排就，可以 反而甜點優～蛋白霜&蒙布朗是新奇的組合",
+          "publishTime": "2026-03-06T02:36:57",
+          "source": "Google Maps"
+        },
+        {
+          "author": "黃詩婷（Claire）",
+          "rating": 4.0,
+          "text": "2026/3/1第2還是第3次回訪，位置好，離忠孝敦化捷運站近，義大利麵一樣好吃，義大利麵是有麵心(偏硬)的口感 個人非常喜歡； 但份量 、擺拍都不如從前， 還想要補充「位置、座位」也越來越擠了，沒有以前用餐的享受感，會想回訪的感覺降很低。 備註： 1）一定要訂位 2）裡面比較黑暗昏暗 3）低消，1人$500",
+          "publishTime": "2026-03-06T02:36:55",
+          "source": "Google Maps"
+        },
+        {
+          "author": "NaNa T",
+          "rating": 4.0,
+          "text": "拿破崙燉章魚好吃，章魚軟Q不會咬不動，搭配馬鈴薯泥口感很好 炸海鮮我蠻推的，不會炸到很乾硬，每個都很新鮮，蝦子不用剝殼可直接吃 波隆那肉醬麵味道偏淡，搭配他們辣椒粉會好點，裡面的肉很嫩 帕克里管麵很推，味道很好吃，搭配芥蘭是少見的，很喜歡 提拉米蘇中規中矩",
+          "publishTime": "2026-02-04T02:36:59",
+          "source": "Google Maps"
+        },
+        {
+          "author": "MiMi",
+          "rating": 5.0,
+          "text": "跟朋友臨時的飯局，卻沒想到有如此大的驚喜收穫。在餐後尾聲來了個超完美的乳酪蛋糕做結束。但前面大餐真的吃得太飽了，不然我會再加點一次蛋糕的。 每一道菜我都很滿意，貓耳朵微微辣度帶出爽口味覺跟黃金酥脆的馬鈴薯餅也推薦必點。可以再訪n次的店請好好收口袋。",
+          "publishTime": "2026-04-05T02:36:55",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Victor Pang",
+          "rating": 4.0,
+          "text": "前菜沙拉那胡蘿蔔的厚度可以再削三根，牙齒咬下去都會斷那已經超越脆度等級。特色是：溫沙拉醬有鯷魚大蒜香、鴨胸低溫烹調軟嫩、章魚口感跟雞肉一樣有點神奇，調味方面偏重巴塞米醋奶油鴨胸麵，吃兩口就膩到不行要喝三杯水才有辦法沖淡，只能說太義式？",
+          "publishTime": "2026-02-04T02:37:00",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Yiquan Chen",
+          "rating": 5.0,
+          "text": "c’est bon good pasta 巴薩醋燻鴨胸奶油義大利麵的醋酸非常剛好，把所有食材的味道拉得更立體，不會搶戲反而更提味。麵條彈牙帶勁，不是那種軟爛的麵，會吸附醬汁，越吃越上頭，鴨胸又嫩又香，燻味在嘴裡慢慢散開。",
+          "publishTime": "2026-04-05T02:36:56",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Bobo[第8級在地嚮導]",
+          "rating": 4.0,
+          "text": "假日中午來用餐，店內幾乎客滿，生意興隆。 可惜餐點品項不多，黑板上的菜單幾乎都已售罄，吃不出驚艷的感覺，略感失望。 義大利麵中我認為最好吃的是墨魚麵 有帶點微辣吃的很過癮，透抽的料也給很多",
+          "publishTime": "2026-03-06T02:36:56",
+          "source": "Google Maps"
+        },
+        {
+          "author": "陳冠宇",
+          "rating": 5.0,
+          "text": "很好吃 但最好多一點人來 每種義大利麵都不一樣 我私心喜歡墨魚的 然後燉章魚其實有點像雞肉 最後的蒙布朗很甜但也好好吃",
+          "publishTime": "2026-02-04T02:36:58",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Alicia Yang",
+          "rating": 4.0,
+          "text": "好吃 但可能期待太高所以覺得義大利麵沒想像中好吃 推薦章魚 提拉米蘇 牛膝付的馬鈴薯很好吃🤣",
+          "publishTime": "2026-03-06T02:37:00",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Justin Smart",
+          "rating": 1.0,
+          "text": "超級過譽的一家餐廳! 沒遇過那麼視錢如命的一家店 要翻桌rate到真的來趕人的餐廳 而且講完還一直催 看似要做高級餐廳 但是座位近到 已經不舒適了 隔壁咳嗽要一起吃下肚 又要一直翻桌 而且一堆東西你如果不是大團體去吃 就不準備.. 小鳥兩三隻就只能吃一些mediocre的料理.. 那個提拉米蘇可以再吝嗇一點🤣 而且沒有dresscode 當天遇到一對翹二郎腿穿短褲又摳又摸腳毛的 哭笑不得啦 也不會去找一家合作的停車場 安和路那邊被改到你不是附近的人 幾乎找不到車位 要過節的 去其他地方吧 體驗subpar嘍",
+          "publishTime": "2026-03-06T02:37:01",
+          "source": "Google Maps"
+        },
+        {
+          "author": "tina Wang",
+          "rating": 1.0,
+          "text": "總結來說是絕對不會再二訪的一間餐廳，跟朋友點了煙花女義大利麵，還有鴨胸義大利麵一致都覺得麵心很硬，而且調味超級重鹹，尤其是鴨胸整個感覺是泡在鹽裡面嗎？超級超級鹹，最好吃的真的就是全台最好吃的奶酪，其他我們都覺得很一般，也不懂為什麼生意這麼好，而且低消還有限制500$/人，然後送上來的義大利麵也不是那種捲的很漂亮的狀態，一道330$，至少擺盤要美觀吧！不過，服務人員服務很貼心。 然後桌子跟桌子桌距很近，不太適合聊天",
+          "publishTime": "2026-04-05T02:36:55",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Da-an House",
+          "rating": 1.0,
+          "text": "1/6帶長輩過生日，外面下雨很冷，我們提早3分鐘到，17:26員工叫我們出去外門等，這個如果餐點好吃，我可以接受，桌子黏黏椅子黏黏，原本滿歡期待，原本覺得錯覺，吃飯到一半，叫服務員來處理一下桌面，服務員感覺是馬來西亞，她丟給我兩包濕紙巾叫我自己擦，然後超失望，餐點也不夠到位！炸海鮮很硬，曠世奇鴨肝也不值得，只有牛還行。",
+          "publishTime": "2026-02-04T02:36:59",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10510": {
       "photoUrls": [
@@ -21878,7 +23446,149 @@
         "price_buckets": [
           "$400-600"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "Vivian Lai",
+          "rating": 5.0,
+          "text": "這家看很久了，有訂到位就來吃😆 低消每人點一份套餐， 享自助吧、調酒牆跟哈根達斯冰淇淋～ 特上牛胸腹套餐 $480+10% （搭牛五花、豬梅花、嫩雞腿） 個人覺得牛肉>雞肉>豬肉 😅 比較少在大中午就開喝， 但一整面調酒牆真的會讓人忍不住！ 重點是口味都還調得不錯～ 還能自己加碎冰， 高腳杯很有儀式感❤️ 🌟 結論： 在西門町這個一級戰區CP值蠻高的， 收桌/換烤網等服務算很勤， 自助吧非常豐富， 涼拌小菜類的表現都很好～ （尤其喜歡蟳味棒、玉子燒、 牛蒡絲、海帶絲、海蜇絲、 柚香蘿蔔、泡菜、蝦卵、烏龍麵） 調酒也都很好喝！ 溫泉蛋更可以無限拿～ 黑咖喱的味道還不錯，蠻喜歡的。 哈根達斯冰淇淋很好挖 🍦 ❌ 如果硬要講缺點： 限時90分鐘（超時半小時內加$100） 只能付現 p.s.牛丼跟鳥蛋、雞肉絲可以不用拿XD 味噌湯就普通， 燒肉都有調味其實不用拿醬 ⚠️ 注意： 抓兔子的話要付 $1000清潔費喔！ 人很多，想吃一定要記得訂位～ 店內有廁所",
+          "publishTime": "2026-03-06T02:24:03",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Thermal",
+          "rating": 5.0,
+          "text": "這間燒肉店真的讓我超滿意 😍～主打個人和牛燒肉的概念超貼心，一個人也能自在吃燒肉，不用揪團、不尷尬！店內位置雖然不多，但氣氛很棒，燈光柔和、座位乾淨舒適，服務人員態度也很親切，會主動教你怎麼烤、怎麼掌握火候，整體用餐體驗超加分🔥。 和牛肉質真的不誇張～油花分布超漂亮，一入口就化開，香氣滿滿！他們套餐的份量剛好，配上白飯、泡菜、小菜和湯，吃起來超滿足。價位部分以台北市區來說算合理，CP值高 👍。 地點在西門町這區，交通超方便，不論搭捷運或走路都很近。適合下班一個人放鬆吃燒肉，或假日來小聚一下。整體來說，環境乾淨、肉質優、服務好，是那種吃完會想再回訪的店 ❤️。如果你也是燒肉控，一定要來試試！🥩✨",
+          "publishTime": "2025-11-06T02:24:07",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Tiktiktok G.",
+          "rating": 4.0,
+          "text": "整體的用餐環境、服務跟食物的多樣性都算是稍為高於平均，雖然很多外籍服務生，但是服務態度很好，用餐時間只有90分鐘，像我這種吃東西比較慢的人時間上會比較緊張。 蔬菜沙拉吧的蔬菜都很新鮮，飲料區選擇多，甚至有一排的酒精類飲料可以選擇，還有冰淇淋，覺得蠻不錯的。 肉類的話就是一般的個人燒肉店的水平，整體套餐價格比一般個人燒肉店要高一點點，畢竟飲料跟沙拉吧都是吃到飽所以可以接受。 結帳會收10%清潔費，結合他們中間來幫忙換了2次烤網的頻率上來看，清潔費收的我個人覺得可以接受。",
+          "publishTime": "2026-01-05T02:24:04",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Wu-少奶奶",
+          "rating": 4.0,
+          "text": "兒子休假回來想吃烤肉，我們選了西門町的 Cha Cha 烤肉店。第一次到訪，點餐時花了點時間研究菜單，前後大概耗了幾分鐘。 店家用餐時間為 90 分鐘，但計時是從「屁股一坐下」那刻開始。 從點餐到上菜至少又花了 10 多分鐘。平常我的用餐速度算中等，這 90 分鐘對我來說真的有點趕。 另外提醒一下，店家只收現金、不接受刷卡，還要外加一成服務費。 整體來說，餐點口味還Ok，但時間限制稍微緊了一些。",
+          "publishTime": "2025-12-06T02:24:17",
+          "source": "Google Maps"
+        },
+        {
+          "author": "吳旻樺",
+          "rating": 4.0,
+          "text": "只收現金，有收服務費 因為不喝酒，所以比較可惜 沒有品嘗到店內主打的各種酒類品項 肉的品質還不錯，以價位來說少了一些 套餐有附自助吧 是偏日式的種類 有溫泉蛋很棒 醬料可以調蔥鹽醬 壽喜燒 在晚上22:00就只剩下洋蔥了 回想起來 是美味不會太飽的一餐 但如果是雙人用餐 會在四人桌放一個隔板 無法放心好好聊天比較可惜 比較推薦剛好四個人或「自己來吃」 自在感會好很多",
+          "publishTime": "2026-01-05T02:24:18",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Bryant楽",
+          "rating": 5.0,
+          "text": "服務人員態度親切，會貼心提醒火候，也會幫忙更換烤網，讓人專心享受美食。價格方面，我覺得相對於品質與獨立用餐的舒適感，算是相當實惠，完全適合偶爾犒賞自己，或者和朋友一起小聚。整體來說燒肉ChaCha我覺得可以，下次還會再來！",
+          "publishTime": "2025-10-07T02:24:18",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Joyce",
+          "rating": 5.0,
+          "text": "非常推薦這裡的點餐模式，能依照預算挑選喜歡的肉品。個人烤盤火力穩定，可以自己掌控熟度。自助區的口味選擇多樣，搭配現烤肉片超滿足。服務親切且不收服務費，整體 CP 值很高，會想再次回訪。",
+          "publishTime": "2026-01-05T02:24:14",
+          "source": "Google Maps"
+        },
+        {
+          "author": "菲菲",
+          "rating": 5.0,
+          "text": "一個人吃也沒有壓力，服務很好，可惜黑咖哩裡面什麼料都沒有，純醬而已，壽喜燒就滿好吃的配上溫泉蛋很讚，自助吧的沙拉配菜都還不錯選擇很多樣，冰淇淋也好吃，還有多種飲品可以選擇",
+          "publishTime": "2026-02-04T02:24:16",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Emma",
+          "rating": 5.0,
+          "text": "第一次來吃 口味好吃 服務也很好 用餐環境乾淨舒適 生菜沙拉種類很多還有溫泉蛋可吃 冰淇淋選用哈根達斯 很有誠意👍 酒類也很多種 又好喝 朋友一直說下次一定要再來！！！",
+          "publishTime": "2026-02-04T02:24:05",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Winchen",
+          "rating": 5.0,
+          "text": "點菲力很軟嫩 梅花豬好吃 朋友的牛舌超級厚 脆 酒類超多 Buffet 也不錯 吃超飽的～ 冰淇淋的口味都很讚！ 只收現金 有服務費 一定要先預訂喔 ✅",
+          "publishTime": "2026-01-05T02:24:12",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Chronos Su",
+          "rating": 5.0,
+          "text": "適合單人好好享受的燒肉餐廳，比較中意的是自助吧的食材吃的出新鮮度，月見烏龍麵跟牛丼、咖哩飯也很優，各式各樣的調酒好喝，很適合一人來好好放空享受°",
+          "publishTime": "2026-01-05T02:24:09",
+          "source": "Google Maps"
+        },
+        {
+          "author": "本自具足",
+          "rating": 5.0,
+          "text": "燒肉好吃😋 自助吧無限多樣可用，有沙拉、咖喱飯、牛丼、味噌湯，冰淇淋是哈根達斯，重點是 有多種啤酒酒精飲料可以喝到飽。超讚👍",
+          "publishTime": "2026-04-05T02:24:03",
+          "source": "Google Maps"
+        },
+        {
+          "author": "_hey",
+          "rating": 5.0,
+          "text": "這間燒肉Cp值真的超高！點套餐就可以吃到50多種吃到飽⋯現在還有調酒牆 調酒想喝多少就多少 下班來吃燒肉配酒心情有夠好",
+          "publishTime": "2026-02-04T02:24:04",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ning Lin",
+          "rating": 5.0,
+          "text": "台北應該很難找到390元這價格，可以無限喝調酒、哈根達斯冰淇淋、壽喜燒牛肉和生菜沙拉隨便吃了！",
+          "publishTime": "2026-01-05T02:24:17",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Brook Li",
+          "rating": 3.0,
+          "text": "自助吧很豐富，反倒燒肉本身的肉質一般般，或許應該點最平價的套餐就可以吃得滿足。限時90分鐘，只收現金，入場前也會先提醒。活動有送肉盤，所以評分超高，個人覺得3.5-3.8分間差不多。 這次有點夢幻見島和牛，不過沒有吃出價值感，筋略多且不算嫩。一般的牛五花頗油，讓烤爐滋滋作響，喜歡油香感重的人或許會愛。 自助吧有豐富的生菜、涼拌小菜、溫泉蛋、黑咖哩、壽喜燒、烏龍麵、味噌湯等，可以搭配出各種自己喜歡的沙拉、丼飯等。還有各種飲料與4種哈根達斯冰淇淋，不愧是馬辣旗下品牌。 服務人員態度都不錯，還會主動換烤盤。不過兩人座都是用4人桌隔板隔開，雖然不會太擠，但輕聲聊天對話隔壁都能聽得很清楚，比較干擾且不自在。",
+          "publishTime": "2025-10-07T02:24:15",
+          "source": "Google Maps"
+        },
+        {
+          "author": "w c",
+          "rating": 3.0,
+          "text": "松阪豬套餐只有三片，因為切的比較薄，其實也吃不太出松板豬的口感。 肉量也比想像中的少， 咖哩偏鹹，一般人可能吃不慣。 自助巴還算豐富，有溫泉🥚 牛丼的肉很硬，超級硬，蠻厲害的，非常有口感！ 需要服務生的時候可能需要特別找一下服務生。 如果點一般的套餐可能大約500+10%服務費 請記得，如果是身分證活動或是當月壽星想享用店內活動需要前一天以上預約！ 整體來說只有冰淇淋還不錯！ 用餐時間90分鐘，剩三十分鐘到時候服務生就來把桌面清空，如果喜歡清爽的吃冰是很好的，但也感覺稍微有一點點在趕人感覺，整體比較起來可能會比較推燒肉使賣，燒肉chacha 加油！希望你們越來越好🥰",
+          "publishTime": "2025-11-06T02:24:15",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Apple W",
+          "rating": 3.0,
+          "text": "現金支付，今天點了極上安格斯牛，五花牛真的太肥了，肉份量不多這應該是賣自助式吃到飽的bar。沙拉還可以，番茄是裡面的亮點很甜😋，黑咖哩醬太甜，洋蔥牛丼普通，冰淇淋就哈根達斯的，我倒是還好😅，泡菜有點酸，ucc咖啡拿鐵不知道為啥很甜。有熱水沒有茶包這有點失望，若是想吃燒肉應該還有其他選擇，喔有送點數卷下次來吃可以折抵，今天給了120點，明年一月到期，這還不錯。",
+          "publishTime": "2025-11-06T02:24:14",
+          "source": "Google Maps"
+        },
+        {
+          "author": "KH Yeh",
+          "rating": 3.0,
+          "text": "先說結論，評分高是因為打卡送干貝 是自助吧吃到飽，肉沒有吃到飽 一定要點套餐，好吃一點的肉，都一定會搭配很爛的肉，牛腹肉千萬不要選，超難咬而且肥肉超多，旁邊自助吧的壽喜燒牛肉都還比較好吃 自助吧種類不算多，但都還不錯 有飲品、酒牆、冰淇淋、咖哩、壽喜燒、還有各類小菜 整體還可以，",
+          "publishTime": "2026-01-05T02:24:06",
+          "source": "Google Maps"
+        },
+        {
+          "author": "YaWen Pai",
+          "rating": 3.0,
+          "text": "限時90分鐘超過要多收錢，會吃的很緊張 雖然有很多自助吧，還有調酒 單以肉品質來說，不值得價格",
+          "publishTime": "2025-12-06T02:24:11",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Ching wei Lin",
+          "rating": 3.0,
+          "text": "肉質一般，爐子很小，飲料機種類很多，還有多種調酒，自助吧也不錯，有哈根達斯",
+          "publishTime": "2026-03-06T02:24:19",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10575": {
       "photoUrls": [
@@ -21907,7 +23617,149 @@
         "price_buckets": [
           "$400-600"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "Wenwen Chang",
+          "rating": 5.0,
+          "text": "🥩【尬意燒肉・天母大葉高島屋】🥩 📍 111台北市士林區忠誠路二段55號B1 這間燒肉店每次經過都看到大排長龍，今天特地早一點到，才幸運避開人潮。實際體驗後覺得果然名不虛傳，不論是份量、價格還是服務都很值得推薦，難怪生意這麼好。 ✨ 用餐亮點： ・一開始會附上生菜沙拉與飲料，沙拉清爽，可以留著搭配烤肉包著一起吃，口感更解膩。 ・桌上準備的蒜片炸得又酥又香，不只配肉，單吃也很涮嘴。 ・最貼心的是提供「計時漏斗」，幫助掌握烤肉時間，避免烤過頭，設計超加分！ ・服務人員也會在烤盤需要更換時主動詢問，細節很到位。 🍖 餐點分享： ✔️ 豚烏盛合（$490） —— 包含活菌豚五花、梅花、西班牙松阪豬、香草雞腿、香烤肥腸、雞松阪，一次能嚐到多種肉品，份量剛好又有變化，吃得巧又吃得飽。 ✔️ 美國牛胸腹大盛（$440） —— 肉盤份量十足，油脂與瘦肉比例恰好，入口軟嫩又帶點油香，超適合大口吃肉的肉控。 ✔️ 活菌豚梅花（$340） —— 帶有台灣活菌豬特有的甜味，口感扎實卻不柴，適合喜歡瘦肉多一點的朋友。 ✔️ 白飯升級溫泉蛋飯 —— 半熟蛋黃滑落在熱呼呼的米飯上，拌勻後濃郁滑順，每一口都很滿足。 ✔️ 味噌湯 —— 裡頭還有大顆蛤蜊，湯頭鮮美不鹹膩。 🥗 整體心得： 尬意燒肉的肉品新鮮、擺盤精緻，份量充足卻不會過量，價位合理。用餐環境舒適，抽屜裡貼心備好所有餐具。從烤肉小細節到服務態度都讓人覺得很貼心。 👉 難怪每次都人潮滿滿！很適合朋友聚餐、家庭聚會，推薦早點到或訂位，才不用排隊。",
+          "publishTime": "2025-10-07T02:27:12",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Nicole Chan",
+          "rating": 5.0,
+          "text": "環境舒適、價格也很親民，還提供更換鐵網的服務，桌邊附上了燒肉計時漏斗，跟著指示翻面，就能吃到最完美的燒肉。 套餐包含木盆沙拉、味噌湯、白飯，還可以免費續湯、白飯和獨家的醬料。 獨家沾醬有五款-泡菜、和風洋蔥醬、蔥鹽醬、蒜片、柚鹽等，都為燒肉增添了不同的風味層次。 我特別喜歡金黃蒜片金黃酥脆，不苦又香非常好吃，還有淡淡清新酸甜柚香的柚鹽，讓肉品嚐起來更清爽 這天點的是”盛夏雙饗宴”，有「日本山形 A5 和牛」「美國 Prime 級嫩肩」肉質軟嫩而有彈性，還有小花枝、生食級干貝內容很澎派。 吃完齒頰留香意猶未盡。",
+          "publishTime": "2025-08-08T02:27:25",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Azoth Teng",
+          "rating": 5.0,
+          "text": "給過~ 主打「一人也能輕鬆吃」的燒肉，強調平價、高品質，且不需要揪團，適合邊緣人（或享受孤獨的人）獨自享用。 「Ikigai」這個詞也很好，核心意義是「生存的價值」或「尋找到每天起床的動力」。這個詞非常有質感且充滿正能量。",
+          "publishTime": "2026-03-06T02:27:16",
+          "source": "Google Maps"
+        },
+        {
+          "author": "昭",
+          "rating": 5.0,
+          "text": "已經回訪多次 雞肉很嫩很好吃 松阪豬跟雞松阪都蠻推薦的😍 味增湯很好喝（但有時候不夠鹹）希望可以改善一下 有時候很好喝但有時候沒什麼味道 白飯跟湯可以無限續 有附沙拉🥗 希望點餐系統可以勾選不需要沙拉 最近去還有提供白開水",
+          "publishTime": "2025-12-06T02:27:23",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Yuan-Yu Chuang (莊元瑜)",
+          "rating": 4.0,
+          "text": "2025/10/5週日晚上8:40，初訪。 ■點餐：牛肉盛合x2份+10%服務費=1320元。 ■橫膈膜、牛舌好吃。 ■吃完身上不太有油煙味道。 ■小缺憾：牛胸腹肉，肥油太多了，超過一半都是油。 ■金融服務：多元支付。",
+          "publishTime": "2025-11-06T02:27:22",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Hsuan Chen",
+          "rating": 4.0,
+          "text": "所有肉品都非常新鮮，肉質也很好 不過牛胸腹品質管理要加強，油花太多了，看其他人照片也是有這樣的問題，有的則是分布均勻 價格其實不貴，份量充足，飯跟湯可以續加 飯粒粒分明味噌湯裡面還有一顆海瓜子 第一次來就覺得印象很好",
+          "publishTime": "2026-03-06T02:27:13",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Yuci",
+          "rating": 4.0,
+          "text": "餐點很棒，但環境衛生要再加強，幾乎每個月都會和孩子來吃1-2次，幾乎每次都會坐到這個位置，有反應過燈箱上的蜘蛛網和灰塵快掉下來，怕掉到餐點裡，雖然之後去有稍微改善，但還是有殘留的沒清乾淨",
+          "publishTime": "2025-12-06T02:27:26",
+          "source": "Google Maps"
+        },
+        {
+          "author": "陳鼎元",
+          "rating": 5.0,
+          "text": "高端版本的燒肉like,但有和牛,而且套餐只要820,其實挺便宜的,飯無限續,小菜跟湯也是！吃起來品質都很好......只是假日肯定要排隊！我排了約半小時",
+          "publishTime": "2026-01-05T02:27:20",
+          "source": "Google Maps"
+        },
+        {
+          "author": "ho kingrobin",
+          "rating": 5.0,
+          "text": "晚餐點了和牛和Prime, 食材新鮮 自己烤熟度自己定，米飯也好吃，食量大的需加點飯和肉，我們用餐時 已大排長龍。",
+          "publishTime": "2025-12-06T02:27:17",
+          "source": "Google Maps"
+        },
+        {
+          "author": "亞竹",
+          "rating": 5.0,
+          "text": "白飯、湯吃到飽 全家一起吃可以1-2人點大盛 其他的人點香草雞就很飽 小菜也很好吃 大家一起烤肉非常開心",
+          "publishTime": "2026-02-04T02:27:15",
+          "source": "Google Maps"
+        },
+        {
+          "author": "沈俊宏",
+          "rating": 5.0,
+          "text": "肉質新鮮，牛肉油花分布漂亮，烤起來香氣十足又多汁，完全不會乾柴。豬肉也沒有腥味，搭配店家的醬料很加分。",
+          "publishTime": "2026-03-06T02:27:10",
+          "source": "Google Maps"
+        },
+        {
+          "author": "楊楊楊",
+          "rating": 5.0,
+          "text": "價位不傷荷包，品質ok 我最愛蒜片（可以無料加點👏） 需現場排隊，但值得等後，推～",
+          "publishTime": "2026-03-06T02:27:13",
+          "source": "Google Maps"
+        },
+        {
+          "author": "JJ Chou",
+          "rating": 5.0,
+          "text": "牛舌好吃！位置也不會很擠，工作人員人都很好，cp值很高！！！會再回訪～💕",
+          "publishTime": "2026-01-05T02:27:21",
+          "source": "Google Maps"
+        },
+        {
+          "author": "羅Mickey",
+          "rating": 5.0,
+          "text": "價格合宜，份量充足，會來換烤網。平日午餐不需久等。",
+          "publishTime": "2026-02-04T02:27:24",
+          "source": "Google Maps"
+        },
+        {
+          "author": "ヱヰ",
+          "rating": 2.0,
+          "text": "▲ 位於高島屋內 △ 可能有洗五星好評 ▲ 一成服務費 △ 無公休日（下午不休息 ▲ 11：00 ~ 21：00 △ 整體套餐份量偏少 ▲ 現金 / 信用卡 / 電支 △ 自行掃碼點餐 ▲ 有相關優惠活動 △ 用餐限制 90分鐘 ▲ 桌旁有充電座 △ 有會員活動 ▲ 附有洗手間（在外面 △ 可停車在高島屋內 ▲ 服務好 客氣、快速 △ 每人低消一份套餐 每到假日或是用餐時間都會排隊的燒肉店，這次有機會來體驗看看。平日時段比較不會等，幾乎沒有排隊就能入座。 如果平日 週一 ~ 週四 每兩人消費滿額 1250元，還會贈送蒜香雞肉 100g，如果三人的情況，超過金額還是會送，如果滿 2500 元，就送 200g 依此類推，但是規則有陷阱，不是總金額，是兩份餐金額要滿，也可以用單點（加點）去湊，所以如果兩個人是點 490元 的套餐，相加也不會滿，所以有一個門檻在，很容易就理解錯誤。 如果是帶小朋友，烤肉的話如比較抓不準烤肉時間，桌上很貼心還有提供沙漏可以計算，說明漏幾次就能完成烤肉。 餐附飲料、沙拉。而白飯跟醬料可以無限享用（用掃碼加點），其他像是飲料、湯品、沙拉就不能再加（需要額外付費加點）。如果要開水，也可以透過加點方式提供，但是我覺得有點麻煩，其實開水應該讓客人自己裝即可。 我覺得整體套餐份量偏少.. 其實大人是吃不太飽， 所以要吃舒服一些，可能建議要選 “大盛”（肉量加大），或是再單點其他內容。可是如果再單點.. 金額加上去，乾脆就直接去吃一般吃到飽即可。 體驗過即可的店，雖然服務客氣，態度也很好，也是很迅速，但就是自行掃碼自己烤，服務費就是送餐、收東西跟換網子，再加上整體餐點內容我覺得不是很優，吃不飽以外，豬肉.... 有豬味.. 而且如果是兩人一起烤，共用烤網，烤網就是設定個人用，所以...烤網偏小，烤起來不是那麼方便 如果以份量跟 CP值 看的話，我個人不推薦... 所以我覺得吃過就好，可能不會想要回訪，如果有興趣的人，可以來試試，一個人也可以輕鬆吃的燒烤，只是有時間限制，可能沒辦法吃很舒服。",
+          "publishTime": "2025-09-07T02:27:19",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Alice",
+          "rating": 3.0,
+          "text": "牛腹肉非常肥，放上烤爐加熱會起火，火大的嚇人，照片只是開要起火而已，因為忙著把肉夾走，才不會被烤網和大火弄得黑黑的，後來才發現要把原本店員設定的火力5調到1，比較不會那麼快起火，肥油和肉的比例是5：5，但吃起來都是油，感覺不到有肉，建議為了健康多花點銀子點其他肉品，板翼份量少，但至少肉不肥，份量女生不夠，更不用說男生。 味增湯有一顆花蛤，還不錯，可惜殼是破的。 配肉沾料有五種，特別喜歡蒜片、泡菜、蔥這三種。 蔬菜只有迷你二片半個節瓜，需要另外加點，希望不喝飲料或不吃生菜沙拉，可以換烤蔬菜。 菜單價格還要加一成服務費。 有位子，但過了很久才叫號，讓一堆客人站在門口等.... 環境、桌面、餐具很乾淨，是優點。",
+          "publishTime": "2026-03-06T02:27:11",
+          "source": "Google Maps"
+        },
+        {
+          "author": "溎夫人",
+          "rating": 2.0,
+          "text": "生意很好的燒肉店，食材還不錯，用餐時間90分鐘 但座位有點窄，吃太飽肚子可能會卡到 服務態度不錯，但上的餐點是什麼，比客人還搞不清楚，呈現已讀亂答的狀態 🙄 第一次遇到烤肉店，用餐90分鐘，烤網卻ㄧ次也沒來換過 然後生意好到爆～ 翻桌率很高，也是蠻厲害的啦👍 我猜可能單價算便宜的吧⋯⋯ 但相比之下，我可能比較推薦「燒肉Smile」🤣",
+          "publishTime": "2026-01-05T02:27:14",
+          "source": "Google Maps"
+        },
+        {
+          "author": "些許高",
+          "rating": 2.0,
+          "text": "東西好吃 可惜肉量偏少 帶位邏輯不明確 當天3位用餐，號碼為B018 B017叫號沒人過好後，理應換我們B018入場 但帶位人員卻讓C004，5位的用分開坐的方式先行入場 C004甚至還是比我們晚抽號碼牌的 我就好奇如果是這樣那依照人數分ABC的用意在哪邊 讓我們又多等了約莫10分鐘左右，感覺非常不好",
+          "publishTime": "2026-04-05T02:27:27",
+          "source": "Google Maps"
+        },
+        {
+          "author": "蔣強民",
+          "rating": 3.0,
+          "text": "整體份量有點少，如果不配白飯肯定吃不飽 除了主餐以外都可以免費加點 味噌湯裡面有一個海瓜子（cp值最高） 只點純肉的吃起來很單調，建議點各種肉拼起來的套餐比較不會膩 服務生需要加強，上兩份沙拉都上在我面前，我還要把沙拉自己內部傳遞...這樣好意思收服務費... 兒童餐的鍋子很可愛",
+          "publishTime": "2025-11-06T02:27:15",
+          "source": "Google Maps"
+        },
+        {
+          "author": "IS ME",
+          "rating": 2.0,
+          "text": "回訪很多次 這次感覺，餐點份量都變少了 雖然白飯吃到飽 但是每一次來的白飯 份量不到3/1 出餐速度有點慢 不會自動換烤網 服務態度 每個店員幾乎沒笑容",
+          "publishTime": "2025-11-06T02:27:27",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10576": {
       "photoUrls": [
@@ -21917,7 +23769,8 @@
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAG2GcqPIcIl-GYHMKXvVaz7tro8TmV3fqJtjhvoYI-NfWoimgyJ30q7XW2_HE6R3iF90_efpgjPu2jjsvwiS5rp4krTcm95Y0ezce1vVWivRGrJK-91OJyqsZ5IfiomB_b3uIBkF75nRks7=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFxPjsr_HfpDoFmPcj8rrh-fuSXUHAL8Q8ZQJCor3tLXpbjlR8exBpG9urOh2WeLirW0d_uxXTH7V3krJTmUl5b0hfudfUUivw2KIxcxgWJL8g8kxXuRT64o4qJDyQjFez1FE6qF4h11N1H=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAH4L8LbDpS1Kn18nfGElZGGVXKEBisUD6NKy7cU7T8ATxrFiw-DtuN0OpFthbZ0-8JrfRRabV5cTG_eTEbqNTiWAdRR0KIJwCEHAK4m_B8vQXAkZCR6IinqKdpOTLyB_1h4nOb6tA=w570-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGNaRRbSRedQedDPqjh6fPcbMzlEvMIc5NRvTt2WXJtfFV1xYW84dZO2m0H2nLNivtDwZXoS3us_EhH6rbIQZ589KpNeoRgDnvMCYD-uitGXXgejkx7HV7DJVSyXY_oJs67PKn70jxrWWM=w397-h298-k-no"
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGNaRRbSRedQedDPqjh6fPcbMzlEvMIc5NRvTt2WXJtfFV1xYW84dZO2m0H2nLNivtDwZXoS3us_EhH6rbIQZ589KpNeoRgDnvMCYD-uitGXXgejkx7HV7DJVSyXY_oJs67PKn70jxrWWM=w397-h298-k-no",
+        "https://lh3.googleusercontent.com/grass-cs/ANxoTn3xIb_ozLFig-guA437hvjD4sybolcIiwnEG7CZaUmiU7QD8qS8Te0TFsyZFbowdRBkNpOxX9fnePCSd3lFztqp2skz-yEPfaE_BMGCa9VrZlooW-BsFiuo43_UxEGe0_WWl0KRA8ERSUfV=w300-h225-p-k-no"
       ],
       "coverUrl": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHImspskZny09MBaETnCt4aV2FzwtSvBCnGUPC8P0C3UFAWokXNvdjCvq4txAiAQ6eVHQ3ZC9FFv9jM2u2dgF7QwYDYURLM-hF5__C6o1JeD2aTHwDIi7Nq6Ob9UjrEIeLyJVkLacI0WfZg=w397-h298-k-no",
       "galleryUrls": [
@@ -21927,7 +23780,8 @@
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAG2GcqPIcIl-GYHMKXvVaz7tro8TmV3fqJtjhvoYI-NfWoimgyJ30q7XW2_HE6R3iF90_efpgjPu2jjsvwiS5rp4krTcm95Y0ezce1vVWivRGrJK-91OJyqsZ5IfiomB_b3uIBkF75nRks7=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFxPjsr_HfpDoFmPcj8rrh-fuSXUHAL8Q8ZQJCor3tLXpbjlR8exBpG9urOh2WeLirW0d_uxXTH7V3krJTmUl5b0hfudfUUivw2KIxcxgWJL8g8kxXuRT64o4qJDyQjFez1FE6qF4h11N1H=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAH4L8LbDpS1Kn18nfGElZGGVXKEBisUD6NKy7cU7T8ATxrFiw-DtuN0OpFthbZ0-8JrfRRabV5cTG_eTEbqNTiWAdRR0KIJwCEHAK4m_B8vQXAkZCR6IinqKdpOTLyB_1h4nOb6tA=w570-h298-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGNaRRbSRedQedDPqjh6fPcbMzlEvMIc5NRvTt2WXJtfFV1xYW84dZO2m0H2nLNivtDwZXoS3us_EhH6rbIQZ589KpNeoRgDnvMCYD-uitGXXgejkx7HV7DJVSyXY_oJs67PKn70jxrWWM=w397-h298-k-no"
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGNaRRbSRedQedDPqjh6fPcbMzlEvMIc5NRvTt2WXJtfFV1xYW84dZO2m0H2nLNivtDwZXoS3us_EhH6rbIQZ589KpNeoRgDnvMCYD-uitGXXgejkx7HV7DJVSyXY_oJs67PKn70jxrWWM=w397-h298-k-no",
+        "https://lh3.googleusercontent.com/grass-cs/ANxoTn3xIb_ozLFig-guA437hvjD4sybolcIiwnEG7CZaUmiU7QD8qS8Te0TFsyZFbowdRBkNpOxX9fnePCSd3lFztqp2skz-yEPfaE_BMGCa9VrZlooW-BsFiuo43_UxEGe0_WWl0KRA8ERSUfV=w300-h225-p-k-no"
       ],
       "overview": {
         "price_overview": "$600-1,000",
@@ -21935,7 +23789,142 @@
         "price_buckets": [
           "$600-1,000"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "00愛食記",
+          "rating": 5.0,
+          "text": "二訪這家東區超有氛圍的居酒屋 超適合下班來放鬆小酌🍻 只要$499即可享梅酒喝到飽 餐點價格和份量也都很合理 絕對會吃飽喝足 滿足離開😝 |推薦必點✨| ☀️哇沙米雞胸肉/2串 $150 雞肉配上哇沙米 有種在吃鮪魚生魚片的錯覺感 即使冷掉也依然不減好吃程度 ☀️鮭魚炒飯 $200 只吃串燒怕吃不飽 就點鮭魚炒飯不會錯 炒飯不油膩份量也很適合一起分食 ☀️櫛瓜用炸的 $140 超愛吃炸櫛瓜酥脆不油膩 喜歡櫛瓜必點❤️‍🔥 ☀️蒸煮蛤蠣絲瓜 $130 絲瓜厚切很有口感這道很清爽 ☀️揚出豆腐 $120 他們的豆腐是我的必點 切的小塊的豆腐炸得酥脆 很適合當開胃菜！ 📢週日至週四梅酒$499喝到飽的活動 每人低消達$500就能參加 僅限大安、忠孝、板橋江子翠三家分店 週五週六也有梅酒精選6款$699的活動! - ☀️精選牛橫膈膜/1份 $280 ☀️鹽烤牛肋 $260 ☁️鹽烤豬五花/2串 $160 ☀️哇沙米雞胸肉/2串 $150 ☁️元氣燒肉組合 $260 ☀️鮭魚炒飯 $200 ☀️蒸煮蛤蠣絲瓜 $130 ☀️櫛瓜用炸的 $140 ☀️揚出豆腐 $120 ☁️金賓high ball (350ml/杯) $180 ☀️紅茶梅酒 (60ml/杯) $180 💰需收一成服務費 - 更多好吃好玩 instagram🔍@00.loveeat",
+          "publishTime": "2025-07-09T02:35:10",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Miles Tea",
+          "rating": 5.0,
+          "text": "🌟大村武串燒居酒屋-大安店 店員活潑可愛，環境乾淨很日式，不過離捷運站有一些距離，價位是一般居酒屋價位～ -值得推薦的地方👇 ．鮭魚炒飯很好吃，粒粒分明。 ．串串都不雷，烤到剛剛好。 ．店員熱情，有招待一些菜，讚讚！ -建議調整的地方👇 ．我們坐的位子有點昏暗，且蠻悶的，到外面時發現外面還比較涼。",
+          "publishTime": "2025-10-07T02:35:10",
+          "source": "Google Maps"
+        },
+        {
+          "author": "楊宛蓁",
+          "rating": 5.0,
+          "text": "已經三訪，必點明太子雞腿，壽喜燒牛丼飯是會令人想念的味道，這次第一次點鮭魚炒飯被驚艷到了，下次來會再點！前兩次都點炸物拼盤，這次只點鹽酥雞，很好吃，吃的很滿足。",
+          "publishTime": "2026-03-06T02:35:08",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Nic Hsu",
+          "rating": 5.0,
+          "text": "食材都相當的好吃，不過牛肉的部分稍微烤的有點過熟了，有搭配梅酒喝到飽的方案，有眾多梅酒可以選非常讚，非常適合晚餐以及宵夜場，是值得推薦的居酒屋。",
+          "publishTime": "2026-03-06T02:35:06",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Lemon Chi (Vivian Lin)",
+          "rating": 5.0,
+          "text": "週日到週四有499梅酒放題活動～超過10種的梅酒可以暢飲（也是衝著這個來🤣 整體環境氛圍也不錯，很適合小聚小酌 餐點的部分偏清淡但還ok",
+          "publishTime": "2026-01-05T02:35:11",
+          "source": "Google Maps"
+        },
+        {
+          "author": "李珊珊",
+          "rating": 5.0,
+          "text": "喜歡青狗狗柚子酒！很清爽的口感👍🏻松阪豬炒水蓮、櫛瓜、揚出豆腐、碳烤肥腸都是必點（鮭魚炒飯還好），店裡氣氛很好，很適合下班小酌聚餐～",
+          "publishTime": "2025-12-06T02:35:07",
+          "source": "Google Maps"
+        },
+        {
+          "author": "謝宗勳",
+          "rating": 5.0,
+          "text": "和朋友來這裡小酌放鬆一下，整體餐點都相當出色。 其中我最喜歡一口雞蛋豆腐和明太子雞肉串，香氣濃郁、口感滑順，會讓人想再點一份",
+          "publishTime": "2025-11-06T02:35:07",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Kitty",
+          "rating": 5.0,
+          "text": "牛丼飯超香超下飯、肉嫩洋蔥甜～ 絲瓜蛤蜊湯清爽又鮮！ 串燒火候剛剛好、超好吃😋 下班聚餐或小酌都超適合👍🏻 吃完超滿足🥰",
+          "publishTime": "2025-11-06T02:35:10",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Noora",
+          "rating": 5.0,
+          "text": "居酒屋氛圍溫暖，燈光柔和，適合小酌聚會。料理新鮮美味，尤其串燒香氣十足，服務親切細心，是放鬆下班後的好去處。",
+          "publishTime": "2026-01-05T02:35:11",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Coco Lin",
+          "rating": 5.0,
+          "text": "超級適合聚餐的居酒屋，當時有暢飲活動，大家都喝到很盡興👯‍♀️ 串燒都無雷，個人推薦軟骨跟唐揚雞！ …",
+          "publishTime": "2026-01-05T02:35:08",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Elisa Teng",
+          "rating": 5.0,
+          "text": "我通常不會為了食物給五星好評的….但這雞軟骨真的好吃！跟夜市鹽酥雞一樣！",
+          "publishTime": "2025-12-06T02:35:12",
+          "source": "Google Maps"
+        },
+        {
+          "author": "劉香旻",
+          "rating": 5.0,
+          "text": "CP值超高 超喜歡他們炒物！ 超級香！！！ 梅酒暢飲杯杯都好滿！！",
+          "publishTime": "2026-01-05T02:35:08",
+          "source": "Google Maps"
+        },
+        {
+          "author": "吳布吉",
+          "rating": 5.0,
+          "text": "餐點不錯吃！！ 還有499梅酒喝到飽，直接滿足我這個梅酒愛好者！！",
+          "publishTime": "2025-10-07T02:35:11",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Allan lee",
+          "rating": 5.0,
+          "text": "很熱鬧氣氛很好,應該不適合安靜的用餐,餐點都還蠻好吃的,生意很好",
+          "publishTime": "2026-03-06T02:35:07",
+          "source": "Google Maps"
+        },
+        {
+          "author": "AllLPFire",
+          "rating": 5.0,
+          "text": "梅酒放題有14種可以喝 龍鬚菜非常大份 店員活潑可愛",
+          "publishTime": "2026-04-05T02:35:09",
+          "source": "Google Maps"
+        },
+        {
+          "author": "yu-jing lin",
+          "rating": 5.0,
+          "text": "梅酒499暢飲真的很划算，非常超值，餐點好吃",
+          "publishTime": "2025-12-06T02:35:12",
+          "source": "Google Maps"
+        },
+        {
+          "author": "albertlaw",
+          "rating": 1.0,
+          "text": "所謂的星级五花腩，好韌好難食，蠔鍋只有幾隻蠔，沒提的有蝦和蜆，如果蝦敏感會给他害死，第二杯尚有半杯，走來問還雖要多一杯嗎？連High ball也會難飲，完全中伏，不推，怎麼會有4.9星。坐在吧枱，但地下不平，每次有人在我身後行過，我的凳會向後傾，好難受，空調不夠，夏天不要來，應該說任何時候也不要來，不推。",
+          "publishTime": "2025-09-07T02:35:11",
+          "source": "Google Maps"
+        },
+        {
+          "author": "北辰宇",
+          "rating": 3.0,
+          "text": "🍌深夜美食評論家🍌 好久沒評論了 服務好，氣氛棒，東西好吃 只是兩個人花了$1600 吃下來雖然不餓，但是很空虛 鮭魚炒飯還不錯，鹽酥雞也很好吃！ 洋蔥一絕👍👍",
+          "publishTime": "2025-10-07T02:35:08",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Pchen K",
+          "rating": 3.0,
+          "text": "食物口味都還可以 價格不便宜 梅酒暢飲限2小時而已，時間很嚴格，個人覺得不太划算 桌子蠻小的，空間也比較吵雜",
+          "publishTime": "2026-03-06T02:35:07",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10577": {
       "photoUrls": [
@@ -21965,7 +23954,149 @@
         "price_buckets": [
           "$1,000-1,600"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "郭蓉",
+          "rating": 5.0,
+          "text": "因為評價被吸引過來的小店 結果不負期望 整體氣氛很好 覺得在這邊每一口都被照顧的很好 幫我們服務的是小節瓜和小辣椒 兩位都非常細心和照顧我們的細節 一開始會介紹肉品、油品、溫度、搭配的調味 無時無刻確保溫度在最適合的溫度 是鎖住水分烤出焦香的溫度 每份肉品也會分享來源 飼料 真心覺得被照顧的好好的 很幸福 最喜歡的一點絕對是保持桌面整潔很迅速 有髒的碗盤會立刻收掉 烤盤也勤勞擦拭 最愛牛舌、牛肩、花枝！ 花枝真的超乎想像的好吃 除了鮮不知道怎麼形容 只能用寫評論來對這份美好的經驗 表達感謝🥹",
+          "publishTime": "2026-03-06T02:37:57",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Emily Hsu",
+          "rating": 5.0,
+          "text": "今天點的是雙人套餐。但最讓人驚豔的是桌邊代烤的店員-小櫛瓜。 讓我們第一次用餐有非常好的體驗！ 講解非常敬業，認真說明，親切客氣有禮貌，時刻關心，也隨時調整並留意顧客可能會有的需求，適時提出詢問協助，很難得遇到保有熱忱，這麼用心、貼心細膩的專業服務。 期待老闆能夠珍視這麼難得、認真的工作夥伴，也期待有更多人能享受到這樣的用餐服務與體驗，有這樣的工作夥伴是福氣！",
+          "publishTime": "2026-03-06T02:38:10",
+          "source": "Google Maps"
+        },
+        {
+          "author": "黃峻翊",
+          "rating": 5.0,
+          "text": "今天是小櫛瓜幫我們烤的 只能說烤的真的非常好 會一直拿溫度的測量那個溫度有沒有到 也會問我們幾分熟的熟度滿意 人也很好都會回答客人問的各種問題 也都笑笑的服務品質很舒服 蠻喜歡這裡的氣氛的 簡單而且沒有油煙味 從一進來的雞湯到後續慢慢的換盤整理 其實都挺有規矩的 真的很感謝今天服務的小櫛瓜～希望以後還有機會能再來",
+          "publishTime": "2025-11-06T02:38:16",
+          "source": "Google Maps"
+        },
+        {
+          "author": "吳珮欣",
+          "rating": 5.0,
+          "text": "第一次看老公吃到眼眶泛淚，謝謝小甜椒的專業服務，烤的超級好吃！！！！！ 上烤台前也會上玄米油保留肉汁水分，每一道都會介紹肉的特性和適合搭配的吃法 無論肉類或海鮮都烤的無可挑剔 愛吃燒肉必訪❤️‍🔥❤️‍🔥❤️‍🔥❤️‍🔥",
+          "publishTime": "2026-03-06T02:38:01",
+          "source": "Google Maps"
+        },
+        {
+          "author": "邱竑森",
+          "rating": 5.0,
+          "text": "來拜訪藏匿巷弄內，店雖小小的，很溫馨，能感受到很用心經營的專人服務燒肉店，養生油刷+肉專人烤，隨時顧著量著鐵盤溫度，不需太多醬讓食物鮮甜，是近期吃過最沒負擔好吃的。 服務人員小辣椒小姐服務態度好很專業，值得讚賞。",
+          "publishTime": "2025-12-06T02:38:03",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Wei",
+          "rating": 5.0,
+          "text": "非常喜歡四時輕燒肉，已經三訪，特別喜歡他們的食材用料，今天最喜歡的應該是干貝、蝦、鴨胸和伊比利豬肉。桌邊服務小辣椒很親切專業，烤的熟度都很剛好，也會介紹如何食用比較美味。我會推薦給所有朋友這家店。",
+          "publishTime": "2026-03-06T02:37:59",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Lyn",
+          "rating": 5.0,
+          "text": "五個人點四人套餐再加點幾道肉，吃的很滿足，雞湯超級好喝！！今天服務人員是小櫛瓜，服務很好、烤的很好吃😋餐廳整體氣氛也很棒，不會有一般燒肉店的濃煙，使用無調味肉品，讓人吃起來沒有負擔，大推！",
+          "publishTime": "2026-03-06T02:38:17",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Sylvia Hsu",
+          "rating": 5.0,
+          "text": "店內雖然小小的但是座無虛席，公司人員都很親切 服務這桌的「小辣椒」 聲音輕柔，介紹肉品、推薦的熟度及搭配的調味料都很專業，烤肉的手法火候的掌握都非常得宜，整體和家人小年夜的聚餐感受蠻好的！",
+          "publishTime": "2026-03-06T02:38:17",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Yang Ching楊晴",
+          "rating": 5.0,
+          "text": "各種肉和海鮮都非常新鮮，品質很好，可以吃出食材的原味。店員（小櫛瓜）的功力真是太強了，根本應該叫小當家。除了餐點外服務也很好，店裡也沒有油煙味，來這裡吃燒肉真的是很棒的體驗！",
+          "publishTime": "2025-10-07T02:38:20",
+          "source": "Google Maps"
+        },
+        {
+          "author": "YC Wang",
+          "rating": 5.0,
+          "text": "店面沒有燒肉很重的油煙感，肉品品質都很不錯，菜盤也很棒，絲瓜超好吃！！蝦子超厲害！！ 桌邊服務的小玉米細心、技術好，肉吃太慢放在旁邊涼掉還會注意到重新幫忙加熱，超貼心！！",
+          "publishTime": "2026-02-04T02:38:09",
+          "source": "Google Maps"
+        },
+        {
+          "author": "chery chery",
+          "rating": 5.0,
+          "text": "好不容易訂到平安夜的位置，第一次來很驚艷。店員小玉米很專業，烤肉的品質和建議的搭配都非常完美！海鮮和蔬菜不必沾調味料就很鮮甜。值得再訪的好店！",
+          "publishTime": "2026-01-05T02:38:06",
+          "source": "Google Maps"
+        },
+        {
+          "author": "鄭合汝",
+          "rating": 5.0,
+          "text": "肉質鮮甜，吃得出肉的原味，蔬菜雞湯很暖胃，泡菜好吃剛好解膩，親子友善的用餐環境加小辣椒專業的代烤服務，值得推薦的店家👍🏻",
+          "publishTime": "2026-02-04T02:38:08",
+          "source": "Google Maps"
+        },
+        {
+          "author": "藍崇瑜",
+          "rating": 5.0,
+          "text": "超級好吃！食材新鮮，溫度跟烤法都很講究 服務態度超棒，會很認真介紹每道食材以及最佳品味方式 小櫛瓜、小辣椒讚讚",
+          "publishTime": "2025-10-07T02:38:19",
+          "source": "Google Maps"
+        },
+        {
+          "author": "林育岑",
+          "rating": 5.0,
+          "text": "食材新鮮，用餐氣氛非常好。 服務人員小節瓜與小玉米親切而且非常專業，食材熟度掌握的恰到好處。 值得推薦！！！",
+          "publishTime": "2026-03-06T02:38:16",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Yawen Chang",
+          "rating": 4.0,
+          "text": "肉類多汁，蔬菜甜脆，海鮮鮮甜，前後由小辣椒小玉米服務，清楚解說，尤其小玉米更為貼心，理解客人需求，很棒的體驗",
+          "publishTime": "2026-01-05T02:38:19",
+          "source": "Google Maps"
+        },
+        {
+          "author": "will HSU",
+          "rating": 5.0,
+          "text": "整個過程都是由小節瓜還有小辣椒代烤，份量ok，吃起來也沒負擔。肉質很不錯，海鮮也很好吃，就是吃食物原型，讚讚",
+          "publishTime": "2026-01-05T02:38:10",
+          "source": "Google Maps"
+        },
+        {
+          "author": "野豬騎士21",
+          "rating": 5.0,
+          "text": "海鮮的表現超乎預期的鮮甜 肉類當然表現也很棒，很適合體重控制狀態的我 感謝小甜椒的桌邊服務！我們吃得很開心",
+          "publishTime": "2026-01-05T02:38:14",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Mancy Chen",
+          "rating": 5.0,
+          "text": "一開始員工會建議組合套餐 但我們食量不大所以選擇單點 小節瓜服務很棒，烤每道都會詳細說明 食材都很新鮮",
+          "publishTime": "2026-02-04T02:38:04",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Amy Chien",
+          "rating": 5.0,
+          "text": "服務員小玉米🌽超級親切又專業，介紹非常詳細，烤肉技術滿分💯好好吃！下個月生日想帶家人再來一次！",
+          "publishTime": "2026-03-06T02:38:15",
+          "source": "Google Maps"
+        },
+        {
+          "author": "周少俠",
+          "rating": 5.0,
+          "text": "食材新鮮，代烤服務人員小辣椒技術好，解說淸楚，小菜也很好吃，沾醬跟食材也搭",
+          "publishTime": "2026-01-05T02:38:18",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10578": {
       "photoUrls": [
@@ -22024,20 +24155,20 @@
     },
     "10615": {
       "photoUrls": [
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGvBcu7xUdEC1e9E1ycStFiMfJpvSkGHEqbL_odiuEd5-vp9UM_qlHUoVuidn5pr3lJM3EURUZdKupdJ_1hvUmNO5xX1M89tXsunu3GuOEmhjCwbtsL2f1MQRmLszk0rGHSMfg6dA=w408-h272-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGvBcu7xUdEC1e9E1ycStFiMfJpvSkGHEqbL_odiuEd5-vp9UM_qlHUoVuidn5pr3lJM3EURUZdKupdJ_1hvUmNO5xX1M89tXsunu3GuOEmhjCwbtsL2f1MQRmLszk0rGHSMfg6dA=w408-h272-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGvBcu7xUdEC1e9E1ycStFiMfJpvSkGHEqbL_odiuEd5-vp9UM_qlHUoVuidn5pr3lJM3EURUZdKupdJ_1hvUmNO5xX1M89tXsunu3GuOEmhjCwbtsL2f1MQRmLszk0rGHSMfg6dA=w446-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEEF1DsmyeMN96Zv-C-CEiuKfMVIlqqypSNwxDnF8vR2yOuswqDrgb7cH50Wgd7V9BlPioPJNmS1D2g9ysImMdRgdfKZvVvV0IOq1n0f4UZFk8yb3dFP_sskcCzEGqpNDEvo_-P0w=w408-h272-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEEF1DsmyeMN96Zv-C-CEiuKfMVIlqqypSNwxDnF8vR2yOuswqDrgb7cH50Wgd7V9BlPioPJNmS1D2g9ysImMdRgdfKZvVvV0IOq1n0f4UZFk8yb3dFP_sskcCzEGqpNDEvo_-P0w=w408-h272-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEEF1DsmyeMN96Zv-C-CEiuKfMVIlqqypSNwxDnF8vR2yOuswqDrgb7cH50Wgd7V9BlPioPJNmS1D2g9ysImMdRgdfKZvVvV0IOq1n0f4UZFk8yb3dFP_sskcCzEGqpNDEvo_-P0w=w446-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGbGwz2i6QTfWNjkVSmQOo4pI8iZCwSkdKIGuQUPJk8uLbLjSl-Ep3dqOCwL_oIvDpIeulQdqj-jtuXuYOzgXrRxqE-tuJh0oZaYXCOb8Re7FXzeVWgqnVyvgCCLgxjprycZmh3mSvNpXb6=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHaQip6TFBAw0SFa4nPlM09NHXkZiB10K7Vz9dy_-chcvpLIMpCKJpmH4uO0UgDbSoKb1aLCnbgfu2LPyoutWzI4yX3V48IVrCP8bEguNfMGl6E4l1k-0LLanxLofNjcU2PYF87D9Jlifvw=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHFZHXx1e-xtIg9jSJMnsb9ADlAmOo2g6YQsxa2Mi_hSFTJOJjTFlP8wzTb4lZE9Jdmt_7XPF7RC3TghFUVBBSIpwBHaecC5lfmUZhhBn1Y3fDKjoa47vBdVgB4p0XJbCXHDwVg-A=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFjdpvVv38sndF36z_FLWNU_BqPftuEkhxDkkeVQottRaLvVlAIN7Fy5MnrI8TySEYdZTDgtz3GDpnyTsUhEDNllpfauyVBCqly81mIY9VMuSG-GQKmzUQ1JsUyTdnSlxfPAVRfvN0XiF5x=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHn57tgBvIkeLeuqCplmmVHQCBrl1RKJHWhSvxcNL4nUKIr66LCfUNRFePbGzDHa1AkHZqPwKxbdxiMdyNkXXxaAOPUDf_UgTabXFni7bKvGk-wYakPq0HxS-_DGPY1Tfwk9cMsByh0UgHB=w447-h298-k-no"
       ],
-      "coverUrl": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGvBcu7xUdEC1e9E1ycStFiMfJpvSkGHEqbL_odiuEd5-vp9UM_qlHUoVuidn5pr3lJM3EURUZdKupdJ_1hvUmNO5xX1M89tXsunu3GuOEmhjCwbtsL2f1MQRmLszk0rGHSMfg6dA=w408-h272-k-no",
+      "coverUrl": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEEF1DsmyeMN96Zv-C-CEiuKfMVIlqqypSNwxDnF8vR2yOuswqDrgb7cH50Wgd7V9BlPioPJNmS1D2g9ysImMdRgdfKZvVvV0IOq1n0f4UZFk8yb3dFP_sskcCzEGqpNDEvo_-P0w=w408-h272-k-no",
       "galleryUrls": [
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGvBcu7xUdEC1e9E1ycStFiMfJpvSkGHEqbL_odiuEd5-vp9UM_qlHUoVuidn5pr3lJM3EURUZdKupdJ_1hvUmNO5xX1M89tXsunu3GuOEmhjCwbtsL2f1MQRmLszk0rGHSMfg6dA=w408-h272-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGvBcu7xUdEC1e9E1ycStFiMfJpvSkGHEqbL_odiuEd5-vp9UM_qlHUoVuidn5pr3lJM3EURUZdKupdJ_1hvUmNO5xX1M89tXsunu3GuOEmhjCwbtsL2f1MQRmLszk0rGHSMfg6dA=w408-h272-k-no",
-        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGvBcu7xUdEC1e9E1ycStFiMfJpvSkGHEqbL_odiuEd5-vp9UM_qlHUoVuidn5pr3lJM3EURUZdKupdJ_1hvUmNO5xX1M89tXsunu3GuOEmhjCwbtsL2f1MQRmLszk0rGHSMfg6dA=w446-h298-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEEF1DsmyeMN96Zv-C-CEiuKfMVIlqqypSNwxDnF8vR2yOuswqDrgb7cH50Wgd7V9BlPioPJNmS1D2g9ysImMdRgdfKZvVvV0IOq1n0f4UZFk8yb3dFP_sskcCzEGqpNDEvo_-P0w=w408-h272-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEEF1DsmyeMN96Zv-C-CEiuKfMVIlqqypSNwxDnF8vR2yOuswqDrgb7cH50Wgd7V9BlPioPJNmS1D2g9ysImMdRgdfKZvVvV0IOq1n0f4UZFk8yb3dFP_sskcCzEGqpNDEvo_-P0w=w408-h272-k-no",
+        "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEEF1DsmyeMN96Zv-C-CEiuKfMVIlqqypSNwxDnF8vR2yOuswqDrgb7cH50Wgd7V9BlPioPJNmS1D2g9ysImMdRgdfKZvVvV0IOq1n0f4UZFk8yb3dFP_sskcCzEGqpNDEvo_-P0w=w446-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGbGwz2i6QTfWNjkVSmQOo4pI8iZCwSkdKIGuQUPJk8uLbLjSl-Ep3dqOCwL_oIvDpIeulQdqj-jtuXuYOzgXrRxqE-tuJh0oZaYXCOb8Re7FXzeVWgqnVyvgCCLgxjprycZmh3mSvNpXb6=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHaQip6TFBAw0SFa4nPlM09NHXkZiB10K7Vz9dy_-chcvpLIMpCKJpmH4uO0UgDbSoKb1aLCnbgfu2LPyoutWzI4yX3V48IVrCP8bEguNfMGl6E4l1k-0LLanxLofNjcU2PYF87D9Jlifvw=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAHFZHXx1e-xtIg9jSJMnsb9ADlAmOo2g6YQsxa2Mi_hSFTJOJjTFlP8wzTb4lZE9Jdmt_7XPF7RC3TghFUVBBSIpwBHaecC5lfmUZhhBn1Y3fDKjoa47vBdVgB4p0XJbCXHDwVg-A=w397-h298-k-no",
@@ -22050,7 +24181,149 @@
         "price_buckets": [
           "$800-1,000"
         ]
-      }
+      },
+      "reviews": [
+        {
+          "author": "麗星國際娛樂",
+          "rating": 5.0,
+          "text": "狗一下居食酒堂-忠孝店 第6次來這家店 東區「4.9星居酒屋」吃到飽，爽嗑100款日料、海鮮 馬辣集團旗下「狗一下居酒食堂」，是１間連鎖的日式料理店，這裡與一般居酒屋調性不太相同，特別融入食堂的要素，不僅提供多款串燒下酒菜，還有多道道地又浮誇的日式料理。目前於全台共有忠孝、公館、西門店３間門市，每間分店都有其獨特的特色；不過，其中只有忠孝店提供吃到飽服務。 「狗一下居酒食堂」忠孝店吃到飽活動，每人價位落於988元～1,688元（10%服務費另計），吃到飽用餐時間為120分鐘。需要注意的是，店家採QR Code點餐方式，每次最多可以加點的數量為「成人人數Ｘ２」份，送單後14分鐘即可再加點。舉例來說，２位成人用餐每次可以加點４份餐點、３位用餐則為６份餐點，依此類推。不過菜單上４款手捲、茶碗蒸、味噌湯和米飯皆可向服務人員無限續點。 選擇最低吃到飽價位988元，即享有超過85道日式料理吃到飽，包含沙拉、刺身、毛毛蟲壽司、握壽司、海鮮、主食、串燒和甜點等17大類別。店內不少菜色都是浮誇系，比方說松露和牛握壽司、鮭魚毛毛蟲壽司、炙燒比目魚鰭邊握、和牛生牛肉、明太子桂丁土雞菲力串燒；海鮮的部分則有午魚一夜干、北海道鯖魚、清酒大蛤、九孔鮑魚、廣島炸牡蠣等，食材非常新鮮，種類也相當多元。",
+          "publishTime": "2025-10-07T02:13:23",
+          "source": "Google Maps"
+        },
+        {
+          "author": "瑀澄",
+          "rating": 4.0,
+          "text": "⭐️毛蟲鮭魚壽司 超好吃 ⭕️值得回訪 💰中價位 <1人/1388$+10% > 🩷整體4/食材4/服務3/環境5 🦊寵物友善 平時習慣在西門町用餐，這次看到這家推出限時吃到飽活動，便決定前來一探究竟。當天選擇的是1388元套餐，原本是衝著干貝與天使紅蝦而來，卻在第二輪點餐時才被告知天使紅蝦已售完，讓人感受不太理想，畢竟這是選擇高價位方案的主要原因之一🤬🤬 ✅️毛毛蟲鮭魚壽司果然是店家招牌，口感飽滿、風味出色；✅️生牛肉也令人驚喜。可惜酒蒸蛤蜊未列入菜單，只能改點❗️清酒大蛤，這道需趁熱享用，冷掉後酒味偏重略影響口感。炙燒干貝握與鮪魚生魚片退冰掌握得宜，味道不錯；鯖魚則如預期般的不合我胃口。部分新嘗試的品項如鐵板骰子牛、香魚一夜干、牛舌、牛肉類串燒，表現不如預期，也算是提前踩雷💔 📢以個人立場來說，若非特別想吃干貝或高價食材，選擇988元方案就夠了！！ 每14分鐘才能點一次，且每次僅限人數乘以2的份量，我們兩人用餐下來只點七輪共14道料理。因食量不大，以品項為主的吃法還算滿意；但若是食量偏大的朋友，可能會覺得不太過癮，建議人多同行會更划算，也較能發揮吃到飽的優勢🤭",
+          "publishTime": "2025-11-06T02:13:20",
+          "source": "Google Maps"
+        },
+        {
+          "author": "貪吃熊貓的口袋名單",
+          "rating": 5.0,
+          "text": "🔍IG/FB/Tiktok/Youtube:@panda_foodtrip 近80道日料吃到飽只要988起 東區這間居酒屋太犯規‼️ 招牌一定要點🦐巨大海蝦毛毛蟲壽司 鮭魚卵軍艦、炙燒明太子鮭魚握壽司、海鱺/鮭魚肚刺身 軟殼蟹手捲、卡滋蝦手捲也很值得點 連鹽蔥牛舌都是放題😻 私心推薦🪄明太子炒烏龍 奶香濃而不膩 清酒大蛤又大又鮮 店家自製午魚一夜干 直接實現海鮮自由✨ 串燒也有很多選擇🍢全部現烤帶炭香很下酒 我們還點了松阪豬炒水蓮、明太子玉子燒、 蟹肉茶碗蒸、鮭魚飯糰、松露炸薯條 超滿足 隨便點都不踩雷🤩 每14分鐘就能再加點一次 節奏剛好 另外也有單點模式 下班後不知道吃什麼的 趕快收藏分享 @朋朋一起吃❣️",
+          "publishTime": "2026-03-06T02:13:18",
+          "source": "Google Maps"
+        },
+        {
+          "author": "燈木",
+          "rating": 5.0,
+          "text": "狗一下居食酒屋位於台北市敦化南路一段19o巷內，是一家日料燒烤，吃到飽又限時12o分鐘的做法方式的店，今為現點價單和吃到飽A988元B1988加服務費1o%共3種吃法的服務方式經營，也讓一些年輕人喜愛的日料餐廳，服務人員也都很認真的態度為客人講解及告知用餐時間。 點菜先經服務人員點4樣之後，每隔2o分鐘可在從E糸統再點4樣菜，直到12o分鐘前服務生會來關心你有沒有吃飽或是要再點菜，並提醒用餐還有多少時間。 因為是限定用餐時間出菜也算快約在1o分鐘左右會上菜，料理多元，生魚片1份3片也都滿新鮮的，人潮也多，必須要先訂定才能順利用餐喔！",
+          "publishTime": "2026-04-05T02:13:20",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Vivian Lee",
+          "rating": 5.0,
+          "text": "想吃居酒屋串燒的話可以來這間。 我們沒有預約，不過幸好有吧枱位置可以Walk in就座。 環境熱鬧，比較有點難聊天。 餐點整體都很好吃，而且上餐很快，毛毛蟲壽司（不是真的蟲），牛肉卷，薯條和雞泡魚乾，炒雜菜都非常好吃！ 難得也有熱清酒，相對濃度也在QR code點餐頁面介紹，非常好。 反而驚訝其他牛肉類串燒可能相對上，肉質沒想像中好。 不過需要說一下的是，下單需要使用QR code ，不過QR code的介面有點難用，需要特別撥動某些位置才能看到分類。 但整體體驗也很好！",
+          "publishTime": "2026-01-05T02:13:22",
+          "source": "Google Maps"
+        },
+        {
+          "author": "CHIH-YING美美 LIN",
+          "rating": 5.0,
+          "text": "2小時吃到飽$998，訂位時要先說是吃到飽的，因為也有單點（不限時），兩個人，每14分鐘點餐，一次只能點人數*2款，所以2人是一次4道，原本以為會來不及點，結果點到最後也是超飽，刺身只喜歡鮭魚、串燒都要趁熱吃，吃太慢冷掉會偏硬，整體來說大部分都不錯吃，可以再回訪的店👍",
+          "publishTime": "2026-02-04T02:13:17",
+          "source": "Google Maps"
+        },
+        {
+          "author": "張毓君",
+          "rating": 5.0,
+          "text": "「馬辣旗下的狗一下真的沒讓人失望！這次來忠孝店點了 $1388 方案，毛毛蟲壽司必點，視覺跟味覺都超飽足。午魚一夜干烤得外酥內嫩，下酒剛剛好。生魚片新鮮度高，干貝跟天使紅蝦刺身也是吃到飽，CP 值非常高。服務人員收空盤速度很快，是台北東區朋友聚餐首選！」",
+          "publishTime": "2026-03-06T02:13:18",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Booker.L",
+          "rating": 5.0,
+          "text": "趁著部門尾牙的機會 再來吃這間 吃到飽的時長有2小時 有小限制12分鐘點一輪 不過 我們人有點多 出餐速度上還是有點卡關 導致某些時段一次上了二三梯點的菜色 造成後面要吃的比較趕 小塞車😅 但整體的料理風味還是不錯的！ 冷盤與熟食都很不錯 吃的很滿足😊",
+          "publishTime": "2026-03-06T02:13:18",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Bijubear’s master",
+          "rating": 5.0,
+          "text": "這次選了單點方案，滿低消350/人，沒有限時，六點半到打烊，暢聊坐好坐滿，好吃，很開心，可惜現在寫評論才想到忘了問有無壽星優惠。 另外為了慶生，提前拿蛋糕請店家幫忙冰，甚至臨時還借了打火機跟幫忙點火，感謝協助。 1141206貞 慶生 昱 綺",
+          "publishTime": "2026-01-05T02:13:23",
+          "source": "Google Maps"
+        },
+        {
+          "author": "M.K",
+          "rating": 5.0,
+          "text": "店內氛圍很舒適，海鮮都很新鮮美味，還有美味的串燒可以選擇（鹽燒/醬烤），令我比較意外的是還有炸豬排～臺灣造型的炒飯也很好吃！但沙拉對兩人而言有點大份。整體很喜歡，會推薦親朋好友再來♪(´∀｀*)",
+          "publishTime": "2026-02-04T02:13:19",
+          "source": "Google Maps"
+        },
+        {
+          "author": "meowbites_foodie",
+          "rating": 5.0,
+          "text": "日料吃到飽真的好讚 平常吃日料都不敢點太多 來這裡直接大吃！ 重點是雖然吃到飽卻都無雷 整體都是好吃的！！ 吃點三四份就回本平常在外面吃的價格 大推聚餐來吃！！",
+          "publishTime": "2026-03-06T02:13:22",
+          "source": "Google Maps"
+        },
+        {
+          "author": "冠婷生活趣",
+          "rating": 5.0,
+          "text": "新發現，這家真的太狂了！ 一般吃到飽的串燒通常都乾乾柴柴，但這裡竟然看得到師傅在吧台直火現烤，每一串都保有肉汁，完全就是單點居酒屋的水準，還可以無限續點。",
+          "publishTime": "2026-01-05T02:13:21",
+          "source": "Google Maps"
+        },
+        {
+          "author": "美食瑜樂",
+          "rating": 5.0,
+          "text": "超有氛圍感的寶藏居酒屋 能單點竟然也能吃到飽 最低 988 元就能吃到將近 80 道日式料理 串燒、下酒菜、熱炒、頂級刺身一次到齊",
+          "publishTime": "2026-03-06T02:13:19",
+          "source": "Google Maps"
+        },
+        {
+          "author": "徐禎祥",
+          "rating": 5.0,
+          "text": "今天假日點988吃到飽套餐，每人可以點兩份餐點/14分鐘，店裏氣氛不錯，服務人員都很友善，食物也都挺好吃的，值得嘗試",
+          "publishTime": "2026-02-04T02:13:19",
+          "source": "Google Maps"
+        },
+        {
+          "author": "李英慈",
+          "rating": 5.0,
+          "text": "以吃到飽價位跟餐點水準可以給到5顆星，不過服務可以再加強，不會主動加茶，裝潢充滿日式風格，整體用餐感覺很不錯。",
+          "publishTime": "2026-01-05T02:13:23",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Alice",
+          "rating": 5.0,
+          "text": "東西好好吃喔，吃到飽但味道也很精緻呢，每樣菜都好好吃呢",
+          "publishTime": "2026-02-04T02:13:22",
+          "source": "Google Maps"
+        },
+        {
+          "author": "黃宣慈",
+          "rating": 2.0,
+          "text": "這次來用餐吃到飽方案 服務生解說的非常清楚 但吃到飽方案14分鐘才能點一次 一人點兩份 所以整個餐期只能點6次*2份=一人12份 這樣算控餐蠻嚴重的 全部點不一樣的12份都沒辦法全品項吃一遍 怕吃不飽我點了一堆飯哈哈哈 白飯不好吃 很乾 烏魚子炒飯還不錯 鹹香鹹香的 烏魚子很乾但吃到飽有就很好不要求 握壽司的醋飯就不錯 整體而言吃到的品項口味都很好 鮭魚肚油香滑嫩 海鱺魚Q彈但有一點點酸感 軟殼蟹手捲很好吃 炸的香酥不油膩 美中不足是調味偏鹹 安格斯沙朗牛排很香 熟度也ok 但肉口感對我來說偏硬 生牛肉洋蔥沙拉也是好吃 但好像可以不用炙燒邊邊 視覺上ok但口感上沒有加分 烤透抽、伊比利豬肉串跟清酒大蛤是我當天熱菜的top 123 超好吃! 午魚一夜干跟大蝦毛毛蟲握壽司也都好吃 但烤蝦串燒超級不新鮮 我跟男友都只吃兩隻蝦回家就大過敏 收費又不便宜 控餐下也吃不了你們多少 還是大餐飲集團 結果給這種蝦子 真的很傻眼 還有飲料要加價也是很奇怪（雖然有好評免收的活動） 吃到飽還怕人喝飲料喔 讓客人自由喝個快樂可樂不是吃更少嗎 所以這個行銷策略我是真的看不懂 前面吃到好吃餐點的好感都在過敏的瞬間毀滅了 大差評",
+          "publishTime": "2025-11-06T02:13:22",
+          "source": "Google Maps"
+        },
+        {
+          "author": "均",
+          "rating": 1.0,
+          "text": "因為朋友推薦來吃的 沒想到無敵大踩雷 我們是單點 環境-非常糟糕 一進來拉開椅子，整張椅墊全是白色屑屑😅 有夠髒 筷子沒洗乾淨 上面還有食物殘渣🤮 後來看評論原來是會有茶的嗎？ 吃完都沒喝到茶呢 自己用手機點餐 (點餐網頁還做的很鳥...） 基本的環境清潔跟沒清一樣，連茶都沒有 還敢收10%「服務費」🙃 食物-鹹死人 點了一些壽司跟串燒 壽司芥末有點放過頭了 每種串燒好像鹽巴不用錢 咬下去都在吃鹽.... 味噌湯不知為何超甜== 料很少 這間店不用來吃 已經把朋友罵臭頭了☺️",
+          "publishTime": "2026-01-05T02:13:23",
+          "source": "Google Maps"
+        },
+        {
+          "author": "我就黑",
+          "rating": 1.0,
+          "text": "店內裝潢可以，食物味道也不錯但是超級無敵不推薦吃吃到飽 1.食物製作時間超久，等15分鐘都沒有上菜（店內只有我們和另一桌客人） 2.他的點餐每次間隔14分鐘，也是很久（他是有限制時間的喔） 3.我的菜上來竟然是溫的（我點的是烤透抽） 4.後廚嘻笑聲有點大（我是還好） 5.有些餐點略鹹 6.服務還可以",
+          "publishTime": "2026-03-06T02:13:19",
+          "source": "Google Maps"
+        },
+        {
+          "author": "YUAN JHOU",
+          "rating": 1.0,
+          "text": "居酒屋🏮吃到飽，這次點1388/人 每次只能點人數*2，14分鐘才能點一次 最後30分鐘結束點餐，等於只能點6 2個小時的用餐時間至少1個小時在發呆 食材雖然普通但以這個價位真的超級不划算 非常不建議吃［吃到飽］ 單點價格也非常有趣😁",
+          "publishTime": "2026-02-04T02:13:24",
+          "source": "Google Maps"
+        }
+      ]
     },
     "10616": {
       "photoUrls": [
@@ -22073,6 +24346,148 @@
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEN7cdfoD6oYfZq8VUk2ewPdJwznQuZ2Mw_7p87s09ZBEnykcuXWz_AgTG-EFPK5mSrP7oRyIQAqaui-zWzHBh6gW7dxUHoX72y26w7_WCRYomAOmWYfnjfuDV-vcMay6UfFHvWHA=w397-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEGKUrYzLR0RRqYrfePNgP7GBZkisJZzZhWR2opqUs3KF4sJmXZr5BzM6ME4SmTe9dUZ4SGwLgR-LugQzahZIqSpXn2YYlFvMoOkx3lhfw_niQ2BnOsLKpzgD-3hWaUgdWoPxw2hc3Rm9k=w396-h298-k-no",
         "https://lh3.googleusercontent.com/gps-cs-s/APNQkAEyF559LFgC6wbFhNd___skCl7Md5khoevlh1Yk8W0nRfl34a4-6hgW7muTibm8WdcNMQYHH7cRgQv1d5zpJDhDwlITl2BMB8cR9gjh9HO9ryRzhsBtrLueM1STofx2e5TIx8YhEfO330ya=w421-h298-k-no"
+      ],
+      "reviews": [
+        {
+          "author": "W.R Chen",
+          "rating": 5.0,
+          "text": "開頭先直接說 這家真的頂 目前吃過最頂的燒肉吃到飽沒有之一 直接變成愛店清單之一 10/19第一次來訪 訂位時間請看inline 統一時間進場 用餐時間兩個小時左右 店內座位蠻多的 寬敞不擁擠 非常舒服 燈光偏灰暗 蠻適合3-4人的朋友聚會 店員會帶領至座位上 並詢問當天想吃的價位 當天是吃2480的價位 有各種A5海鮮跟私房菜可以搭配 一開始會上一個A5基本盤 基本盤的造型非常浮誇非常喜歡 基本盤的部分都是A5 沒在跟你塞普通肉片的 來這邊當然是吃A5跟海鮮啦 A5跟海鮮直接點爆就對了 主要進攻的菜品如下 A5肋眼牛排 A5勒眼上蓋 14天熟成夢幻牛 牛舌 巨型天使紅蝦 生魚片 干貝 生食活蝦 鮭魚卵生蝦 真的做不到全品項開箱 這真的太難 東西太多 重點是東西都很好吃 真的不知道要怎麼寫 就是靠北好吃 頂中頂 特別的是通常火烤吃到飽搭配的火鍋 湯底都很隨便 這家沒在跟你隨便 湯底超猛 松露燕麥奶那個鍋底可以直接拿去賣 超扯 我們直接喝爆 這家真的大推 唯一少數比較可惜的是 個人覺得羊肉的部分比較少 環境很乾淨 廁所很乾淨 廁所還有漱口水可以用 大推 11/1第二次來訪 當天也是2480 也是直接吃飽 這邊總結一個心得 有A5點A5 海鮮都可以吃 生食干貝跟生蝦鮭魚片都可以狂點 個人偏愛一份蔥鹽搭配和牛吃 12/14第三次來訪 這次是吃最貴的3080 會有多兩個和牛 海鮮都可以吃得到 最後還有一個店家招待的和牛 真的很厲害 但可惜只有一人一片 如果可以早點上 可能會更好一些 這家的店員人也都超好 環境也超乾淨 要不是最近要拔智齒 不然我還會一直來 2026繼續回訪",
+          "publishTime": "2026-01-05T02:25:43",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Celine Kan",
+          "rating": 5.0,
+          "text": "A5和牛海鮮吃到飽 - 比飛日本吃還划算，完全是和牛＋海鮮控的天堂‼️這裡是火烤二吃的無限放題，環境乾淨舒適，整體氛圍走日式高級路線，不管是約會還是多人聚餐都很適合 🥩 和牛控的天堂 日本A5和牛小排、赤身、板腱、霜降、肋眼甚至肋眼上蓋，每一口都能感受到油花在嘴裡化開的細膩感，入口軟嫩又帶著香氣，燒烤時香味撲鼻，完全停不下來 🦞 海鮮選擇豪華 不只和牛，還有北海道大干貝、巨型天使紅蝦、大鮑魚、明蝦等海鮮大軍。最高方案甚至能享受印度龍蝦、小青龍、日本松葉蟹、雪蟹、黃金蟹、香箱蟹、三點蟹，肉質鮮甜多汁，光吃海鮮就值回票價 🍲 火鍋湯底講究 四川麻辣鍋香氣濃郁，麻而不嗆，涮肉片最剛好；松露燕麥鍋清香濃郁，結合立陶宛燕麥的滑順口感，連素食者也能放心享用，搭配松葉蟹、三點蟹、鮮蝦下鍋，整個湯頭瞬間升級 🍧 甜點 & 飲品加分 除了主餐，還有 Cold Stone、日本十勝冰淇淋，搭配店家特調飲品、咖啡、茶飲無限暢飲，飯後甜點完全不馬虎 💰 價位選擇彈性：平日限定最低只要 1500元起，其餘有1780 / 2280 / 2480 / 3080 共四種價位，依照不同方案提供更頂級的和牛、海鮮組合，吃得超有彈性 🔥🔥現在加價380元還能獲得15份龍蝦🦞 總結來說，金洹苑就是一場和牛與海鮮的奢華饗宴，無論想吃燒肉還是火鍋，這裡都能一次滿足！",
+          "publishTime": "2025-10-07T02:26:01",
+          "source": "Google Maps"
+        },
+        {
+          "author": "潤餅豬",
+          "rating": 5.0,
+          "text": "絕對五顆星！唯一美中不足：坐位小、上菜也有點亂，會送錯餐點！ 很推薦吃2000以上的，A5和牛自由真的是讓你和牛吃到飽~ 然後肉質也完全對得起價格，太佛心了2000就可以無限吃和牛，最推薦吃和牛的牛排！油花分布超均勻、入口即化、也不會像肉片吃起來空虛、不會像牛小排是特別一塊局部油脂多的，整體就是完美~ 店家的梅酒、百香果酒、手搖飲都驚為天人的好喝，完全不馬虎~ 最主要天使紅蝦、蝦蟹類真的要給他進火鍋煮成蝦湯，包準一喝停不下來，超有層次感，蚵仔比較可惜的味道，吃起來不是很新鮮的感覺，其他都很棒。 厚切生魚片跟文甲花枝一定要點，花枝沒吃後悔一輩子，這麼鮮美帶有自然甜味的花枝真的很難得！ 鰻魚飯中規中矩，還是可以點來吃吃看，米飯也表現不俗~",
+          "publishTime": "2026-03-06T02:25:45",
+          "source": "Google Maps"
+        },
+        {
+          "author": "蘇筱芸",
+          "rating": 5.0,
+          "text": "超級推薦「金洹苑 KIN KAN EN－日式燒肉火鍋吃到飽 台北店」！ 這次用餐整體感受超棒，不管是服務、環境還是食材品質都非常優秀 ❤️ 服務人員態度超好又細心，從進門到用餐結束都很有禮貌，講解食材也很專業。中途還會主動幫忙換烤網、補湯、收空盤，速度快又貼心，完全沒怠慢客人。 海鮮真的新鮮到不行～每一樣都甜、彈、沒有腥味，蝦子、干貝都超好吃。 肉的部分也很厲害，尤其是和牛油花超美，烤起來香氣十足、入口即化。厚切牛舌跟肋眼也是必點！ 店內環境是日式風格，座位寬敞、氣氛很舒服，火鍋和燒肉一次滿足，超適合朋友聚餐或慶生。 雖然價位比一般吃到飽高一點，但以食材品質和服務來說真的很值得～ 下次一定會再訪！🔥",
+          "publishTime": "2025-11-06T02:25:46",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Chloe Hung",
+          "rating": 5.0,
+          "text": "⭐⭐⭐⭐⭐ 昨天我們三姊妹來到這間燒烤吃到飽，整體體驗超出預期。 首先，食材非常新鮮——螃蟹大隻飽滿，松葉蟹腿和大蝦都貼心去殼，讓我這個愛海鮮的人超滿足。別的燒烤店沒有的提燈這裡也有，狂點ㄧ波，吃到不要不要的。 服務也超貼心：上菜速度快、服務員小芯、77和東東笑容可掬，根據我們的小要求都迅速回應，讓人覺得被重視。 再來是活動環節：我們挑戰了「7 杯 SHOT 打八折」成功！氣氛很High，吃得盡興、喝得歡樂。 餐廳氣氛也不錯：空間寬敞、燈光適中、適合三姊妹聊天放鬆。 總而言之，是一晚充滿驚喜與笑聲的用餐，強烈推薦給喜歡吃海鮮＋熱鬧氛圍的你們！",
+          "publishTime": "2025-12-06T02:25:56",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Jenny Wu",
+          "rating": 4.0,
+          "text": "和牛好吃 、松葉蟹也幫我們處理好 方便食用 ，鮭魚生魚片新鮮軟香 甜點蛋糕不馬虎 好吃 手搖飲普通 沒有特別好喝，蝦子普通 服務親切、溫馨 會提醒您點餐時間快到了 趕快再點一輪 怕我們沒吃到想吃的 缺點： 油煙味實在太猛烈了 回家全身 全頭 都是味道 以為我在燒烤店上了一整天班 真心覺得店家 這部分要想辦法改善 畢竟去吃個飯 也是算不便宜 沒有人喜歡 衣服臭烘烘的 蠻糟的 肉上面的介紹牌 太老舊 字不清楚看起來髒髒的 整體來說 還不錯 和牛真的軟嫩油脂香 值得一試 。",
+          "publishTime": "2026-01-05T02:25:49",
+          "source": "Google Maps"
+        },
+        {
+          "author": "玫啊",
+          "rating": 5.0,
+          "text": "今日$2480/人+10%服務費 🎂當月壽星可選：壽星個人8折or延長用餐1小時 🍴服務很推、講解食材、勤換烤網、上菜速度快、但排煙抽風較弱，有點煙霧彌漫。 🍲湯頭鮮美、用料實在 🦐蝦去殼很讚、干貝火烤都好吃。 🥩和牛油花很美，油香十足、推牛舌 🥤手機點餐、有飲料冰淇淋自助，也有手機掃碼特製手搖飲",
+          "publishTime": "2026-02-04T02:25:47",
+          "source": "Google Maps"
+        },
+        {
+          "author": "yuan Chao",
+          "rating": 5.0,
+          "text": "初訪金洹苑 海鮮表現頂中頂，每點一次就是鍋裡煮 湯頭甜到炸 韓國燒酒沒在客氣一次就是給一瓶不怕你喝 和牛上蓋 厚切肋眼 牛舌表現都不俗 吃一餐飽整天 🥴 不得不說辣味噌的湯頭很棒 另一鍋配牛肉蔬菜湯底摻著喝也解膩 真心推給第一次來的人直接上最頂的價位就是了！！！ 唯一小抱怨的是燈光太暗 位置偏小",
+          "publishTime": "2026-01-05T02:25:50",
+          "source": "Google Maps"
+        },
+        {
+          "author": "卓jses",
+          "rating": 5.0,
+          "text": "今天點了 第二高價的選項 .... 肉類真的好吃！ 海鮮類也都很新鮮！ 生鮮類的非常鮮美~~ 重點海鮮的蝦子都幫你去殼去好了 直接煮熟了就可以吃了 這點真的很棒！ 不用弄髒手！！ 服務員們也都 很客氣 很有禮貌！！ 體驗很棒！ 個人認為CP值 很高",
+          "publishTime": "2026-02-04T02:25:48",
+          "source": "Google Maps"
+        },
+        {
+          "author": "高高江山",
+          "rating": 5.0,
+          "text": "這家的肉真的是超級順 吃下去的時候入口即化和牛的部分很有水準 還有干貝跟松葉蟹也一定要體驗看看 雖然店員在換烤盤的時候 油不小心滴到我的手背 但是很快就拿來冰塊冰敷還有燙傷藥膏 感覺SOP做得非常好 但還是希望下次可以雙手並用的吃燒肉",
+          "publishTime": "2026-02-04T02:25:50",
+          "source": "Google Maps"
+        },
+        {
+          "author": "黃伈妤",
+          "rating": 5.0,
+          "text": "餐點多樣可選擇！ 服務人員都很貼心，會先問有沒有過敏的部分，還特別告訴其他人員要注意😍收盤子都收超快（超有效率），也會來詢問用餐情況🫡🫡 感謝Julia幫忙我們桌邊服務😋 （生食干貝推推🔥）",
+          "publishTime": "2026-01-05T02:25:51",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Hsin-Hsiung Huang",
+          "rating": 4.0,
+          "text": "肉品還不錯吃，服務也很到位，缺點油煙過大，吃到後面被油煙薰到沒什麼食慾！另外建議：因為桌面空間不大，放3-4個肉盤，桌面就快滿了，可以用2-3層的平台架子擺放，這樣吃起來才不會有壓迫感。",
+          "publishTime": "2026-01-05T02:26:03",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Connie Hsu",
+          "rating": 5.0,
+          "text": "餐點上外很快 很大方！！不怕你吃 一個人約莫兩千多 覺得很值得 還會再來 飲料杯用紙杯感覺一下就爛掉了 環境的部分比較昏暗一點 肉品跟海鮮都很新鮮很棒！！",
+          "publishTime": "2025-12-06T02:25:55",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Nancy Lin",
+          "rating": 5.0,
+          "text": "和牛肉質都很不錯！好吃😋～有很多選項可以點～有生食、熟食、特調飲料、甜點、肉品、火鍋蔬菜跟肉品、酒類，還有飲料、冰淇淋自助吧！推薦大家可以來吃！～",
+          "publishTime": "2026-03-06T02:25:44",
+          "source": "Google Maps"
+        },
+        {
+          "author": "李小露",
+          "rating": 5.0,
+          "text": "第一次來這間餐廳用餐，服務人員的態度非常棒，第一次用餐還會跟你解說價位的解說，不會烤肉還可以請店員漂亮姐姐代烤服務！下次還會再帶朋友來回訪😄",
+          "publishTime": "2025-12-06T02:25:59",
+          "source": "Google Maps"
+        },
+        {
+          "author": "黃韋嘉",
+          "rating": 5.0,
+          "text": "餐點很好吃，實現海鮮和牛大自由！ Julia店員服務態度很讚，也很會烤，協助烤和牛時美味簡直翻倍，很值得回顧！",
+          "publishTime": "2026-02-04T02:25:57",
+          "source": "Google Maps"
+        },
+        {
+          "author": "tsubasa翼",
+          "rating": 5.0,
+          "text": "肉質很軟嫩，油花烤起來也很香，牛舌又脆又嫩 生食干貝和花枝非常讚。 服務很好有時候店員會幫忙烤",
+          "publishTime": "2025-12-06T02:25:54",
+          "source": "Google Maps"
+        },
+        {
+          "author": "lky lky",
+          "rating": 3.0,
+          "text": "去大巨蛋看演唱會想找在附近的餐廳 剛好看到IG 推薦跟評分都不錯就訂位了 說真的，價錢不便宜，只有兩小時太趕了，烤肉加上火鍋，店員一開始幫你介紹也花了15分鐘，我們4個人，點餐時間還算夠，我們每次點餐都沒有點到限額，也沒有6分鐘馬上送單，但火鍋跟烤肉的時間還是不夠，不能從從容容的吃，最後15分鐘怕妨礙店員下班還要連滾帶爬的吃，有問過店員基本上多少人用餐都只有2兩小時，而且就算有6人也有可能只有一個火鍋加一個烤爐，時間是真的不夠 但料是好吃的，店員服務也是十分好，但趕時間程度直接把再來的慾望減少，希望店可以考慮一下如果同一桌人多可以多給一點時間吃",
+          "publishTime": "2025-11-06T02:26:00",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Lou Funn",
+          "rating": 3.0,
+          "text": "看了網路上的評論很高，決定周末從台中來台北吃午餐，來體驗看看是否真的如評論般那麼好。個人與友人吃完的感覺是普通（感覺價位不值得），同樣$2480+10%服務費的價位可以有更好的選擇；座位太小，餐點上桌都很擠，那個龍造型的盤子看了真的有點倒胃口還很佔空間；部分牛肉和海鮮品質還可以；服務普通；環境也沒有特別乾淨，注重細節的人看到發霉處的感覺不是很好；排煙系統有改善的空間，煙一直往用餐的人身上飄；總體來說，個人不會想去吃第二次，也不會推薦給親朋好友，用完餐有點失望和後悔。",
+          "publishTime": "2025-12-06T02:25:59",
+          "source": "Google Maps"
+        },
+        {
+          "author": "Orianna Ye",
+          "rating": 3.0,
+          "text": "服務很好, 店員時不時來關心狀況 燒烤煙太大, 很薰眼睛 手搖杯我覺得普通 肉只有少數品項好吃 蝦子也是, 大部分就是一般水準 對應價位好像就是賣服務",
+          "publishTime": "2025-12-06T02:25:58",
+          "source": "Google Maps"
+        }
       ]
     },
     "10617": {
