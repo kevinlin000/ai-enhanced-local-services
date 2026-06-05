@@ -3,7 +3,7 @@ set -uo pipefail
 
 SCRAPER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON="$SCRAPER_DIR/.venv/bin/python"
-SHOPS_FILE="$SCRAPER_DIR/shops_next30.txt"
+SHOPS_FILE="${SHOPS_FILE:-$SCRAPER_DIR/shops_next30.txt}"
 PROGRESS_FILE="${CRAWL_PROGRESS_FILE:-/tmp/crawl-next30.progress}"
 
 export PYTHONUNBUFFERED=1

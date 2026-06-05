@@ -29,6 +29,7 @@ MEDIA_MANIFEST = ROOT / "web" / "data" / "shop-media.json"
 @dataclass(frozen=True)
 class Shop:
     id: int
+    place_id: str
     name: str
     address: str
     rating: float | None
@@ -83,6 +84,7 @@ def active_shops() -> list[Shop]:
                 """
                 SELECT
                   s.id,
+                  s.place_id,
                   s.name,
                   s.address,
                   s.comments,
@@ -104,6 +106,7 @@ def active_shops() -> list[Shop]:
         shops.append(
             Shop(
                 id=int(row["id"]),
+                place_id=str(row.get("place_id") or ""),
                 name=str(row.get("name") or ""),
                 address=str(row.get("address") or ""),
                 rating=float(row["rating"]) if row.get("rating") is not None else None,

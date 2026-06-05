@@ -31,8 +31,17 @@ def safe_field(value: str) -> str:
     return (value or "").replace("|", " ").replace("\n", " ").strip()
 
 
-def write_targets(path: Path, shops: list) -> None:
-    lines = [f"{shop.id}|{safe_field(shop.name)}|{safe_field(shop.address)}" for shop in shops]
+def write_targets(path: Path, shops: list, output_format: str) -> None:
+    if output_format == "place-id":
+        missing_place_ids = [shop for shop in shops if not shop.place_id]
+        if missing_place_ids:
+            sample = ", ".join(f"{shop.id}:{shop.name}" for shop in missing_place_ids[:5])
+            raise SystemExit(
+                f"{len(missing_place_ids)} target shops have no place_id; sample: {sample}"
+            )
+        lines = [f"{safe_field(shop.place_id)}|{safe_field(shop.name)}|{shop.id}" for shop in shops]
+    else:
+        lines = [f"{shop.id}|{safe_field(shop.name)}|{safe_field(shop.address)}" for shop in shops]
     path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
     try:
         display_path = path.relative_to(ROOT)
@@ -75,6 +84,15 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=0, help="0 means no limit")
     parser.add_argument("--output", type=Path)
     parser.add_argument(
+        "--format",
+        choices=("shop-address", "place-id"),
+        default="shop-address",
+        help=(
+            "shop-address writes shop_id|name|address for search-based crawls; "
+            "place-id writes place_id|name|shop_id for direct Google Maps place URLs"
+        ),
+    )
+    parser.add_argument(
         "--order",
         choices=("priority", "id"),
         default="priority",
@@ -113,7 +131,7 @@ def main() -> None:
         targets = targets[: args.limit]
 
     output = args.output or DEFAULT_OUTPUTS[args.mode]
-    write_targets(output, targets)
+    write_targets(output, targets, args.format)
     if excluded:
         print(f"excluded {len(excluded)} known limited-view shops")
 
