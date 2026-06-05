@@ -7,7 +7,7 @@ import { FavoriteShopButton } from "@/components/FavoriteShopButton";
 import { ShopDetailTabs } from "@/components/ShopDetailTabs";
 import { javaApi, type Shop, type ShopAiMetadata, type ShopAbsa, type VoucherOffer } from "@/lib/api";
 import { proxyImageUrl } from "@/lib/photoProxy";
-import { getBestShopCardPhoto, getShopGalleryPhotos, getShopOverview } from "@/lib/shopPhotoManifest";
+import { getBestShopCardPhoto, getShopGalleryPhotos, getShopManifestReviews, getShopOverview } from "@/lib/shopPhotoManifest";
 import { getShopReviewInsights } from "@/lib/reviewInsights";
 import { getSlugByTypeId, getStyleByTypeId } from "@/lib/categoryStyle";
 import { isLegacySeedShop } from "@/lib/legacySeedShops";
@@ -19,6 +19,7 @@ type SimilarShopCard = {
   district?: string;
   score?: number;
   avgPrice?: number;
+  priceLabel?: string;
   reason: string;
   photoUrl?: string | null;
 };
@@ -48,6 +49,42 @@ function ensurePeriod(text: string) {
 function hasValue(text?: string | null) {
   const cleaned = cleanSentence(text);
   return Boolean(cleaned && cleaned !== "未提及");
+}
+
+function formatDetailPrice(shop: Shop, ai: ShopAiMetadata | null, overviewPrice?: string) {
+  if (overviewPrice) return overviewPrice;
+  if (shop.avgPrice) return `NT$ ${shop.avgPrice}`;
+  if (hasValue(ai?.pricePerPerson)) return ai!.pricePerPerson!;
+  return "未公開價位";
+}
+
+function formatSimilarPrice(shop: Pick<Shop, "id" | "avgPrice">) {
+  const overview = getShopOverview(shop.id);
+  if (overview?.price_overview) return overview.price_overview;
+  if (shop.avgPrice) return `約 NT$ ${shop.avgPrice}`;
+  return undefined;
+}
+
+function normalizeBrandName(name: string) {
+  return name
+    .replace(/[｜|].*$/g, "")
+    .replace(/\s*(台北|臺北)?(信義|大安|中山|松山|內湖|士林|北投|萬華|中正|南港|文山|大同).*/g, "")
+    .replace(/\s*(分店|總店|旗艦店|門市|店)$/g, "")
+    .replace(/\s+/g, "")
+    .trim()
+    .slice(0, 8);
+}
+
+function getCandidateDataQuality(shopId: number) {
+  const hasPhoto = Boolean(getBestShopCardPhoto(shopId));
+  const reviewCount = getShopManifestReviews(shopId).length;
+  const hasPrice = Boolean(getShopOverview(shopId)?.price_overview);
+  return {
+    hasPhoto,
+    reviewCount,
+    hasPrice,
+    score: (hasPhoto ? 2 : 0) + (reviewCount >= 3 ? 2 : reviewCount > 0 ? 1 : 0) + (hasPrice ? 1 : 0),
+  };
 }
 
 function isUsableAiIntro(text?: string | null) {
@@ -283,20 +320,27 @@ function buildIntroText({
 }
 
 function toFallbackSimilarCards(items: Awaited<ReturnType<typeof getSimilarShops>>): RankedSimilarShopCard[] {
-  return items.map((item) => ({
-    shopId: item.shopId,
-    name: item.name,
-    district: item.district,
-    score: undefined,
-    avgPrice: undefined,
-    reason: item.reason,
-    photoUrl: proxyImageUrl(getBestShopCardPhoto(item.shopId)),
-    sortKey: [10, item.score, getBestShopCardPhoto(item.shopId) ? 1 : 0],
-  }));
+  return items.map((item) => {
+    const photo = getBestShopCardPhoto(item.shopId);
+    const quality = getCandidateDataQuality(item.shopId);
+    const priceLabel = getShopOverview(item.shopId)?.price_overview ?? item.pricePerPerson;
+    return {
+      shopId: item.shopId,
+      name: item.name,
+      district: item.district,
+      score: undefined,
+      avgPrice: undefined,
+      priceLabel: hasValue(priceLabel) ? priceLabel : undefined,
+      reason: item.reason,
+      photoUrl: proxyImageUrl(photo),
+      sortKey: [7, quality.score, item.score, quality.reviewCount, photo ? 1 : 0],
+    };
+  });
 }
 
 function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): RankedSimilarShopCard[] {
   const basePrice = baseShop.avgPrice ?? 0;
+  const baseBrand = normalizeBrandName(baseShop.name);
 
   return candidates
     .filter((candidate) => candidate.id !== baseShop.id && !isLegacySeedShop(candidate.id))
@@ -310,14 +354,19 @@ function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): RankedSi
         candidatePrice > 0 &&
         Math.abs(candidatePrice - basePrice) <= Math.max(250, basePrice * 0.35),
       );
-      const hasPhoto = Boolean(getBestShopCardPhoto(candidate.id));
+      const quality = getCandidateDataQuality(candidate.id);
+      const photo = getBestShopCardPhoto(candidate.id);
+      const sameBrand = Boolean(baseBrand && baseBrand.length >= 2 && normalizeBrandName(candidate.name) === baseBrand);
 
       let reason = "同類型口袋名單";
-      if (sameDistrict) reason = `同類型・${candidate.district}`;
-      else if (sameMrt) reason = `同類型・${candidate.mrtStation}`;
-      else if (areaClose) reason = `同類型・${candidate.area}`;
+      if (sameMrt && similarPrice) reason = "同捷運・價位相近";
+      else if (sameMrt) reason = `同捷運・${candidate.mrtStation}`;
+      else if (sameDistrict && similarPrice) reason = "同區・價位相近";
+      else if (sameDistrict) reason = `同區・${candidate.district}`;
+      else if (areaClose) reason = `同商圈・${candidate.area}`;
       else if (similarPrice) reason = "同類型・價位相近";
       else if (candidate.district) reason = `同類型・${candidate.district}`;
+      if (sameBrand) reason = "同品牌分店";
 
       return {
         shopId: candidate.id,
@@ -325,15 +374,18 @@ function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): RankedSi
         district: candidate.district ?? candidate.area,
         score: candidate.score,
         avgPrice: candidate.avgPrice,
+        priceLabel: formatSimilarPrice(candidate),
         reason,
-        photoUrl: proxyImageUrl(getBestShopCardPhoto(candidate.id)),
+        photoUrl: proxyImageUrl(photo),
         sortKey: [
-          5,
-          sameDistrict ? 1 : 0,
+          10,
+          sameBrand ? -2 : 0,
           sameMrt ? 1 : 0,
+          sameDistrict ? 1 : 0,
           areaClose ? 1 : 0,
           similarPrice ? 1 : 0,
-          hasPhoto ? 1 : 0,
+          quality.score,
+          quality.reviewCount,
           candidate.score ?? 0,
           candidate.comments ?? 0,
         ],
@@ -350,11 +402,16 @@ function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): RankedSi
 
 function mergeSimilarCards(...groups: RankedSimilarShopCard[][]): SimilarShopCard[] {
   const seen = new Set<number>();
+  const brandSeen = new Map<string, number>();
   return groups
     .flat()
     .filter((candidate) => {
       if (seen.has(candidate.shopId)) return false;
+      const brand = normalizeBrandName(candidate.name);
+      const count = brandSeen.get(brand) ?? 0;
+      if (brand && brand.length >= 2 && count >= 1) return false;
       seen.add(candidate.shopId);
+      if (brand) brandSeen.set(brand, count + 1);
       return true;
     })
     .sort((a, b) => {
@@ -371,6 +428,7 @@ function mergeSimilarCards(...groups: RankedSimilarShopCard[][]): SimilarShopCar
       name: item.name,
       district: item.district,
       avgPrice: item.avgPrice,
+      priceLabel: item.priceLabel,
       reason: item.reason,
       photoUrl: item.photoUrl,
     }));
@@ -579,7 +637,7 @@ export default async function ShopDetailPage({
               平均消費
             </div>
             <div className="font-mono text-2xl font-bold">
-              {overview?.price_overview ?? (shop.avgPrice ? `$${shop.avgPrice}` : ai?.pricePerPerson ?? "價格待補")}
+              {formatDetailPrice(shop, ai, overview?.price_overview)}
             </div>
           </div>
           <div className="rounded-xl border p-4">

@@ -12,6 +12,7 @@ type SimilarShopCard = {
   district?: string;
   score?: number;
   avgPrice?: number;
+  priceLabel?: string;
   reason: string;
   photoUrl?: string | null;
 };
@@ -464,7 +465,9 @@ export function ShopDetailTabs(props: Props) {
                         <div>
                           <div className="font-medium leading-snug">{candidate.name}</div>
                           <div className="mt-1 text-sm text-muted-foreground">
-                            {candidate.district ?? "台北市"} · {candidate.avgPrice ? `約 $${candidate.avgPrice}` : "價位待補"}
+                            {[candidate.district ?? "台北市", candidate.priceLabel ?? (candidate.avgPrice ? `約 NT$ ${candidate.avgPrice}` : null)]
+                              .filter(Boolean)
+                              .join(" · ")}
                           </div>
                           {candidate.score ? (
                             <div className="mt-1 text-sm text-amber-700">★ {(candidate.score / 10).toFixed(1)}</div>
@@ -585,7 +588,11 @@ export function ShopDetailTabs(props: Props) {
             ) : (
               <DataGapCallout
                 title="評論資料正在補齊"
-                body={`目前已知道 Google 顯示約 ${props.reviewTotal.toLocaleString()} 則評論，但詳細評論內容尚未完成匯入。這裡先不生成假摘要，避免把不完整資料包裝成結論。`}
+                body={
+                  props.reviewTotal > 0
+                    ? `Google 顯示約 ${props.reviewTotal.toLocaleString()} 則評論，但可引用的評論文字尚未完成匯入。這裡先不生成假摘要，避免把不完整資料包裝成結論。`
+                    : "目前尚未匯入可引用的評論文字。ByteBites 會先提供店家基本資訊與 Google Maps 入口，不用假評論或模板摘要填版面。"
+                }
                 actionHref={mapsHref}
                 actionLabel="先到 Google Maps 查看評論"
               />
