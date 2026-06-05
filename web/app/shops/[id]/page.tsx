@@ -7,7 +7,7 @@ import { FavoriteShopButton } from "@/components/FavoriteShopButton";
 import { ShopDetailTabs } from "@/components/ShopDetailTabs";
 import { javaApi, type Shop, type ShopAiMetadata, type ShopAbsa, type VoucherOffer } from "@/lib/api";
 import { proxyImageUrl } from "@/lib/photoProxy";
-import { getBestShopCardPhoto, getShopGalleryPhotos, getShopManifestReviews, getShopOverview } from "@/lib/shopPhotoManifest";
+import { getBestShopCardPhoto, getShopDataQualityScore, getShopGalleryPhotos, getShopManifestReviews, getShopOverview } from "@/lib/shopPhotoManifest";
 import { getShopReviewInsights } from "@/lib/reviewInsights";
 import { getSlugByTypeId, getStyleByTypeId } from "@/lib/categoryStyle";
 import { isLegacySeedShop } from "@/lib/legacySeedShops";
@@ -26,6 +26,7 @@ type SimilarShopCard = {
 
 type RankedSimilarShopCard = SimilarShopCard & {
   sortKey: number[];
+  hasUsableData: boolean;
 };
 
 function parseTags(raw?: string) {
@@ -79,11 +80,13 @@ function getCandidateDataQuality(shopId: number) {
   const hasPhoto = Boolean(getBestShopCardPhoto(shopId));
   const reviewCount = getShopManifestReviews(shopId).length;
   const hasPrice = Boolean(getShopOverview(shopId)?.price_overview);
+  const score = getShopDataQualityScore(shopId);
   return {
     hasPhoto,
     reviewCount,
     hasPrice,
-    score: (hasPhoto ? 2 : 0) + (reviewCount >= 3 ? 2 : reviewCount > 0 ? 1 : 0) + (hasPrice ? 1 : 0),
+    hasUsableData: hasPhoto && reviewCount >= 3,
+    score,
   };
 }
 
@@ -333,6 +336,7 @@ function toFallbackSimilarCards(items: Awaited<ReturnType<typeof getSimilarShops
       priceLabel: hasValue(priceLabel) ? priceLabel : undefined,
       reason: item.reason,
       photoUrl: proxyImageUrl(photo),
+      hasUsableData: quality.hasUsableData,
       sortKey: [7, quality.score, item.score, quality.reviewCount, photo ? 1 : 0],
     };
   });
@@ -377,6 +381,7 @@ function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): RankedSi
         priceLabel: formatSimilarPrice(candidate),
         reason,
         photoUrl: proxyImageUrl(photo),
+        hasUsableData: quality.hasUsableData,
         sortKey: [
           10,
           sameBrand ? -2 : 0,
@@ -403,8 +408,20 @@ function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): RankedSi
 function mergeSimilarCards(...groups: RankedSimilarShopCard[][]): SimilarShopCard[] {
   const seen = new Set<number>();
   const brandSeen = new Map<string, number>();
-  return groups
+  const sorted = groups
     .flat()
+    .sort((a, b) => {
+      const max = Math.max(a.sortKey.length, b.sortKey.length);
+      for (let i = 0; i < max; i += 1) {
+        const diff = (b.sortKey[i] ?? 0) - (a.sortKey[i] ?? 0);
+        if (diff !== 0) return diff;
+      }
+      return a.name.localeCompare(b.name, "zh-Hant");
+    });
+  const strongCandidates = sorted.filter((candidate) => candidate.hasUsableData);
+  const pool = strongCandidates.length >= 3 ? strongCandidates : sorted;
+
+  return pool
     .filter((candidate) => {
       if (seen.has(candidate.shopId)) return false;
       const brand = normalizeBrandName(candidate.name);
@@ -413,14 +430,6 @@ function mergeSimilarCards(...groups: RankedSimilarShopCard[][]): SimilarShopCar
       seen.add(candidate.shopId);
       if (brand) brandSeen.set(brand, count + 1);
       return true;
-    })
-    .sort((a, b) => {
-      const max = Math.max(a.sortKey.length, b.sortKey.length);
-      for (let i = 0; i < max; i += 1) {
-        const diff = (b.sortKey[i] ?? 0) - (a.sortKey[i] ?? 0);
-        if (diff !== 0) return diff;
-      }
-      return a.name.localeCompare(b.name, "zh-Hant");
     })
     .slice(0, 4)
     .map((item) => ({
@@ -472,7 +481,7 @@ export default async function ShopDetailPage({
     ? await javaApi.shopsByCategory(categorySlug, 1, 18).catch(() => null)
     : null;
   const categorySimilar = buildCategorySimilarCards(shop, sameCategoryRes?.data ?? []);
-  const similarShops = mergeSimilarCards(toFallbackSimilarCards(fallbackSimilar), categorySimilar);
+  const similarShops = mergeSimilarCards(categorySimilar, toFallbackSimilarCards(fallbackSimilar));
 
   const hotSeatStockMap = new Map(
     (hotSeatRes?.data ?? []).map((offer) => [offer.id, offer.stock]),
