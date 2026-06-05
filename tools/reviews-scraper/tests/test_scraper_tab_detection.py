@@ -117,12 +117,40 @@ class TestTabDetection:
         tab = MockTab(aria_label="ביקורות על Starbucks", text="ביקורות")
         assert scraper.is_reviews_tab(tab)
 
+    def test_traditional_chinese_reviews_accepted(self, scraper):
+        tab = MockTab(aria_label="評論", text="評論", data_tab_index="1")
+        assert scraper.is_reviews_tab(tab)
+
+    def test_simplified_chinese_reviews_accepted(self, scraper):
+        tab = MockTab(aria_label="评论", text="评论", data_tab_index="1")
+        assert scraper.is_reviews_tab(tab)
+
+    def test_chinese_rating_label_accepted(self, scraper):
+        tab = MockTab(aria_label="評價", text="評價", data_tab_index="1")
+        assert scraper.is_reviews_tab(tab)
+
+    def test_japanese_reviews_accepted(self, scraper):
+        tab = MockTab(aria_label="レビュー", text="レビュー", data_tab_index="1")
+        assert scraper.is_reviews_tab(tab)
+
+    def test_korean_reviews_accepted(self, scraper):
+        tab = MockTab(aria_label="리뷰", text="리뷰", data_tab_index="1")
+        assert scraper.is_reviews_tab(tab)
+
     def test_photos_at_index_1_rejected(self, scraper):
         tab = MockTab(aria_label="Photos", text="Photos", data_tab_index="1")
         assert not scraper.is_reviews_tab(tab)
 
     def test_overview_rejected(self, scraper):
         tab = MockTab(aria_label="Overview", text="Overview", data_tab_index="1")
+        assert not scraper.is_reviews_tab(tab)
+
+    def test_traditional_chinese_overview_rejected(self, scraper):
+        tab = MockTab(aria_label="總覽", text="總覽", data_tab_index="1")
+        assert not scraper.is_reviews_tab(tab)
+
+    def test_simplified_chinese_overview_rejected(self, scraper):
+        tab = MockTab(aria_label="概览", text="概览", data_tab_index="1")
         assert not scraper.is_reviews_tab(tab)
 
     def test_empty_tab_rejected(self, scraper):

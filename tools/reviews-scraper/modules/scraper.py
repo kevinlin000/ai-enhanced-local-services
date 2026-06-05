@@ -601,11 +601,7 @@ class GoogleReviewsScraper:
 
             # Check if we landed on a place page with full content (tabs visible)
             tabs = driver.find_elements(By.CSS_SELECTOR, '[role="tab"]')
-            has_reviews = any(
-                any(w in (t.text or "").lower() for w in REVIEW_WORDS)
-                or t.get_attribute("data-tab-index") == "1"
-                for t in tabs
-            )
+            has_reviews = any(self.is_reviews_tab(t) for t in tabs)
 
             if has_reviews:
                 log.info("Search-based navigation successful - full page with reviews tab loaded")
@@ -775,12 +771,20 @@ class GoogleReviewsScraper:
         tab_selectors = [
             # Strongest: explicit aria-label match, any language.
             '[role="tab"][aria-label*="review" i]',
+            '[role="tab"][aria-label*="評論"]',
+            '[role="tab"][aria-label*="评论"]',
+            '[role="tab"][aria-label*="評價"]',
+            '[role="tab"][aria-label*="评价"]',
+            '[role="tab"][aria-label*="點評"]',
+            '[role="tab"][aria-label*="点评"]',
             '[role="tab"][aria-label*="avis" i]',
             '[role="tab"][aria-label*="bewertung" i]',
             '[role="tab"][aria-label*="reseña" i]',
             '[role="tab"][aria-label*="recensione" i]',
             '[role="tab"][aria-label*="ביקורת"]',
-            '[role="tab"][aria-label*="リビュー"]',
+            '[role="tab"][aria-label*="レビュー"]',
+            '[role="tab"][aria-label*="口コミ"]',
+            '[role="tab"][aria-label*="리뷰"]',
             '[role="tab"][aria-label*="рецензии"]',
 
             # Any tab in the tablist — scoring filters them.
@@ -875,16 +879,24 @@ class GoogleReviewsScraper:
         if time.time() <= end_time:
             for language_keyword in REVIEW_WORDS:
                 try:
-                    # Try XPath contains text
-                    xpath = f"//*[contains(text(), '{language_keyword}')]"
+                    # Try text match, but only click tab-like elements that pass
+                    # the same scoring gate. Broad XPath text clicks can hit
+                    # page copy (e.g. "0 reviews") instead of the Reviews tab.
+                    xpath = (
+                        "//*[contains(text(), '%s') and "
+                        "(self::button or self::a or @role='tab' or ancestor::*[@role='tablist'])]"
+                    ) % language_keyword
                     elements = driver.find_elements(By.XPATH, xpath)
 
                     for element in elements:
                         try:
+                            candidate = self._nearest_tab_candidate(element)
+                            if not candidate or not self.is_reviews_tab(candidate):
+                                continue
                             log.info(f"Trying XPath with keyword '{language_keyword}'")
-                            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", element)
+                            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", candidate)
                             time.sleep(0.7)
-                            driver.execute_script("arguments[0].click();", element)
+                            driver.execute_script("arguments[0].click();", candidate)
                             time.sleep(1.5)
 
                             if self.verify_reviews_tab_clicked(driver):
@@ -930,6 +942,29 @@ class GoogleReviewsScraper:
 
         log.warning(f"Failed to find/click reviews tab after {attempts} attempts")
         raise TimeoutException("Reviews tab not found or could not be clicked")
+
+    def _nearest_tab_candidate(self, element: WebElement) -> WebElement | None:
+        """Return the closest clickable tab-like element for a text match."""
+        try:
+            role = (element.get_attribute("role") or "").lower()
+            tag = (element.tag_name or "").lower()
+            if role == "tab" or tag in ("button", "a"):
+                return element
+
+            for xpath in (
+                "./ancestor-or-self::*[@role='tab'][1]",
+                "./ancestor-or-self::button[1]",
+                "./ancestor-or-self::a[1]",
+            ):
+                try:
+                    candidate = element.find_element(By.XPATH, xpath)
+                    if candidate:
+                        return candidate
+                except Exception:
+                    continue
+        except Exception:
+            return None
+        return None
 
     def verify_reviews_tab_clicked(self, driver: Chrome) -> bool:
         """
