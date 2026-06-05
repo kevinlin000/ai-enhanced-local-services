@@ -759,6 +759,10 @@ class GoogleReviewsScraper:
         Highly dynamic reviews tab detection and clicking with multiple fallback strategies.
         Works across different languages, layouts, and browser environments.
         """
+        if self.verify_reviews_tab_clicked(driver):
+            log.info("Reviews pane already visible; skipping tab click")
+            return True
+
         max_timeout = 25  # Maximum seconds to try
         end_time = time.time() + max_timeout
         attempts = 0
@@ -786,6 +790,16 @@ class GoogleReviewsScraper:
             '[role="tab"][aria-label*="口コミ"]',
             '[role="tab"][aria-label*="리뷰"]',
             '[role="tab"][aria-label*="рецензии"]',
+
+            # Some Google Maps locales expose the tab as a button/jsaction
+            # without role="tab". Scoring still rejects non-review labels.
+            'button[aria-label*="review" i]',
+            'button[aria-label*="評論"]',
+            'button[aria-label*="评论"]',
+            'button[aria-label*="評價"]',
+            'button[aria-label*="评价"]',
+            'button[aria-label*="點評"]',
+            'button[aria-label*="点评"]',
 
             # Any tab in the tablist — scoring filters them.
             '[role="tab"][data-tab-index]',
@@ -907,6 +921,24 @@ class GoogleReviewsScraper:
                 except Exception:
                     continue
 
+        # Locale fallback: Google sometimes renders tab text inside nested
+        # spans/divs while the clickable ancestor has no semantic attributes.
+        if time.time() <= end_time:
+            text_candidate = self._find_clickable_reviews_candidate(driver)
+            if text_candidate:
+                attempts += 1
+                try:
+                    log.info("Trying nested-text reviews tab fallback")
+                    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", text_candidate)
+                    time.sleep(0.7)
+                    driver.execute_script("arguments[0].click();", text_candidate)
+                    time.sleep(1.5)
+                    if self.verify_reviews_tab_clicked(driver):
+                        log.info("Successfully clicked reviews tab via nested-text fallback")
+                        return True
+                except Exception as fallback_error:
+                    log.debug(f"Nested-text reviews tab fallback failed: {fallback_error}")
+
         # Final attempt: try to navigate directly to reviews by URL
         try:
             current_url = driver.current_url
@@ -943,6 +975,88 @@ class GoogleReviewsScraper:
         log.warning(f"Failed to find/click reviews tab after {attempts} attempts")
         raise TimeoutException("Reviews tab not found or could not be clicked")
 
+    def _find_clickable_reviews_candidate(self, driver: Chrome) -> WebElement | None:
+        """Find a review-like clickable ancestor when Google omits role=tab."""
+        review_words = sorted(REVIEW_WORDS, key=len, reverse=True)
+        non_review_words = sorted(NON_REVIEW_TAB_WORDS, key=len, reverse=True)
+
+        js = """
+            const reviewWords = arguments[0].map(w => String(w).toLowerCase());
+            const nonReviewWords = arguments[1].map(w => String(w).toLowerCase());
+            const clickableSelector = [
+              '[role="tab"]',
+              'button',
+              'a',
+              '[jsaction]',
+              '[data-tab-index]',
+              '[aria-label]'
+            ].join(',');
+            const isVisible = (el) => {
+              const style = window.getComputedStyle(el);
+              const rect = el.getBoundingClientRect();
+              return style.visibility !== 'hidden'
+                && style.display !== 'none'
+                && rect.width > 0
+                && rect.height > 0;
+            };
+            const textOf = (el) => [
+              el.getAttribute('aria-label') || '',
+              el.getAttribute('data-tooltip') || '',
+              el.textContent || ''
+            ].join(' ').replace(/\\s+/g, ' ').trim().toLowerCase();
+            const hasReviewWord = (text) => reviewWords.some(w => text.includes(w));
+            const hasNonReviewWord = (text) => nonReviewWords.some(w => text.includes(w));
+
+            const textHits = Array.from(document.querySelectorAll('span, div, button, a'))
+              .filter(isVisible)
+              .filter(el => {
+                const text = textOf(el);
+                return hasReviewWord(text) && !hasNonReviewWord(text);
+              });
+
+            for (const hit of textHits) {
+              const candidates = [];
+              let el = hit;
+              for (let depth = 0; el && depth < 5; depth += 1, el = el.parentElement) {
+                if (el.matches && el.matches(clickableSelector) && isVisible(el)) {
+                  candidates.push(el);
+                }
+              }
+              for (const candidate of candidates) {
+                const text = textOf(candidate);
+                if (hasReviewWord(text) && !hasNonReviewWord(text)) {
+                  return candidate;
+                }
+              }
+            }
+            return null;
+        """
+
+        try:
+            candidate = driver.execute_script(js, review_words, non_review_words)
+            if candidate and self.is_reviews_tab(candidate):
+                return candidate
+        except Exception as e:
+            log.debug(f"Nested-text reviews candidate search failed: {e}")
+        return None
+
+    def _dump_debug_page(self, driver: Chrome, reason: str) -> None:
+        """Persist screenshot + HTML when Google Maps runtime DOM changes."""
+        if not self.config.get("debug_dump_on_failure", False):
+            return
+
+        try:
+            safe_reason = re.sub(r"[^a-zA-Z0-9_-]+", "_", reason).strip("_") or "failure"
+            shop_id = self.config.get("custom_params", {}).get("shop_id", "unknown")
+            stamp = time.strftime("%Y%m%d-%H%M%S")
+            prefix = f"/tmp/google_maps_debug_{shop_id}_{safe_reason}_{stamp}"
+            driver.save_screenshot(f"{prefix}.png")
+            with open(f"{prefix}.html", "w", encoding="utf-8") as f:
+                f.write(driver.page_source)
+            log.warning("Saved Google Maps debug dump: %s.[png|html]", prefix)
+        except Exception as e:
+            log.debug("Failed to write Google Maps debug dump: %s", e)
+
     def _nearest_tab_candidate(self, element: WebElement) -> WebElement | None:
         """Return the closest clickable tab-like element for a text match."""
         try:
@@ -974,21 +1088,18 @@ class GoogleReviewsScraper:
         try:
             # Common elements that appear when reviews tab is active
             verification_selectors = [
-                # Reviews container
-                'div.m6QErb.DxyBCb.kA9KIf.dS8AEf',
-
                 # Review cards
                 'div[data-review-id]',
+                'div.jftiEf[data-review-id]',
 
                 # Sort button (usually appears with reviews)
                 'button[aria-label*="Sort" i]',
+                'button[aria-label*="排序"]',
+                'button[aria-label*="撰寫評論"]',
+                'button[aria-label*="撰写评论"]',
 
-                # Review rating elements
-                'span[role="img"][aria-label*="star" i]',
-
-                # Other indicators
-                'div.m6QErb div.jftiEf',
-                '.HlvSq'
+                # Avoid generic rating stars here: overview pages also contain
+                # star icons, which can falsely look like a loaded review pane.
             ]
 
             # Check if any verification selector is present
@@ -1815,6 +1926,7 @@ class GoogleReviewsScraper:
                         # If we keep finding no cards, might have hit the end
                         if consecutive_no_cards > 5:
                             log.warning("No cards found for 5+ iterations - might be at end of reviews")
+                            self._dump_debug_page(driver, "no_review_cards")
                             break
 
                         attempts += 1
