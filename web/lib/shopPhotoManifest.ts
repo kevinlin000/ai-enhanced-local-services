@@ -75,6 +75,32 @@ export function getShopManifestReviews(shopId: number): ManifestReview[] {
   return PHOTO_DATA.shops?.[String(shopId)]?.reviews?.filter((review) => review.text) ?? [];
 }
 
+export function getShopDataQualityScore(
+  shopId: number,
+  fallbackImage?: string | null,
+  comments?: number | null,
+) {
+  const hasPhoto = Boolean(getBestShopCardPhoto(shopId, fallbackImage));
+  const overview = getShopOverview(shopId);
+  const reviews = getShopManifestReviews(shopId);
+
+  let score = 0;
+  if (hasPhoto) score += 4;
+  if (reviews.length >= 10) score += 4;
+  else if (reviews.length >= 3) score += 3;
+  else if (reviews.length > 0) score += 1;
+  if (overview?.price_overview) score += 2;
+  if ((comments ?? 0) >= 1000) score += 1;
+  return score;
+}
+
+export function isCuratedShopData(
+  shopId: number,
+  fallbackImage?: string | null,
+) {
+  return Boolean(getBestShopCardPhoto(shopId, fallbackImage)) && getShopManifestReviews(shopId).length >= 3;
+}
+
 export function getShopCoverPhoto(shopId: number): string | null {
   const override = COVER_OVERRIDES[shopId];
   if (override?.coverUrl) return override.coverUrl;

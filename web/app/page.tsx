@@ -4,7 +4,7 @@ import { javaApi, type Category, type Shop, type ShopAiMetadata } from "@/lib/ap
 import { getCategoryStyle, getStyleByTypeId } from "@/lib/categoryStyle";
 import { isLegacySeedShop } from "@/lib/legacySeedShops";
 import { proxyImageUrl } from "@/lib/photoProxy";
-import { getBestShopCardPhoto, getShopOverview } from "@/lib/shopPhotoManifest";
+import { getBestShopCardPhoto, getShopDataQualityScore, getShopOverview, isCuratedShopData } from "@/lib/shopPhotoManifest";
 
 const HOT_STATIONS = [
   "信義安和",
@@ -55,12 +55,18 @@ function sortVisibleShops(shops: Shop[]) {
     const bSeed = isLegacySeedShop(b.id) ? 1 : 0;
     if (aSeed !== bSeed) return aSeed - bSeed;
 
-    const aPhoto = getBestShopCardPhoto(a.id, a.images) ? 1 : 0;
-    const bPhoto = getBestShopCardPhoto(b.id, b.images) ? 1 : 0;
-    if (bPhoto !== aPhoto) return bPhoto - aPhoto;
+    const aQuality = getShopDataQualityScore(a.id, a.images, a.comments);
+    const bQuality = getShopDataQualityScore(b.id, b.images, b.comments);
+    if (bQuality !== aQuality) return bQuality - aQuality;
 
     return (b.score ?? 0) - (a.score ?? 0);
   });
+}
+
+function curatedFirst(shops: Shop[]) {
+  const sorted = sortVisibleShops(shops);
+  const curated = sorted.filter((shop) => isCuratedShopData(shop.id, shop.images));
+  return curated.length ? curated : sorted.filter((shop) => getBestShopCardPhoto(shop.id, shop.images));
 }
 
 function getUniqueFeaturedShops(stationsWithShops: { name: string; shops: Shop[] }[]) {
@@ -74,7 +80,7 @@ function getUniqueFeaturedShops(stationsWithShops: { name: string; shops: Shop[]
   // First pass: one representative per MRT area, so the homepage does not look
   // like a single station duplicated across every editorial card.
   for (const station of sortedByStation) {
-    const shop = station.shops.find((candidate) => !seen.has(candidate.id) && getBestShopCardPhoto(candidate.id, candidate.images));
+    const shop = curatedFirst(station.shops).find((candidate) => !seen.has(candidate.id));
     if (!shop) continue;
     seen.add(shop.id);
     result.push({ station: station.name, shop });
@@ -82,9 +88,8 @@ function getUniqueFeaturedShops(stationsWithShops: { name: string; shops: Shop[]
   }
 
   for (const station of sortedByStation) {
-    for (const shop of station.shops) {
+    for (const shop of curatedFirst(station.shops)) {
       if (seen.has(shop.id)) continue;
-      if (!getBestShopCardPhoto(shop.id, shop.images)) continue;
       seen.add(shop.id);
       result.push({ station: station.name, shop });
       if (result.length >= 16) return result;
@@ -275,7 +280,7 @@ function MrtPopularSection({
         />
         <div className="space-y-10">
           {rows.map((row) => {
-            const shops = sortVisibleShops(row.shops).slice(0, 4);
+            const shops = curatedFirst(row.shops).slice(0, 4);
             if (!shops.length) return null;
 
             return (

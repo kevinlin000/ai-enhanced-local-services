@@ -8,7 +8,7 @@ import { javaApi } from "@/lib/api";
 import { getStyleByTypeId } from "@/lib/categoryStyle";
 import { isLegacySeedShop } from "@/lib/legacySeedShops";
 import { proxyImageUrl } from "@/lib/photoProxy";
-import { getBestShopCardPhoto, getShopOverview } from "@/lib/shopPhotoManifest";
+import { getBestShopCardPhoto, getShopDataQualityScore, getShopOverview } from "@/lib/shopPhotoManifest";
 import { MapPin, Search, X } from "lucide-react";
 
 // AI search via Next.js rewrite proxy /api/ai/* → http://localhost:8000/api/ai/*
@@ -87,9 +87,9 @@ function sortVisibleShops(shops: Shop[]) {
     const aSeed = isLegacySeedShop(a.id) ? 1 : 0;
     const bSeed = isLegacySeedShop(b.id) ? 1 : 0;
     if (aSeed !== bSeed) return aSeed - bSeed;
-    const aPhoto = getBestShopCardPhoto(a.id, getFallbackImage(a)) ? 1 : 0;
-    const bPhoto = getBestShopCardPhoto(b.id, getFallbackImage(b)) ? 1 : 0;
-    if (bPhoto !== aPhoto) return bPhoto - aPhoto;
+    const aQuality = getShopDataQualityScore(a.id, getFallbackImage(a), a.comments);
+    const bQuality = getShopDataQualityScore(b.id, getFallbackImage(b), b.comments);
+    if (bQuality !== aQuality) return bQuality - aQuality;
     return (b.score ?? 0) - (a.score ?? 0);
   });
 }
