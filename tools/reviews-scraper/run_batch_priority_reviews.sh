@@ -61,42 +61,7 @@ write_progress
 
 build_search_url() {
   local name="$1" address="$2"
-  "$PYTHON" - "$name" "$address" <<'PY'
-import re
-import sys
-import urllib.parse
-
-name = sys.argv[1]
-address = sys.argv[2]
-
-def clean_name(value: str) -> str:
-    text = (value or "").strip()
-    text = re.sub(r"\s+", " ", text)
-    # Google Maps search degrades when SEO keyword stuffing remains in names.
-    text = re.split(r"[／/]", text, maxsplit=1)[0].strip()
-    text = re.sub(r"[【\\[].*$", "", text).strip()
-    text = re.split(r"[｜|]", text, maxsplit=1)[0].strip()
-    text = re.sub(r"[\(（][^\)）]*$", "", text).strip()
-    text = re.split(
-        r"\s+(?:台北|臺北|士林區|大安區|信義區|中山區|內湖區|南港區|松山區|北投區|石牌|天母|公館|萬隆|餐廳|餐酒館|酒吧|活動|生日|企業|推薦|包場|美食|燒肉|火鍋|聚餐)",
-        text,
-        maxsplit=1,
-    )[0].strip()
-    text = text.strip(" -—－｜|／/")
-    return text or (value or "").strip()
-
-def area_hint(value: str) -> str:
-    match = re.search(r"(?:台北市|臺北市)([^市縣]{1,4}區)", value or "")
-    if match:
-        return f"台北市 {match.group(1)}"
-    if "台北" in (value or "") or "臺北" in (value or ""):
-        return "台北市"
-    return ""
-
-query_text = " ".join(part for part in (clean_name(name), area_hint(address)) if part).strip()
-query = urllib.parse.quote(query_text)
-print(f"https://www.google.com/maps/search/{query}")
-PY
+  "$PYTHON" "$SCRAPER_DIR/scripts/google_maps_query.py" "$name" "$address"
 }
 
 mongo_count() {
