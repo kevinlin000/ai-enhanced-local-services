@@ -20,6 +20,20 @@ SEO_TAIL_RE = re.compile(
     re.IGNORECASE,
 )
 
+DISTRICT_ONLY_RE = re.compile(
+    r"^(?:台北|臺北)?(?:士林|大安|信義|中山|內湖|南港|松山|北投|萬華|中正|文山)(?:區)?$"
+)
+
+GENERIC_SLASH_SEGMENT_RE = re.compile(
+    r"^(?:台北|臺北)?(?:士林|大安|信義|中山|內湖|南港|松山|北投|萬華|中正|文山)?(?:區)?"
+    r"(?:麻辣火鍋|火鍋|燒肉|串燒|居酒屋|義大利麵|燉飯|早午餐|下午茶|咖啡廳|餐廳|美食|推薦|評價|訂位)$",
+    re.IGNORECASE,
+)
+
+BRAND_CATEGORY_SUFFIX_RE = re.compile(
+    r"^(.{2,}?)(?:麻辣火鍋|火鍋|燒肉|串燒|居酒屋|義大利麵|早午餐|咖啡廳|餐廳)$"
+)
+
 
 def _collapse_space(value: str) -> str:
     return re.sub(r"\s+", " ", value or "").strip()
@@ -34,14 +48,40 @@ def clean_name(value: str) -> str:
 
     text = re.sub(r"[【\\[].*$", "", text).strip()
 
-    # Slash-separated suffixes are usually category/marketing lists, not brand.
+    # Slash-separated suffixes are usually category/marketing lists, but imported
+    # data sometimes hides the real brand in a middle segment.
     if "/" in text or "／" in text:
-        left, right = re.split(r"[／/]", text, maxsplit=1)
-        if left.strip() and DISTRICT_OR_CATEGORY_RE.search(right):
-            text = left.strip()
+        parts = [part.strip() for part in re.split(r"[／/]", text) if part.strip()]
+        cleaned_parts = []
+        for part in parts:
+            cleaned = SEO_TAIL_RE.sub("", part).strip()
+            if cleaned:
+                cleaned_parts.append(cleaned)
 
-    # Pipe-separated suffixes are branch/category notes.
-    text = re.split(r"[｜|]", text, maxsplit=1)[0].strip()
+        chosen = ""
+        for part in cleaned_parts:
+            if GENERIC_SLASH_SEGMENT_RE.match(part):
+                continue
+            match = BRAND_CATEGORY_SUFFIX_RE.match(part)
+            if match and not DISTRICT_ONLY_RE.match(match.group(1)):
+                chosen = part
+                break
+        if not chosen:
+            for part in cleaned_parts:
+                if GENERIC_SLASH_SEGMENT_RE.match(part):
+                    continue
+                if not DISTRICT_OR_CATEGORY_RE.fullmatch(part):
+                    chosen = part
+                    break
+        text = chosen or parts[0].strip()
+
+    # Pipe-separated prefixes are often district labels ("中山｜燒肉政宗").
+    pipe_parts = [part.strip() for part in re.split(r"[｜|]", text) if part.strip()]
+    if len(pipe_parts) >= 2:
+        if DISTRICT_ONLY_RE.match(pipe_parts[0]):
+            text = pipe_parts[1]
+        else:
+            text = pipe_parts[0]
 
     # Parenthetical tails are often SEO/location hints in imported data.
     text = re.sub(r"[\(（][^\)）]*$", "", text).strip()
