@@ -155,17 +155,18 @@ def mongo_review_shop_ids() -> tuple[set[int], str | None]:
         return set(), f"{exc.__class__.__name__}: {exc}"
 
 
-def media_shop_ids() -> tuple[set[int], set[int]]:
+def media_shop_ids() -> tuple[set[int], set[int], set[int]]:
     if not MEDIA_MANIFEST.exists():
-        return set(), set()
+        return set(), set(), set()
     try:
         data = json.loads(MEDIA_MANIFEST.read_text(encoding="utf-8"))
     except Exception:
-        return set(), set()
+        return set(), set(), set()
     shops_data = data.get("shops", data) if isinstance(data, dict) else {}
 
     all_ids: set[int] = set()
     photo_ids: set[int] = set()
+    review_ids: set[int] = set()
     for raw_id, value in shops_data.items():
         try:
             shop_id = int(raw_id)
@@ -177,7 +178,10 @@ def media_shop_ids() -> tuple[set[int], set[int]]:
         photos = value.get("photoUrls") or value.get("galleryUrls") or value.get("photos") or value.get("coverUrl")
         if photos:
             photo_ids.add(shop_id)
-    return all_ids, photo_ids
+        reviews = value.get("reviews")
+        if isinstance(reviews, list) and reviews:
+            review_ids.add(shop_id)
+    return all_ids, photo_ids, review_ids
 
 
 def summarize(limit: int) -> dict[str, Any]:
@@ -185,7 +189,7 @@ def summarize(limit: int) -> dict[str, Any]:
     shop_ids = {shop.id for shop in shops}
     overview = sqlite_overview()
     mongo_ids, mongo_error = mongo_review_shop_ids()
-    media_ids, media_photo_ids = media_shop_ids()
+    media_ids, media_photo_ids, media_review_ids = media_shop_ids()
 
     overview_ids = set(overview)
     overview_photo_ids = {
@@ -202,6 +206,7 @@ def summarize(limit: int) -> dict[str, Any]:
     missing_overview = [shop for shop in shops if shop.id not in overview_ids]
     missing_media = [shop for shop in shops if shop.id not in media_ids]
     missing_reviews = [shop for shop in shops if shop.id not in mongo_ids] if not mongo_error else []
+    missing_manifest_reviews = [shop for shop in shops if shop.id not in media_review_ids]
 
     return {
         "shops_active": len(shops),
@@ -214,9 +219,11 @@ def summarize(limit: int) -> dict[str, Any]:
         "mongo_review_shops": len(mongo_ids & shop_ids),
         "media_manifest_shops": len(media_ids & shop_ids),
         "media_with_photos": len(media_photo_ids & shop_ids),
+        "media_with_reviews": len(media_review_ids & shop_ids),
         "missing_overview_sample": [(s.id, s.name, s.area, s.category) for s in missing_overview[:limit]],
         "missing_media_sample": [(s.id, s.name, s.area, s.category) for s in missing_media[:limit]],
         "missing_reviews_sample": [(s.id, s.name, s.area, s.category) for s in missing_reviews[:limit]],
+        "missing_manifest_reviews_sample": [(s.id, s.name, s.area, s.category) for s in missing_manifest_reviews[:limit]],
     }
 
 

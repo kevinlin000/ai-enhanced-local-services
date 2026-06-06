@@ -18,6 +18,7 @@ except Exception:  # pragma: no cover - optional in local scripts
 ROOT = Path(__file__).resolve().parents[2]
 REPORT_JSON = ROOT / "docs" / "data-coverage-report.json"
 REPORT_MD = ROOT / "docs" / "data-coverage-report.md"
+MEDIA_MANIFEST = ROOT / "web" / "data" / "shop-media.json"
 
 
 def load_env() -> None:
@@ -82,23 +83,88 @@ def pct(value: int | None, total: int) -> str:
     return f"{value / total * 100:.1f}%"
 
 
-def mongo_distinct_review_shops() -> int | None:
+def mongo_distinct_review_shop_ids() -> set[int] | None:
     try:
         from pymongo import MongoClient
     except Exception:
         return None
-    uri = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI")
-    if not uri:
-        return None
+    uri = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI") or "mongodb://localhost:27017"
     db_name = os.getenv("MONGO_DB", "bytebites_reviews")
     collection_name = os.getenv("MONGO_REVIEWS_COLLECTION", "google_reviews")
     try:
         client = MongoClient(uri, serverSelectionTimeoutMS=2500)
         client.admin.command("ping")
         values = client[db_name][collection_name].distinct("shop_id")
-        return len([value for value in values if value])
+        return {int(value) for value in values if value}
     except Exception:
         return None
+
+
+def load_media_manifest() -> dict[int, dict[str, Any]]:
+    if not MEDIA_MANIFEST.exists():
+        return {}
+    try:
+        payload = json.loads(MEDIA_MANIFEST.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    shops = payload.get("shops", payload) if isinstance(payload, dict) else {}
+    if not isinstance(shops, dict):
+        return {}
+    out: dict[int, dict[str, Any]] = {}
+    for raw_id, value in shops.items():
+        try:
+            shop_id = int(raw_id)
+        except (TypeError, ValueError):
+            continue
+        if isinstance(value, dict):
+            out[shop_id] = value
+    return out
+
+
+def manifest_counts(active_ids: set[int]) -> dict[str, int]:
+    manifest = load_media_manifest()
+    entries = set(manifest) & active_ids
+    with_reviews = manifest_review_shop_ids(active_ids)
+    with_photos = {
+        shop_id
+        for shop_id, value in manifest.items()
+        if shop_id in active_ids
+        and (
+            value.get("coverUrl")
+            or value.get("photoUrls")
+            or value.get("galleryUrls")
+            or value.get("photos")
+        )
+    }
+    with_overview = {
+        shop_id
+        for shop_id, value in manifest.items()
+        if shop_id in active_ids
+        and (
+            value.get("overview")
+            or value.get("priceOverview")
+            or value.get("price_overview")
+            or value.get("popularTime")
+            or value.get("popular_time")
+            or value.get("visitDuration")
+            or value.get("visit_duration")
+        )
+    }
+    return {
+        "entries": len(entries),
+        "reviews": len(with_reviews),
+        "photos": len(with_photos),
+        "overview": len(with_overview),
+    }
+
+
+def manifest_review_shop_ids(active_ids: set[int]) -> set[int]:
+    manifest = load_media_manifest()
+    return {
+        shop_id
+        for shop_id, value in manifest.items()
+        if shop_id in active_ids and isinstance(value.get("reviews"), list) and len(value["reviews"]) > 0
+    }
 
 
 def build_flags(cur) -> dict[str, str]:
@@ -138,45 +204,85 @@ def coverage_count(cur, total: int, label: str, sql: str) -> dict[str, Any]:
 
 
 def generate() -> dict[str, Any]:
-    mongo_review_shops = mongo_distinct_review_shops()
+    mongo_review_shop_ids = mongo_distinct_review_shop_ids()
     with connect() as conn, conn.cursor() as cur:
-        total = scalar(cur, "SELECT COUNT(*) AS n FROM tb_shop")
+        active_where = "s.is_active = 1" if column_exists(cur, "tb_shop", "is_active") else "1=1"
+        shop_active_where = "is_active = 1" if column_exists(cur, "tb_shop", "is_active") else "1=1"
+        total = scalar(cur, f"SELECT COUNT(*) AS n FROM tb_shop WHERE {shop_active_where}")
+        active_ids = {
+            int(row["id"])
+            for row in rows(cur, f"SELECT id FROM tb_shop WHERE {shop_active_where}")
+        }
+        media_counts = manifest_counts(active_ids)
+        media_review_shop_ids = manifest_review_shop_ids(active_ids)
+        product_review_shop_ids = set(media_review_shop_ids)
+        if mongo_review_shop_ids is not None:
+            product_review_shop_ids |= mongo_review_shop_ids & active_ids
+        mongo_review_count = len(mongo_review_shop_ids & active_ids) if mongo_review_shop_ids is not None else None
         flags = build_flags(cur)
 
         joins = "\n".join(part for part in (flags["metadata_join"], flags["absa_join"], flags["review_join"]) if part)
         base_from = f"FROM tb_shop s\n{joins}"
 
         coverage = [
-            coverage_count(cur, total, "Cover image/media", f"SELECT COUNT(*) AS n FROM tb_shop s WHERE {flags['image']}"),
-            coverage_count(cur, total, "Price signal", f"SELECT COUNT(DISTINCT s.id) AS n {base_from} WHERE {flags['price']}"),
+            coverage_count(
+                cur,
+                total,
+                "Cover image/media",
+                f"SELECT COUNT(*) AS n FROM tb_shop s WHERE {active_where} AND {flags['image']}",
+            ),
+            coverage_count(
+                cur,
+                total,
+                "Price signal",
+                f"SELECT COUNT(DISTINCT s.id) AS n {base_from} WHERE {active_where} AND ({flags['price']})",
+            ),
         ]
 
         if column_exists(cur, "tb_shop", "district"):
             coverage.append(
-                coverage_count(cur, total, "District", "SELECT COUNT(*) AS n FROM tb_shop WHERE district IS NOT NULL AND district <> ''")
-            )
-        if column_exists(cur, "tb_shop", "mrt_station"):
-            coverage.append(
-                coverage_count(cur, total, "MRT station", "SELECT COUNT(*) AS n FROM tb_shop WHERE mrt_station IS NOT NULL AND mrt_station <> ''")
-            )
-        coverage.extend(
-            [
-                coverage_count(cur, total, "AI summary", f"SELECT COUNT(DISTINCT s.id) AS n {base_from} WHERE {flags['has_metadata']}"),
-                coverage_count(cur, total, "ABSA", f"SELECT COUNT(DISTINCT s.id) AS n {base_from} WHERE {flags['has_absa']}"),
                 coverage_count(
                     cur,
                     total,
-                    "SQL reviews",
-                    f"SELECT COUNT(*) AS n FROM (SELECT s.id {base_from} GROUP BY s.id HAVING {flags['review_count']} > 0) x",
+                    "District",
+                    f"SELECT COUNT(*) AS n FROM tb_shop WHERE {shop_active_where} AND district IS NOT NULL AND district <> ''",
+                )
+            )
+        if column_exists(cur, "tb_shop", "mrt_station"):
+            coverage.append(
+                coverage_count(
+                    cur,
+                    total,
+                    "MRT station",
+                    f"SELECT COUNT(*) AS n FROM tb_shop WHERE {shop_active_where} AND mrt_station IS NOT NULL AND mrt_station <> ''",
+                )
+            )
+        coverage.extend(
+            [
+                coverage_count(cur, total, "AI summary", f"SELECT COUNT(DISTINCT s.id) AS n {base_from} WHERE {active_where} AND {flags['has_metadata']}"),
+                coverage_count(cur, total, "ABSA", f"SELECT COUNT(DISTINCT s.id) AS n {base_from} WHERE {active_where} AND {flags['has_absa']}"),
+                coverage_count(
+                    cur,
+                    total,
+                    "SQL reviews (legacy)",
+                    f"SELECT COUNT(*) AS n FROM (SELECT s.id {base_from} WHERE {active_where} GROUP BY s.id HAVING {flags['review_count']} > 0) x",
                 ),
             ]
         )
         coverage.append(
             {
                 "label": "Mongo reviews",
-                "count": mongo_review_shops,
-                "percent": pct(mongo_review_shops, total) if mongo_review_shops is not None else "unavailable",
+                "count": mongo_review_count,
+                "percent": pct(mongo_review_count, total) if mongo_review_count is not None else "unavailable",
             }
+        )
+        coverage.extend(
+            [
+                {"label": "Media manifest entry", "count": media_counts["entries"], "percent": pct(media_counts["entries"], total)},
+                {"label": "Media manifest reviews", "count": media_counts["reviews"], "percent": pct(media_counts["reviews"], total)},
+                {"label": "Media manifest photos", "count": media_counts["photos"], "percent": pct(media_counts["photos"], total)},
+                {"label": "Media manifest overview", "count": media_counts["overview"], "percent": pct(media_counts["overview"], total)},
+            ]
         )
 
         category_distribution = []
@@ -188,6 +294,7 @@ def generate() -> dict[str, Any]:
                 SELECT COALESCE(t.{name_col}, '未分類') AS label, COUNT(*) AS count
                 FROM tb_shop s
                 LEFT JOIN tb_shop_type t ON t.id = s.type_id
+                WHERE {active_where}
                 GROUP BY label
                 ORDER BY count DESC
                 LIMIT 20
@@ -198,9 +305,10 @@ def generate() -> dict[str, Any]:
         if column_exists(cur, "tb_shop", "district"):
             district_distribution = rows(
                 cur,
-                """
+                f"""
                 SELECT COALESCE(NULLIF(district, ''), '未填') AS label, COUNT(*) AS count
                 FROM tb_shop
+                WHERE {shop_active_where}
                 GROUP BY label
                 ORDER BY count DESC
                 LIMIT 20
@@ -211,16 +319,17 @@ def generate() -> dict[str, Any]:
         if column_exists(cur, "tb_shop", "mrt_station"):
             mrt_distribution = rows(
                 cur,
-                """
+                f"""
                 SELECT COALESCE(NULLIF(mrt_station, ''), '未填') AS label, COUNT(*) AS count
                 FROM tb_shop
+                WHERE {shop_active_where}
                 GROUP BY label
                 ORDER BY count DESC
                 LIMIT 20
                 """,
             )
 
-        missing = rows(
+        missing_candidates = rows(
             cur,
             f"""
             SELECT
@@ -232,16 +341,36 @@ def generate() -> dict[str, Any]:
                 IF({flags['price']}, 1, 0) AS has_price,
                 IF({flags['has_metadata']}, 1, 0) AS has_ai_summary,
                 IF({flags['has_absa']}, 1, 0) AS has_absa,
-                {flags['review_count']} AS review_count
+                {flags['review_count']} AS sql_review_count
             {base_from}
+            WHERE {active_where}
             GROUP BY s.id, s.name, s.district, s.mrt_station
-            HAVING has_image = 0 OR has_price = 0 OR has_ai_summary = 0 OR has_absa = 0 OR review_count = 0
-            ORDER BY
-                (has_image + has_price + has_ai_summary + has_absa + IF(review_count > 0, 1, 0)) ASC,
-                s.id DESC
-            LIMIT 40
             """,
         )
+        missing = []
+        for row in missing_candidates:
+            shop_id = int(row["id"])
+            row["review_count"] = 1 if shop_id in product_review_shop_ids else 0
+            row.pop("sql_review_count", None)
+            if (
+                int(row["has_image"]) == 0
+                or int(row["has_price"]) == 0
+                or int(row["has_ai_summary"]) == 0
+                or int(row["has_absa"]) == 0
+                or int(row["review_count"]) == 0
+            ):
+                missing.append(row)
+        missing.sort(
+            key=lambda row: (
+                int(row["has_image"])
+                + int(row["has_price"])
+                + int(row["has_ai_summary"])
+                + int(row["has_absa"])
+                + int(row["review_count"]),
+                -int(row["id"]),
+            )
+        )
+        missing = missing[:40]
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
