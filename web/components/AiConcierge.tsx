@@ -4,9 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Send, Sparkles, X } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { streamAgentResponse } from "@/lib/agentStream";
+import { MarkdownMessage } from "@/components/MarkdownMessage";
 
 type Hit = {
   shop_id: number;
@@ -202,11 +201,7 @@ export function AiConcierge() {
                     }`}
                   >
                     {m.role === "ai" ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {m.content}
-                        </ReactMarkdown>
-                      </div>
+                      <MarkdownMessage content={m.content} compact />
                     ) : (
                       <span>{m.content}</span>
                     )}

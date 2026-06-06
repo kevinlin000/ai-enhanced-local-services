@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Bell, Bot, CalendarCheck, CreditCard, Heart, Sparkles, Trash2 } from "lucide-react";
+import { AlertTriangle, Bell, CalendarCheck, CreditCard, Heart, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,8 +10,7 @@ import { Input } from "@/components/ui/input";
 import { javaApi } from "@/lib/api";
 import { streamAgentResponse, type AgentTransaction } from "@/lib/agentStream";
 import { AgentShopCard, type AgentShop } from "@/components/AgentShopCard";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { MarkdownMessage } from "@/components/MarkdownMessage";
 
 const AI_API = "";
 
@@ -387,7 +386,10 @@ function getOrCreateSessionId(): string {
 }
 
 export default function AiPage() {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("q") ?? "";
+  });
   const [loading, setLoading] = useState(false);
 
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -399,15 +401,6 @@ export default function AiPage() {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, loading]);
-
-  // Prefill query from ?q= URL param (e.g. arriving from AiConcierge CTA)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const q = params.get("q");
-    if (!q) return;
-    setQuery(q);
-  }, []);
 
   async function sendAgentMessage(q: string) {
     if (!q.trim()) return;
@@ -554,11 +547,7 @@ export default function AiPage() {
                     {m.role === "user" ? (
                       <div className="whitespace-pre-wrap">{m.content}</div>
                     ) : (
-                      <div className="prose prose-zinc max-w-none">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {m.content}
-                        </ReactMarkdown>
-                      </div>
+                      <MarkdownMessage content={m.content} />
                     )}
                   </div>
                   {m.toolsUsed && m.toolsUsed.length > 0 ? (
@@ -587,7 +576,7 @@ export default function AiPage() {
             {loading ? (
               <div className="flex justify-start">
                 <div className="rounded-3xl rounded-bl-sm bg-white px-4 py-3 text-sm text-zinc-500 shadow-sm">
-                  正在查詢可訂狀態與推薦理由...
+                  我先理解需求，再查店家、空位與評論重點...
                 </div>
               </div>
             ) : null}
