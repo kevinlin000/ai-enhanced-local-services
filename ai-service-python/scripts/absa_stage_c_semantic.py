@@ -20,6 +20,7 @@ from pathlib import Path
 
 import pymysql
 import pymysql.cursors
+from pymongo import MongoClient
 
 from google import genai
 from google.genai import errors as genai_errors
@@ -49,6 +50,10 @@ DB_CONFIG = {
     "cursorclass": pymysql.cursors.DictCursor,
 }
 
+MONGO_URI = _env.get("MONGO_URI", "mongodb://localhost:27017")
+MONGO_DB = _env.get("MONGO_DB", "bytebites_reviews")
+MONGO_COLLECTION = _env.get("MONGO_REVIEWS_COLLECTION", "google_reviews")
+
 # ── logging ─────────────────────────────────────────────────────────────────────
 _log: list[dict] = []
 
@@ -68,7 +73,53 @@ for _f in sorted(RAW_DIR.glob("places_extracted_*.json")):
             shop_map[sid] = _s
 
 
-def load_reviews(shop_id: int) -> list[dict]:
+_mongo_collection = None
+
+
+def get_mongo_collection():
+    global _mongo_collection
+    if _mongo_collection is None:
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        client.admin.command("ping")
+        _mongo_collection = client[MONGO_DB][MONGO_COLLECTION]
+    return _mongo_collection
+
+
+def text_from_description(description) -> str:
+    if isinstance(description, dict):
+        for key in ("zh", "zh-TW", "text", "en"):
+            value = description.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return ""
+    if isinstance(description, str):
+        return description.strip()
+    return ""
+
+
+def load_mongo_reviews(meta: dict) -> list[dict]:
+    review_ids = meta.get("review_ids_by_idx") or []
+    if meta.get("review_source") != "mongo_google_reviews" or not review_ids:
+        return []
+    col = get_mongo_collection()
+    docs = list(col.find({"review_id": {"$in": review_ids}}))
+    doc_by_id = {str(doc.get("review_id")): doc for doc in docs}
+    reviews = []
+    for idx, review_id in enumerate(review_ids):
+        doc = doc_by_id.get(str(review_id))
+        if not doc:
+            continue
+        text = text_from_description(doc.get("description"))
+        if text:
+            reviews.append({
+                "idx": idx,
+                "rating": float(doc.get("rating") or 0),
+                "text": text,
+            })
+    return reviews
+
+
+def load_etl_reviews(shop_id: int) -> list[dict]:
     shop = shop_map.get(shop_id)
     if not shop:
         return []
@@ -77,6 +128,14 @@ def load_reviews(shop_id: int) -> list[dict]:
         for i, r in enumerate(shop.get("reviews", []))
         if (r.get("text") or "").strip()
     ]
+
+
+def load_reviews(shop_id: int, meta: dict | None = None) -> list[dict]:
+    if meta:
+        reviews = load_mongo_reviews(meta)
+        if reviews:
+            return reviews
+    return load_etl_reviews(shop_id)
 
 # ── embedding + cosine ─────────────────────────────────────────────────────────
 _embed_cache: dict[str, list[float]] = {}
@@ -232,7 +291,7 @@ print(f"{'='*64}\n", flush=True)
 
 conn = pymysql.connect(**DB_CONFIG)
 with conn.cursor() as cur:
-    cur.execute("SELECT shop_id, aspects FROM tb_shop_absa WHERE semantic_hit_rate IS NULL")
+    cur.execute("SELECT shop_id, aspects, meta FROM tb_shop_absa WHERE semantic_hit_rate IS NULL")
     pending = cur.fetchall()
 
 print(f"Shops pending semantic rescue: {len(pending)}", flush=True)
@@ -247,9 +306,11 @@ skip = 0
 for row in pending:
     shop_id  = row["shop_id"]
     aspects  = row["aspects"] if isinstance(row["aspects"], list) else json.loads(row["aspects"])
-    reviews  = load_reviews(shop_id)
+    meta_raw = row.get("meta") or {}
+    meta = meta_raw if isinstance(meta_raw, dict) else json.loads(meta_raw)
+    reviews  = load_reviews(shop_id, meta)
     if not reviews:
-        log("skip_no_reviews", shop_id, "no ETL reviews found")
+        log("skip_no_reviews", shop_id, "no Mongo/ETL reviews found")
         skip += 1
         continue
     tasks_input.append((shop_id, aspects, reviews))

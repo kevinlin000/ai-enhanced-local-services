@@ -17,6 +17,7 @@ dependencies = [
     "starlette-prometheus>=0.10.0",
     "redis>=7.4.0",
     "pymysql>=1.2.0",
+    "pymongo>=4.12.0",
 ]
 
 [project.optional-dependencies]
