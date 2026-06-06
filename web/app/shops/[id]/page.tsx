@@ -180,11 +180,11 @@ function normalizeBrandName(name: string) {
     .slice(0, 8);
 }
 
-function getCandidateDataQuality(shopId: number) {
-  const hasPhoto = Boolean(getBestShopCardPhoto(shopId));
+function getCandidateDataQuality(shopId: number, fallbackImage?: string | null, comments?: number | null) {
+  const hasPhoto = Boolean(getBestShopCardPhoto(shopId, fallbackImage));
   const reviewCount = getShopManifestReviews(shopId).length;
   const hasPrice = Boolean(getShopOverview(shopId)?.price_overview);
-  const score = getShopDataQualityScore(shopId);
+  const score = getShopDataQualityScore(shopId, fallbackImage, comments);
   return {
     hasPhoto,
     reviewCount,
@@ -476,16 +476,22 @@ function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): RankedSi
       const quality = getCandidateDataQuality(candidate.id);
       const photo = getBestShopCardPhoto(candidate.id);
       const sameBrand = Boolean(baseBrand && baseBrand.length >= 2 && normalizeBrandName(candidate.name) === baseBrand);
+      const hasReviewEvidence = quality.reviewCount >= 3 || (candidate.comments ?? 0) >= 500;
+      const hasCompleteListing = quality.hasPhoto && hasReviewEvidence;
 
       let reason = "同類型口袋名單";
-      if (sameMrt && similarPrice) reason = "同捷運・價位相近";
+      if (sameBrand && sameMrt) reason = "同品牌分店・同捷運";
+      else if (sameBrand) reason = "同品牌分店";
+      else if (sameMrt && similarPrice) reason = "同捷運・價位相近";
       else if (sameMrt) reason = `同捷運・${candidate.mrtStation}`;
-      else if (sameDistrict && similarPrice) reason = "同區・價位相近";
-      else if (sameDistrict) reason = `同區・${candidate.district}`;
+      else if (sameDistrict && similarPrice) reason = `${candidate.district}同區・價位相近`;
+      else if (sameDistrict && hasReviewEvidence) reason = `${candidate.district}同區・評論資料完整`;
+      else if (sameDistrict) reason = `${candidate.district}同區`;
       else if (areaClose) reason = `同商圈・${candidate.area}`;
+      else if (similarPrice && hasCompleteListing) reason = "同類型・同價位且資料完整";
       else if (similarPrice) reason = "同類型・價位相近";
+      else if (hasCompleteListing) reason = "同類型・可比較資料完整";
       else if (candidate.district) reason = `同類型・${candidate.district}`;
-      if (sameBrand) reason = "同品牌分店";
 
       return {
         shopId: candidate.id,
@@ -499,11 +505,14 @@ function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): RankedSi
         hasUsableData: quality.hasUsableData,
         sortKey: [
           10,
-          sameBrand ? -2 : 0,
-          sameMrt ? 1 : 0,
-          sameDistrict ? 1 : 0,
-          areaClose ? 1 : 0,
-          similarPrice ? 1 : 0,
+          hasCompleteListing ? 3 : 0,
+          quality.hasPrice ? 2 : 0,
+          quality.hasPhoto ? 2 : 0,
+          sameMrt ? 4 : 0,
+          sameDistrict ? 3 : 0,
+          areaClose ? 2 : 0,
+          similarPrice ? 2 : 0,
+          sameBrand ? -4 : 0,
           quality.score,
           quality.reviewCount,
           candidate.score ?? 0,
@@ -523,6 +532,7 @@ function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): RankedSi
 function mergeSimilarCards(...groups: RankedSimilarShopCard[][]): SimilarShopCard[] {
   const seen = new Set<number>();
   const brandSeen = new Map<string, number>();
+  const districtSeen = new Map<string, number>();
   const sorted = groups
     .flat()
     .sort((a, b) => {
@@ -542,8 +552,12 @@ function mergeSimilarCards(...groups: RankedSimilarShopCard[][]): SimilarShopCar
       const brand = normalizeBrandName(candidate.name);
       const count = brandSeen.get(brand) ?? 0;
       if (brand && brand.length >= 2 && count >= 1) return false;
+      const district = candidate.district ?? "";
+      const districtCount = districtSeen.get(district) ?? 0;
+      if (district && districtCount >= 3) return false;
       seen.add(candidate.shopId);
       if (brand) brandSeen.set(brand, count + 1);
+      if (district) districtSeen.set(district, districtCount + 1);
       return true;
     })
     .slice(0, 4)
