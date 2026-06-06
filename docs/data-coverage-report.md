@@ -1,6 +1,6 @@
 # ByteBites Data Coverage Report
 
-- Generated: `2026-06-06T11:13:58.283066+00:00`
+- Generated: `2026-06-06T12:03:42.480893+00:00`
 - Total shops: `712`
 
 ## Coverage
@@ -10,7 +10,7 @@
 | Cover image/media | 712 | 100.0% |
 | Price signal | 618 | 86.8% |
 | District | 698 | 98.0% |
-| MRT station | 62 | 8.7% |
+| MRT station | 203 | 28.5% |
 | AI summary | 673 | 94.5% |
 | ABSA | 599 | 84.1% |
 | SQL reviews | 4 | 0.6% |
@@ -56,15 +56,15 @@
 
 | Label | Count |
 |---|---:|
-| 未填 | 650 |
-| 市政府 | 15 |
-| 中山 | 9 |
-| 信義安和 | 9 |
-| 象山 | 8 |
-| 台北101/世貿 | 7 |
-| 雙連 | 7 |
-| 中山國小 | 5 |
-| 行天宮 | 2 |
+| 未填 | 509 |
+| 中山 | 41 |
+| 信義安和 | 41 |
+| 市政府 | 41 |
+| 台北101/世貿 | 23 |
+| 中山國小 | 17 |
+| 象山 | 15 |
+| 雙連 | 15 |
+| 行天宮 | 10 |
 
 ## Critical Missing Detail Data
 

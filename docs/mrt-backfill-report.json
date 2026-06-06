@@ -1,0 +1,630 @@
+{
+  "generated_at": "2026-06-06T12:01:42.511945+00:00",
+  "applied": true,
+  "radius_meters": 1000,
+  "overwrite": false,
+  "candidates": 650,
+  "matched": 141,
+  "invalid_or_outside_taipei_coords": 14,
+  "out_of_radius": 495,
+  "total_shops": 712,
+  "total_with_mrt_after": 203,
+  "station_counts": [
+    {
+      "station": "信義安和",
+      "count": 32
+    },
+    {
+      "station": "中山",
+      "count": 32
+    },
+    {
+      "station": "市政府",
+      "count": 26
+    },
+    {
+      "station": "台北101/世貿",
+      "count": 16
+    },
+    {
+      "station": "中山國小",
+      "count": 12
+    },
+    {
+      "station": "雙連",
+      "count": 8
+    },
+    {
+      "station": "行天宮",
+      "count": 8
+    },
+    {
+      "station": "象山",
+      "count": 7
+    }
+  ],
+  "distance_buckets": [
+    {
+      "bucket": "801-1000m",
+      "count": 23
+    },
+    {
+      "bucket": "<=400m",
+      "count": 50
+    },
+    {
+      "bucket": "401-800m",
+      "count": 68
+    }
+  ],
+  "sample_matches": [
+    {
+      "shop_id": 10123,
+      "name": "海霸王 中山店 HaiPaWang Zhongshan Store",
+      "district": "中山",
+      "station": "中山國小",
+      "station_district": "中山區",
+      "distance_meters": 972
+    },
+    {
+      "shop_id": 10135,
+      "name": "榮榮園浙寧餐廳",
+      "district": "大安",
+      "station": "信義安和",
+      "station_district": "信義區",
+      "distance_meters": 814
+    },
+    {
+      "shop_id": 10143,
+      "name": "大安站那邊 精緻熱炒",
+      "district": "大安",
+      "station": "信義安和",
+      "station_district": "信義區",
+      "distance_meters": 898
+    },
+    {
+      "shop_id": 10179,
+      "name": "青花驕麻辣鍋 台北中山北店",
+      "district": "中山",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 114
+    },
+    {
+      "shop_id": 10185,
+      "name": "海底撈火鍋 京站店",
+      "district": "大同",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 727
+    },
+    {
+      "shop_id": 10198,
+      "name": "鼎泰豐 南西店",
+      "district": "中山",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 234
+    },
+    {
+      "shop_id": 10202,
+      "name": "嗯哼咖啡食堂(Uh huh cafe)",
+      "district": "信義",
+      "station": "台北101/世貿",
+      "station_district": "信義區",
+      "distance_meters": 852
+    },
+    {
+      "shop_id": 10225,
+      "name": "吟鮮熱炒食堂",
+      "district": "信義",
+      "station": "市政府",
+      "station_district": "信義區",
+      "distance_meters": 861
+    },
+    {
+      "shop_id": 10235,
+      "name": "龍門陣四川火鍋八德店",
+      "district": "松山",
+      "station": "市政府",
+      "station_district": "信義區",
+      "distance_meters": 937
+    },
+    {
+      "shop_id": 10249,
+      "name": "雙月食品社 青島店",
+      "district": "中正",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 999
+    },
+    {
+      "shop_id": 10255,
+      "name": "這一鍋 台北吉林殿",
+      "district": "中山",
+      "station": "中山國小",
+      "station_district": "中山區",
+      "distance_meters": 385
+    },
+    {
+      "shop_id": 10257,
+      "name": "阪前鐵板燒 台北中山北店",
+      "district": "中山",
+      "station": "雙連",
+      "station_district": "大同區",
+      "distance_meters": 236
+    },
+    {
+      "shop_id": 10271,
+      "name": "UNCLE-K 排骨火鍋店",
+      "district": "中山",
+      "station": "行天宮",
+      "station_district": "中山區",
+      "distance_meters": 601
+    },
+    {
+      "shop_id": 10280,
+      "name": "蔬軾",
+      "district": "中山",
+      "station": "行天宮",
+      "station_district": "中山區",
+      "distance_meters": 347
+    },
+    {
+      "shop_id": 10294,
+      "name": "如嬌 花膠雞．鍋物 民權一店",
+      "district": "中山",
+      "station": "行天宮",
+      "station_district": "中山區",
+      "distance_meters": 944
+    },
+    {
+      "shop_id": 10313,
+      "name": "初殿鍋物-永春店「最後收客2100」｜ 平日套餐299元享60種自助吧｜寵物友善｜被火鍋耽誤的滷肉飯｜牛奶鍋｜麻辣鍋｜台北火鍋、美食、餐廳、restaurant",
+      "district": "信義",
+      "station": "市政府",
+      "station_district": "信義區",
+      "distance_meters": 919
+    },
+    {
+      "shop_id": 10314,
+      "name": "蔬軾．安和店",
+      "district": "大安",
+      "station": "信義安和",
+      "station_district": "信義區",
+      "distance_meters": 576
+    },
+    {
+      "shop_id": 10318,
+      "name": "全養知 異國蔬食 莊敬店",
+      "district": "信義",
+      "station": "象山",
+      "station_district": "信義區",
+      "distance_meters": 729
+    },
+    {
+      "shop_id": 10334,
+      "name": "三亞米（咖啡/早午餐/手作甜點）售完提早打烊，最後點菜16:30//週三公休",
+      "district": "信義",
+      "station": "象山",
+      "station_district": "信義區",
+      "distance_meters": 748
+    },
+    {
+      "shop_id": 10341,
+      "name": "艾朋牛排餐酒館",
+      "district": "信義",
+      "station": "市政府",
+      "station_district": "信義區",
+      "distance_meters": 98
+    },
+    {
+      "shop_id": 10352,
+      "name": "塔吉摩洛哥料理",
+      "district": "大安",
+      "station": "信義安和",
+      "station_district": "信義區",
+      "distance_meters": 647
+    },
+    {
+      "shop_id": 10355,
+      "name": "GumGum Beer & Wings",
+      "district": "信義",
+      "station": "台北101/世貿",
+      "station_district": "信義區",
+      "distance_meters": 240
+    },
+    {
+      "shop_id": 10360,
+      "name": "古記雞.私房菜.居酒屋",
+      "district": "信義",
+      "station": "市政府",
+      "station_district": "信義區",
+      "distance_meters": 586
+    },
+    {
+      "shop_id": 10363,
+      "name": "老朋友小酌熱炒",
+      "district": "大安",
+      "station": "信義安和",
+      "station_district": "信義區",
+      "distance_meters": 179
+    },
+    {
+      "shop_id": 10364,
+      "name": "la vie bonbon",
+      "district": "中山",
+      "station": "中山國小",
+      "station_district": "中山區",
+      "distance_meters": 791
+    },
+    {
+      "shop_id": 10365,
+      "name": "渣男 Taiwan Bistro 信義一渣",
+      "district": "信義",
+      "station": "象山",
+      "station_district": "信義區",
+      "distance_meters": 655
+    },
+    {
+      "shop_id": 10372,
+      "name": "麒麟創作拉麵坊",
+      "district": "中山",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 251
+    },
+    {
+      "shop_id": 10393,
+      "name": "加分昆布鍋物-食べ放題-新生店",
+      "district": "中山",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 825
+    },
+    {
+      "shop_id": 10399,
+      "name": "曹料理",
+      "district": "信義",
+      "station": "台北101/世貿",
+      "station_district": "信義區",
+      "distance_meters": 376
+    },
+    {
+      "shop_id": 10419,
+      "name": "麵屋 千雲 林森店",
+      "district": "中山",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 323
+    },
+    {
+      "shop_id": 10421,
+      "name": "半島牛肉麵",
+      "district": "信義",
+      "station": "市政府",
+      "station_district": "信義區",
+      "distance_meters": 354
+    },
+    {
+      "shop_id": 10423,
+      "name": "GYUU NIKU ステーキ專門店",
+      "district": "信義",
+      "station": "市政府",
+      "station_district": "信義區",
+      "distance_meters": 837
+    },
+    {
+      "shop_id": 10428,
+      "name": "好食多涮涮鍋 雙城店",
+      "district": "中山",
+      "station": "中山國小",
+      "station_district": "中山區",
+      "distance_meters": 600
+    },
+    {
+      "shop_id": 10430,
+      "name": "集客人間茶館-東興店",
+      "district": "松山",
+      "station": "市政府",
+      "station_district": "信義區",
+      "distance_meters": 980
+    },
+    {
+      "shop_id": 10435,
+      "name": "四米大石鍋拌飯專賣",
+      "district": "中山",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 290
+    },
+    {
+      "shop_id": 10436,
+      "name": "秦味館 Qin Wei Guan",
+      "district": "大安",
+      "station": "信義安和",
+      "station_district": "信義區",
+      "distance_meters": 783
+    },
+    {
+      "shop_id": 10443,
+      "name": "金孫韓廚 義大利麵 (中山店)",
+      "district": "中山",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 255
+    },
+    {
+      "shop_id": 10446,
+      "name": "PRESERVE 遠東GARDEN CITY 大巨蛋店",
+      "district": "信義",
+      "station": "市政府",
+      "station_district": "信義區",
+      "distance_meters": 784
+    },
+    {
+      "shop_id": 10460,
+      "name": "加分100%浜中特選昆布鍋物-八德店",
+      "district": "松山",
+      "station": "市政府",
+      "station_district": "信義區",
+      "distance_meters": 948
+    },
+    {
+      "shop_id": 10462,
+      "name": "Lazy Pasta 慵懶義式廚房信義市府店",
+      "district": "信義",
+      "station": "市政府",
+      "station_district": "信義區",
+      "distance_meters": 209
+    }
+  ],
+  "sample_out_of_radius": [
+    {
+      "shop_id": 10130,
+      "name": "MAJI MAJI集食行樂",
+      "district": "中山",
+      "station": "中山國小",
+      "station_district": "中山區",
+      "distance_meters": 1134
+    },
+    {
+      "shop_id": 10131,
+      "name": "詹記麻辣火鍋 敦南店",
+      "district": "大安",
+      "station": "信義安和",
+      "station_district": "信義區",
+      "distance_meters": 1043
+    },
+    {
+      "shop_id": 10132,
+      "name": "雙月食品社 森林公園店",
+      "district": "大安",
+      "station": "信義安和",
+      "station_district": "信義區",
+      "distance_meters": 1684
+    },
+    {
+      "shop_id": 10133,
+      "name": "2J CAFE",
+      "district": "大安",
+      "station": "信義安和",
+      "station_district": "信義區",
+      "distance_meters": 1463
+    },
+    {
+      "shop_id": 10140,
+      "name": "樂子the Diner 瑞安店",
+      "district": "大安",
+      "station": "信義安和",
+      "station_district": "信義區",
+      "distance_meters": 1500
+    },
+    {
+      "shop_id": 10144,
+      "name": "二本松涮涮屋 本館",
+      "district": "大安",
+      "station": "信義安和",
+      "station_district": "信義區",
+      "distance_meters": 1093
+    },
+    {
+      "shop_id": 10145,
+      "name": "杭州小籠湯包",
+      "district": "大安",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 2061
+    },
+    {
+      "shop_id": 10146,
+      "name": "享鴨 台北金山南店",
+      "district": "大安",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 2122
+    },
+    {
+      "shop_id": 10147,
+      "name": "泰和樓",
+      "district": "大安",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 2488
+    },
+    {
+      "shop_id": 10148,
+      "name": "孫立人將軍官邸（陸軍聯誼廳）",
+      "district": "中正",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 2665
+    },
+    {
+      "shop_id": 10149,
+      "name": "夏慕尼新香榭鐵板燒 台北南昌店",
+      "district": "中正",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 2980
+    },
+    {
+      "shop_id": 10150,
+      "name": "疍宅Egghost三元店",
+      "district": "中正",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 3006
+    },
+    {
+      "shop_id": 10151,
+      "name": "深夜裡的法國手工甜點",
+      "district": "大安",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 2569
+    },
+    {
+      "shop_id": 10152,
+      "name": "和牛涮 台北羅斯福店",
+      "district": "大安",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 2743
+    },
+    {
+      "shop_id": 10153,
+      "name": "黃龍莊",
+      "district": "中正",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 2604
+    },
+    {
+      "shop_id": 10154,
+      "name": "龍門客棧餃子館 (林森店)",
+      "district": "中正",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 1439
+    },
+    {
+      "shop_id": 10155,
+      "name": "盛園絲瓜小籠湯包",
+      "district": "大安",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 2081
+    },
+    {
+      "shop_id": 10156,
+      "name": "一番地壽喜燒 古亭店",
+      "district": "中正",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 2960
+    },
+    {
+      "shop_id": 10157,
+      "name": "春水堂 中正店",
+      "district": "中正",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 1812
+    },
+    {
+      "shop_id": 10158,
+      "name": "大樹先生的家",
+      "district": "大安",
+      "station": "中山",
+      "station_district": "中山區",
+      "distance_meters": 2589
+    }
+  ],
+  "sample_invalid_coords": [
+    {
+      "shop_id": 1,
+      "name": "103茶餐厅",
+      "x": 120.149192,
+      "y": 30.316078
+    },
+    {
+      "shop_id": 2,
+      "name": "蔡馬洪涛烤肉·老北京铜锅涮羊肉",
+      "x": 120.151505,
+      "y": 30.333422
+    },
+    {
+      "shop_id": 3,
+      "name": "新白鹿餐厅(运河上街店)",
+      "x": 120.151954,
+      "y": 30.32497
+    },
+    {
+      "shop_id": 4,
+      "name": "Mamala(杭州远洋乐堤港店)",
+      "x": 120.146659,
+      "y": 30.312742
+    },
+    {
+      "shop_id": 5,
+      "name": "海底捞火锅(水晶城购物中心店）",
+      "x": 120.15778,
+      "y": 30.310633
+    },
+    {
+      "shop_id": 6,
+      "name": "幸福里老北京涮锅（丝联店）",
+      "x": 120.148603,
+      "y": 30.318618
+    },
+    {
+      "shop_id": 7,
+      "name": "炉鱼(拱墅万达广场店)",
+      "x": 120.124691,
+      "y": 30.336819
+    },
+    {
+      "shop_id": 8,
+      "name": "浅草屋寿司（运河上街店）",
+      "x": 120.150526,
+      "y": 30.325231
+    },
+    {
+      "shop_id": 9,
+      "name": "羊老三羊蝎子牛仔排北派炭火锅(运河上街店)",
+      "x": 120.150598,
+      "y": 30.325251
+    },
+    {
+      "shop_id": 10,
+      "name": "开乐迪KTV（运河上街店）",
+      "x": 120.149093,
+      "y": 30.324666
+    },
+    {
+      "shop_id": 11,
+      "name": "INLOVE KTV(水晶城店)",
+      "x": 120.15853,
+      "y": 30.310002
+    },
+    {
+      "shop_id": 12,
+      "name": "魅(杭州远洋乐堤港店)",
+      "x": 120.14983,
+      "y": 30.31211
+    },
+    {
+      "shop_id": 13,
+      "name": "讴K拉量贩KTV(北城天地店)",
+      "x": 120.130453,
+      "y": 30.327655
+    },
+    {
+      "shop_id": 14,
+      "name": "星聚会KTV(拱墅区万达店)",
+      "x": 120.128958,
+      "y": 30.337252
+    }
+  ]
+}

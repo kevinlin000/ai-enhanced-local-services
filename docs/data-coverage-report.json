@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-06T11:13:58.283066+00:00",
+  "generated_at": "2026-06-06T12:03:42.480893+00:00",
   "total_shops": 712,
   "coverage": [
     {
@@ -19,8 +19,8 @@
     },
     {
       "label": "MRT station",
-      "count": 62,
-      "percent": "8.7%"
+      "count": 203,
+      "percent": "28.5%"
     },
     {
       "label": "AI summary",
@@ -154,39 +154,39 @@
   "mrt_distribution": [
     {
       "label": "未填",
-      "count": 650
-    },
-    {
-      "label": "市政府",
-      "count": 15
+      "count": 509
     },
     {
       "label": "中山",
-      "count": 9
+      "count": 41
     },
     {
       "label": "信義安和",
-      "count": 9
+      "count": 41
     },
     {
-      "label": "象山",
-      "count": 8
+      "label": "市政府",
+      "count": 41
     },
     {
       "label": "台北101/世貿",
-      "count": 7
-    },
-    {
-      "label": "雙連",
-      "count": 7
+      "count": 23
     },
     {
       "label": "中山國小",
-      "count": 5
+      "count": 17
+    },
+    {
+      "label": "象山",
+      "count": 15
+    },
+    {
+      "label": "雙連",
+      "count": 15
     },
     {
       "label": "行天宮",
-      "count": 2
+      "count": 10
     }
   ],
   "critical_missing": [
