@@ -360,6 +360,36 @@ export function ShopDetailTabs(props: Props) {
             ))}
           </div>
 
+          {props.featureHighlights.length > 0 ? (
+            <div className="space-y-3">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold">餐廳特色</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    先看結論；完整評論根據與正負面細節放在評論頁。
+                  </p>
+                </div>
+                {parsedAbsaAspects?.length ? (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("reviews")}
+                    className="hidden text-sm font-medium text-muted-foreground hover:text-foreground md:inline-flex"
+                  >
+                    查看評論根據 →
+                  </button>
+                ) : null}
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                {props.featureHighlights.map((item) => (
+                  <div key={item.label} className="rounded-2xl border bg-background p-5">
+                    <div className="text-xs font-semibold tracking-wide text-amber-700">{item.label}</div>
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {props.priceOverview && normalizedPriceBuckets.length > 1 ? (
             <div className="rounded-2xl border bg-background p-5">
               <div className="text-xs text-muted-foreground">Google 平均每人</div>

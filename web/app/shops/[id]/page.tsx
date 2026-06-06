@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { BookingButton } from "@/components/BookingButton";
 import { FavoriteShopButton } from "@/components/FavoriteShopButton";
 import { ShopDetailTabs } from "@/components/ShopDetailTabs";
-import { javaApi, type Shop, type ShopAiMetadata, type ShopAbsa, type VoucherOffer } from "@/lib/api";
+import { javaApi, type AbsaAspect, type Shop, type ShopAiMetadata, type ShopAbsa, type VoucherOffer } from "@/lib/api";
 import { proxyImageUrl } from "@/lib/photoProxy";
 import { getBestShopCardPhoto, getShopDataQualityScore, getShopGalleryPhotos, getShopManifestReviews, getShopOverview } from "@/lib/shopPhotoManifest";
 import { getShopReviewInsights } from "@/lib/reviewInsights";
@@ -50,6 +50,110 @@ function ensurePeriod(text: string) {
 function hasValue(text?: string | null) {
   const cleaned = cleanSentence(text);
   return Boolean(cleaned && cleaned !== "未提及");
+}
+
+const ABSA_ASPECT_LABELS: Record<string, string> = {
+  dishes: "菜色",
+  service: "服務",
+  environment: "環境",
+  price: "價格",
+};
+
+const GENERIC_ABSA_TERMS = new Set([
+  "餐點",
+  "料理",
+  "菜色",
+  "服務",
+  "環境",
+  "價格",
+  "價位",
+  "口味",
+  "餐廳",
+  "店家",
+  "用餐",
+  "體驗",
+  "氣氛",
+  "空間",
+  "人員",
+  "服務人員",
+]);
+
+function parseAbsaAspects(absa?: ShopAbsa | null): AbsaAspect[] {
+  if (!absa?.aspects) return [];
+  try {
+    const parsed = JSON.parse(absa.aspects);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is AbsaAspect =>
+      Boolean(item && typeof item === "object" && "aspect" in item && "summary" in item),
+    );
+  } catch {
+    return [];
+  }
+}
+
+function normalizeInsightTerm(term: string) {
+  return term.replace(/\s+/g, "").replace(/[，。！？、]/g, "").trim();
+}
+
+function isSpecificInsightTerm(term: string) {
+  const normalized = normalizeInsightTerm(term);
+  return (
+    normalized.length >= 2 &&
+    normalized.length <= 16 &&
+    !GENERIC_ABSA_TERMS.has(normalized) &&
+    !/^[0-9]+$/.test(normalized)
+  );
+}
+
+function collectAbsaTerms(aspects: AbsaAspect[], max = 4) {
+  const orderedAspects = [
+    ...aspects.filter((aspect) => aspect.aspect === "dishes"),
+    ...aspects.filter((aspect) => aspect.aspect !== "dishes"),
+  ];
+  const terms: string[] = [];
+
+  for (const aspect of orderedAspects) {
+    const evidence = [
+      ...(aspect.positive_evidence ?? []),
+      ...(aspect.negative_evidence ?? []),
+    ];
+    for (const item of evidence) {
+      for (const rawTerm of item.concrete_terms ?? []) {
+        const term = normalizeInsightTerm(rawTerm);
+        if (!isSpecificInsightTerm(term)) continue;
+        if (!terms.includes(term)) terms.push(term);
+        if (terms.length >= max) return terms;
+      }
+    }
+  }
+
+  return terms;
+}
+
+function buildAbsaFeatureHighlights(aspects: AbsaAspect[]) {
+  return aspects
+    .filter((aspect) => aspect.summary && aspect.confidence !== "low")
+    .sort((a, b) => {
+      const sentimentWeight = (sentiment: string) =>
+        sentiment === "positive" ? 3 : sentiment === "mixed" ? 2 : sentiment === "neutral" ? 1 : 0;
+      return (
+        sentimentWeight(b.sentiment) - sentimentWeight(a.sentiment) ||
+        (b.mention_count ?? 0) - (a.mention_count ?? 0)
+      );
+    })
+    .slice(0, 3)
+    .map((aspect) => ({
+      label: ABSA_ASPECT_LABELS[aspect.aspect] ?? aspect.aspect,
+      detail: ensurePeriod(cleanSentence(aspect.summary).slice(0, 150)),
+    }));
+}
+
+function buildAbsaIntroEvidence(aspects: AbsaAspect[]) {
+  return aspects
+    .filter((aspect) => aspect.confidence !== "low" && aspect.summary)
+    .sort((a, b) => (b.mention_count ?? 0) - (a.mention_count ?? 0))
+    .slice(0, 2)
+    .map((aspect) => cleanSentence(aspect.summary).replace(/[。！？!]+$/g, ""));
 }
 
 function formatDetailPrice(shop: Shop, ai: ShopAiMetadata | null, overviewPrice?: string) {
@@ -164,11 +268,13 @@ function buildFeatureHighlights({
   dishes,
   tags,
   reviewInsights,
+  absaAspects,
 }: {
   shop: Shop;
   styleLabel: string;
   dishes: string[];
   tags: string[];
+  absaAspects: AbsaAspect[];
   reviewInsights:
     | {
         advice: { label: string; detail: string }[];
@@ -211,7 +317,11 @@ function buildFeatureHighlights({
     });
   }
 
-  return rows.length >= 2 ? rows.slice(0, 3) : [];
+  for (const item of buildAbsaFeatureHighlights(absaAspects)) {
+    if (!rows.some((row) => row.label === item.label)) rows.push(item);
+  }
+
+  return rows.slice(0, 3);
 }
 
 function parseBusinessHours(value?: string | null): string[] {
@@ -240,11 +350,13 @@ function buildIntroText({
   styleLabel,
   dishes,
   reviewInsights,
+  absaAspects,
 }: {
   shop: Shop;
   ai: ShopAiMetadata | null;
   styleLabel: string;
   dishes: string[];
+  absaAspects: AbsaAspect[];
   reviewInsights:
     | {
         advice: { label: string; detail: string }[];
@@ -270,6 +382,7 @@ function buildIntroText({
     .map((review) => trimReviewSentence(review.text, 52))
     .filter(Boolean)
     .slice(0, 1);
+  const absaEvidence = buildAbsaIntroEvidence(absaAspects);
   const openingStyle = shop.id % 3;
 
   if (isUsableAiIntro(summary)) {
@@ -303,6 +416,8 @@ function buildIntroText({
 
   if (positiveReviews.length > 0) {
     parts.push(`整體好評多半會集中在${[...new Set(positiveReviews)].join("、")}，所以它讓人留下印象的，往往不只是名氣，而是菜色與現場體感都有撐住期待。`);
+  } else if (absaEvidence.length > 0) {
+    parts.push(`從評論歸納來看，最明確的訊號是${absaEvidence.join("；")}。這些是從可追溯評論證據整理出的店家特徵。`);
   }
 
   if (topAdvice) {
@@ -467,12 +582,14 @@ export default async function ShopDetailPage({
 
   const ai: ShopAiMetadata | null = aiRes?.data ?? null;
   const absa: ShopAbsa | null = absaRes?.data ?? null;
+  const absaAspects = parseAbsaAspects(absa);
   const vouchers = (voucherRes?.data ?? []) as VoucherOffer[];
   const style = getStyleByTypeId(shop.typeId);
   const Icon = style.icon;
-  const dishes = parseTags(ai?.signatureDishes);
+  const absaTerms = collectAbsaTerms(absaAspects);
+  const dishes = [...parseTags(ai?.signatureDishes), ...absaTerms].filter((item, index, arr) => arr.indexOf(item) === index);
   const tags = parseTags(ai?.atmosphereTags);
-  const introText = buildIntroText({ shop, ai, styleLabel: style.label, dishes, reviewInsights });
+  const introText = buildIntroText({ shop, ai, styleLabel: style.label, dishes, reviewInsights, absaAspects });
   const lastUpdated = formatUpdatedAt(ai?.extractedAt);
   const businessHours = parseBusinessHours(shop.businessHours ?? ai?.openingHours);
 
@@ -557,7 +674,7 @@ export default async function ShopDetailPage({
     hasValue(ai?.bookingDifficulty) && !["未提及", "現場可入"].includes(ai!.bookingDifficulty!)
       ? { label: "預約難度", value: ai!.bookingDifficulty! }
       : null,
-    dishes.length >= 3 ? { label: "最常被提到", value: dishes.slice(0, 3).join("、") } : null,
+    dishes.length >= 2 ? { label: "最常被提到", value: dishes.slice(0, 3).join("、"), hint: absaTerms.length ? "由評論證據補齊" : undefined } : null,
     strongTags.length >= 2 ? { label: "常見場景", value: strongTags.slice(0, 3).join("、") } : null,
   ]
     .filter(Boolean)
@@ -568,6 +685,7 @@ export default async function ShopDetailPage({
     dishes,
     tags,
     reviewInsights,
+    absaAspects,
   });
 
   return (
