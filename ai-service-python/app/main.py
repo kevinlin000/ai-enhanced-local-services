@@ -110,6 +110,7 @@ def _canonical_category_slug(slug: str | None) -> str:
     return CATEGORY_ALIASES.get(normalized, normalized)
 
 STATION_HINTS = {
+    "中山國小站": {"中山國小", "中山國小站"},
     "中山站": {"中山", "中山站"},
     "雙連站": {"雙連", "雙連站"},
     "行天宮站": {"行天宮", "行天宮站"},
@@ -134,6 +135,7 @@ DISTRICT_HINTS = {
 }
 
 STATION_NEIGHBORHOODS = {
+    "中山國小": {"中山國小": 1.0, "行天宮": 0.55, "雙連": 0.45, "中山": 0.35},
     "中山": {"中山": 1.0, "雙連": 0.75, "中山國小": 0.45},
     "雙連": {"雙連": 1.0, "中山": 0.75, "中山國小": 0.45},
     "市政府": {"市政府": 1.0, "信義安和": 0.55, "象山": 0.45},
@@ -226,7 +228,14 @@ def _extract_query_constraints(query: str) -> dict:
     stations = []
     for canonical, keywords in STATION_HINTS.items():
         if any(keyword.lower() in query_lower for keyword in keywords):
-            stations.append(canonical.replace("站", ""))
+            station = canonical.replace("站", "")
+            if station not in stations:
+                stations.append(station)
+    # Longer station names should dominate shorter substring matches.
+    # Example: "中山國小" must not also become the broader "中山" station.
+    for station in list(stations):
+        if any(station != other and station in other for other in stations):
+            stations.remove(station)
 
     districts = []
     for canonical, keywords in DISTRICT_HINTS.items():
@@ -1013,13 +1022,13 @@ TOOLS = [
         "function_declarations": [
             {
                 "name": "search_shops_by_mrt",
-                "description": "查詢指定捷運站附近的店家。當使用者提到特定捷運站名（如「市政府」「中山」「信義安和」）時使用。",
+                "description": "查詢指定捷運站附近的店家。當使用者提到特定捷運站名（如「市政府」「中山國小」「中山」「信義安和」）時使用。",
                 "parameters": {
                     "type": "OBJECT",
                     "properties": {
                         "station": {
                             "type": "STRING",
-                            "description": "捷運站名，例如「市政府」「中山」",
+                            "description": "捷運站名，例如「市政府」「中山國小」「中山」",
                         },
                         "radius": {
                             "type": "INTEGER",

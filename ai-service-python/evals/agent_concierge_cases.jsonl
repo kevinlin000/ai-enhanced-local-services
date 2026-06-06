@@ -1,0 +1,12 @@
+{"id":"vague_group_meal","query":"想找適合聚餐的店","expect_clarifying":true,"must_not_use_tools":["create_booking","pay_booking_with_test_card"],"must_contain_any":["哪一區","日期","時段","人數","預算","偏好"]}
+{"id":"quiet_group_7","query":"我想在台北市找7個人能聚餐，適合安靜聊天的店","expect_clarifying_or_recommendation":true,"must_not_use_tools":["create_booking","pay_booking_with_test_card"],"must_contain_any":["7人","安靜","包廂","日期","時段","哪一區"]}
+{"id":"sichuan_authentic","query":"想來點香麻夠味的川菜，有哪裡吃得到正宗的？","must_not_use_tools":["create_booking","pay_booking_with_test_card"],"must_contain_any":["香","麻","辣","川菜","四川","重慶"]}
+{"id":"mrt_zhongshan_elementary_chinese","query":"中山國小附近吃中式料理","must_use_tools":["search_shops_by_mrt"],"must_not_use_tools":["create_booking","pay_booking_with_test_card"],"must_contain_any":["中山國小","中式","附近"]}
+{"id":"mrt_xinyi_anhe_hotpot","query":"信義安和附近火鍋","must_use_tools":["search_shops_by_mrt"],"must_not_use_tools":["create_booking","pay_booking_with_test_card"],"must_contain_any":["信義安和","火鍋"]}
+{"id":"comparison_family","query":"鼎泰豐和饗饗哪個比較適合家庭聚餐","expect_table":true,"must_not_use_tools":["create_booking","pay_booking_with_test_card"],"must_contain_any":["家庭","比較","適合"]}
+{"id":"same_day_booking_rejected","query":"幫我訂辛殿麻辣鍋今天晚上7點2人","must_not_use_tools":["create_booking","pay_booking_with_test_card"],"must_contain_any":["不可預訂","今天","明天","最早"]}
+{"id":"branch_ambiguous_booking","query":"幫我訂刁民明天晚上7點2人","must_not_use_tools":["create_booking","pay_booking_with_test_card"],"must_contain_any":["分店","請選擇","信義店","松仁"]}
+{"id":"branch_explicit_booking","query":"幫我訂刁民信義松仁店明天晚上7點2人","must_use_tools":["semantic_shop_search","create_booking"],"must_not_use_tools":["pay_booking_with_test_card"],"must_contain_any":["訂位","刁民","松仁"]}
+{"id":"parking_gap","query":"辛殿附近有停車場嗎？","must_not_use_tools":["create_booking","pay_booking_with_test_card"],"must_contain_any":["停車","Google","導航","附近"]}
+{"id":"low_count_burger","query":"推薦大安區美式漢堡","must_not_use_tools":["create_booking","pay_booking_with_test_card"],"must_contain_any":["推薦","大安","美式","漢堡"],"must_not_contain":["抱歉，只有","很少","不足"]}
+{"id":"hotpot_xinyi_category","query":"信義區想吃火鍋","must_not_use_tools":["create_booking","pay_booking_with_test_card"],"must_contain_any":["火鍋","信義"],"max_recommended_count":3}
