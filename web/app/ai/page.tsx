@@ -2,7 +2,19 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Bell, CalendarCheck, CreditCard, Heart, Sparkles, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Bell,
+  CalendarCheck,
+  CheckCircle2,
+  CircleDashed,
+  CreditCard,
+  Heart,
+  Loader2,
+  Search,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,9 +30,22 @@ interface Msg {
   role: "user" | "ai";
   content: string;
   toolsUsed?: string[];
+  toolSteps?: ToolStep[];
+  statusLabel?: string;
+  streamMode?: "legacy" | "lifecycle";
+  finalEventHandled?: boolean;
+  done?: boolean;
   shops?: AgentShop[];
   transaction?: AgentTransaction;
 }
+
+type ToolStepStatus = "active" | "done";
+
+type ToolStep = {
+  name: string;
+  label: string;
+  status: ToolStepStatus;
+};
 
 const PRESETS = [
   "信義區想吃火鍋",
@@ -36,6 +61,48 @@ const PRODUCT_HINTS = [
   { label: "可收藏回訪", icon: Heart },
 ];
 
+const TOOL_LABELS: Record<string, string> = {
+  search_shops_by_mrt: "搜尋捷運附近",
+  semantic_shop_search: "比對餐廳資料",
+  create_hot_seat_order: "建立 Hot Seat 訂單",
+  create_booking: "檢查並建立訂位",
+  pay_booking_with_test_card: "確認訂金付款",
+};
+
+const STATUS_LABELS = {
+  agent_start: "準備處理需求",
+  turn_start: "正在理解你的需求",
+  tool_execution_start: "正在查詢資料",
+  tool_execution_end: "資料已取得，正在整理",
+  message_update: "正在撰寫回覆",
+  agent_end: "已完成",
+  agent_error: "處理失敗",
+} as const;
+
+function toolLabel(name: string): string {
+  return TOOL_LABELS[name] ?? name.replace(/_/g, " ");
+}
+
+function upsertToolStep(
+  steps: ToolStep[] | undefined,
+  name: string,
+  status: ToolStepStatus,
+): ToolStep[] {
+  const next = [...(steps ?? [])];
+  const existingIndex = next.findIndex((step) => step.name === name);
+  const item = { name, label: toolLabel(name), status };
+  if (existingIndex >= 0) {
+    next[existingIndex] = item;
+  } else {
+    next.push(item);
+  }
+  return next;
+}
+
+function uniqueTools(tools: string[] | undefined, name: string): string[] {
+  return [...new Set([...(tools ?? []), name])];
+}
+
 function shopId(shop: AgentShop): number {
   return shop.shop_id;
 }
@@ -49,6 +116,53 @@ function selectRecommendedShops(
   return recommendedShopIds
     .map((id) => byId.get(Number(id)))
     .filter((shop): shop is AgentShop => Boolean(shop));
+}
+
+function AiProgressPanel({ message }: { message: Msg }) {
+  if (message.role !== "ai") return null;
+  const hasSteps = (message.toolSteps?.length ?? 0) > 0;
+  const shouldShow = !message.done || hasSteps;
+  if (!shouldShow) return null;
+
+  return (
+    <div className="mb-2 max-w-xl rounded-2xl border border-black/10 bg-white/75 px-3 py-2.5 shadow-sm">
+      <div className="flex items-center gap-2 text-xs font-bold text-zinc-600">
+        {message.done ? (
+          <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+        ) : (
+          <Loader2 className="h-4 w-4 animate-spin text-[#9a7b31]" />
+        )}
+        <span>{message.statusLabel ?? "正在處理"}</span>
+      </div>
+
+      {hasSteps ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {message.toolSteps?.map((step) => (
+            <span
+              key={step.name}
+              className={`inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-[11px] font-bold ${
+                step.status === "done"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "border-amber-200 bg-amber-50 text-amber-900"
+              }`}
+            >
+              {step.status === "done" ? (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              ) : (
+                <CircleDashed className="h-3.5 w-3.5 animate-spin" />
+              )}
+              {step.label}
+            </span>
+          ))}
+        </div>
+      ) : !message.done ? (
+        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-zinc-400">
+          <Search className="h-3.5 w-3.5" />
+          <span>需求、地點、料理與訂位條件會依序確認</span>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 const DEMO_PAYMENT_METHODS = [
@@ -416,11 +530,77 @@ export default function AiPage() {
       await streamAgentResponse(
         { query: userMsg, session_id: sessionId },
         (event) => {
-          if (event.type === "chunk") {
+          if (event.type === "agent_start") {
             setMessages((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
               if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = {
+                ...last,
+                statusLabel: STATUS_LABELS.agent_start,
+                streamMode: "lifecycle",
+              };
+              return next;
+            });
+          } else if (event.type === "turn_start") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = {
+                ...last,
+                statusLabel: STATUS_LABELS.turn_start,
+                streamMode: "lifecycle",
+              };
+              return next;
+            });
+          } else if (event.type === "tool_execution_start") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = {
+                ...last,
+                statusLabel: `${STATUS_LABELS.tool_execution_start}：${toolLabel(event.name)}`,
+                streamMode: "lifecycle",
+                toolSteps: upsertToolStep(last.toolSteps, event.name, "active"),
+                toolsUsed: uniqueTools(last.toolsUsed, event.name),
+              };
+              return next;
+            });
+          } else if (event.type === "tool_execution_end") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = {
+                ...last,
+                statusLabel: STATUS_LABELS.tool_execution_end,
+                streamMode: "lifecycle",
+                toolSteps: upsertToolStep(last.toolSteps, event.name, "done"),
+                toolsUsed: uniqueTools(last.toolsUsed, event.name),
+              };
+              return next;
+            });
+          } else if (event.type === "message_update") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = {
+                ...last,
+                content: `${last.content}${event.content}`,
+                statusLabel: STATUS_LABELS.message_update,
+                streamMode: "lifecycle",
+              };
+              return next;
+            });
+          } else if (event.type === "chunk") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              if (last.streamMode === "lifecycle") return prev;
               next[next.length - 1] = { ...last, content: `${last.content}${event.content}` };
               return next;
             });
@@ -429,11 +609,16 @@ export default function AiPage() {
               const next = [...prev];
               const last = next[next.length - 1];
               if (!last || last.role !== "ai") return prev;
-              const tools = [...new Set([...(last.toolsUsed ?? []), event.name])];
-              next[next.length - 1] = { ...last, toolsUsed: tools };
+              if (last.streamMode === "lifecycle") return prev;
+              const tools = uniqueTools(last.toolsUsed, event.name);
+              next[next.length - 1] = {
+                ...last,
+                toolsUsed: tools,
+                toolSteps: upsertToolStep(last.toolSteps, event.name, "done"),
+              };
               return next;
             });
-          } else if (event.type === "done") {
+          } else if (event.type === "agent_end" || event.type === "done") {
             const toolResult = event.tool_result as { shops?: AgentShop[] } | undefined;
             const shops = selectRecommendedShops(
               toolResult?.shops,
@@ -443,21 +628,30 @@ export default function AiPage() {
               const next = [...prev];
               const last = next[next.length - 1];
               if (!last || last.role !== "ai") return prev;
+              if (event.type === "done" && last.finalEventHandled) return prev;
               next[next.length - 1] = {
                 ...last,
                 content: event.answer || last.content,
+                statusLabel: STATUS_LABELS.agent_end,
                 toolsUsed: event.tools_used ?? last.toolsUsed,
                 shops: shops ?? last.shops,
                 transaction: event.transaction ?? last.transaction,
+                finalEventHandled: true,
+                done: true,
               };
               return next;
             });
-          } else if (event.type === "error") {
+          } else if (event.type === "agent_error" || event.type === "error") {
             setMessages((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
               if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = { ...last, content: event.message || "出錯了，再試一次" };
+              next[next.length - 1] = {
+                ...last,
+                content: event.message || "出錯了，再試一次",
+                statusLabel: STATUS_LABELS.agent_error,
+                done: true,
+              };
               return next;
             });
           }
@@ -537,11 +731,12 @@ export default function AiPage() {
                 className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
               >
                 <div className={m.role === "user" ? "max-w-[82%]" : "w-full"}>
+                  <AiProgressPanel message={m} />
                   <div
                     className={`rounded-3xl px-4 py-3 text-base leading-7 ${
                       m.role === "user"
                         ? "rounded-br-sm bg-[#5a5650] text-white shadow-sm"
-                        : "rounded-bl-sm text-zinc-700"
+                        : "rounded-bl-sm bg-white/55 text-zinc-700 shadow-sm ring-1 ring-black/5"
                     }`}
                   >
                     {m.role === "user" ? (
@@ -554,7 +749,7 @@ export default function AiPage() {
                     <div className="mt-2 flex flex-wrap gap-1">
                       {m.toolsUsed.map((tool) => (
                         <Badge key={tool} variant="secondary" className="rounded-full text-[10px]">
-                          {tool}
+                          {toolLabel(tool)}
                         </Badge>
                       ))}
                     </div>
@@ -572,14 +767,6 @@ export default function AiPage() {
                 ) : null}
               </div>
             ))}
-
-            {loading ? (
-              <div className="flex justify-start">
-                <div className="rounded-3xl rounded-bl-sm bg-white px-4 py-3 text-sm text-zinc-500 shadow-sm">
-                  我先理解需求，再查店家、空位與評論重點...
-                </div>
-              </div>
-            ) : null}
         </div>
 
         <div className="sticky bottom-0 z-40 bg-gradient-to-t from-[#f7f3ec] via-[#f7f3ec] to-transparent px-4 pb-4 pt-10">

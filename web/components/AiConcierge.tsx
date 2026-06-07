@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Send, Sparkles, X } from "lucide-react";
+import { CheckCircle2, CircleDashed, Loader2, Send, Sparkles, X } from "lucide-react";
 import { streamAgentResponse } from "@/lib/agentStream";
 import { MarkdownMessage } from "@/components/MarkdownMessage";
 
@@ -18,10 +18,52 @@ type Msg = {
   content: string;
   hits?: Hit[];
   tools_used?: string[];
+  tool_steps?: ToolStep[];
+  status_label?: string;
+  stream_mode?: "legacy" | "lifecycle";
+  final_event_handled?: boolean;
   query?: string;
   done?: boolean;
   hasShops?: boolean;
 };
+
+type ToolStep = {
+  name: string;
+  label: string;
+  status: "active" | "done";
+};
+
+const TOOL_LABELS: Record<string, string> = {
+  search_shops_by_mrt: "搜尋捷運附近",
+  semantic_shop_search: "比對餐廳資料",
+  create_hot_seat_order: "建立 Hot Seat",
+  create_booking: "建立訂位",
+  pay_booking_with_test_card: "確認付款",
+};
+
+function toolLabel(name: string): string {
+  return TOOL_LABELS[name] ?? name.replace(/_/g, " ");
+}
+
+function upsertToolStep(
+  steps: ToolStep[] | undefined,
+  name: string,
+  status: ToolStep["status"],
+): ToolStep[] {
+  const next = [...(steps ?? [])];
+  const existingIndex = next.findIndex((step) => step.name === name);
+  const item = { name, label: toolLabel(name), status };
+  if (existingIndex >= 0) {
+    next[existingIndex] = item;
+  } else {
+    next.push(item);
+  }
+  return next;
+}
+
+function uniqueTools(tools: string[] | undefined, name: string): string[] {
+  return [...new Set([...(tools ?? []), name])];
+}
 
 export function AiConcierge() {
   const pathname = usePathname();
@@ -64,11 +106,77 @@ export function AiConcierge() {
       await streamAgentResponse(
         { query: msg, session_id: sessionId },
         (event) => {
-          if (event.type === "chunk") {
+          if (event.type === "agent_start") {
             setMessages((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
               if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = {
+                ...last,
+                status_label: "準備處理需求",
+                stream_mode: "lifecycle",
+              };
+              return next;
+            });
+          } else if (event.type === "turn_start") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = {
+                ...last,
+                status_label: "正在理解需求",
+                stream_mode: "lifecycle",
+              };
+              return next;
+            });
+          } else if (event.type === "tool_execution_start") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = {
+                ...last,
+                status_label: `處理中：${toolLabel(event.name)}`,
+                stream_mode: "lifecycle",
+                tool_steps: upsertToolStep(last.tool_steps, event.name, "active"),
+                tools_used: uniqueTools(last.tools_used, event.name),
+              };
+              return next;
+            });
+          } else if (event.type === "tool_execution_end") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = {
+                ...last,
+                status_label: "資料已取得",
+                stream_mode: "lifecycle",
+                tool_steps: upsertToolStep(last.tool_steps, event.name, "done"),
+                tools_used: uniqueTools(last.tools_used, event.name),
+              };
+              return next;
+            });
+          } else if (event.type === "message_update") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              next[next.length - 1] = {
+                ...last,
+                content: `${last.content}${event.content}`,
+                status_label: "正在撰寫回覆",
+                stream_mode: "lifecycle",
+              };
+              return next;
+            });
+          } else if (event.type === "chunk") {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (!last || last.role !== "ai") return prev;
+              if (last.stream_mode === "lifecycle") return prev;
               next[next.length - 1] = { ...last, content: `${last.content}${event.content}` };
               return next;
             });
@@ -77,32 +185,45 @@ export function AiConcierge() {
               const next = [...prev];
               const last = next[next.length - 1];
               if (!last || last.role !== "ai") return prev;
-              const tools = [...new Set([...(last.tools_used ?? []), event.name])];
-              next[next.length - 1] = { ...last, tools_used: tools };
+              if (last.stream_mode === "lifecycle") return prev;
+              const tools = uniqueTools(last.tools_used, event.name);
+              next[next.length - 1] = {
+                ...last,
+                tools_used: tools,
+                tool_steps: upsertToolStep(last.tool_steps, event.name, "done"),
+              };
               return next;
             });
-          } else if (event.type === "done") {
+          } else if (event.type === "agent_end" || event.type === "done") {
             const toolResult = event.tool_result as { shops?: unknown[] } | undefined;
             const hasShops = (toolResult?.shops?.length ?? 0) > 0;
             setMessages((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
               if (!last || last.role !== "ai") return prev;
+              if (event.type === "done" && last.final_event_handled) return prev;
               next[next.length - 1] = {
                 ...last,
                 content: event.answer || last.content,
+                status_label: "已完成",
                 tools_used: event.tools_used ?? last.tools_used,
                 done: true,
                 hasShops,
+                final_event_handled: true,
               };
               return next;
             });
-          } else if (event.type === "error") {
+          } else if (event.type === "agent_error" || event.type === "error") {
             setMessages((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
               if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = { ...last, content: event.message || "錯誤、再試一次" };
+              next[next.length - 1] = {
+                ...last,
+                content: event.message || "錯誤、再試一次",
+                status_label: "處理失敗",
+                done: true,
+              };
               return next;
             });
           }
@@ -193,6 +314,39 @@ export function AiConcierge() {
                 }
               >
                 <div className="max-w-[85%]">
+                  {m.role === "ai" && (!m.done || (m.tool_steps?.length ?? 0) > 0) ? (
+                    <div className="mb-1.5 rounded-xl border bg-background px-3 py-2 shadow-sm">
+                      <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
+                        {m.done ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
+                        ) : (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                        )}
+                        {m.status_label ?? "正在處理"}
+                      </div>
+                      {(m.tool_steps?.length ?? 0) > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {m.tool_steps?.map((step) => (
+                            <span
+                              key={step.name}
+                              className={`inline-flex h-6 items-center gap-1 rounded-full px-2 text-[10px] font-semibold ${
+                                step.status === "done"
+                                  ? "bg-emerald-50 text-emerald-800"
+                                  : "bg-amber-50 text-amber-900"
+                              }`}
+                            >
+                              {step.status === "done" ? (
+                                <CheckCircle2 className="h-3 w-3" />
+                              ) : (
+                                <CircleDashed className="h-3 w-3 animate-spin" />
+                              )}
+                              {step.label}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div
                     className={`rounded-2xl px-4 py-2.5 text-sm ${
                       m.role === "user"
@@ -240,7 +394,7 @@ export function AiConcierge() {
                           key={idx}
                           className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
                         >
-                          {t}
+                          {toolLabel(t)}
                         </span>
                       ))}
                     </div>
@@ -249,7 +403,7 @@ export function AiConcierge() {
               </div>
             ))}
 
-            {loading && (
+            {loading && messages[messages.length - 1]?.role !== "ai" && (
               <div className="flex justify-start">
                 <div className="rounded-2xl rounded-bl-sm bg-muted px-4 py-2.5 text-sm">
                   <span className="inline-flex gap-1">

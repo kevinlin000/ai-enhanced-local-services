@@ -20,6 +20,24 @@ export type AgentTransaction = {
 };
 
 export type AgentStreamEvent =
+  | { type: "agent_start"; session_id?: string }
+  | { type: "turn_start"; query: string; session_id?: string }
+  | { type: "tool_execution_start"; name: string; args?: Record<string, unknown>; session_id?: string }
+  | { type: "tool_execution_end"; name: string; result_summary?: Record<string, unknown>; session_id?: string }
+  | { type: "message_update"; content: string }
+  | {
+      type: "agent_end";
+      answer: string;
+      recommended_shop_ids?: number[];
+      narrative?: string;
+      rejected_shop_ids?: number[];
+      rejection_summary?: string | null;
+      transaction?: AgentTransaction | null;
+      tools_used?: string[];
+      tool_result?: unknown;
+      session_id?: string;
+    }
+  | { type: "agent_error"; message: string; session_id?: string }
   | { type: "status"; message: string }
   | { type: "tool"; name: string }
   | { type: "chunk"; content: string }

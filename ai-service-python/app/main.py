@@ -1,6 +1,7 @@
 import json
 import logging
 import httpx
+from dataclasses import dataclass, field
 from datetime import date as date_cls, datetime, timedelta
 from typing import AsyncIterator
 from zoneinfo import ZoneInfo
@@ -1753,6 +1754,30 @@ class AgentRequest(BaseModel):
     session_id: str | None = None  # 前端帶入；None = 無狀態單輪
 
 
+@dataclass
+class AgentToolState:
+    query: str
+    session_id: str
+    history: list[dict]
+    contents: list
+    tools_used: list[str] = field(default_factory=list)
+    last_tool_result: dict = field(default_factory=dict)
+    latest_search_result: dict = field(default_factory=dict)
+    booking_result: dict | None = None
+    payment_result: dict | None = None
+    final_transaction: dict | None = None
+    direct_answer: str | None = None
+
+
+@dataclass
+class ToolGuardResult:
+    action: str
+    args: dict = field(default_factory=dict)
+    direct_answer: str | None = None
+    final_transaction: dict | None = None
+    last_tool_result: dict | None = None
+
+
 def _history_to_contents(history: list[dict], query: str) -> list:
     contents: list = []
     for turn in history:
@@ -1774,18 +1799,98 @@ def _history_to_contents(history: list[dict], query: str) -> list:
     return contents
 
 
+def _tool_result_summary(tool_result: dict) -> dict:
+    if not isinstance(tool_result, dict):
+        return {"kind": type(tool_result).__name__}
+    if "shops" in tool_result:
+        return {"shops_count": len(tool_result.get("shops") or [])}
+    if "transaction" in tool_result:
+        tx = tool_result.get("transaction") or {}
+        return {
+            "transaction_status": tx.get("status"),
+            "booking_code": tx.get("booking_code"),
+        }
+    if "success" in tool_result:
+        return {
+            "success": tool_result.get("success"),
+            "status": tool_result.get("status"),
+            "booking_code": tool_result.get("bookingCode") or tool_result.get("booking_code"),
+            "error": tool_result.get("error"),
+        }
+    return {"keys": sorted(tool_result.keys())[:8]}
+
+
+def _before_tool_call(state: AgentToolState, tool_name: str, tool_args: dict) -> ToolGuardResult:
+    guarded_args = dict(tool_args)
+
+    if tool_name == "create_booking":
+        clarification = _booking_branch_clarification_from_tool_call(
+            state.query,
+            guarded_args,
+            state.latest_search_result,
+        )
+        if clarification:
+            return ToolGuardResult(
+                action="direct",
+                direct_answer=clarification,
+                last_tool_result=state.latest_search_result,
+            )
+
+        duplicate_transaction = _find_duplicate_booking_transaction(state.history, guarded_args)
+        if duplicate_transaction:
+            return ToolGuardResult(
+                action="direct",
+                direct_answer=_booking_duplicate_narrative(duplicate_transaction),
+                final_transaction=duplicate_transaction,
+                last_tool_result={"transaction": duplicate_transaction},
+            )
+
+        idempotency_key = _agent_booking_idempotency_key(state.session_id, guarded_args)
+        if idempotency_key:
+            guarded_args["idempotency_key"] = idempotency_key
+
+    elif tool_name == "pay_booking_with_test_card" and not _payment_intent(state.query):
+        # Payment requires explicit user action; never auto-pay just because a booking was created.
+        return ToolGuardResult(action="stop")
+
+    return ToolGuardResult(action="continue", args=guarded_args)
+
+
+def _after_tool_call(
+    state: AgentToolState,
+    tool_name: str,
+    tool_result: dict,
+    candidate_content=None,
+) -> None:
+    state.tools_used.append(tool_name)
+    state.last_tool_result = tool_result
+    if tool_name in {"semantic_shop_search", "search_shops_by_mrt"}:
+        state.latest_search_result = tool_result
+    elif tool_name == "create_booking":
+        state.booking_result = tool_result
+    elif tool_name == "pay_booking_with_test_card":
+        state.payment_result = tool_result
+
+    if candidate_content is not None:
+        state.contents.append(candidate_content)
+        state.contents.append(
+            types.Content(
+                role="tool",
+                parts=[types.Part.from_function_response(name=tool_name, response=tool_result)],
+            )
+        )
+
+
 async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], dict]:
     history = session_store.load_history(session_id) if session_id else []
     contents = _history_to_contents(history, query)
-
-    tools_used: list[str] = []
-    last_tool_result: dict = {}
+    state = AgentToolState(query=query, session_id=session_id, history=history, contents=contents)
     final_answer = ""
 
     for _ in range(4):
         response = generate(
             settings.gemini_agent_model,
-            contents,
+            state.contents,
             types.GenerateContentConfig(
                 tools=TOOLS,
                 system_instruction=_agent_system_prompt(),
@@ -1810,37 +1915,32 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
         if tool_fn is None:
             raise HTTPException(500, f"unknown tool: {tool_name}")
 
-        tool_result = await tool_fn(**tool_args)
-        tools_used.append(tool_name)
-        last_tool_result = tool_result
+        guard = _before_tool_call(state, tool_name, tool_args)
+        if guard.action == "direct":
+            final_answer = guard.direct_answer or ""
+            state.final_transaction = guard.final_transaction
+            state.last_tool_result = guard.last_tool_result or {}
+            break
+        if guard.action == "stop":
+            break
 
-        contents.append(candidate.content)
-        contents.append(
-            types.Content(
-                role="tool",
-                parts=[
-                    types.Part.from_function_response(
-                        name=tool_name,
-                        response=tool_result,
-                    )
-                ],
-            )
-        )
+        tool_result = await tool_fn(**guard.args)
+        _after_tool_call(state, tool_name, tool_result, candidate.content)
     else:
         final = generate(
             settings.gemini_agent_model,
-            contents,
+            state.contents,
             types.GenerateContentConfig(
                 system_instruction="根據以上工具查詢結果，用 2-3 句繁體中文給出最終回答。",
             ),
         )
         final_answer = filter_output(final.text)
 
-    if last_tool_result.get("shops"):
-        decision = _build_agent_recommendation_decision(query, last_tool_result)
+    if state.last_tool_result.get("shops"):
+        decision = _build_agent_recommendation_decision(query, state.last_tool_result)
         if decision.narrative:
             final_answer = decision.narrative
-            last_tool_result["agent_decision"] = _decision_payload(decision)
+            state.last_tool_result["agent_decision"] = _decision_payload(decision)
 
     if session_id:
         new_history = history + [
@@ -1849,7 +1949,7 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
         ]
         session_store.save_history(session_id, new_history)
 
-    return final_answer, tools_used, last_tool_result
+    return final_answer, state.tools_used, state.last_tool_result
 
 
 def _sse_frame(payload: dict) -> bytes:
@@ -2041,19 +2141,17 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
     """
     history = session_store.load_history(session_id) if session_id else []
     contents = _history_to_contents(history, query)
-    tools_used: list[str] = []
-    last_tool_result: dict = {}
-    latest_search_result: dict = {}
-    booking_result: dict | None = None
-    payment_result: dict | None = None
-    final_transaction: dict | None = None
+    state = AgentToolState(query=query, session_id=session_id, history=history, contents=contents)
     direct_answer: str | None = None
+    yield {"type": "turn_start", "query": query, "session_id": session_id}
 
     if _explicit_same_day_booking_request(query):
         full_answer = _same_day_booking_policy_answer()
         chunk_size = 18
         for i in range(0, len(full_answer), chunk_size):
-            yield {"type": "chunk", "content": full_answer[i : i + chunk_size]}
+            chunk = full_answer[i : i + chunk_size]
+            yield {"type": "message_update", "content": chunk}
+            yield {"type": "chunk", "content": chunk}
         if session_id:
             session_store.save_history(
                 session_id,
@@ -2062,7 +2160,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                     {"role": "model", "content": full_answer},
                 ],
             )
-        yield {
+        done_payload = {
             "type": "done",
             "answer": full_answer,
             "transaction": None,
@@ -2070,13 +2168,15 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             "tool_result": {},
             "session_id": session_id,
         }
+        yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+        yield done_payload
         return
 
     # Phase 1: tool-calling loop (sync) — yields tool events as each fires
     for _ in range(4):
         response = generate(
             settings.gemini_agent_model,
-            contents,
+            state.contents,
             types.GenerateContentConfig(
                 tools=TOOLS,
                 system_instruction=_agent_system_prompt(),
@@ -2090,7 +2190,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 break
 
         if not function_call:
-            if not tools_used:
+            if not state.tools_used:
                 # Zero tool calls — answer already computed; fast path, chunk as-is
                 direct_answer = filter_output(response.text)
                 if _booking_intent(query):
@@ -2100,8 +2200,8 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                         or "訂過" in direct_answer
                         or "已經訂" in direct_answer
                     ):
-                        final_transaction = duplicate_transaction
-                        last_tool_result = {"transaction": duplicate_transaction}
+                        state.final_transaction = duplicate_transaction
+                        state.last_tool_result = {"transaction": duplicate_transaction}
             break
 
         tool_name = function_call.name
@@ -2111,43 +2211,30 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             return
 
         tool_args = dict(function_call.args)
-        if tool_name == "create_booking":
-            clarification = _booking_branch_clarification_from_tool_call(query, tool_args, latest_search_result)
-            if clarification:
-                direct_answer = clarification
-                last_tool_result = latest_search_result
-                break
-            duplicate_transaction = _find_duplicate_booking_transaction(history, tool_args)
-            if duplicate_transaction:
-                direct_answer = _booking_duplicate_narrative(duplicate_transaction)
-                final_transaction = duplicate_transaction
-                last_tool_result = {"transaction": duplicate_transaction}
-                break
-            idempotency_key = _agent_booking_idempotency_key(session_id, tool_args)
-            if idempotency_key:
-                tool_args["idempotency_key"] = idempotency_key
-        elif tool_name == "pay_booking_with_test_card" and not _payment_intent(query):
-            # Payment requires explicit user action; never auto-pay just because a booking was created.
+        guard = _before_tool_call(state, tool_name, tool_args)
+        if guard.action == "direct":
+            direct_answer = guard.direct_answer
+            state.final_transaction = guard.final_transaction
+            state.last_tool_result = guard.last_tool_result or {}
+            break
+        if guard.action == "stop":
             break
 
-        tool_result = await tool_fn(**tool_args)
-        tools_used.append(tool_name)
-        last_tool_result = tool_result
-        if tool_name in {"semantic_shop_search", "search_shops_by_mrt"}:
-            latest_search_result = tool_result
-        elif tool_name == "create_booking":
-            booking_result = tool_result
-        elif tool_name == "pay_booking_with_test_card":
-            payment_result = tool_result
+        yield {
+            "type": "tool_execution_start",
+            "name": tool_name,
+            "args": guard.args,
+            "session_id": session_id,
+        }
+        tool_result = await tool_fn(**guard.args)
+        _after_tool_call(state, tool_name, tool_result, candidate.content)
+        yield {
+            "type": "tool_execution_end",
+            "name": tool_name,
+            "result_summary": _tool_result_summary(tool_result),
+            "session_id": session_id,
+        }
         yield {"type": "tool", "name": tool_name}
-
-        contents.append(candidate.content)
-        contents.append(
-            types.Content(
-                role="tool",
-                parts=[types.Part.from_function_response(name=tool_name, response=tool_result)],
-            )
-        )
 
     # Phase 2: generate final answer
     full_answer = ""
@@ -2156,28 +2243,32 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
         chunk_size = 18
         for i in range(0, len(direct_answer), chunk_size):
             full_answer = direct_answer
-            yield {"type": "chunk", "content": direct_answer[i : i + chunk_size]}
+            chunk = direct_answer[i : i + chunk_size]
+            yield {"type": "message_update", "content": chunk}
+            yield {"type": "chunk", "content": chunk}
     else:
-        if booking_result is not None:
+        if state.booking_result is not None:
             transaction = _build_booking_transaction(
-                booking_result,
-                payment_result,
-                latest_search_result,
+                state.booking_result,
+                state.payment_result,
+                state.latest_search_result,
             )
             full_answer = _booking_confirmation_narrative(transaction)
-            final_transaction = transaction
-            last_tool_result["transaction"] = transaction
+            state.final_transaction = transaction
+            state.last_tool_result["transaction"] = transaction
         else:
-            clarification = _booking_branch_clarification_from_search(query, last_tool_result)
+            clarification = _booking_branch_clarification_from_search(query, state.last_tool_result)
             if clarification:
                 full_answer = clarification
             else:
-                decision = _build_agent_recommendation_decision(query, last_tool_result)
+                decision = _build_agent_recommendation_decision(query, state.last_tool_result)
                 full_answer = decision.narrative
-                last_tool_result["agent_decision"] = _decision_payload(decision)
+                state.last_tool_result["agent_decision"] = _decision_payload(decision)
         chunk_size = 18
         for i in range(0, len(full_answer), chunk_size):
-            yield {"type": "chunk", "content": full_answer[i : i + chunk_size]}
+            chunk = full_answer[i : i + chunk_size]
+            yield {"type": "message_update", "content": chunk}
+            yield {"type": "chunk", "content": chunk}
 
     if session_id:
         session_store.save_history(
@@ -2187,20 +2278,22 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 {
                     "role": "model",
                     "content": full_answer,
-                    **({"transaction": final_transaction} if final_transaction else {}),
+                    **({"transaction": state.final_transaction} if state.final_transaction else {}),
                 },
             ],
         )
 
-    yield {
+    done_payload = {
         "type": "done",
         "answer": full_answer,
-        **last_tool_result.get("agent_decision", {}),
-        "transaction": last_tool_result.get("transaction"),
-        "tools_used": tools_used,
-        "tool_result": last_tool_result,
+        **state.last_tool_result.get("agent_decision", {}),
+        "transaction": state.last_tool_result.get("transaction"),
+        "tools_used": state.tools_used,
+        "tool_result": state.last_tool_result,
         "session_id": session_id,
     }
+    yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+    yield done_payload
 
 
 @app.post("/api/ai/agent/stream")
@@ -2215,12 +2308,14 @@ async def agent_stream(req: AgentRequest):
     ai_requests.labels(endpoint="agent_stream").inc()
 
     async def event_gen() -> AsyncIterator[bytes]:
+        yield _sse_frame({"type": "agent_start", "session_id": session_id})
         yield _sse_frame({"type": "status", "message": "thinking"})
         try:
             async for payload in _run_agent_turn_stream(req.query, session_id):
                 yield _sse_frame(payload)
         except Exception as exc:
             logger.exception("agent_stream_failed")
+            yield _sse_frame({"type": "agent_error", "message": str(exc), "session_id": session_id})
             yield _sse_frame({"type": "error", "message": str(exc)})
 
     return StreamingResponse(
