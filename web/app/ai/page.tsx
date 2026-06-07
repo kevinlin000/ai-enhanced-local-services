@@ -105,7 +105,25 @@ function uniqueTools(tools: string[] | undefined, name: string): string[] {
 }
 
 function shopId(shop: AgentShop): number {
-  return shop.shop_id;
+  return Number(shop.shop_id ?? (shop as unknown as { id?: number | string }).id);
+}
+
+function normalizeAgentShop(shop: AgentShop): AgentShop | null {
+  const id = shopId(shop);
+  if (!Number.isFinite(id)) return null;
+  const raw = shop as unknown as {
+    avgPrice?: number | null;
+    mrtStation?: string | null;
+  };
+  return {
+    ...shop,
+    shop_id: id,
+    mrt_station: shop.mrt_station ?? raw.mrtStation ?? null,
+    avg_price: shop.avg_price ?? raw.avgPrice ?? null,
+    price_per_person:
+      shop.price_per_person ??
+      (raw.avgPrice != null ? `NT$ ${raw.avgPrice}` : null),
+  };
 }
 
 function selectRecommendedShops(
@@ -113,7 +131,10 @@ function selectRecommendedShops(
   recommendedShopIds: number[] | undefined,
 ): AgentShop[] | undefined {
   if (!shops || !recommendedShopIds?.length) return undefined;
-  const byId = new Map(shops.map((shop) => [shopId(shop), shop]));
+  const normalized = shops
+    .map(normalizeAgentShop)
+    .filter((shop): shop is AgentShop => Boolean(shop));
+  const byId = new Map(normalized.map((shop) => [shopId(shop), shop]));
   return recommendedShopIds
     .map((id) => byId.get(Number(id)))
     .filter((shop): shop is AgentShop => Boolean(shop));

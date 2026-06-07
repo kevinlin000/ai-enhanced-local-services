@@ -49,6 +49,11 @@ public class AvailabilityNotificationService {
             return Result.fail("此時段目前仍有空位，請直接訂位");
         }
 
+        String notificationLineUserId = normalizeLineUserId(lineUserId);
+        if (notificationLineUserId == null) {
+            notificationLineUserId = userJpaService.findLineNotificationUserId(userId).orElse(null);
+        }
+
         jdbcTemplate.update(
                 """
                 INSERT INTO tb_availability_watch
@@ -60,7 +65,7 @@ public class AvailabilityNotificationService {
                     updated_at = CURRENT_TIMESTAMP
                 """,
                 userId,
-                normalizeLineUserId(lineUserId),
+                notificationLineUserId,
                 shopId,
                 bookingDate,
                 normalizeTime(time),
@@ -264,7 +269,12 @@ public class AvailabilityNotificationService {
                     Long.class,
                     watchId
             ) : null;
-            lineNotificationClient.pushAvailabilityReleased(watch, notificationId);
+            Long userId = ((Number) watch.get("user_id")).longValue();
+            Map<String, Object> pushWatch = new LinkedHashMap<>(watch);
+            userJpaService.findLineNotificationUserId(userId).ifPresent(lineUserId -> {
+                pushWatch.put("line_user_id", lineUserId);
+                lineNotificationClient.pushAvailabilityReleased(pushWatch, notificationId);
+            });
         }
     }
 

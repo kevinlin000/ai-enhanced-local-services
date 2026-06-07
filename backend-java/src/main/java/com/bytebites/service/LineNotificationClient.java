@@ -43,11 +43,15 @@ public class LineNotificationClient {
         }
 
         try {
-            restTemplate.postForObject(
+            Map<?, ?> response = restTemplate.postForObject(
                     aiServiceUrl.replaceAll("/+$", "") + "/internal/line/availability-released",
                     payload,
                     Map.class
             );
+            if (response != null && Boolean.FALSE.equals(response.get("ok"))) {
+                log.warn("[LINE availability push] not ok watchId={} lineUserId={} response={}",
+                        watch.get("id"), lineUserId, response);
+            }
         } catch (RestClientException ex) {
             log.warn("[LINE availability push] failed watchId={} lineUserId={}", watch.get("id"), lineUserId, ex);
         }
