@@ -140,6 +140,84 @@ function selectRecommendedShops(
     .filter((shop): shop is AgentShop => Boolean(shop));
 }
 
+function formatShopPrice(shop: AgentShop): string {
+  const price = shop.price_per_person ?? (shop.avg_price != null ? `NT$ ${shop.avg_price}` : "");
+  return price || "未提供";
+}
+
+function formatShopLocation(shop: AgentShop): string {
+  const raw = shop as unknown as { distance?: number | null };
+  const parts = [
+    shop.district,
+    shop.mrt_station ? `捷運${shop.mrt_station}` : null,
+    raw.distance != null ? `${Math.round(raw.distance)}m` : null,
+  ].filter(Boolean);
+  return parts.join(" · ") || "未提供";
+}
+
+function formatShopBestFor(shop: AgentShop): string {
+  const raw = shop as unknown as {
+    score?: number | null;
+    comments?: number | null;
+    category?: string | null;
+  };
+  const tags = [
+    ...(shop.atmosphere_tags ?? []),
+    ...(shop.signature_dishes ?? []),
+    raw.category,
+  ]
+    .filter((item): item is string => Boolean(item))
+    .slice(0, 2);
+  if (tags.length > 0) return tags.join("、");
+  if ((raw.score ?? 0) >= 45) return "評價穩定";
+  if ((raw.comments ?? 0) >= 500) return "熱門店家";
+  return "一般聚餐";
+}
+
+function formatShopBooking(shop: AgentShop): string {
+  if ((shop.hot_seat_vouchers?.length ?? 0) > 0) return "Hot Seat 可搶";
+  return shop.booking_difficulty ?? "可查看訂位";
+}
+
+function AgentShopComparisonTable({ shops }: { shops: AgentShop[] }) {
+  if (shops.length < 2) return null;
+  return (
+    <section className="overflow-hidden rounded-2xl border border-black/10 bg-white/80 shadow-sm">
+      <div className="border-b border-black/10 px-4 py-3">
+        <h3 className="text-sm font-black text-zinc-900">快速比較</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full table-fixed text-left text-sm">
+          <thead className="bg-zinc-50 text-xs font-black text-zinc-500">
+            <tr>
+              <th className="w-[26%] px-4 py-3">餐廳</th>
+              <th className="w-[24%] px-4 py-3">適合情境</th>
+              <th className="w-[16%] px-4 py-3">價位</th>
+              <th className="w-[22%] px-4 py-3">地點</th>
+              <th className="w-[12%] px-4 py-3">訂位</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-black/5">
+            {shops.map((shop) => (
+              <tr key={shop.shop_id} className="align-top">
+                <td className="px-4 py-3 font-bold text-zinc-900">
+                  <Link href={`/shops/${shop.shop_id}`} className="hover:text-emerald-800">
+                    {shop.name}
+                  </Link>
+                </td>
+                <td className="px-4 py-3 text-zinc-600">{formatShopBestFor(shop)}</td>
+                <td className="px-4 py-3 text-zinc-600">{formatShopPrice(shop)}</td>
+                <td className="px-4 py-3 text-zinc-600">{formatShopLocation(shop)}</td>
+                <td className="px-4 py-3 text-zinc-600">{formatShopBooking(shop)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 function AiProgressPanel({ message }: { message: Msg }) {
   if (message.role !== "ai") return null;
   const hasSteps = (message.toolSteps?.length ?? 0) > 0;
@@ -530,8 +608,12 @@ export default function AiPage() {
   const [loading, setLoading] = useState(false);
 
   const [messages, setMessages] = useState<Msg[]>([]);
-  const [sessionId] = useState<string>(getOrCreateSessionId);
+  const [sessionId, setSessionId] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSessionId(getOrCreateSessionId());
+  }, []);
 
   // scroll container to bottom whenever messages or loading state changes
   useEffect(() => {
@@ -555,6 +637,8 @@ export default function AiPage() {
       setQuery("");
       return;
     }
+    const activeSessionId = sessionId || getOrCreateSessionId();
+    if (!sessionId) setSessionId(activeSessionId);
     setMessages((prev) => [
       ...prev,
       { role: "user", content: userMsg },
@@ -564,7 +648,7 @@ export default function AiPage() {
     setLoading(true);
     try {
       await streamAgentResponse(
-        { query: userMsg, session_id: sessionId },
+        { query: userMsg, session_id: activeSessionId },
         (event) => {
           if (event.type === "agent_start") {
             setMessages((prev) => {
@@ -708,7 +792,9 @@ export default function AiPage() {
 
   async function handleClearChat() {
     setMessages([]);
-    await fetch(`${AI_API}/api/ai/session/${sessionId}`, { method: "DELETE" }).catch(() => {});
+    const activeSessionId = sessionId || getOrCreateSessionId();
+    if (!sessionId) setSessionId(activeSessionId);
+    await fetch(`${AI_API}/api/ai/session/${activeSessionId}`, { method: "DELETE" }).catch(() => {});
   }
 
   function handleRun(q: string) {
@@ -805,6 +891,7 @@ export default function AiPage() {
                     {m.shops.map((shop, rank) => (
                       <AgentShopCard key={shop.shop_id} shop={shop} rank={rank + 1} />
                     ))}
+                    <AgentShopComparisonTable shops={m.shops} />
                   </div>
                 ) : null}
                 {m.transaction ? (
@@ -842,7 +929,8 @@ export default function AiPage() {
               </button>
             </div>
             <p className="mt-2 text-center text-[11px] text-zinc-400">
-              AI 建議僅供參考，請以店家公告為主 · Session {sessionId.slice(0, 16)}
+              AI 建議僅供參考，請以店家公告為主
+              {sessionId ? ` · Session ${sessionId.slice(0, 16)}` : ""}
             </p>
           </div>
         </div>
