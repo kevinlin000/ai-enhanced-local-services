@@ -351,9 +351,7 @@ public class BookingController {
 
     private void notifyLineBookingCanceled(Long userId, Map<String, Object> booking) {
         if (userId == null) return;
-        userJpaService.findById(userId)
-                .map(user -> user.getLineUserId())
-                .filter(lineUserId -> lineUserId != null && !lineUserId.isBlank())
+        userJpaService.findLineNotificationUserId(userId)
                 .ifPresent(lineUserId -> lineNotificationClient.pushBookingUpdated(lineUserId, booking, "canceled"));
     }
 

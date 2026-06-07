@@ -87,6 +87,40 @@ public class UserJpaService {
         return repo.findById(id);
     }
 
+    public Optional<String> findLineNotificationUserId(Long userId) {
+        if (userId == null) {
+            return Optional.empty();
+        }
+        List<String> linkedLineUserIds = jdbcTemplate.queryForList(
+                """
+                SELECT line_user_id
+                FROM tb_line_identity_link
+                WHERE user_id = ?
+                ORDER BY
+                    CASE
+                        WHEN source = 'line_bot' THEN 0
+                        WHEN source = 'line_direct' THEN 1
+                        ELSE 2
+                    END,
+                    update_time DESC,
+                    id DESC
+                LIMIT 1
+                """,
+                String.class,
+                userId
+        );
+        if (!linkedLineUserIds.isEmpty()) {
+            String lineUserId = linkedLineUserIds.get(0);
+            if (lineUserId != null && !lineUserId.isBlank()) {
+                return Optional.of(lineUserId.trim());
+            }
+        }
+        return repo.findById(userId)
+                .map(UserJpa::getLineUserId)
+                .map(String::trim)
+                .filter(lineUserId -> !lineUserId.isBlank());
+    }
+
     @Transactional
     public UserJpa save(UserJpa user) {
         return repo.save(user);

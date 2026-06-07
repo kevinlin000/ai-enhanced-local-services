@@ -66,11 +66,15 @@ public class LineNotificationClient {
         }
 
         try {
-            restTemplate.postForObject(
+            Map<?, ?> response = restTemplate.postForObject(
                     aiServiceUrl.replaceAll("/+$", "") + "/internal/line/booking-updated",
                     payload,
                     Map.class
             );
+            if (response != null && Boolean.FALSE.equals(response.get("ok"))) {
+                log.warn("[LINE booking push] not ok bookingCode={} phase={} lineUserId={} response={}",
+                        booking.get("bookingCode"), phase, userId, response);
+            }
         } catch (RestClientException ex) {
             log.warn("[LINE booking push] failed bookingCode={} phase={} lineUserId={}",
                     booking.get("bookingCode"), phase, userId, ex);
