@@ -6,7 +6,6 @@ import json
 import logging
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode
 
 import httpx
 
@@ -56,7 +55,7 @@ def build_line_flex_message(
 ) -> dict[str, Any]:
     ordered = _select_recommended_shops(shops, recommended_shop_ids)
     bubbles = [
-        _build_shop_bubble(shop, rank=index + 1, public_web_url=public_web_url)
+        _build_shop_bubble(shop, rank=index + 1, public_web_url=public_web_url, answer=answer)
         for index, shop in enumerate(ordered[:MAX_FLEX_CARDS])
     ]
     names = "、".join(str(shop.get("name") or "餐廳") for shop in ordered[:MAX_FLEX_CARDS])
@@ -179,18 +178,22 @@ def _select_recommended_shops(
     return selected or shops[:MAX_FLEX_CARDS]
 
 
-def _build_shop_bubble(shop: dict, rank: int, public_web_url: str) -> dict[str, Any]:
+def best_shop_photo_url(shop_id: int) -> str | None:
+    return _best_shop_photo(shop_id)
+
+
+def _build_shop_bubble(shop: dict, rank: int, public_web_url: str, answer: str) -> dict[str, Any]:
     shop_id = int(shop.get("shop_id") or 0)
     name = str(shop.get("name") or "未命名餐廳")
     district = str(shop.get("district") or "")
     mrt = str(shop.get("mrt_station") or "")
     price = str(shop.get("price_per_person") or (f"NT$ {shop.get('avg_price')}" if shop.get("avg_price") else "價位未標示"))
     booking = str(shop.get("booking_difficulty") or "可查看訂位狀態")
-    summary = str(shop.get("ai_summary") or "ByteBites AI 依你的需求列入推薦。")
+    summary = _recommendation_reason_for_shop(shop, answer)
     tags = [str(tag) for tag in (shop.get("atmosphere_tags") or [])[:2]]
     dishes = [str(dish) for dish in (shop.get("signature_dishes") or [])[:2]]
-    detail_uri = _web_uri(public_web_url, f"/shops/{shop_id}") if shop_id else _web_uri(public_web_url, "/shops")
-    reserve_uri = detail_uri
+    detail_uri = _web_uri(public_web_url, f"/line/shop/{shop_id}") if shop_id else _web_uri(public_web_url, "/line/shop")
+    reserve_uri = _web_uri(public_web_url, f"/line/book/{shop_id}") if shop_id else detail_uri
     image_uri = _shop_image_uri(shop_id, public_web_url)
 
     body_contents: list[dict[str, Any]] = [
@@ -270,7 +273,7 @@ def _shop_image_uri(shop_id: int, public_web_url: str) -> str | None:
     raw_url = _best_shop_photo(shop_id)
     if not raw_url:
         return None
-    return _web_uri(public_web_url, f"/api/photo?{urlencode({'src': raw_url})}")
+    return _web_uri(public_web_url, f"/line/photo/{shop_id}")
 
 
 def _best_shop_photo(shop_id: int) -> str | None:
@@ -302,8 +305,55 @@ def _web_uri(public_web_url: str, path: str) -> str:
 
 
 def _compact_answer_for_line(answer: str) -> str:
-    cleaned = " ".join((answer or "").replace("|", " ").split())
-    return _truncate(cleaned, 320)
+    kept: list[str] = []
+    for raw_line in (answer or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if "|" in line:
+            continue
+        if set(line.replace(" ", "")) <= {"-", ":"}:
+            continue
+        kept.append(line)
+    cleaned = " ".join(kept)
+    if not cleaned:
+        return "我先幫你整理 3 間符合需求的餐廳，請左右滑動查看卡片。"
+    return _truncate(cleaned, 180)
+
+
+def _recommendation_reason_for_shop(shop: dict, answer: str) -> str:
+    name = str(shop.get("name") or "")
+    aliases = [name]
+    if " " in name:
+        aliases.append(name.split(" ", 1)[0])
+    if "｜" in name:
+        aliases.append(name.split("｜", 1)[0])
+    if "|" in name:
+        aliases.append(name.split("|", 1)[0])
+
+    for raw_line in (answer or "").splitlines():
+        line = raw_line.strip()
+        if "|" not in line:
+            continue
+        cells = [cell.strip(" -:") for cell in line.strip("|").split("|")]
+        if len(cells) < 2:
+            continue
+        if any(alias and alias in cells[0] for alias in aliases):
+            reason = cells[1]
+            if reason and "推薦理由" not in reason:
+                return _truncate(reason, 140)
+
+    summary = str(shop.get("ai_summary") or "").strip()
+    if summary:
+        return _truncate(summary, 140)
+
+    tags = [str(tag) for tag in (shop.get("atmosphere_tags") or [])[:2]]
+    dishes = [str(dish) for dish in (shop.get("signature_dishes") or [])[:2]]
+    highlights = [*dishes, *tags]
+    if highlights:
+        return _truncate("符合本次需求，亮點包含" + "、".join(highlights[:3]) + "。", 140)
+
+    return "符合你這次的地點與餐廳類型需求，建議查看詳情後再確認可訂時段。"
 
 
 def _truncate(text: str, max_length: int) -> str:

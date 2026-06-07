@@ -7,10 +7,11 @@ from typing import AsyncIterator
 from zoneinfo import ZoneInfo
 from app import session_store
 from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.responses import StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.guardrail import GuardrailViolation, check_input, filter_output
 from app.line_bot import (
+    best_shop_photo_url,
     build_line_flex_message,
     build_text_message,
     reply_messages,
@@ -2395,6 +2396,79 @@ async def line_webhook(request: Request):
     }
 
 
+@app.get("/line/photo/{shop_id}")
+async def line_shop_photo(shop_id: int):
+    photo_url = best_shop_photo_url(shop_id)
+    if not photo_url:
+        raise HTTPException(status_code=404, detail="photo not found")
+    try:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            upstream = await client.get(
+                photo_url,
+                headers={
+                    "User-Agent": "Mozilla/5.0",
+                    "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+                    "Referer": "https://www.google.com/",
+                },
+            )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="photo fetch failed") from exc
+    if upstream.status_code >= 400:
+        raise HTTPException(status_code=502, detail="photo upstream failed")
+    return Response(
+        upstream.content,
+        media_type=upstream.headers.get("content-type") or "image/jpeg",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+@app.get("/line/shop/{shop_id}", response_class=HTMLResponse)
+async def line_shop_detail(shop_id: int):
+    shop = await _fetch_java_shop(shop_id)
+    if not shop:
+        return HTMLResponse(_line_html_page("找不到店家", "這間店目前無法取得資料。", []), status_code=404)
+    name = _html_escape(str(shop.get("name") or f"店家 {shop_id}"))
+    district = _html_escape(str(shop.get("district") or ""))
+    address = _html_escape(str(shop.get("address") or ""))
+    avg_price = shop.get("avgPrice") or shop.get("avg_price")
+    phone = _html_escape(str(shop.get("phone") or ""))
+    body = f"""
+      <div class="hero">
+        <img src="/line/photo/{shop_id}" onerror="this.style.display='none'" alt="{name}">
+      </div>
+      <main>
+        <p class="eyebrow">ByteBites 推薦餐廳</p>
+        <h1>{name}</h1>
+        <div class="meta">{district or "台北"}{f" · NT$ {avg_price}" if avg_price else ""}</div>
+        <section>
+          <h2>店家資訊</h2>
+          <p>{address or "地址資料未標示"}</p>
+          <p>{phone or "電話資料未標示"}</p>
+        </section>
+        <a class="primary" href="/line/book/{shop_id}">直接訂位</a>
+      </main>
+    """
+    return HTMLResponse(_line_shell(name, body))
+
+
+@app.get("/line/book/{shop_id}", response_class=HTMLResponse)
+async def line_booking_entry(shop_id: int):
+    shop = await _fetch_java_shop(shop_id)
+    name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
+    body = f"""
+      <main>
+        <p class="eyebrow">ByteBites 訂位入口</p>
+        <h1>{name}</h1>
+        <section>
+          <h2>下一步</h2>
+          <p>目前 LINE 版先提供快速入口。請回到聊天室告訴我人數、日期與時間，例如「明天晚上 7 點 2 人」，我會協助建立訂位。</p>
+        </section>
+        <a class="primary" href="/line/shop/{shop_id}">查看店家資訊</a>
+      </main>
+    """
+    return HTMLResponse(_line_shell(f"{name} 訂位", body))
+
+
 async def _build_line_reply_messages(event: dict) -> list[dict]:
     event_type = event.get("type")
     source = event.get("source") or {}
@@ -2458,6 +2532,60 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
         return [flex_or_bundle]
 
     return [build_text_message(answer or "我需要再多一點條件，才能幫你推薦餐廳。")]
+
+
+async def _fetch_java_shop(shop_id: int) -> dict | None:
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{settings.java_backend_url}/api/shop/{shop_id}")
+        if response.status_code != 200:
+            return None
+        payload = response.json()
+        data = payload.get("data")
+        return data if isinstance(data, dict) else None
+    except Exception:
+        logger.exception("line_shop_fetch_failed shop_id=%s", shop_id)
+        return None
+
+
+def _line_shell(title: str, body: str) -> str:
+    return f"""<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{_html_escape(title)}</title>
+  <style>
+    body {{ margin:0; background:#f7f3ec; color:#171512; font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif; }}
+    .hero {{ width:100%; aspect-ratio:16/10; overflow:hidden; background:#e8e1d5; }}
+    .hero img {{ width:100%; height:100%; object-fit:cover; display:block; }}
+    main {{ padding:24px 20px 36px; }}
+    .eyebrow {{ margin:0 0 8px; color:#16833a; font-size:12px; font-weight:800; letter-spacing:.08em; }}
+    h1 {{ margin:0; font-size:30px; line-height:1.18; letter-spacing:-.03em; }}
+    h2 {{ margin:0 0 8px; font-size:16px; }}
+    .meta {{ margin-top:10px; color:#6f6a62; font-weight:700; }}
+    section {{ margin-top:22px; padding:16px; border:1px solid rgba(0,0,0,.08); border-radius:14px; background:rgba(255,255,255,.72); }}
+    p {{ line-height:1.7; }}
+    .primary {{ display:flex; align-items:center; justify-content:center; margin-top:22px; min-height:48px; border-radius:14px; background:#16833a; color:#fff; font-weight:900; text-decoration:none; }}
+  </style>
+</head>
+<body>{body}</body>
+</html>"""
+
+
+def _line_html_page(title: str, message: str, links: list[tuple[str, str]]) -> str:
+    link_html = "".join(f'<a class="primary" href="{_html_escape(href)}">{_html_escape(label)}</a>' for label, href in links)
+    return _line_shell(title, f"<main><h1>{_html_escape(title)}</h1><p>{_html_escape(message)}</p>{link_html}</main>")
+
+
+def _html_escape(value: str) -> str:
+    return (
+        value.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
+    )
 
 
 @app.delete("/api/ai/session/{session_id}")
