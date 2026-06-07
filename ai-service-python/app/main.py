@@ -80,6 +80,13 @@ _LINE_SHOP_NAME_FALLBACKS: dict[int, str] = {
     10009: "橘色涮涮屋 信義館",
 }
 PREMIUM_HOTPOT_SUPPLEMENT_IDS = (10009,)
+LOW_DETAIL_SEED_SHOP_IDS = {
+    10001, 10002, 10003, 10004, 10005,
+    10006, 10007, 10008, 10010,
+    10011, 10012, 10013, 10014, 10015,
+    10016, 10017, 10018, 10019, 10020,
+    10021, 10022, 10023, 10024, 10025,
+}
 
 
 def taipei_today() -> date_cls:
@@ -692,6 +699,34 @@ def _java_shop_to_search_hit(shop: dict, metadata: dict | None = None) -> dict:
     return payload
 
 
+def _is_low_detail_seed_hit(hit: dict) -> bool:
+    try:
+        shop_id = int(hit.get("shop_id") or 0)
+    except (TypeError, ValueError):
+        return False
+    if shop_id not in LOW_DETAIL_SEED_SHOP_IDS:
+        return False
+    return not any(
+        [
+            str(hit.get("ai_summary") or "").strip(),
+            hit.get("signature_dishes"),
+            hit.get("atmosphere_tags"),
+        ]
+    )
+
+
+def _prefer_rich_hits(hits: list[dict], top_k: int) -> list[dict]:
+    if not hits:
+        return hits
+    rich_hits = [hit for hit in hits if not _is_low_detail_seed_hit(hit)]
+    if len(rich_hits) >= min(top_k, 3):
+        skipped = [hit.get("name") for hit in hits if _is_low_detail_seed_hit(hit)]
+        if skipped:
+            logger.warning("search_low_detail_seed_filtered skipped=%s", skipped[:8])
+        return rich_hits
+    return hits
+
+
 async def _premium_hotpot_supplements(constraints: dict, existing_ids: set[int]) -> list[dict]:
     if "hotpot" not in constraints["categories"] or not constraints.get("wants_luxury"):
         return []
@@ -1018,6 +1053,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
     if constraints["categories"]:
         if constraints.get("wants_burger"):
             raw_hits = [hit for hit in raw_hits if _is_burger_hit(hit)]
+            raw_hits = _prefer_rich_hits(raw_hits, top_k)
             logger.warning(
                 "search_strict_burger_filter query=%r strict=%s",
                 query,
@@ -1084,6 +1120,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             [hit.get("name") for hit in strict_station[:8]],
         )
 
+    raw_hits = _prefer_rich_hits(raw_hits, top_k)
     return raw_hits[:top_k]
 
 

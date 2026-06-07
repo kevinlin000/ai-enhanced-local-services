@@ -76,6 +76,19 @@ def test_burger_hit_rejects_brunch_fillers():
     assert not main._is_burger_hit({"name": "軟食力 行天宮店"})
 
 
+def test_prefer_rich_hits_filters_low_detail_seed_when_possible():
+    hits = [
+        {"shop_id": 10014, "name": "劉山東小牛肉麵 中山店"},
+        {"shop_id": 10123, "name": "海霸王 中山店", "ai_summary": "中式聚餐。"},
+        {"shop_id": 10124, "name": "小品雅廚", "signature_dishes": ["家常菜"]},
+        {"shop_id": 10126, "name": "阿城鵝肉 吉林二店", "atmosphere_tags": ["聚餐"]},
+    ]
+
+    filtered = main._prefer_rich_hits(hits, top_k=3)
+
+    assert [hit["shop_id"] for hit in filtered] == [10123, 10124, 10126]
+
+
 @pytest.mark.anyio
 async def test_line_reply_falls_back_to_flex_when_agent_skips_search(monkeypatch):
     async def fake_run_agent_turn(query: str, session_id: str):

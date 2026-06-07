@@ -328,11 +328,35 @@ function parseBusinessHours(value?: string | null): string[] {
   if (!value) return [];
   const trimmed = value.trim();
   if (!trimmed) return [];
+  const dayLabels: Record<string, string> = {
+    mon: "週一",
+    tue: "週二",
+    wed: "週三",
+    thu: "週四",
+    fri: "週五",
+    sat: "週六",
+    sun: "週日",
+  };
   if (trimmed.startsWith("[")) {
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
         return parsed.map((item) => String(item).trim()).filter(Boolean);
+      }
+    } catch {
+      // ignore
+    }
+  }
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+          .map((day) => {
+            const hours = String((parsed as Record<string, unknown>)[day] ?? "").trim();
+            return hours ? `${dayLabels[day]} ${hours}` : "";
+          })
+          .filter(Boolean);
       }
     } catch {
       // ignore
