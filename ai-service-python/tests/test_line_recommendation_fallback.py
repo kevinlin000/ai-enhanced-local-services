@@ -24,6 +24,14 @@ def test_line_location_context_merges_into_nearby_text():
     assert main._line_effective_text_with_location("中山站附近火鍋", state) == "中山站附近火鍋"
 
 
+def test_line_followup_adjustment_merge_rules():
+    assert main._line_adjustment_intent("不要吃到飽")
+    assert main._line_adjustment_intent("改成大安區")
+    assert not main._line_adjustment_intent("還有嗎")
+    assert main._line_merge_followup_query("信義區高級火鍋", "不要吃到飽") == "信義區高級火鍋，排除條件：不要吃到飽"
+    assert main._line_merge_followup_query("信義區高級火鍋", "改成大安區") == "信義區高級火鍋，調整需求：改成大安區"
+
+
 @pytest.mark.anyio
 async def test_line_reply_falls_back_to_flex_when_agent_skips_search(monkeypatch):
     async def fake_run_agent_turn(query: str, session_id: str):
@@ -97,6 +105,66 @@ async def test_line_text_uses_saved_location_context(monkeypatch):
 
     assert captured["query"] == "台北市信義區市府路45號附近，附近高級火鍋"
     assert messages[0]["type"] == "text"
+
+
+@pytest.mark.anyio
+async def test_line_followup_adjustment_reuses_previous_query(monkeypatch):
+    captured = {}
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        captured["query"] = query
+        return [
+            {
+                "shop_id": 10009,
+                "name": "橘色涮涮屋 信義館",
+                "district": "信義區",
+                "mrt_station": "市政府",
+                "avg_price": 1200,
+                "ai_summary": "精緻涮涮屋路線。",
+            }
+        ]
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10115]},
+    )
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "不要吃到飽"},
+        }
+    )
+
+    assert captured["query"] == "信義區高級火鍋，排除條件：不要吃到飽"
+    assert messages[1]["type"] == "flex"
+
+
+@pytest.mark.anyio
+async def test_line_followup_cancel_clears_previous_query(monkeypatch):
+    cleared = {}
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10115]},
+    )
+    monkeypatch.setattr(main, "_clear_line_recommendation_state", lambda user_id: cleared.setdefault("user_id", user_id))
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "取消"},
+        }
+    )
+
+    assert cleared["user_id"] == "test-user"
+    assert "清掉剛剛的推薦條件" in messages[0]["text"]
 
 
 def test_line_detail_helpers_use_manifest_reviews_and_photo_fallbacks(monkeypatch):

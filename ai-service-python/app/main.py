@@ -2884,6 +2884,13 @@ def _load_line_recommendation_state(user_id: str) -> dict:
     return data if isinstance(data, dict) else {}
 
 
+def _clear_line_recommendation_state(user_id: str) -> None:
+    try:
+        session_store.client().delete(_line_recommendation_state_key(user_id))
+    except Exception:
+        logger.exception("line_recommendation_state_clear_failed user_id=%s", user_id)
+
+
 def _save_line_recommendation_state(user_id: str, query: str, shown_shop_ids: list[int]) -> None:
     deduped: list[int] = []
     for shop_id in shown_shop_ids:
@@ -2972,6 +2979,109 @@ def _line_text_has_explicit_location(text: str) -> bool:
     )
 
 
+async def _build_line_contextual_followup(user_text: str, user_id: str) -> list[dict] | None:
+    state = _load_line_recommendation_state(user_id)
+    previous_query = str(state.get("query") or "").strip()
+    if _line_cancel_context_intent(user_text):
+        _clear_line_recommendation_state(user_id)
+        return [build_text_message("好，我先清掉剛剛的推薦條件。你可以重新告訴我想找什麼餐廳。")]
+    if _line_status_intent(user_text):
+        if previous_query:
+            return [build_text_message("剛剛的推薦已經整理完成。你可以回「還有嗎」看更多，或直接說想調整的條件。")]
+        return [build_text_message("目前沒有正在整理的推薦。你可以直接告訴我地點和想吃的類型。")]
+    if not previous_query or not _line_adjustment_intent(user_text):
+        return None
+
+    adjusted_query = _line_merge_followup_query(previous_query, user_text)
+    try:
+        shops = await _semantic_hits(adjusted_query, top_k=30)
+    except Exception:
+        logger.exception("line_contextual_followup_search_failed user_id=%s query=%s", user_id, adjusted_query)
+        return [build_text_message("我暫時無法依新條件重新整理，請稍後再試一次。")]
+    if not shops:
+        return [build_text_message("這個調整後暫時找不到明顯符合的餐廳。可以再放寬地點、價位或料理類型。")]
+
+    seen_ids = {
+        int(shop_id)
+        for shop_id in state.get("shown_shop_ids", [])
+        if str(shop_id).isdigit()
+    }
+    deduped = _dedupe_shops_by_brand(shops)
+    selected_ids = [
+        int(sid)
+        for shop in deduped[:3]
+        if (sid := _shop_id(shop)) is not None
+    ]
+    if not selected_ids:
+        return [build_text_message("我有找到候選，但暫時無法整理成 LINE 卡片，請再換個條件試試。")]
+
+    _save_line_recommendation_state(
+        user_id,
+        query=adjusted_query,
+        shown_shop_ids=[*seen_ids, *selected_ids],
+    )
+    flex_or_bundle = build_line_flex_message(
+        shops=shops,
+        recommended_shop_ids=selected_ids,
+        answer="",
+        public_web_url=settings.line_public_web_url,
+    )
+    messages = flex_or_bundle.get("messages") if flex_or_bundle.get("type") == "_bundle" else [flex_or_bundle]
+    return messages or [build_text_message("我已依新條件重新整理，但 LINE 卡片暫時無法產生，請再試一次。")]
+
+
+def _line_cancel_context_intent(text: str) -> bool:
+    normalized = str(text or "").strip()
+    return normalized in {"取消", "不用了", "先不用", "算了", "不要找了", "停止", "先不要"}
+
+
+def _line_status_intent(text: str) -> bool:
+    normalized = str(text or "").strip()
+    return any(phrase in normalized for phrase in ("好了嗎", "還在找嗎", "有結果了嗎", "推薦好了嗎", "怎麼還沒好"))
+
+
+def _line_adjustment_intent(text: str) -> bool:
+    normalized = str(text or "").strip()
+    if not normalized:
+        return False
+    if _line_more_recommendation_intent(normalized):
+        return False
+    return any(
+        phrase in normalized
+        for phrase in (
+            "改成",
+            "改吃",
+            "換成",
+            "不要吃",
+            "不吃",
+            "不要太",
+            "不要有",
+            "高級一點",
+            "精緻一點",
+            "便宜一點",
+            "平價一點",
+            "近一點",
+            "安靜一點",
+            "適合聊天",
+            "適合約會",
+            "適合聚餐",
+            "有包廂",
+            "不要吃到飽",
+        )
+    ) or bool(re.match(r"^(改|換)(到|去)?[^\s，,。；;]{1,12}(區|站|路|街|商圈|附近)", normalized))
+
+
+def _line_merge_followup_query(previous_query: str, user_text: str) -> str:
+    normalized = str(user_text or "").strip()
+    if not normalized:
+        return previous_query
+    if re.match(r"^(改成|換成|改吃|換吃)", normalized):
+        return f"{previous_query}，調整需求：{normalized}"
+    if normalized.startswith(("不要", "不吃")):
+        return f"{previous_query}，排除條件：{normalized}"
+    return f"{previous_query}，補充條件：{normalized}"
+
+
 async def _build_line_reply_messages(event: dict) -> list[dict]:
     event_type = event.get("type")
     source = event.get("source") or {}
@@ -3008,6 +3118,10 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
         user_text,
         _load_line_location_state(user_id),
     )
+
+    contextual_messages = await _build_line_contextual_followup(user_text, user_id)
+    if contextual_messages is not None:
+        return contextual_messages
 
     more_messages = await _build_line_more_recommendations(user_text, user_id)
     if more_messages is not None:
