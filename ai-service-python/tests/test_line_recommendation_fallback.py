@@ -502,6 +502,44 @@ async def test_internal_availability_released_pushes_line_card(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_internal_booking_updated_pushes_cancel_card(monkeypatch):
+    pushed = {}
+
+    async def fake_push_messages(user_id, messages, channel_access_token, enabled):
+        pushed["user_id"] = user_id
+        pushed["messages"] = messages
+        return {"ok": True}
+
+    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
+
+    class FakeRequest:
+        async def json(self):
+            return {
+                "secret": "secret",
+                "lineUserId": "Uabc123",
+                "phase": "canceled",
+                "booking": {
+                    "bookingCode": "BK-CANCEL",
+                    "shopId": 10009,
+                    "shopName": "橘色涮涮屋 信義館",
+                    "date": "2026-06-08",
+                    "time": "19:00",
+                    "people": 2,
+                    "status": "CANCELED",
+                    "needsDeposit": True,
+                    "depositTotal": 600,
+                },
+            }
+
+    response = await main.internal_line_booking_updated(FakeRequest())
+
+    assert response["ok"] is True
+    assert pushed["user_id"] == "Uabc123"
+    assert pushed["messages"][0]["altText"] == "訂位已取消"
+
+
+@pytest.mark.anyio
 async def test_line_shop_detail_renders_concierge_sections(monkeypatch):
     async def fake_fetch_shop(shop_id: int):
         return {

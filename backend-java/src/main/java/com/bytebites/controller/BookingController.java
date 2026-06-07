@@ -8,6 +8,8 @@ import com.bytebites.service.AvailabilityNotificationService;
 import com.bytebites.service.BookingHoldService;
 import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.IShopService;
+import com.bytebites.service.LineNotificationClient;
+import com.bytebites.service.jpa.UserJpaService;
 import com.bytebites.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +50,8 @@ public class BookingController {
     private final DepositPolicy depositPolicy;
     private final BookingHoldService bookingHoldService;
     private final AvailabilityNotificationService availabilityNotificationService;
+    private final LineNotificationClient lineNotificationClient;
+    private final UserJpaService userJpaService;
     private final JdbcTemplate jdbcTemplate;
     private final PlatformTransactionManager transactionManager;
 
@@ -300,12 +304,22 @@ public class BookingController {
         );
         booking.setStatus(BookingHoldService.STATUS_CANCELED);
         bookingRepo.saveAndFlush(booking);
+        Map<String, Object> response = bookingResponse(booking, shopName, false);
+        notifyLineBookingCanceled(booking.getUserId(), response);
 
         log.info("[Booking cancel] code={} shop={} people={} date={} time={}",
                 booking.getBookingCode(), booking.getShopId(), booking.getPeople(),
                 booking.getBookingDate(), booking.getBookingTime());
 
-        return Result.ok(bookingResponse(booking, shopName, false));
+        return Result.ok(response);
+    }
+
+    private void notifyLineBookingCanceled(Long userId, Map<String, Object> booking) {
+        if (userId == null) return;
+        userJpaService.findById(userId)
+                .map(user -> user.getLineUserId())
+                .filter(lineUserId -> lineUserId != null && !lineUserId.isBlank())
+                .ifPresent(lineUserId -> lineNotificationClient.pushBookingUpdated(lineUserId, booking, "canceled"));
     }
 
     private Map<String, Object> bookingResponse(BookingJpa booking, String shopName, boolean idempotentReplay) {

@@ -11,7 +11,7 @@ function AuthCallbackContent() {
     const token = params.get("token");
     if (token) {
       localStorage.setItem("bytebites_token", token);
-      router.replace("/");
+      window.location.replace("/");
     } else {
       const error = params.get("error") ?? "LINE login failed";
       router.replace(`/?login_failed=${encodeURIComponent(error)}`);

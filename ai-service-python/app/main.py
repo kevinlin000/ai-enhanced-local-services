@@ -2516,6 +2516,26 @@ async def internal_line_availability_released(request: Request):
     return {"ok": bool(result.get("ok")), "line_result": result}
 
 
+@app.post("/internal/line/booking-updated")
+async def internal_line_booking_updated(request: Request):
+    payload = await request.json()
+    expected_secret = (settings.line_internal_webhook_secret or "").strip()
+    if expected_secret and str(payload.get("secret") or "") != expected_secret:
+        raise HTTPException(status_code=403, detail="Invalid internal secret")
+    line_user_id = str(payload.get("lineUserId") or "").strip()
+    if not line_user_id:
+        return {"ok": True, "skipped": True, "reason": "No LINE user id"}
+    phase = str(payload.get("phase") or "").strip() or "updated"
+    booking = payload.get("booking") if isinstance(payload.get("booking"), dict) else payload
+    result = await push_messages(
+        user_id=line_user_id,
+        messages=[_line_booking_flex_message(booking, phase, line_user_id=line_user_id)],
+        channel_access_token=settings.line_channel_access_token,
+        enabled=settings.line_reply_enabled,
+    )
+    return {"ok": bool(result.get("ok")), "line_result": result}
+
+
 @app.get("/line/photo/{shop_id}")
 async def line_shop_photo(shop_id: int):
     async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
@@ -3891,6 +3911,8 @@ def _line_booking_flex_message(booking: dict, phase: str, line_user_id: str = ""
     title = "訂位保留成功，待付訂金" if status == "PENDING_PAYMENT" else "訂位已完成"
     if phase == "paid":
         title = "訂金付款成功，訂位完成"
+    if phase == "canceled" or status == "CANCELED":
+        title = "訂位已取消"
     line_query = f"&lineUserId={quote_plus(line_user_id)}" if line_user_id else ""
     status_uri = _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code)}{line_query}")
     pay_uri = _line_public_uri(f"/line/book/{shop_id}/pay?bookingCode={quote_plus(booking_code)}{line_query}")

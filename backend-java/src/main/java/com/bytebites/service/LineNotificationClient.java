@@ -52,4 +52,28 @@ public class LineNotificationClient {
             log.warn("[LINE availability push] failed watchId={} lineUserId={}", watch.get("id"), lineUserId, ex);
         }
     }
+
+    public void pushBookingUpdated(String lineUserId, Map<String, Object> booking, String phase) {
+        String userId = lineUserId == null ? "" : lineUserId.trim();
+        if (userId.isBlank() || "null".equals(userId) || booking == null || booking.isEmpty()) return;
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("lineUserId", userId);
+        payload.put("phase", phase);
+        payload.put("booking", booking);
+        if (!internalSecret.isBlank()) {
+            payload.put("secret", internalSecret);
+        }
+
+        try {
+            restTemplate.postForObject(
+                    aiServiceUrl.replaceAll("/+$", "") + "/internal/line/booking-updated",
+                    payload,
+                    Map.class
+            );
+        } catch (RestClientException ex) {
+            log.warn("[LINE booking push] failed bookingCode={} phase={} lineUserId={}",
+                    booking.get("bookingCode"), phase, userId, ex);
+        }
+    }
 }
