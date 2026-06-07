@@ -59,6 +59,14 @@ function ReviewCarousel({ shopId }: { shopId: number }) {
       .finally(() => setLoading(false));
   }, [shopId]);
 
+  const reviews = (insights?.selectedReviews ?? [])
+    .filter((review) => review.rating >= 4)
+    .slice(0, 3);
+
+  useEffect(() => {
+    setIdx(0);
+  }, [shopId, reviews.length]);
+
   if (loading) {
     return (
       <div className="flex flex-col gap-2 animate-pulse">
@@ -69,9 +77,12 @@ function ReviewCarousel({ shopId }: { shopId: number }) {
     );
   }
 
-  const reviews = insights?.selectedReviews.slice(0, 3) ?? [];
   if (!reviews.length) {
-    return <p className="text-xs text-muted-foreground">暫無評論資料</p>;
+    return (
+      <div className="rounded-lg bg-muted/60 px-3 py-2 text-xs leading-5 text-muted-foreground">
+        目前沒有足夠 4 星以上文字評論可作為推薦亮點；建議進入詳情頁查看完整評論與注意事項。
+      </div>
+    );
   }
 
   const review = reviews[idx];
@@ -232,7 +243,7 @@ export function AgentShopCard({ shop, rank }: Props) {
 
         {/* Middle: review carousel */}
         <div className="p-4 md:col-span-2">
-          <div className="mb-2 text-xs font-medium text-muted-foreground">精選評論</div>
+          <div className="mb-2 text-xs font-medium text-muted-foreground">推薦亮點評論</div>
           <ReviewCarousel shopId={shop.shop_id} />
         </div>
 
