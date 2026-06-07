@@ -2,10 +2,13 @@ package com.bytebites.service.jpa;
 
 import com.bytebites.domain.jpa.UserJpa;
 import com.bytebites.repository.UserJpaRepository;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,9 +16,11 @@ import java.util.UUID;
 public class UserJpaService {
 
     private final UserJpaRepository repo;
+    private final JdbcTemplate jdbcTemplate;
 
-    public UserJpaService(UserJpaRepository repo) {
+    public UserJpaService(UserJpaRepository repo, JdbcTemplate jdbcTemplate) {
         this.repo = repo;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     public Optional<UserJpa> findByLineId(String lineUserId) {
@@ -24,18 +29,49 @@ public class UserJpaService {
 
     @Transactional
     public UserJpa findOrCreateLineUser(String lineUserId) {
+        return resolveLineIdentity(lineUserId, null);
+    }
+
+    @Transactional
+    public UserJpa resolveLineIdentity(String lineUserId, String displayName) {
         String normalized = lineUserId == null ? "" : lineUserId.trim();
         if (normalized.isBlank() || normalized.length() > 128) {
             throw new IllegalArgumentException("lineUserId is required");
         }
-        return repo.findByLineUserId(normalized).orElseGet(() -> {
+
+        Optional<UserJpa> linked = findLinkedUser(normalized);
+        if (linked.isPresent()) {
+            return linked.get();
+        }
+
+        UserJpa direct = repo.findByLineUserId(normalized).orElse(null);
+        Optional<UserJpa> displayMatched = findSingleDisplayNameMatch(displayName, direct == null ? null : direct.getId());
+        if (displayMatched.isPresent()) {
+            UserJpa matched = displayMatched.get();
+            upsertLineIdentityLink(normalized, matched.getId(), displayName, "line_bot");
+            if (direct != null && !direct.getId().equals(matched.getId()) && isLineBotPlaceholder(direct)) {
+                migrateLineOwnedRows(direct.getId(), matched.getId());
+            }
+            return matched;
+        }
+
+        if (direct != null) {
+            upsertLineIdentityLink(normalized, direct.getId(), displayName, "line_direct");
+            updateDisplayNameIfPresent(direct, displayName);
+            return direct;
+        }
+
+        UserJpa created = repo.findByLineUserId(normalized).orElseGet(() -> {
             UserJpa user = new UserJpa();
             user.setLineUserId(normalized);
-            user.setLineDisplayName("LINE Bot User");
-            user.setNickName("LINE Bot User");
+            String name = normalizeDisplayName(displayName).orElse("LINE Bot User");
+            user.setLineDisplayName(name);
+            user.setNickName(name);
             user.setPhone(linePlaceholderPhone(normalized));
             return repo.save(user);
         });
+        upsertLineIdentityLink(normalized, created.getId(), displayName, "line_bot");
+        return created;
     }
 
     public String linePlaceholderPhone(String lineUserId) {
@@ -54,5 +90,89 @@ public class UserJpaService {
     @Transactional
     public UserJpa save(UserJpa user) {
         return repo.save(user);
+    }
+
+    private Optional<UserJpa> findLinkedUser(String lineUserId) {
+        try {
+            Long userId = jdbcTemplate.queryForObject(
+                    "SELECT user_id FROM tb_line_identity_link WHERE line_user_id = ?",
+                    Long.class,
+                    lineUserId
+            );
+            return userId == null ? Optional.empty() : repo.findById(userId);
+        } catch (EmptyResultDataAccessException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<UserJpa> findSingleDisplayNameMatch(String displayName, Long excludedUserId) {
+        Optional<String> normalized = normalizeDisplayName(displayName);
+        if (normalized.isEmpty()) {
+            return Optional.empty();
+        }
+        List<Long> ids = jdbcTemplate.queryForList(
+                """
+                SELECT id
+                FROM tb_user
+                WHERE (line_display_name = ? OR nick_name = ?)
+                  AND (? IS NULL OR id <> ?)
+                ORDER BY update_time DESC, id DESC
+                LIMIT 2
+                """,
+                Long.class,
+                normalized.get(),
+                normalized.get(),
+                excludedUserId,
+                excludedUserId
+        );
+        if (ids.size() != 1) {
+            return Optional.empty();
+        }
+        return repo.findById(ids.get(0));
+    }
+
+    private void updateDisplayNameIfPresent(UserJpa user, String displayName) {
+        normalizeDisplayName(displayName).ifPresent(name -> {
+            user.setLineDisplayName(name);
+            if (user.getNickName() == null || user.getNickName().isBlank() || isLineBotPlaceholder(user)) {
+                user.setNickName(name);
+            }
+            repo.save(user);
+        });
+    }
+
+    private Optional<String> normalizeDisplayName(String displayName) {
+        String normalized = displayName == null ? "" : displayName.trim();
+        if (normalized.isBlank() || "LINE Bot User".equals(normalized)) {
+            return Optional.empty();
+        }
+        return Optional.of(normalized);
+    }
+
+    private boolean isLineBotPlaceholder(UserJpa user) {
+        return "LINE Bot User".equals(user.getNickName()) || "LINE Bot User".equals(user.getLineDisplayName());
+    }
+
+    private void upsertLineIdentityLink(String lineUserId, Long userId, String displayName, String source) {
+        jdbcTemplate.update(
+                """
+                INSERT INTO tb_line_identity_link (line_user_id, user_id, display_name, source)
+                VALUES (?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    user_id = VALUES(user_id),
+                    display_name = VALUES(display_name),
+                    source = VALUES(source),
+                    update_time = CURRENT_TIMESTAMP
+                """,
+                lineUserId,
+                userId,
+                normalizeDisplayName(displayName).orElse(null),
+                source
+        );
+    }
+
+    private void migrateLineOwnedRows(Long fromUserId, Long toUserId) {
+        jdbcTemplate.update("UPDATE tb_booking SET user_id = ? WHERE user_id = ?", toUserId, fromUserId);
+        jdbcTemplate.update("UPDATE tb_availability_watch SET user_id = ? WHERE user_id = ?", toUserId, fromUserId);
     }
 }

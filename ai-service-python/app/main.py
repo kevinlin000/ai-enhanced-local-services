@@ -72,6 +72,7 @@ logger = logging.getLogger("bytebites.ai")
 LINE_RECOMMENDATION_TTL_SECONDS = 1800
 LINE_LOCATION_TTL_SECONDS = 1800
 _LINE_MEDIA_CACHE: dict | None = None
+_LINE_PROFILE_CACHE: dict[str, str] = {}
 _LINE_MEDIA_ALIASES: dict[int, int] = {
     10009: 10550,
 }
@@ -3997,6 +3998,33 @@ async def _fetch_java_booking_policy(shop_id: int) -> dict:
         return {}
 
 
+async def _fetch_line_display_name(line_user_id: str) -> str:
+    user_id = str(line_user_id or "").strip()
+    token = (settings.line_channel_access_token or "").strip()
+    if not user_id or not token:
+        return ""
+    cached = _LINE_PROFILE_CACHE.get(user_id)
+    if cached is not None:
+        return cached
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                f"https://api.line.me/v2/bot/profile/{quote_plus(user_id)}",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        if response.status_code != 200:
+            logger.warning("line_profile_fetch_failed status=%s user=%s", response.status_code, user_id[:8])
+            _LINE_PROFILE_CACHE[user_id] = ""
+            return ""
+        payload = response.json()
+        display_name = str(payload.get("displayName") or "").strip()
+        _LINE_PROFILE_CACHE[user_id] = display_name
+        return display_name
+    except Exception:
+        logger.exception("line_profile_fetch_failed user=%s", user_id[:8])
+        return ""
+
+
 def _validate_line_booking(people: int, booking_date: str, booking_time: str, table_type: str) -> str | None:
     if people < 1 or people > 12:
         return "訂位人數需介於 1 到 12 人。"
@@ -4025,6 +4053,7 @@ async def _reserve_line_booking(
 ) -> dict:
     user_key = str(line_user_id or "anonymous").strip() or "anonymous"
     idempotency_key = f"line-form:{user_key}:{shop_id}:{people}:{booking_date}:{booking_time}:{table_type}"
+    line_display_name = await _fetch_line_display_name(line_user_id)
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.post(
@@ -4037,6 +4066,7 @@ async def _reserve_line_booking(
                     "time": booking_time,
                     "tableType": table_type,
                     "lineUserId": line_user_id,
+                    "lineDisplayName": line_display_name,
                     "idempotencyKey": idempotency_key,
                 },
             )

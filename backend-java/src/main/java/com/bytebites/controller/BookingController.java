@@ -277,7 +277,7 @@ public class BookingController {
 
         String effectiveLineUserId = requestedLineUserId != null ? requestedLineUserId : currentLineUserId;
         if (effectiveLineUserId != null && !effectiveLineUserId.isBlank()) {
-            userIds.add(userJpaService.findOrCreateLineUser(effectiveLineUserId).getId());
+            userIds.add(userJpaService.resolveLineIdentity(effectiveLineUserId, null).getId());
         }
         if (userIds.isEmpty()) return Result.fail("請先登入");
 
@@ -416,7 +416,8 @@ public class BookingController {
     private Long resolveLineUserOwnerId(Map<String, Object> body) {
         String lineUserId = body.get("lineUserId") == null ? "" : body.get("lineUserId").toString().trim();
         if (lineUserId.isBlank() || lineUserId.length() > 128) return null;
-        return userJpaService.findOrCreateLineUser(lineUserId).getId();
+        String displayName = body.get("lineDisplayName") == null ? "" : body.get("lineDisplayName").toString().trim();
+        return userJpaService.resolveLineIdentity(lineUserId, displayName).getId();
     }
 
     private void ensureSlotInventory(Long shopId, LocalDate bookingDate, String time, String tableType) {
