@@ -447,6 +447,60 @@ def test_line_booking_result_page_shows_paid_completion(monkeypatch):
     assert "DEMO-123" in html
 
 
+def test_line_availability_flex_prefills_booking_link(monkeypatch):
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+    message = main._line_availability_flex_message(
+        {
+            "lineUserId": "Uabc123",
+            "shopId": 10009,
+            "shopName": "橘色涮涮屋 信義館",
+            "date": "2026-06-08",
+            "time": "19:00",
+            "tableType": "normal",
+            "people": 2,
+        }
+    )
+
+    assert message["altText"] == "橘色涮涮屋 信義館 有空位了"
+    booking_uri = message["contents"]["footer"]["contents"][0]["action"]["uri"]
+    assert booking_uri.startswith("https://bytebites.example.com/line/book/10009?")
+    assert "lineUserId=Uabc123" in booking_uri
+    assert "date=2026-06-08" in booking_uri
+    assert "time=19%3A00" in booking_uri
+
+
+@pytest.mark.anyio
+async def test_internal_availability_released_pushes_line_card(monkeypatch):
+    pushed = {}
+
+    async def fake_push_messages(user_id, messages, channel_access_token, enabled):
+        pushed["user_id"] = user_id
+        pushed["messages"] = messages
+        return {"ok": True}
+
+    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
+
+    class FakeRequest:
+        async def json(self):
+            return {
+                "secret": "secret",
+                "lineUserId": "Uabc123",
+                "shopId": 10009,
+                "shopName": "橘色涮涮屋 信義館",
+                "date": "2026-06-08",
+                "time": "19:00",
+                "tableType": "normal",
+                "people": 2,
+            }
+
+    response = await main.internal_line_availability_released(FakeRequest())
+
+    assert response["ok"] is True
+    assert pushed["user_id"] == "Uabc123"
+    assert pushed["messages"][0]["type"] == "flex"
+
+
 @pytest.mark.anyio
 async def test_line_shop_detail_renders_concierge_sections(monkeypatch):
     async def fake_fetch_shop(shop_id: int):

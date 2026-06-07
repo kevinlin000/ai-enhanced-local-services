@@ -90,15 +90,21 @@ def test_build_line_flex_message_reason_uses_features_not_booking_status():
         recommended_shop_ids=[10009],
         answer="",
         public_web_url="https://bytebites.example.com",
+        line_user_id="Uabc123",
     )
 
+    bubble = message["messages"][1]["contents"]["contents"][0]
+    detail_uri = bubble["footer"]["contents"][0]["action"]["uri"]
+    reserve_uri = bubble["footer"]["contents"][1]["action"]["uri"]
     texts = [
         item["text"]
-        for item in message["messages"][1]["contents"]["contents"][0]["body"]["contents"]
+        for item in bubble["body"]["contents"]
         if item.get("type") == "text"
     ]
     joined = " ".join(texts)
     payload = json.dumps(message, ensure_ascii=False)
+    assert "lineUserId=Uabc123" in detail_uri
+    assert "lineUserId=Uabc123" in reserve_uri
     assert "預約困難" not in joined
     assert "頂級肉品" in joined
     assert "海鮮套餐" in joined

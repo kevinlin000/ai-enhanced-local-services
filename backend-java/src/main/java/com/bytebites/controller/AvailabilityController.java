@@ -25,7 +25,8 @@ public class AvailabilityController {
             String time = body.get("time").toString();
             String tableType = String.valueOf(body.getOrDefault("tableType", "normal"));
             int people = Integer.parseInt(body.getOrDefault("people", 2).toString());
-            return availability.createWatch(shopId, date, time, tableType, people);
+            String lineUserId = body.get("lineUserId") == null ? null : body.get("lineUserId").toString();
+            return availability.createWatch(shopId, date, time, tableType, people, lineUserId);
         } catch (NullPointerException | NumberFormatException | DateTimeParseException ex) {
             return Result.fail("watch 格式錯誤，請確認 shopId/date/time/people");
         }

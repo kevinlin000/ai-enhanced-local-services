@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     line_reply_enabled: bool = False
     line_public_web_url: str = "http://localhost:3000"
     line_background_push_enabled: bool = False
+    line_internal_webhook_secret: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -71,6 +72,9 @@ LINE_LOCATION_TTL_SECONDS = 1800
 _LINE_MEDIA_CACHE: dict | None = None
 _LINE_MEDIA_ALIASES: dict[int, int] = {
     10009: 10550,
+}
+_LINE_SHOP_NAME_FALLBACKS: dict[int, str] = {
+    10009: "橘色涮涮屋 信義館",
 }
 PREMIUM_HOTPOT_SUPPLEMENT_IDS = (10009,)
 
@@ -2494,6 +2498,24 @@ async def line_webhook(request: Request):
     }
 
 
+@app.post("/internal/line/availability-released")
+async def internal_line_availability_released(request: Request):
+    payload = await request.json()
+    expected_secret = (settings.line_internal_webhook_secret or "").strip()
+    if expected_secret and str(payload.get("secret") or "") != expected_secret:
+        raise HTTPException(status_code=403, detail="Invalid internal secret")
+    line_user_id = str(payload.get("lineUserId") or "").strip()
+    if not line_user_id:
+        return {"ok": True, "skipped": True, "reason": "No LINE user id"}
+    result = await push_messages(
+        user_id=line_user_id,
+        messages=[_line_availability_flex_message(payload)],
+        channel_access_token=settings.line_channel_access_token,
+        enabled=settings.line_reply_enabled,
+    )
+    return {"ok": bool(result.get("ok")), "line_result": result}
+
+
 @app.get("/line/photo/{shop_id}")
 async def line_shop_photo(shop_id: int):
     async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
@@ -2522,7 +2544,7 @@ async def line_shop_photo(shop_id: int):
 
 
 @app.get("/line/shop/{shop_id}", response_class=HTMLResponse)
-async def line_shop_detail(shop_id: int):
+async def line_shop_detail(shop_id: int, lineUserId: str = ""):
     shop = await _fetch_java_shop(shop_id)
     if not shop:
         return HTMLResponse(_line_html_page("找不到店家", "這間店目前無法取得資料。", []), status_code=404)
@@ -2548,7 +2570,8 @@ async def line_shop_detail(shop_id: int):
     deposit = _line_deposit_summary(policy)
     review_groups = _line_review_groups(shop_id)
     image_uri = _html_escape(_line_detail_image_uri(shop_id))
-    booking_uri = _line_public_uri(f"/line/book/{shop_id}")
+    line_query = f"?lineUserId={quote_plus(lineUserId)}" if lineUserId else ""
+    booking_uri = _line_public_uri(f"/line/book/{shop_id}{line_query}")
     map_uri = _line_google_maps_uri(str(shop.get("name") or ""), str(shop.get("address") or ""))
     map_link = _html_escape(map_uri)
     basis_items = _line_recommendation_basis(shop, metadata, manifest_shop)
@@ -2607,13 +2630,24 @@ async def line_shop_detail(shop_id: int):
 
 
 @app.get("/line/book/{shop_id}", response_class=HTMLResponse)
-async def line_booking_entry(shop_id: int, lineUserId: str = ""):
+async def line_booking_entry(
+    shop_id: int,
+    lineUserId: str = "",
+    people: int = 2,
+    date: str = "",
+    time: str = "19:00",
+    tableType: str = "normal",
+):
     shop = await _fetch_java_shop(shop_id)
     policy = await _fetch_java_booking_policy(shop_id)
     name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
     district = _html_escape(str((shop or {}).get("district") or ""))
     address = _html_escape(str((shop or {}).get("address") or ""))
     tomorrow = taipei_today() + timedelta(days=1)
+    selected_date = date if date else tomorrow.isoformat()
+    selected_people = min(12, max(1, int(people or 2)))
+    selected_time = time if time else "19:00"
+    selected_table_type = tableType if tableType in {"normal", "bar", "private"} else "normal"
     deposit_summary = _html_escape(_line_deposit_summary(policy))
     detail_uri = _line_public_uri(f"/line/shop/{shop_id}")
     confirm_uri = _line_public_uri(f"/line/book/{shop_id}/confirm")
@@ -2633,18 +2667,18 @@ async def line_booking_entry(shop_id: int, lineUserId: str = ""):
           <form class="booking-form" method="get" action="{confirm_uri}">
             <label>人數
               <select name="people">
-                {''.join(f'<option value="{people}"{" selected" if people == 2 else ""}>{people} 人</option>' for people in range(1, 13))}
+                {''.join(f'<option value="{count}"{" selected" if count == selected_people else ""}>{count} 人</option>' for count in range(1, 13))}
               </select>
             </label>
             <label>日期
-              <input name="date" type="date" min="{tomorrow.isoformat()}" value="{tomorrow.isoformat()}" required>
+              <input name="date" type="date" min="{tomorrow.isoformat()}" value="{_html_escape(selected_date)}" required>
             </label>
             <label>時間
               <select name="time">
-                {''.join(f'<option value="{time}"{" selected" if time == "19:00" else ""}>{time}</option>' for time in ["11:30", "12:00", "12:30", "18:00", "18:30", "19:00", "19:30", "20:00"])}
+                {''.join(f'<option value="{slot}"{" selected" if slot == selected_time else ""}>{slot}</option>' for slot in ["11:30", "12:00", "12:30", "18:00", "18:30", "19:00", "19:30", "20:00"])}
               </select>
             </label>
-            <input type="hidden" name="tableType" value="normal">
+            <input type="hidden" name="tableType" value="{_html_escape(selected_table_type)}">
             <input type="hidden" name="lineUserId" value="{line_user_id}">
             <button class="primary" type="submit">送出並查看狀態</button>
           </form>
@@ -2691,11 +2725,15 @@ async def line_booking_confirm(
     result = await _reserve_line_booking(shop_id, people, date, time, tableType)
     if not result.get("success"):
         message = str(result.get("errorMsg") or "訂位建立失敗，請稍後再試。")
+        watch_uri = _line_public_uri(
+            f"/line/availability/watch?shopId={shop_id}&people={people}&date={quote_plus(date)}&time={quote_plus(time)}&tableType={quote_plus(tableType)}&lineUserId={quote_plus(lineUserId)}"
+        )
         return HTMLResponse(
             _line_html_page(
                 "訂位未完成",
                 message,
                 [
+                    ("通知我有空位", watch_uri),
                     ("重新填寫", _line_public_uri(f"/line/book/{shop_id}")),
                     ("查看店家資訊", _line_public_uri(f"/line/shop/{shop_id}")),
                 ],
@@ -2857,6 +2895,99 @@ async def line_my_bookings():
       </main>
     """
     return HTMLResponse(_line_shell("我的訂位", body))
+
+
+@app.get("/line/availability/watch", response_class=HTMLResponse)
+async def line_create_availability_watch(
+    shopId: int,
+    date: str,
+    time: str,
+    people: int = 2,
+    tableType: str = "normal",
+    lineUserId: str = "",
+):
+    shop = await _fetch_java_shop(shopId)
+    name = _html_escape(str((shop or {}).get("name") or f"店家 {shopId}"))
+    error = _validate_line_booking(people, date, time, tableType)
+    if error:
+        return HTMLResponse(
+            _line_html_page(
+                "空位通知資料需要修正",
+                error,
+                [("返回訂位", _line_public_uri(f"/line/book/{shopId}?lineUserId={quote_plus(lineUserId)}"))],
+            ),
+            status_code=400,
+        )
+    result = await _create_line_availability_watch(shopId, people, date, time, tableType, lineUserId)
+    if not result.get("success"):
+        message = str(result.get("errorMsg") or "空位通知建立失敗，請稍後再試。")
+        return HTMLResponse(
+            _line_html_page(
+                "空位通知未建立",
+                message,
+                [
+                    ("重新訂位", _line_public_uri(f"/line/book/{shopId}?lineUserId={quote_plus(lineUserId)}&people={people}&date={quote_plus(date)}&time={quote_plus(time)}&tableType={quote_plus(tableType)}")),
+                    ("查看店家資訊", _line_public_uri(f"/line/shop/{shopId}")),
+                ],
+            ),
+            status_code=409,
+        )
+    watch = result.get("data") if isinstance(result.get("data"), dict) else {}
+    await _push_line_availability_watch_created(lineUserId, watch)
+    body = f"""
+      <main>
+        <p class="eyebrow">ByteBites 空位通知</p>
+        <h1>{name}</h1>
+        <section>
+          <h2>已設定空位通知</h2>
+          <p>{_html_escape(date)} {_html_escape(time)} · {people} 人</p>
+          <p>若此時段釋出足夠座位，ByteBites 會在 LINE 主動提醒你回來訂位。</p>
+        </section>
+        <div class="actions">
+          <a class="primary" href="{_line_public_uri('/line/notifications')}">查看通知</a>
+          <a class="secondary" href="{_line_public_uri(f'/line/shop/{shopId}')}">查看店家資訊</a>
+        </div>
+      </main>
+    """
+    return HTMLResponse(_line_shell(f"{name} 空位通知", body))
+
+
+@app.get("/line/notifications", response_class=HTMLResponse)
+async def line_notifications():
+    payload = await _fetch_line_notifications()
+    items = payload.get("items") if isinstance(payload, dict) else []
+    if not items:
+        return HTMLResponse(
+            _line_html_page(
+                "空位通知",
+                "目前沒有空位釋出通知。當你設定的額滿時段釋出座位，通知會出現在這裡，也會推送到 LINE。",
+                [],
+            )
+        )
+    cards = []
+    for item in items[:20]:
+        shop_id = int(item.get("shopId") or 0)
+        line_user_id = str(item.get("lineUserId") or "")
+        cards.append(
+            f"""
+            <section>
+              <h2>{_html_escape(str(item.get("title") or "空位通知"))}</h2>
+              <p>{_html_escape(str(item.get("body") or ""))}</p>
+              <p>狀態：<strong>{_html_escape(str(item.get("status") or ""))}</strong></p>
+              <div class="actions">
+                <a class="primary" href="{_line_public_uri(f"/line/book/{shop_id}?people={quote_plus(str(item.get('people') or 2))}&date={quote_plus(str(item.get('date') or ''))}&time={quote_plus(str(item.get('time') or '19:00'))}&tableType={quote_plus(str(item.get('tableType') or 'normal'))}&lineUserId={quote_plus(line_user_id)}")}">立即訂位</a>
+              </div>
+            </section>
+            """
+        )
+    body = f"""
+      <main>
+        <p class="eyebrow">ByteBites</p>
+        <h1>空位通知</h1>
+        {''.join(cards)}
+      </main>
+    """
+    return HTMLResponse(_line_shell("空位通知", body))
 
 
 async def _build_line_more_recommendations(user_text: str, user_id: str) -> list[dict] | None:
@@ -3516,9 +3647,36 @@ async def _fetch_java_shop(shop_id: int) -> dict | None:
             return None
         payload = response.json()
         data = payload.get("data")
-        return data if isinstance(data, dict) else None
+        if isinstance(data, dict) and data:
+            return data
+        return await _fetch_java_shop_by_fallback_name(shop_id)
     except Exception:
         logger.exception("line_shop_fetch_failed shop_id=%s", shop_id)
+        return None
+
+
+async def _fetch_java_shop_by_fallback_name(shop_id: int) -> dict | None:
+    fallback_name = _LINE_SHOP_NAME_FALLBACKS.get(shop_id)
+    if not fallback_name:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                f"{settings.java_backend_url}/api/shop/of/name",
+                params={"name": fallback_name},
+            )
+        if response.status_code != 200:
+            return None
+        payload = response.json()
+        data = payload.get("data")
+        if isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict) and int(item.get("id") or 0) == shop_id:
+                    return item
+            return data[0] if data and isinstance(data[0], dict) else None
+        return data if isinstance(data, dict) and data else None
+    except Exception:
+        logger.exception("line_shop_fallback_fetch_failed shop_id=%s", shop_id)
         return None
 
 
@@ -3641,6 +3799,74 @@ async def _fetch_line_booking(booking_code: str) -> dict | None:
         if str(booking.get("bookingCode") or "") == str(booking_code or ""):
             return booking
     return None
+
+
+async def _create_line_availability_watch(
+    shop_id: int,
+    people: int,
+    booking_date: str,
+    booking_time: str,
+    table_type: str,
+    line_user_id: str,
+) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            response = await client.post(
+                f"{settings.java_backend_url}/api/availability/watches",
+                headers={"X-Demo-Mode": "true", "Content-Type": "application/json"},
+                json={
+                    "shopId": shop_id,
+                    "people": people,
+                    "date": booking_date,
+                    "time": booking_time,
+                    "tableType": table_type,
+                    "lineUserId": line_user_id,
+                },
+            )
+    except Exception:
+        logger.exception("line_availability_watch_failed shop_id=%s", shop_id)
+        return {"success": False, "errorMsg": "後端空位通知服務暫時無法連線，請稍後再試。"}
+    try:
+        payload = response.json()
+    except Exception:
+        return {"success": False, "errorMsg": "後端空位通知服務回傳格式異常。"}
+    if response.status_code >= 400:
+        return {"success": False, "errorMsg": payload.get("errorMsg") or "空位通知暫時無法建立。"}
+    return payload
+
+
+async def _fetch_line_notifications() -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            response = await client.get(
+                f"{settings.java_backend_url}/api/availability/notifications",
+                headers={"X-Demo-Mode": "true"},
+            )
+    except Exception:
+        logger.exception("line_notifications_fetch_failed")
+        return {"unreadCount": 0, "items": []}
+    try:
+        payload = response.json()
+    except Exception:
+        return {"unreadCount": 0, "items": []}
+    if response.status_code >= 400 or not payload.get("success"):
+        return {"unreadCount": 0, "items": []}
+    data = payload.get("data")
+    return data if isinstance(data, dict) else {"unreadCount": 0, "items": []}
+
+
+async def _push_line_availability_watch_created(line_user_id: str, watch: dict) -> None:
+    user_id = str(line_user_id or "").strip()
+    if not user_id or not watch:
+        return
+    result = await push_messages(
+        user_id=user_id,
+        messages=[_line_availability_watch_created_flex(watch, user_id)],
+        channel_access_token=settings.line_channel_access_token,
+        enabled=settings.line_reply_enabled,
+    )
+    if not result.get("ok"):
+        logger.warning("line_availability_watch_push_failed user_id=%s result=%s", user_id, result)
 
 
 async def _push_line_booking_update(line_user_id: str, booking: dict, phase: str) -> None:
@@ -3775,6 +4001,114 @@ def _line_booking_deposit_note(status: str, needs_deposit: bool, deposit_total, 
         "holdExpiresAt": hold_expires_at,
     }
     return f"<p>{_html_escape(_line_booking_deposit_text(booking))}</p>"
+
+
+def _line_availability_watch_created_flex(watch: dict, line_user_id: str = "") -> dict:
+    shop_id = int(watch.get("shopId") or watch.get("shop_id") or 0)
+    date = str(watch.get("date") or "")
+    time = str(watch.get("time") or "")
+    people = str(watch.get("people") or "")
+    status_uri = _line_public_uri("/line/notifications")
+    return {
+        "type": "flex",
+        "altText": "已設定空位通知",
+        "contents": {
+            "type": "bubble",
+            "size": "mega",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {"type": "text", "text": "BYTEBITES WATCH", "size": "xs", "color": "#16833a", "weight": "bold"},
+                    {"type": "text", "text": "已設定空位通知", "size": "lg", "weight": "bold", "wrap": True},
+                    {"type": "text", "text": str(watch.get("shopName") or f"店家 {shop_id}"), "size": "sm", "color": "#333333", "wrap": True},
+                    {"type": "separator", "margin": "md"},
+                    {
+                        "type": "text",
+                        "text": f"{date} {time} · {people} 人。若此時段釋出足夠座位，我會主動通知你。",
+                        "size": "sm",
+                        "color": "#555555",
+                        "wrap": True,
+                        "margin": "md",
+                    },
+                ],
+            },
+            "footer": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {
+                        "type": "button",
+                        "style": "secondary",
+                        "height": "sm",
+                        "action": {"type": "uri", "label": "查看通知", "uri": status_uri},
+                    }
+                ],
+            },
+        },
+    }
+
+
+def _line_availability_flex_message(payload: dict) -> dict:
+    shop_id = int(payload.get("shopId") or 0)
+    shop_name = str(payload.get("shopName") or f"店家 {shop_id}")
+    date = str(payload.get("date") or "")
+    time = str(payload.get("time") or "")
+    table_type = str(payload.get("tableType") or "normal")
+    people = str(payload.get("people") or "2")
+    line_user_id = str(payload.get("lineUserId") or "")
+    booking_uri = _line_public_uri(
+        f"/line/book/{shop_id}?people={quote_plus(people)}&date={quote_plus(date)}&time={quote_plus(time)}&tableType={quote_plus(table_type)}&lineUserId={quote_plus(line_user_id)}"
+    )
+    notifications_uri = _line_public_uri("/line/notifications")
+    return {
+        "type": "flex",
+        "altText": f"{shop_name} 有空位了",
+        "contents": {
+            "type": "bubble",
+            "size": "mega",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {"type": "text", "text": "BYTEBITES ALERT", "size": "xs", "color": "#16833a", "weight": "bold"},
+                    {"type": "text", "text": "有空位了", "size": "lg", "weight": "bold", "wrap": True},
+                    {"type": "text", "text": shop_name, "size": "md", "weight": "bold", "wrap": True},
+                    {"type": "separator", "margin": "md"},
+                    {
+                        "type": "text",
+                        "text": f"{date} {time} 可訂 {people} 人。座位可能很快被訂走，建議立即確認。",
+                        "size": "sm",
+                        "color": "#444444",
+                        "wrap": True,
+                        "margin": "md",
+                    },
+                ],
+            },
+            "footer": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {
+                        "type": "button",
+                        "style": "primary",
+                        "height": "sm",
+                        "action": {"type": "uri", "label": "立即訂位", "uri": booking_uri},
+                    },
+                    {
+                        "type": "button",
+                        "style": "secondary",
+                        "height": "sm",
+                        "action": {"type": "uri", "label": "查看通知", "uri": notifications_uri},
+                    },
+                ],
+            },
+        },
+    }
 
 
 def _line_deposit_summary(policy: dict) -> str:

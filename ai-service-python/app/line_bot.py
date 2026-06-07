@@ -285,7 +285,8 @@ def _build_shop_bubble(
     summary = _recommendation_reason_for_shop(shop, answer)
     decision_points = _line_decision_points(shop)
     match_chips = _line_match_chips(shop)
-    detail_uri = _web_uri(public_web_url, f"/line/shop/{shop_id}") if shop_id else _web_uri(public_web_url, "/line/shop")
+    detail_path = _with_query(f"/line/shop/{shop_id}", {"lineUserId": line_user_id}) if shop_id else "/line/shop"
+    detail_uri = _web_uri(public_web_url, detail_path) if shop_id else _web_uri(public_web_url, "/line/shop")
     reserve_path = _with_query(f"/line/book/{shop_id}", {"lineUserId": line_user_id}) if shop_id else "/line/shop"
     reserve_uri = _web_uri(public_web_url, reserve_path) if shop_id else detail_uri
     image_uri = _shop_image_uri(shop_id, public_web_url)

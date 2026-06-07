@@ -25,8 +25,13 @@ public class AvailabilityNotificationService {
     private static final String STATUS_READ = "READ";
 
     private final JdbcTemplate jdbcTemplate;
+    private final LineNotificationClient lineNotificationClient;
 
     public Result createWatch(Long shopId, LocalDate bookingDate, String time, String tableType, int people) {
+        return createWatch(shopId, bookingDate, time, tableType, people, null);
+    }
+
+    public Result createWatch(Long shopId, LocalDate bookingDate, String time, String tableType, int people, String lineUserId) {
         Long userId = currentUserIdOrNull();
         if (userId == null) return Result.fail("請先登入或使用 demo mode");
         if (shopId == null) return Result.fail("shopId 必填");
@@ -45,13 +50,15 @@ public class AvailabilityNotificationService {
         jdbcTemplate.update(
                 """
                 INSERT INTO tb_availability_watch
-                    (user_id, shop_id, booking_date, booking_time, table_type, people, status, expires_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?)
+                    (user_id, line_user_id, shop_id, booking_date, booking_time, table_type, people, status, expires_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?)
                 ON DUPLICATE KEY UPDATE
+                    line_user_id = COALESCE(VALUES(line_user_id), line_user_id),
                     expires_at = VALUES(expires_at),
                     updated_at = CURRENT_TIMESTAMP
                 """,
                 userId,
+                normalizeLineUserId(lineUserId),
                 shopId,
                 bookingDate,
                 normalizeTime(time),
@@ -64,7 +71,8 @@ public class AvailabilityNotificationService {
                 """
                 SELECT w.id, w.user_id AS userId, w.shop_id AS shopId, s.name AS shopName,
                        w.booking_date AS date, w.booking_time AS time, w.table_type AS tableType,
-                       w.people, w.status, w.expires_at AS expiresAt, w.created_at AS createdAt
+                       w.people, w.status, w.expires_at AS expiresAt, w.created_at AS createdAt,
+                       w.line_user_id AS lineUserId
                 FROM tb_availability_watch w
                 JOIN tb_shop s ON s.id = w.shop_id
                 WHERE w.user_id = ? AND w.shop_id = ? AND w.booking_date = ?
@@ -108,6 +116,7 @@ public class AvailabilityNotificationService {
                 SELECT n.id, n.type, n.title, n.body, n.shop_id AS shopId, n.watch_id AS watchId,
                        n.status, n.created_at AS createdAt, n.read_at AS readAt,
                        w.booking_date AS date, w.booking_time AS time, w.table_type AS tableType, w.people,
+                       w.line_user_id AS lineUserId,
                        s.name AS shopName
                 FROM tb_user_notification n
                 LEFT JOIN tb_availability_watch w ON w.id = n.watch_id
@@ -197,7 +206,7 @@ public class AvailabilityNotificationService {
         List<Map<String, Object>> watches = jdbcTemplate.queryForList(
                 """
                 SELECT w.id, w.user_id, w.shop_id, s.name AS shop_name,
-                       w.booking_date, w.booking_time, w.table_type, w.people
+                       w.line_user_id, w.booking_date, w.booking_time, w.table_type, w.people
                 FROM tb_availability_watch w
                 JOIN tb_shop s ON s.id = w.shop_id
                 WHERE w.status = 'ACTIVE'
@@ -235,7 +244,7 @@ public class AvailabilityNotificationService {
                     watch.get("booking_time"),
                     watch.get("people")
             );
-            jdbcTemplate.update(
+            int inserted = jdbcTemplate.update(
                     """
                     INSERT IGNORE INTO tb_user_notification
                         (user_id, type, title, body, shop_id, watch_id, status)
@@ -248,6 +257,12 @@ public class AvailabilityNotificationService {
                     watchId,
                     STATUS_UNREAD
             );
+            Long notificationId = inserted == 1 ? jdbcTemplate.queryForObject(
+                    "SELECT id FROM tb_user_notification WHERE watch_id = ?",
+                    Long.class,
+                    watchId
+            ) : null;
+            lineNotificationClient.pushAvailabilityReleased(watch, notificationId);
         }
     }
 
@@ -301,6 +316,13 @@ public class AvailabilityNotificationService {
         if (raw == null || !raw.matches("^\\d{1,2}:\\d{2}$")) return raw;
         String[] parts = raw.split(":");
         return "%02d:%02d".formatted(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+    }
+
+    private String normalizeLineUserId(String raw) {
+        if (raw == null) return null;
+        String value = raw.trim();
+        if (value.isBlank() || value.length() > 128) return null;
+        return value;
     }
 
     private boolean isSupportedTableType(String tableType) {
