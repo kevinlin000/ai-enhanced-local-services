@@ -7,6 +7,7 @@ import logging
 import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
 
 import httpx
 
@@ -74,10 +75,17 @@ def build_line_flex_message(
     recommended_shop_ids: list[int] | None,
     answer: str,
     public_web_url: str,
+    line_user_id: str | None = None,
 ) -> dict[str, Any]:
     ordered = _select_recommended_shops(shops, recommended_shop_ids)
     bubbles = [
-        _build_shop_bubble(shop, rank=index + 1, public_web_url=public_web_url, answer=answer)
+        _build_shop_bubble(
+            shop,
+            rank=index + 1,
+            public_web_url=public_web_url,
+            answer=answer,
+            line_user_id=line_user_id,
+        )
         for index, shop in enumerate(ordered[:MAX_FLEX_CARDS])
     ]
     names = "、".join(str(shop.get("name") or "餐廳") for shop in ordered[:MAX_FLEX_CARDS])
@@ -262,7 +270,13 @@ def best_shop_photo_url(shop_id: int) -> str | None:
     return _best_shop_photo(shop_id)
 
 
-def _build_shop_bubble(shop: dict, rank: int, public_web_url: str, answer: str) -> dict[str, Any]:
+def _build_shop_bubble(
+    shop: dict,
+    rank: int,
+    public_web_url: str,
+    answer: str,
+    line_user_id: str | None = None,
+) -> dict[str, Any]:
     shop_id = int(shop.get("shop_id") or 0)
     name = str(shop.get("name") or "未命名餐廳")
     district = str(shop.get("district") or "")
@@ -272,7 +286,8 @@ def _build_shop_bubble(shop: dict, rank: int, public_web_url: str, answer: str) 
     decision_points = _line_decision_points(shop)
     match_chips = _line_match_chips(shop)
     detail_uri = _web_uri(public_web_url, f"/line/shop/{shop_id}") if shop_id else _web_uri(public_web_url, "/line/shop")
-    reserve_uri = _web_uri(public_web_url, f"/line/book/{shop_id}") if shop_id else detail_uri
+    reserve_path = _with_query(f"/line/book/{shop_id}", {"lineUserId": line_user_id}) if shop_id else "/line/shop"
+    reserve_uri = _web_uri(public_web_url, reserve_path) if shop_id else detail_uri
     image_uri = _shop_image_uri(shop_id, public_web_url)
 
     body_contents: list[dict[str, Any]] = [
@@ -550,6 +565,11 @@ def _web_uri(public_web_url: str, path: str) -> str:
     if not path.startswith("/"):
         path = f"/{path}"
     return f"{base}{path}"
+
+
+def _with_query(path: str, params: dict[str, str | None]) -> str:
+    query = urlencode({key: value for key, value in params.items() if value})
+    return f"{path}?{query}" if query else path
 
 
 def _compact_answer_for_line(answer: str) -> str:

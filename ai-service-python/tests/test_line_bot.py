@@ -134,6 +134,19 @@ def test_build_line_flex_message_uses_media_alias_for_orange():
     assert bubble["hero"]["url"].startswith("https://bytebites.example.com/line/photo/10009?v=")
 
 
+def test_build_line_flex_message_booking_link_carries_line_user_id():
+    message = build_line_flex_message(
+        shops=[{"shop_id": 10009, "name": "橘色涮涮屋 信義館"}],
+        recommended_shop_ids=[10009],
+        answer="",
+        public_web_url="https://bytebites.example.com",
+        line_user_id="Uabc123",
+    )
+
+    reserve_uri = message["messages"][1]["contents"]["contents"][0]["footer"]["contents"][1]["action"]["uri"]
+    assert reserve_uri == "https://bytebites.example.com/line/book/10009?lineUserId=Uabc123"
+
+
 @pytest.mark.anyio
 async def test_reply_messages_returns_preview_when_disabled():
     result = await reply_messages(

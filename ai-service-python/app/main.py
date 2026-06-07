@@ -2607,7 +2607,7 @@ async def line_shop_detail(shop_id: int):
 
 
 @app.get("/line/book/{shop_id}", response_class=HTMLResponse)
-async def line_booking_entry(shop_id: int):
+async def line_booking_entry(shop_id: int, lineUserId: str = ""):
     shop = await _fetch_java_shop(shop_id)
     policy = await _fetch_java_booking_policy(shop_id)
     name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
@@ -2617,6 +2617,7 @@ async def line_booking_entry(shop_id: int):
     deposit_summary = _html_escape(_line_deposit_summary(policy))
     detail_uri = _line_public_uri(f"/line/shop/{shop_id}")
     confirm_uri = _line_public_uri(f"/line/book/{shop_id}/confirm")
+    line_user_id = _html_escape(lineUserId)
     body = f"""
       <main>
         <p class="eyebrow">ByteBites 訂位入口</p>
@@ -2644,6 +2645,7 @@ async def line_booking_entry(shop_id: int):
               </select>
             </label>
             <input type="hidden" name="tableType" value="normal">
+            <input type="hidden" name="lineUserId" value="{line_user_id}">
             <button class="primary" type="submit">送出並查看狀態</button>
           </form>
         </section>
@@ -2662,7 +2664,14 @@ async def line_booking_entry(shop_id: int):
 
 
 @app.get("/line/book/{shop_id}/confirm", response_class=HTMLResponse)
-async def line_booking_confirm(shop_id: int, people: int = 2, date: str = "", time: str = "19:00", tableType: str = "normal"):
+async def line_booking_confirm(
+    shop_id: int,
+    people: int = 2,
+    date: str = "",
+    time: str = "19:00",
+    tableType: str = "normal",
+    lineUserId: str = "",
+):
     shop = await _fetch_java_shop(shop_id)
     name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
     error = _validate_line_booking(people, date, time, tableType)
@@ -2695,31 +2704,159 @@ async def line_booking_confirm(shop_id: int, people: int = 2, date: str = "", ti
         )
 
     booking = result.get("data") if isinstance(result.get("data"), dict) else {}
-    booking_code = _html_escape(str(booking.get("bookingCode") or ""))
-    status = _html_escape(str(booking.get("status") or "CONFIRMED"))
+    await _push_line_booking_update(lineUserId, booking, "reserved")
+    return HTMLResponse(_line_booking_result_page(shop_id, name, booking, lineUserId))
+
+
+@app.get("/line/book/{shop_id}/pay", response_class=HTMLResponse)
+async def line_booking_pay(shop_id: int, bookingCode: str, lineUserId: str = ""):
+    shop = await _fetch_java_shop(shop_id)
+    name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
+    result = await _pay_line_booking(bookingCode)
+    if not result.get("success"):
+        message = str(result.get("errorMsg") or "訂金付款失敗，請稍後再試。")
+        return HTMLResponse(
+            _line_html_page(
+                "付款未完成",
+                message,
+                [
+                    ("查看訂位狀態", _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(bookingCode)}&lineUserId={quote_plus(lineUserId)}")),
+                    ("返回店家資訊", _line_public_uri(f"/line/shop/{shop_id}")),
+                ],
+            ),
+            status_code=409,
+        )
+
+    payment = result.get("data") if isinstance(result.get("data"), dict) else {}
+    booking = await _fetch_line_booking(bookingCode) or {
+        "bookingCode": bookingCode,
+        "shopId": shop_id,
+        "shopName": str((shop or {}).get("name") or f"店家 {shop_id}"),
+        "status": payment.get("status") or "PAID",
+        "paymentTransId": payment.get("rec_trade_id"),
+        "depositTotal": payment.get("amount"),
+    }
+    await _push_line_booking_update(lineUserId, booking, "paid")
+    return HTMLResponse(_line_booking_result_page(shop_id, name, booking, lineUserId, payment=payment))
+
+
+@app.get("/line/book/{shop_id}/status", response_class=HTMLResponse)
+async def line_booking_status(shop_id: int, bookingCode: str, lineUserId: str = ""):
+    shop = await _fetch_java_shop(shop_id)
+    name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
+    booking = await _fetch_line_booking(bookingCode)
+    if not booking:
+        return HTMLResponse(
+            _line_html_page(
+                "找不到訂位",
+                "目前查不到這筆訂位，請確認訂位編號是否正確。",
+                [("返回店家資訊", _line_public_uri(f"/line/shop/{shop_id}"))],
+            ),
+            status_code=404,
+        )
+    return HTMLResponse(_line_booking_result_page(shop_id, name, booking, lineUserId))
+
+
+def _line_booking_result_page(
+    shop_id: int,
+    escaped_shop_name: str,
+    booking: dict,
+    line_user_id: str = "",
+    payment: dict | None = None,
+) -> str:
+    booking_code_raw = str(booking.get("bookingCode") or "")
+    booking_code = _html_escape(booking_code_raw)
+    status = str(booking.get("status") or "CONFIRMED")
+    status_label = _line_booking_status_label(status)
+    people = _html_escape(str(booking.get("people") or ""))
+    booking_date = _html_escape(str(booking.get("date") or ""))
+    booking_time = _html_escape(str(booking.get("time") or ""))
     needs_deposit = bool(booking.get("needsDeposit"))
     deposit_total = booking.get("depositTotal") or 0
-    deposit_note = (
-        f"<p>需訂金：NT$ {deposit_total}。此訂位已先保留，請回到 ByteBites 後續完成付款流程。</p>"
-        if needs_deposit
-        else "<p>免訂金，已直接建立訂位。</p>"
-    )
+    hold_expires_at = _html_escape(str(booking.get("holdExpiresAt") or ""))
+    payment_trans_id = _html_escape(str(booking.get("paymentTransId") or (payment or {}).get("rec_trade_id") or ""))
     detail_uri = _line_public_uri(f"/line/shop/{shop_id}")
+    status_uri = _line_public_uri(
+        f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code_raw)}&lineUserId={quote_plus(line_user_id)}"
+    )
+    pay_uri = _line_public_uri(
+        f"/line/book/{shop_id}/pay?bookingCode={quote_plus(booking_code_raw)}&lineUserId={quote_plus(line_user_id)}"
+    )
+    my_bookings_uri = _line_public_uri("/line/my-bookings")
+    title = "訂位保留成功" if status == "PENDING_PAYMENT" else "訂位完成"
+    deposit_note = _line_booking_deposit_note(status, needs_deposit, deposit_total, hold_expires_at)
+    payment_note = f"<p>付款交易編號：<strong>{payment_trans_id}</strong></p>" if payment_trans_id else ""
+    actions = [
+        f'<a class="primary" href="{pay_uri}">立即繳訂金</a>'
+        if status == "PENDING_PAYMENT" and needs_deposit else "",
+        f'<a class="secondary" href="{status_uri}">查看訂位狀態</a>',
+        f'<a class="secondary" href="{my_bookings_uri}">我的訂位</a>',
+        f'<a class="secondary" href="{detail_uri}">查看店家資訊</a>',
+    ]
     body = f"""
       <main>
-        <p class="eyebrow">ByteBites 訂位完成</p>
-        <h1>{name}</h1>
+        <p class="eyebrow">ByteBites 訂位狀態</p>
+        <h1>{escaped_shop_name}</h1>
         <section>
-          <h2>訂位資訊</h2>
+          <h2>{title}</h2>
           <p>訂位編號：<strong>{booking_code}</strong></p>
-          <p>{_html_escape(date)} {_html_escape(time)} · {people} 人</p>
-          <p>狀態：{status}</p>
+          <p>{booking_date} {booking_time} · {people} 人</p>
+          <p>狀態：<strong>{status_label}</strong></p>
           {deposit_note}
+          {payment_note}
         </section>
-        <a class="primary" href="{detail_uri}">查看店家資訊</a>
+        <div class="actions">
+          {''.join(action for action in actions if action)}
+        </div>
       </main>
     """
-    return HTMLResponse(_line_shell(f"{name} 訂位完成", body))
+    return _line_shell(f"{escaped_shop_name} {status_label}", body)
+
+
+@app.get("/line/my-bookings", response_class=HTMLResponse)
+async def line_my_bookings():
+    bookings = await _fetch_line_bookings()
+    if not bookings:
+        return HTMLResponse(
+            _line_html_page(
+                "我的訂位",
+                "目前沒有 demo 使用者的訂位資料。從 LINE 推薦卡點「填日期人數」完成訂位後，會出現在這裡。",
+                [],
+            )
+        )
+    cards = []
+    for booking in bookings[:10]:
+        shop_id = int(booking.get("shopId") or 0)
+        code = str(booking.get("bookingCode") or "")
+        status = str(booking.get("status") or "")
+        pay_link = (
+            f'<a class="primary" href="{_line_public_uri(f"/line/book/{shop_id}/pay?bookingCode={quote_plus(code)}")}">繳訂金</a>'
+            if status == "PENDING_PAYMENT" and booking.get("needsDeposit")
+            else ""
+        )
+        cards.append(
+            f"""
+            <section>
+              <h2>{_html_escape(str(booking.get("shopName") or f"店家 {shop_id}"))}</h2>
+              <p>訂位編號：<strong>{_html_escape(code)}</strong></p>
+              <p>{_html_escape(str(booking.get("date") or ""))} {_html_escape(str(booking.get("time") or ""))} · {_html_escape(str(booking.get("people") or ""))} 人</p>
+              <p>狀態：<strong>{_html_escape(_line_booking_status_label(status))}</strong></p>
+              <p>{_html_escape(_line_booking_deposit_text(booking))}</p>
+              <div class="actions">
+                {pay_link}
+                <a class="secondary" href="{_line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(code)}")}">查看狀態</a>
+              </div>
+            </section>
+            """
+        )
+    body = f"""
+      <main>
+        <p class="eyebrow">ByteBites</p>
+        <h1>我的訂位</h1>
+        {''.join(cards)}
+      </main>
+    """
+    return HTMLResponse(_line_shell("我的訂位", body))
 
 
 async def _build_line_more_recommendations(user_text: str, user_id: str) -> list[dict] | None:
@@ -2775,6 +2912,7 @@ async def _build_line_more_recommendations(user_text: str, user_id: str) -> list
         recommended_shop_ids=selected_ids,
         answer="",
         public_web_url=settings.line_public_web_url,
+        line_user_id=user_id,
     )
     messages = flex_or_bundle.get("messages") if flex_or_bundle.get("type") == "_bundle" else [flex_or_bundle]
     return messages or [build_text_message("我找到更多候選，但 LINE 卡片暫時無法產生，請再試一次。")]
@@ -2813,6 +2951,7 @@ async def _build_line_cards_for_query(
         recommended_shop_ids=selected,
         answer="",
         public_web_url=settings.line_public_web_url,
+        line_user_id=user_id,
     )
     messages = flex_or_bundle.get("messages") if flex_or_bundle.get("type") == "_bundle" else [flex_or_bundle]
     return messages or None
@@ -2876,6 +3015,7 @@ async def _build_line_named_selection_cards(user_text: str, user_id: str) -> lis
         recommended_shop_ids=selected_ids,
         answer="",
         public_web_url=settings.line_public_web_url,
+        line_user_id=user_id,
     )
     messages = flex_or_bundle.get("messages") if flex_or_bundle.get("type") == "_bundle" else [flex_or_bundle]
     return messages or None
@@ -3151,6 +3291,7 @@ async def _build_line_contextual_followup(user_text: str, user_id: str) -> list[
         recommended_shop_ids=selected_ids,
         answer="",
         public_web_url=settings.line_public_web_url,
+        line_user_id=user_id,
     )
     messages = flex_or_bundle.get("messages") if flex_or_bundle.get("type") == "_bundle" else [flex_or_bundle]
     return messages or [build_text_message("我已依新條件重新整理，但 LINE 卡片暫時無法產生，請再試一次。")]
@@ -3177,6 +3318,7 @@ async def _build_line_agent_recommendation_messages(
             recommended_shop_ids=recommended_ids if isinstance(recommended_ids, list) else None,
             answer=answer,
             public_web_url=settings.line_public_web_url,
+            line_user_id=user_id,
         )
         if flex_or_bundle.get("type") == "_bundle":
             messages = flex_or_bundle.get("messages") or []
@@ -3452,6 +3594,187 @@ async def _reserve_line_booking(shop_id: int, people: int, booking_date: str, bo
     if response.status_code >= 400:
         return {"success": False, "errorMsg": payload.get("errorMsg") or "後端訂位服務暫時無法完成。"}
     return payload
+
+
+async def _pay_line_booking(booking_code: str) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            response = await client.post(
+                f"{settings.java_backend_url}/api/booking/pay-test",
+                headers={"X-Demo-Mode": "true", "Content-Type": "application/json"},
+                json={"bookingCode": booking_code},
+            )
+    except Exception:
+        logger.exception("line_booking_pay_failed booking_code=%s", booking_code)
+        return {"success": False, "errorMsg": "後端付款服務暫時無法連線，請稍後再試。"}
+    try:
+        payload = response.json()
+    except Exception:
+        return {"success": False, "errorMsg": "後端付款服務回傳格式異常。"}
+    if response.status_code >= 400:
+        return {"success": False, "errorMsg": payload.get("errorMsg") or "訂金付款暫時無法完成。"}
+    return payload
+
+
+async def _fetch_line_bookings() -> list[dict]:
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            response = await client.get(
+                f"{settings.java_backend_url}/api/booking/my",
+                headers={"X-Demo-Mode": "true"},
+            )
+    except Exception:
+        logger.exception("line_booking_my_failed")
+        return []
+    try:
+        payload = response.json()
+    except Exception:
+        return []
+    if response.status_code >= 400 or not payload.get("success"):
+        return []
+    data = payload.get("data")
+    return data if isinstance(data, list) else []
+
+
+async def _fetch_line_booking(booking_code: str) -> dict | None:
+    for booking in await _fetch_line_bookings():
+        if str(booking.get("bookingCode") or "") == str(booking_code or ""):
+            return booking
+    return None
+
+
+async def _push_line_booking_update(line_user_id: str, booking: dict, phase: str) -> None:
+    user_id = str(line_user_id or "").strip()
+    if not user_id or not booking:
+        return
+    result = await push_messages(
+        user_id=user_id,
+        messages=[_line_booking_flex_message(booking, phase, line_user_id=user_id)],
+        channel_access_token=settings.line_channel_access_token,
+        enabled=settings.line_reply_enabled,
+    )
+    if not result.get("ok"):
+        logger.warning("line_booking_push_failed user_id=%s result=%s", user_id, result)
+
+
+def _line_booking_flex_message(booking: dict, phase: str, line_user_id: str = "") -> dict:
+    shop_id = int(booking.get("shopId") or 0)
+    booking_code = str(booking.get("bookingCode") or "")
+    status = str(booking.get("status") or "CONFIRMED")
+    needs_deposit = bool(booking.get("needsDeposit"))
+    title = "訂位保留成功，待付訂金" if status == "PENDING_PAYMENT" else "訂位已完成"
+    if phase == "paid":
+        title = "訂金付款成功，訂位完成"
+    line_query = f"&lineUserId={quote_plus(line_user_id)}" if line_user_id else ""
+    status_uri = _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code)}{line_query}")
+    pay_uri = _line_public_uri(f"/line/book/{shop_id}/pay?bookingCode={quote_plus(booking_code)}{line_query}")
+    rows = [
+        ("店家", str(booking.get("shopName") or f"店家 {shop_id}")),
+        ("日期時間", f"{booking.get('date') or '-'} {booking.get('time') or ''}".strip()),
+        ("人數", f"{booking.get('people') or '-'} 人"),
+        ("狀態", _line_booking_status_label(status)),
+    ]
+    if needs_deposit:
+        rows.append(("訂金", f"NT$ {booking.get('depositTotal') or 0}"))
+    if booking.get("paymentTransId"):
+        rows.append(("交易編號", str(booking.get("paymentTransId"))))
+    buttons = []
+    if status == "PENDING_PAYMENT" and needs_deposit:
+        buttons.append(
+            {
+                "type": "button",
+                "style": "primary",
+                "height": "sm",
+                "action": {"type": "uri", "label": "立即繳訂金", "uri": pay_uri},
+            }
+        )
+    buttons.append(
+        {
+            "type": "button",
+            "style": "secondary",
+            "height": "sm",
+            "action": {"type": "uri", "label": "查看訂位狀態", "uri": status_uri},
+        }
+    )
+    return {
+        "type": "flex",
+        "altText": title,
+        "contents": {
+            "type": "bubble",
+            "size": "mega",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {"type": "text", "text": "BYTEBITES BOOKING", "size": "xs", "color": "#16833a", "weight": "bold"},
+                    {"type": "text", "text": title, "size": "lg", "weight": "bold", "wrap": True},
+                    {"type": "text", "text": f"訂位編號 {booking_code}", "size": "sm", "color": "#666666", "wrap": True},
+                    {"type": "separator", "margin": "md"},
+                    {
+                        "type": "box",
+                        "layout": "vertical",
+                        "spacing": "xs",
+                        "margin": "md",
+                        "contents": [_line_booking_flex_row(label, value) for label, value in rows],
+                    },
+                    {
+                        "type": "text",
+                        "text": _line_booking_deposit_text(booking),
+                        "size": "xs",
+                        "color": "#777777",
+                        "wrap": True,
+                        "margin": "md",
+                    },
+                ],
+            },
+            "footer": {"type": "box", "layout": "vertical", "spacing": "sm", "contents": buttons},
+        },
+    }
+
+
+def _line_booking_flex_row(label: str, value: str) -> dict:
+    return {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+            {"type": "text", "text": label, "size": "xs", "color": "#777777", "flex": 2},
+            {"type": "text", "text": value or "-", "size": "xs", "color": "#222222", "wrap": True, "flex": 5},
+        ],
+    }
+
+
+def _line_booking_status_label(status: str) -> str:
+    return {
+        "PENDING_PAYMENT": "待付訂金",
+        "PAID": "已付款，訂位完成",
+        "CONFIRMED": "訂位完成",
+        "CANCELED": "已取消",
+        "EXPIRED": "保留逾期",
+    }.get(str(status or ""), str(status or "未知"))
+
+
+def _line_booking_deposit_text(booking: dict) -> str:
+    status = str(booking.get("status") or "")
+    if booking.get("needsDeposit"):
+        amount = booking.get("depositTotal") or 0
+        if status == "PENDING_PAYMENT":
+            expires = booking.get("holdExpiresAt")
+            return f"需繳訂金 NT$ {amount}。座位已先保留，請在期限內付款。" + (f" 保留至 {expires}。" if expires else "")
+        if status == "PAID":
+            return f"訂金 NT$ {amount} 已完成付款，訂位已成立。"
+        return f"需訂金 NT$ {amount}。"
+    return "免訂金，訂位建立後即成立。"
+
+
+def _line_booking_deposit_note(status: str, needs_deposit: bool, deposit_total, hold_expires_at: str) -> str:
+    booking = {
+        "status": status,
+        "needsDeposit": needs_deposit,
+        "depositTotal": deposit_total,
+        "holdExpiresAt": hold_expires_at,
+    }
+    return f"<p>{_html_escape(_line_booking_deposit_text(booking))}</p>"
 
 
 def _line_deposit_summary(policy: dict) -> str:

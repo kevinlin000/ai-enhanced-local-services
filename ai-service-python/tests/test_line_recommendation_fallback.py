@@ -398,6 +398,55 @@ def test_line_detail_helpers_normalize_rating_and_hours():
     assert main._line_business_hours({"openHours": "11:30-23:00"}, {}) == ["每日 11:30-23:00"]
 
 
+def test_line_booking_flex_pending_payment_has_pay_action(monkeypatch):
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+    message = main._line_booking_flex_message(
+        {
+            "bookingCode": "BK-ABC",
+            "shopId": 10009,
+            "shopName": "橘色涮涮屋 信義館",
+            "people": 2,
+            "date": "2026-06-08",
+            "time": "19:00",
+            "status": "PENDING_PAYMENT",
+            "needsDeposit": True,
+            "depositTotal": 600,
+        },
+        "reserved",
+        line_user_id="Uabc123",
+    )
+
+    footer = message["contents"]["footer"]["contents"]
+    assert message["altText"] == "訂位保留成功，待付訂金"
+    assert footer[0]["action"]["label"] == "立即繳訂金"
+    assert "bookingCode=BK-ABC" in footer[0]["action"]["uri"]
+    assert "lineUserId=Uabc123" in footer[0]["action"]["uri"]
+
+
+def test_line_booking_result_page_shows_paid_completion(monkeypatch):
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+    html = main._line_booking_result_page(
+        10009,
+        "橘色涮涮屋 信義館",
+        {
+            "bookingCode": "BK-ABC",
+            "shopId": 10009,
+            "shopName": "橘色涮涮屋 信義館",
+            "people": 2,
+            "date": "2026-06-08",
+            "time": "19:00",
+            "status": "PAID",
+            "needsDeposit": True,
+            "depositTotal": 600,
+            "paymentTransId": "DEMO-123",
+        },
+    )
+
+    assert "訂位完成" in html
+    assert "已付款，訂位完成" in html
+    assert "DEMO-123" in html
+
+
 @pytest.mark.anyio
 async def test_line_shop_detail_renders_concierge_sections(monkeypatch):
     async def fake_fetch_shop(shop_id: int):
