@@ -59,9 +59,12 @@ export async function streamAgentResponse(
   body: { query: string; session_id?: string },
   onEvent: (event: AgentStreamEvent) => void,
 ) {
+  const token = typeof window !== "undefined" ? window.localStorage.getItem("bytebites_token") : null;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch("/api/ai/agent/stream", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
 

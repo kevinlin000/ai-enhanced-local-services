@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { javaApi, type AvailabilityWatch, type UserNotification } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 function formatSlot(item: { date?: string | null; time?: string | null; people?: number | null }) {
   return `${item.date ?? "-"} ${item.time ?? ""}${item.people ? ` · ${item.people} 人` : ""}`;
@@ -17,6 +18,7 @@ const watchTone: Record<AvailabilityWatch["status"], string> = {
 };
 
 export default function NotificationsPage() {
+  const { isLoggedIn, login, mounted } = useAuth();
   const [items, setItems] = useState<UserNotification[]>([]);
   const [watches, setWatches] = useState<AvailabilityWatch[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -26,7 +28,15 @@ export default function NotificationsPage() {
   const [busyWatchId, setBusyWatchId] = useState<number | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
+    if (mounted && !isLoggedIn) {
+      setItems([]);
+      setWatches([]);
+      setUnreadCount(0);
+      setLoading(false);
+      setError("");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -46,11 +56,12 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isLoggedIn, mounted]);
 
   useEffect(() => {
+    if (!mounted) return;
     void load();
-  }, []);
+  }, [load, mounted]);
 
   const markRead = async (id: number) => {
     setBusyId(id);
@@ -127,19 +138,29 @@ export default function NotificationsPage() {
                 <Button variant="outline" onClick={markAllRead} disabled={loading || unreadCount === 0 || markingAll}>
                   {markingAll ? "處理中..." : "全部已讀"}
                 </Button>
-                <Button variant="outline" onClick={load} disabled={loading}>
+                <Button variant="outline" onClick={load} disabled={loading || (mounted && !isLoggedIn)}>
                   重新整理
                 </Button>
               </div>
             </div>
 
-            {error ? (
+            {mounted && !isLoggedIn ? (
+              <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-10 text-center">
+                <p className="text-lg font-black text-amber-950">請先用 LINE 登入</p>
+                <p className="mt-2 text-sm leading-6 text-amber-800">
+                  空位通知會綁定 LINE 帳號；登入後才能管理追蹤與接收通知。
+                </p>
+                <Button onClick={login} className="mt-5 rounded-full bg-emerald-700 hover:bg-emerald-800">
+                  用 LINE 登入
+                </Button>
+              </div>
+            ) : error ? (
               <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                 {error}
               </div>
             ) : null}
 
-            {loading ? (
+            {mounted && !isLoggedIn ? null : loading ? (
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-5 py-10 text-center text-zinc-500">
                 讀取通知中...
               </div>

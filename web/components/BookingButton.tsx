@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { javaApi } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 declare global {
   interface Window { TPDirect: any }
@@ -53,13 +54,11 @@ function formatHoldCountdown(holdExpiresAt: string | null, nowMs: number) {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-function bookingHeaders(): HeadersInit {
+function bookingHeaders(): HeadersInit | null {
   const token = typeof window !== "undefined"
     ? window.localStorage.getItem("bytebites_token")
     : null;
-  return token
-    ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
-    : { "Content-Type": "application/json", "X-Demo-Mode": "true" };
+  return token ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` } : null;
 }
 
 function next14Days() {
@@ -85,6 +84,7 @@ export function BookingButton({
 }: {
   shop: { id: number; name: string; avgPrice?: number | null };
 }) {
+  const { isLoggedIn, login, mounted } = useAuth();
   const [step, setStep] = useState<Step>("idle");
   const [sdkReady, setSdkReady] = useState(false);
   const [error, setError] = useState("");
@@ -181,12 +181,17 @@ export function BookingButton({
 
   // 免訂金流程：直接呼叫 /api/booking/reserve
   const handleNoDepositConfirm = () => {
+    const headers = bookingHeaders();
+    if (!headers) {
+      setError("請先用 LINE 登入，再建立訂位。");
+      return;
+    }
     setStep("processing");
     setSoldOutSlot(false);
     setWatchMessage("");
     fetch(`${JAVA_API}/api/booking/reserve`, {
       method: "POST",
-      headers: bookingHeaders(),
+      headers,
       body: JSON.stringify({ shopId: shop.id, people, date, time, tableType }),
     })
       .then((r) => r.json())
@@ -211,6 +216,11 @@ export function BookingButton({
     setError("");
     setSoldOutSlot(false);
     setWatchMessage("");
+    const headers = bookingHeaders();
+    if (!headers) {
+      setError("請先用 LINE 登入，再保留座位。");
+      return;
+    }
     if (bookingCode) {
       setStep("select-pay");
       return;
@@ -218,7 +228,7 @@ export function BookingButton({
     try {
       const res = await fetch(`${JAVA_API}/api/booking/reserve`, {
         method: "POST",
-        headers: bookingHeaders(),
+        headers,
         body: JSON.stringify({ shopId: shop.id, people, date, time, tableType }),
       });
       const data = await res.json();
@@ -239,6 +249,10 @@ export function BookingButton({
   const handleCreateAvailabilityWatch = async () => {
     setError("");
     setWatchMessage("");
+    if (!bookingHeaders()) {
+      setError("請先用 LINE 登入，再設定空位通知。");
+      return;
+    }
     try {
       const response = await javaApi.createAvailabilityWatch({
         shopId: shop.id,
@@ -262,6 +276,11 @@ export function BookingButton({
   const handleCardSubmit = () => {
     setError("");
     setAllowDemoFallback(false);
+    const headers = bookingHeaders();
+    if (!headers) {
+      setError("請先用 LINE 登入，再完成付款。");
+      return;
+    }
     if (holdExpired) {
       setError("此保留已逾期，請重新建立訂位");
       return;
@@ -281,7 +300,7 @@ export function BookingButton({
       setStep("processing");
       fetch(`${JAVA_API}/api/payment/tappay/pay-by-prime`, {
         method: "POST",
-        headers: bookingHeaders(),
+        headers,
         body: JSON.stringify({
           prime: r.card.prime,
           orderId: Math.floor(Math.random() * 100000),
@@ -322,9 +341,15 @@ export function BookingButton({
     }
     setStep("processing");
     try {
+      const headers = bookingHeaders();
+      if (!headers) {
+        setError("請先用 LINE 登入，再完成付款。");
+        setStep("select-pay");
+        return;
+      }
       const res = await fetch(`${JAVA_API}/api/booking/pay-test`, {
         method: "POST",
-        headers: bookingHeaders(),
+        headers,
         body: JSON.stringify({ bookingCode }),
       });
       const data = await res.json();
@@ -361,7 +386,18 @@ export function BookingButton({
 
   if (step === "idle") {
     return (
-      <Button size="lg" onClick={() => setStep("form")} className="flex-1 sm:flex-none">
+      <Button
+        size="lg"
+        onClick={() => {
+          if (mounted && !isLoggedIn) {
+            setError("請先用 LINE 登入，再建立訂位。");
+            setStep("form");
+            return;
+          }
+          setStep("form");
+        }}
+        className="flex-1 sm:flex-none"
+      >
         立即訂位
       </Button>
     );
@@ -375,6 +411,22 @@ export function BookingButton({
         <>
           <p className="text-base font-medium mb-1">訂位資訊</p>
           <p className="text-xs text-muted-foreground mb-4">{shop.name}</p>
+
+          {mounted && !isLoggedIn ? (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
+              <p className="font-semibold">請先用 LINE 登入</p>
+              <p className="mt-1 text-xs leading-5 text-amber-800">
+                訂位、付款、取消通知會綁定你的 LINE 帳號，登入後才能同步到「我的訂位」。
+              </p>
+              <button
+                type="button"
+                onClick={login}
+                className="mt-3 w-full rounded-md bg-emerald-700 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-800"
+              >
+                用 LINE 登入
+              </button>
+            </div>
+          ) : null}
 
           {/* 人數 stepper */}
           <div className="mb-4">
@@ -510,14 +562,14 @@ export function BookingButton({
           ) : null}
 
           {policy?.needsDeposit ? (
-            <Button onClick={handleProceedToPay} className="w-full">
+            <Button onClick={handleProceedToPay} className="w-full" disabled={mounted && !isLoggedIn}>
               保留座位並前往付款
             </Button>
           ) : (
             <Button
               onClick={handleNoDepositConfirm}
               className="w-full"
-              disabled={!policy}
+              disabled={!policy || (mounted && !isLoggedIn)}
             >
               {policy ? "確認訂位" : "載入中..."}
             </Button>

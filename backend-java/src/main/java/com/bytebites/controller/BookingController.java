@@ -112,6 +112,8 @@ public class BookingController {
 
         if (people < 1 || people > 12) return Result.fail("訂位人數需介於 1-12 人");
         if (!bookingDate.isAfter(today())) return Result.fail("訂位日期需為明天或之後");
+        Long ownerUserId = resolveBookingOwnerId(body);
+        if (ownerUserId == null) return Result.fail("請先用 LINE 登入網頁，再回來完成訂位");
 
         String time = bookingTime.toString();
         String table = body.getOrDefault("tableType", "normal").toString();
@@ -159,7 +161,7 @@ public class BookingController {
 
         // 建 booking 記錄
         BookingJpa booking = new BookingJpa();
-        booking.setUserId(currentUserIdOrNull());
+        booking.setUserId(ownerUserId);
         booking.setBookingCode("BK-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase());
         booking.setShopId(shopId);
         booking.setPeople(people);
@@ -218,7 +220,7 @@ public class BookingController {
 
         BookingJpa b = bookingRepo.findByBookingCode(bookingCode).orElse(null);
         if (b == null)            return Result.fail("訂位不存在");
-        if (!canAccessBooking(b)) return Result.fail("無權操作此訂位");
+        if (!canAccessBooking(b, body)) return Result.fail("無權操作此訂位");
         if (b.getStatus() == BookingHoldService.STATUS_CANCELED) return Result.fail("訂位已取消，無法付款");
         if (b.getStatus() == BookingHoldService.STATUS_EXPIRED) return Result.fail("此保留已逾期，請重新建立訂位");
         if (bookingHoldService.expireIfDue(b)) return Result.fail("此保留已逾期，請重新建立訂位");
@@ -251,9 +253,14 @@ public class BookingController {
     }
 
     @GetMapping("/my")
-    public Result myBookings() {
+    public Result myBookings(@RequestParam(required = false) String lineUserId) {
         Long userId = currentUserIdOrNull();
-        if (userId == null) return Result.fail("請先登入或使用 demo mode");
+        if (userId == null && lineUserId != null && !lineUserId.isBlank()) {
+            userId = userJpaService.findByLineId(lineUserId.trim())
+                    .map(user -> user.getId())
+                    .orElse(null);
+        }
+        if (userId == null) return Result.fail("請先登入");
 
         List<Map<String, Object>> bookings = bookingRepo.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
@@ -268,16 +275,17 @@ public class BookingController {
     }
 
     @PostMapping("/{bookingCode}/cancel")
-    public Result cancel(@PathVariable String bookingCode) {
-        return reserveTransactionTemplate().execute(status -> cancelInTransaction(bookingCode));
+    public Result cancel(@PathVariable String bookingCode, @RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> requestBody = body != null ? body : Map.of();
+        return reserveTransactionTemplate().execute(status -> cancelInTransaction(bookingCode, requestBody));
     }
 
-    private Result cancelInTransaction(String bookingCode) {
+    private Result cancelInTransaction(String bookingCode, Map<String, Object> body) {
         if (bookingCode == null || bookingCode.isBlank()) return Result.fail("bookingCode 必填");
 
         BookingJpa booking = bookingRepo.findByBookingCode(bookingCode).orElse(null);
         if (booking == null) return Result.fail("訂位不存在");
-        if (!canAccessBooking(booking)) return Result.fail("無權操作此訂位");
+        if (!canAccessBooking(booking, body)) return Result.fail("無權操作此訂位");
 
         var shop = shopService.getById(booking.getShopId());
         String shopName = shop != null ? shop.getName() : null;
@@ -359,9 +367,31 @@ public class BookingController {
     }
 
     private boolean canAccessBooking(BookingJpa booking) {
+        return canAccessBooking(booking, Map.of());
+    }
+
+    private boolean canAccessBooking(BookingJpa booking, Map<String, Object> body) {
         Long ownerId = booking.getUserId();
         Long currentUserId = currentUserIdOrNull();
-        return ownerId != null && currentUserId != null && ownerId.equals(currentUserId);
+        if (ownerId != null && currentUserId != null && ownerId.equals(currentUserId)) {
+            return true;
+        }
+        Long lineUserOwnerId = resolveLineUserOwnerId(body);
+        return ownerId != null && lineUserOwnerId != null && ownerId.equals(lineUserOwnerId);
+    }
+
+    private Long resolveBookingOwnerId(Map<String, Object> body) {
+        Long currentUserId = currentUserIdOrNull();
+        if (currentUserId != null) return currentUserId;
+        return resolveLineUserOwnerId(body);
+    }
+
+    private Long resolveLineUserOwnerId(Map<String, Object> body) {
+        String lineUserId = body.get("lineUserId") == null ? "" : body.get("lineUserId").toString().trim();
+        if (lineUserId.isBlank() || lineUserId.length() > 128) return null;
+        return userJpaService.findByLineId(lineUserId)
+                .map(user -> user.getId())
+                .orElse(null);
     }
 
     private void ensureSlotInventory(Long shopId, LocalDate bookingDate, String time, String tableType) {

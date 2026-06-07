@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { javaApi } from "@/lib/api";
 import { streamAgentResponse, type AgentTransaction } from "@/lib/agentStream";
+import { useAuth } from "@/lib/auth";
 import { AgentShopCard, type AgentShop } from "@/components/AgentShopCard";
 import { MarkdownMessage } from "@/components/MarkdownMessage";
 
@@ -500,6 +501,7 @@ function getOrCreateSessionId(): string {
 }
 
 export default function AiPage() {
+  const { isLoggedIn, login, mounted } = useAuth();
   const [query, setQuery] = useState(() => {
     if (typeof window === "undefined") return "";
     return new URLSearchParams(window.location.search).get("q") ?? "";
@@ -519,6 +521,19 @@ export default function AiPage() {
   async function sendAgentMessage(q: string) {
     if (!q.trim()) return;
     const userMsg = q.trim();
+    if (mounted && !isLoggedIn) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: userMsg },
+        {
+          role: "ai",
+          content: "請先用 LINE 登入，再使用 ByteBites AI。這樣推薦、訂位、付款與空位通知才會同步到你的帳號。",
+          done: true,
+        },
+      ]);
+      setQuery("");
+      return;
+    }
     setMessages((prev) => [
       ...prev,
       { role: "user", content: userMsg },
@@ -699,12 +714,21 @@ export default function AiPage() {
                   告訴 ByteBites AI，你想吃什麼、幾個人、什麼時間。推薦、訂位、付款與空位通知都在同一個對話裡完成。
                 </p>
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
+                  {mounted && !isLoggedIn ? (
+                    <button
+                      type="button"
+                      onClick={login}
+                      className="rounded-full bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
+                    >
+                      用 LINE 登入後開始
+                    </button>
+                  ) : null}
                   {PRESETS.map((preset) => (
                     <button
                       key={preset}
                       type="button"
                       onClick={() => handleRun(preset)}
-                      disabled={loading}
+                      disabled={loading || (mounted && !isLoggedIn)}
                       className="rounded-full bg-[#eee8dc] px-4 py-3 text-sm font-bold text-zinc-600 transition hover:bg-[#e5dccb] disabled:opacity-60"
                     >
                       {preset}
@@ -777,12 +801,12 @@ export default function AiPage() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="找餐廳 問 ByteBites AI"
                 onKeyDown={(event) => event.key === "Enter" && !loading && handleRun(query)}
-                disabled={loading}
+                disabled={loading || (mounted && !isLoggedIn)}
                 className="h-11 flex-1 border-0 bg-transparent px-2 text-base shadow-none focus-visible:ring-0"
               />
               <Button
                 onClick={() => handleRun(query)}
-                disabled={loading || !query.trim()}
+                disabled={loading || !query.trim() || (mounted && !isLoggedIn)}
                 className="h-11 rounded-full bg-[#171512] px-5 font-black text-white hover:bg-black"
               >
                 {loading ? "..." : "送出"}

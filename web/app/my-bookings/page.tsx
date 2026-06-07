@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { javaApi, type MyBooking } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 declare global {
   interface Window {
@@ -83,6 +84,7 @@ function formatHoldCountdown(holdExpiresAt: string | null | undefined, nowMs: nu
 }
 
 export default function MyBookingsPage() {
+  const { isLoggedIn, login, mounted } = useAuth();
   const [bookings, setBookings] = useState<MyBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -95,7 +97,13 @@ export default function MyBookingsPage() {
   const [sdkReady, setSdkReady] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
-  const loadBookings = async () => {
+  const loadBookings = useCallback(async () => {
+    if (mounted && !isLoggedIn) {
+      setBookings([]);
+      setLoading(false);
+      setError("");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -112,11 +120,12 @@ export default function MyBookingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isLoggedIn, mounted]);
 
   useEffect(() => {
+    if (!mounted) return;
     void loadBookings();
-  }, []);
+  }, [loadBookings, mounted]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
@@ -345,18 +354,28 @@ export default function MyBookingsPage() {
               <h2 className="text-2xl font-black">訂位紀錄</h2>
               <p className="mt-1 text-sm text-zinc-500">付款完成後訂位成立；取消或逾期會釋放店家容量。</p>
             </div>
-            <Button variant="outline" onClick={loadBookings} disabled={loading}>
+            <Button variant="outline" onClick={loadBookings} disabled={loading || (mounted && !isLoggedIn)}>
               重新整理
             </Button>
           </div>
 
-          {error ? (
+          {mounted && !isLoggedIn ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-10 text-center">
+              <p className="text-lg font-black text-amber-950">請先用 LINE 登入</p>
+              <p className="mt-2 text-sm leading-6 text-amber-800">
+                訂位紀錄會綁定 LINE 帳號；登入後才能查看、付款與取消。
+              </p>
+              <Button onClick={login} className="mt-5 rounded-full bg-emerald-700 hover:bg-emerald-800">
+                用 LINE 登入
+              </Button>
+            </div>
+          ) : error ? (
             <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               {error}
             </div>
           ) : null}
 
-          {loading ? (
+          {mounted && !isLoggedIn ? null : loading ? (
             <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-5 py-10 text-center text-zinc-500">
               讀取訂位中...
             </div>

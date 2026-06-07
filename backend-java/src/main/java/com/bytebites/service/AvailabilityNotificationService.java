@@ -2,6 +2,7 @@ package com.bytebites.service;
 
 import com.bytebites.dto.Result;
 import com.bytebites.dto.UserDTO;
+import com.bytebites.service.jpa.UserJpaService;
 import com.bytebites.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,14 +27,15 @@ public class AvailabilityNotificationService {
 
     private final JdbcTemplate jdbcTemplate;
     private final LineNotificationClient lineNotificationClient;
+    private final UserJpaService userJpaService;
 
     public Result createWatch(Long shopId, LocalDate bookingDate, String time, String tableType, int people) {
         return createWatch(shopId, bookingDate, time, tableType, people, null);
     }
 
     public Result createWatch(Long shopId, LocalDate bookingDate, String time, String tableType, int people, String lineUserId) {
-        Long userId = currentUserIdOrNull();
-        if (userId == null) return Result.fail("請先登入或使用 demo mode");
+        Long userId = resolveOwnerId(lineUserId);
+        if (userId == null) return Result.fail("請先用 LINE 登入網頁，再回來設定空位通知");
         if (shopId == null) return Result.fail("shopId 必填");
         if (bookingDate == null) return Result.fail("date 必填");
         if (!bookingDate.isAfter(LocalDate.now(BUSINESS_ZONE))) return Result.fail("只能設定明天或之後的空位通知");
@@ -310,6 +312,16 @@ public class AvailabilityNotificationService {
     private Long currentUserIdOrNull() {
         UserDTO user = UserHolder.getUser();
         return user != null ? user.getId() : null;
+    }
+
+    private Long resolveOwnerId(String lineUserId) {
+        Long currentUserId = currentUserIdOrNull();
+        if (currentUserId != null) return currentUserId;
+        String normalizedLineUserId = normalizeLineUserId(lineUserId);
+        if (normalizedLineUserId == null) return null;
+        return userJpaService.findByLineId(normalizedLineUserId)
+                .map(user -> user.getId())
+                .orElse(null);
     }
 
     private String normalizeTime(String raw) {
