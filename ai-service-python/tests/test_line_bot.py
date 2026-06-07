@@ -48,6 +48,29 @@ def test_build_line_flex_message_limits_to_three_cards():
     assert bubbles[0]["body"]["contents"][1]["text"] == "店家 4"
 
 
+def test_build_line_flex_message_uses_table_reason_column():
+    message = build_line_flex_message(
+        shops=[
+            {
+                "shop_id": 10115,
+                "name": "辛殿麻辣鍋｜信義店",
+                "district": "信義",
+                "ai_summary": "備援摘要。",
+            }
+        ],
+        recommended_shop_ids=[10115],
+        answer=(
+            "| 店家 | 類型 | 推薦原因 |\n"
+            "|:---|:---|:---|\n"
+            "| 辛殿麻辣鍋｜信義店 | 吃到飽 | 高人氣麻辣鍋吃到飽，肉品與甜點評價極佳 |"
+        ),
+        public_web_url="https://bytebites.example.com",
+    )
+
+    reason = message["messages"][1]["contents"]["contents"][0]["body"]["contents"][7]["text"]
+    assert reason == "高人氣麻辣鍋吃到飽，肉品與甜點評價極佳"
+
+
 @pytest.mark.anyio
 async def test_reply_messages_returns_preview_when_disabled():
     result = await reply_messages(

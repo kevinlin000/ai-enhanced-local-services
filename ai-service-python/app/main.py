@@ -2432,10 +2432,18 @@ async def line_shop_detail(shop_id: int):
     address = _html_escape(str(shop.get("address") or ""))
     avg_price = shop.get("avgPrice") or shop.get("avg_price")
     phone = _html_escape(str(shop.get("phone") or ""))
-    body = f"""
+    photo = best_shop_photo_url(shop_id)
+    hero = (
+        f"""
       <div class="hero">
-        <img src="/line/photo/{shop_id}" onerror="this.style.display='none'" alt="{name}">
+        <img src="/line/photo/{shop_id}" alt="{name}">
       </div>
+        """
+        if photo
+        else '<div class="hero hero-fallback"><span>ByteBites</span></div>'
+    )
+    body = f"""
+      {hero}
       <main>
         <p class="eyebrow">ByteBites 推薦餐廳</p>
         <h1>{name}</h1>
@@ -2455,18 +2463,85 @@ async def line_shop_detail(shop_id: int):
 async def line_booking_entry(shop_id: int):
     shop = await _fetch_java_shop(shop_id)
     name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
+    tomorrow = taipei_today() + timedelta(days=1)
     body = f"""
       <main>
         <p class="eyebrow">ByteBites 訂位入口</p>
         <h1>{name}</h1>
         <section>
-          <h2>下一步</h2>
-          <p>目前 LINE 版先提供快速入口。請回到聊天室告訴我人數、日期與時間，例如「明天晚上 7 點 2 人」，我會協助建立訂位。</p>
+          <h2>填寫訂位資訊</h2>
+          <form class="booking-form" method="get" action="/line/book/{shop_id}/confirm">
+            <label>人數
+              <select name="people">
+                {''.join(f'<option value="{people}"{" selected" if people == 2 else ""}>{people} 人</option>' for people in range(1, 13))}
+              </select>
+            </label>
+            <label>日期
+              <input name="date" type="date" min="{tomorrow.isoformat()}" value="{tomorrow.isoformat()}" required>
+            </label>
+            <label>時間
+              <select name="time">
+                {''.join(f'<option value="{time}"{" selected" if time == "19:00" else ""}>{time}</option>' for time in ["11:30", "12:00", "12:30", "18:00", "18:30", "19:00", "19:30", "20:00"])}
+              </select>
+            </label>
+            <input type="hidden" name="tableType" value="normal">
+            <button class="primary" type="submit">送出訂位</button>
+          </form>
+        </section>
+        <a class="secondary" href="/line/shop/{shop_id}">查看店家資訊</a>
+      </main>
+    """
+    return HTMLResponse(_line_shell(f"{name} 訂位", body))
+
+
+@app.get("/line/book/{shop_id}/confirm", response_class=HTMLResponse)
+async def line_booking_confirm(shop_id: int, people: int = 2, date: str = "", time: str = "19:00", tableType: str = "normal"):
+    shop = await _fetch_java_shop(shop_id)
+    name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
+    error = _validate_line_booking(people, date, time, tableType)
+    if error:
+        return HTMLResponse(
+            _line_html_page(
+                "訂位資料需要修正",
+                error,
+                [("返回填寫", f"/line/book/{shop_id}"), ("查看店家資訊", f"/line/shop/{shop_id}")],
+            ),
+            status_code=400,
+        )
+
+    result = await _reserve_line_booking(shop_id, people, date, time, tableType)
+    if not result.get("success"):
+        message = str(result.get("errorMsg") or "訂位建立失敗，請稍後再試。")
+        return HTMLResponse(
+            _line_html_page(
+                "訂位未完成",
+                message,
+                [("重新填寫", f"/line/book/{shop_id}"), ("查看店家資訊", f"/line/shop/{shop_id}")],
+            ),
+            status_code=409,
+        )
+
+    booking = result.get("data") if isinstance(result.get("data"), dict) else {}
+    booking_code = _html_escape(str(booking.get("bookingCode") or ""))
+    status = _html_escape(str(booking.get("status") or "CONFIRMED"))
+    needs_deposit = bool(booking.get("needsDeposit"))
+    deposit_total = booking.get("depositTotal") or 0
+    deposit_note = f"<p>此訂位需要保留訂金 NT$ {deposit_total}，可回到 ByteBites 後續完成付款流程。</p>" if needs_deposit else "<p>目前不需要訂金。</p>"
+    body = f"""
+      <main>
+        <p class="eyebrow">ByteBites 訂位完成</p>
+        <h1>{name}</h1>
+        <section>
+          <h2>訂位資訊</h2>
+          <p>訂位編號：<strong>{booking_code}</strong></p>
+          <p>{_html_escape(date)} {_html_escape(time)} · {people} 人</p>
+          <p>狀態：{status}</p>
+          {deposit_note}
         </section>
         <a class="primary" href="/line/shop/{shop_id}">查看店家資訊</a>
       </main>
     """
-    return HTMLResponse(_line_shell(f"{name} 訂位", body))
+    return HTMLResponse(_line_shell(f"{name} 訂位完成", body))
 
 
 async def _build_line_reply_messages(event: dict) -> list[dict]:
@@ -2548,6 +2623,52 @@ async def _fetch_java_shop(shop_id: int) -> dict | None:
         return None
 
 
+def _validate_line_booking(people: int, booking_date: str, booking_time: str, table_type: str) -> str | None:
+    if people < 1 or people > 12:
+        return "訂位人數需介於 1 到 12 人。"
+    try:
+        parsed_date = date_cls.fromisoformat(str(booking_date))
+    except ValueError:
+        return "日期格式不正確，請重新選擇。"
+    if parsed_date <= taipei_today():
+        return "今天不可訂位，最早可訂明天。"
+    try:
+        datetime.strptime(str(booking_time), "%H:%M")
+    except ValueError:
+        return "時間格式不正確，請重新選擇。"
+    if table_type not in {"normal", "bar", "private"}:
+        return "座位類型不正確，請重新選擇。"
+    return None
+
+
+async def _reserve_line_booking(shop_id: int, people: int, booking_date: str, booking_time: str, table_type: str) -> dict:
+    idempotency_key = f"line-form:{shop_id}:{people}:{booking_date}:{booking_time}:{table_type}"
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            response = await client.post(
+                f"{settings.java_backend_url}/api/booking/reserve",
+                headers={"X-Demo-Mode": "true"},
+                json={
+                    "shopId": shop_id,
+                    "people": people,
+                    "date": booking_date,
+                    "time": booking_time,
+                    "tableType": table_type,
+                    "idempotencyKey": idempotency_key,
+                },
+            )
+    except Exception:
+        logger.exception("line_booking_reserve_failed shop_id=%s", shop_id)
+        return {"success": False, "errorMsg": "後端訂位服務暫時無法連線，請稍後再試。"}
+    try:
+        payload = response.json()
+    except Exception:
+        return {"success": False, "errorMsg": "後端訂位服務回傳格式異常。"}
+    if response.status_code >= 400:
+        return {"success": False, "errorMsg": payload.get("errorMsg") or "後端訂位服務暫時無法完成。"}
+    return payload
+
+
 def _line_shell(title: str, body: str) -> str:
     return f"""<!doctype html>
 <html lang="zh-Hant">
@@ -2559,6 +2680,7 @@ def _line_shell(title: str, body: str) -> str:
     body {{ margin:0; background:#f7f3ec; color:#171512; font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif; }}
     .hero {{ width:100%; aspect-ratio:16/10; overflow:hidden; background:#e8e1d5; }}
     .hero img {{ width:100%; height:100%; object-fit:cover; display:block; }}
+    .hero-fallback {{ display:flex; align-items:center; justify-content:center; color:#16833a; font-size:18px; font-weight:900; letter-spacing:.12em; }}
     main {{ padding:24px 20px 36px; }}
     .eyebrow {{ margin:0 0 8px; color:#16833a; font-size:12px; font-weight:800; letter-spacing:.08em; }}
     h1 {{ margin:0; font-size:30px; line-height:1.18; letter-spacing:-.03em; }}
@@ -2566,7 +2688,14 @@ def _line_shell(title: str, body: str) -> str:
     .meta {{ margin-top:10px; color:#6f6a62; font-weight:700; }}
     section {{ margin-top:22px; padding:16px; border:1px solid rgba(0,0,0,.08); border-radius:14px; background:rgba(255,255,255,.72); }}
     p {{ line-height:1.7; }}
-    .primary {{ display:flex; align-items:center; justify-content:center; margin-top:22px; min-height:48px; border-radius:14px; background:#16833a; color:#fff; font-weight:900; text-decoration:none; }}
+    .booking-form {{ display:grid; gap:14px; margin-top:12px; }}
+    label {{ display:grid; gap:6px; color:#514d47; font-size:13px; font-weight:800; }}
+    input, select {{ min-height:48px; border:1px solid rgba(0,0,0,.14); border-radius:12px; background:#fff; color:#171512; font:inherit; font-size:16px; padding:0 12px; }}
+    button {{ border:0; font:inherit; cursor:pointer; }}
+    .primary, .secondary {{ display:flex; align-items:center; justify-content:center; margin-top:22px; min-height:52px; border-radius:14px; font-weight:900; text-decoration:none; width:100%; box-sizing:border-box; }}
+    .primary {{ background:#16833a; color:#fff; }}
+    .secondary {{ background:#e3e5e9; color:#171512; }}
+    strong {{ font-weight:900; }}
   </style>
 </head>
 <body>{body}</body>

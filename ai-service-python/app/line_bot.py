@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,22 @@ MAX_LINE_MESSAGES = 5
 MAX_FLEX_CARDS = 3
 
 _SHOP_MEDIA_CACHE: dict[str, Any] | None = None
+_COVER_INDEX_OVERRIDES: dict[int, int] = {
+    10100: 0,
+    10104: 0,
+    10108: 2,
+    10111: 2,
+    10112: 0,
+    10115: 1,
+    10127: 1,
+    10131: 3,
+    10147: 3,
+    10149: 2,
+    10152: 0,
+    10158: 4,
+    10169: 3,
+    10171: 4,
+}
 
 
 def verify_line_signature(
@@ -62,9 +79,7 @@ def build_line_flex_message(
     alt_text = f"ByteBites 推薦：{names}" if names else "ByteBites 餐廳推薦"
 
     messages: list[dict[str, Any]] = []
-    intro = _compact_answer_for_line(answer)
-    if intro:
-        messages.append(build_text_message(intro))
+    messages.append(build_text_message(_line_recommendation_intro(len(bubbles))))
     if bubbles:
         messages.append(
             {
@@ -281,8 +296,43 @@ def _best_shop_photo(shop_id: int) -> str | None:
     shop = (payload.get("shops") or {}).get(str(shop_id))
     if not isinstance(shop, dict):
         return None
-    urls = [url for url in [*(shop.get("galleryUrls") or []), *(shop.get("photoUrls") or [])] if url]
-    return urls[0] if urls else None
+    urls = _dedupe_urls([url for url in [*(shop.get("galleryUrls") or []), *(shop.get("photoUrls") or [])] if url])
+    override_index = _COVER_INDEX_OVERRIDES.get(shop_id)
+    if override_index is not None and override_index < len(urls):
+        return urls[override_index]
+    cover_url = shop.get("coverUrl")
+    if isinstance(cover_url, str) and cover_url.strip():
+        return cover_url.strip()
+    if not urls:
+        return None
+    return sorted(urls, key=_photo_score, reverse=True)[0]
+
+
+def _dedupe_urls(urls: list[str]) -> list[str]:
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for url in urls:
+        normalized = str(url).strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped.append(normalized)
+    return deduped
+
+
+def _photo_score(url: str) -> int:
+    score = 0
+    size = re.search(r"=w(\d+)-h(\d+)-", url)
+    if size:
+        width = int(size.group(1))
+        height = int(size.group(2))
+        if width > height:
+            score += 6
+        if width / max(height, 1) >= 1.3:
+            score += 4
+        if width >= 600:
+            score += 2
+    return score
 
 
 def _load_shop_media() -> dict[str, Any]:
@@ -318,7 +368,13 @@ def _compact_answer_for_line(answer: str) -> str:
     cleaned = " ".join(kept)
     if not cleaned:
         return "我先幫你整理 3 間符合需求的餐廳，請左右滑動查看卡片。"
-    return _truncate(cleaned, 180)
+    return _truncate(cleaned.replace("**", ""), 180)
+
+
+def _line_recommendation_intro(count: int) -> str:
+    if count <= 0:
+        return "我需要再多一點條件，才能幫你推薦餐廳。"
+    return f"我先幫你整理 {count} 間符合需求的餐廳。請左右滑動查看卡片，點「查看詳情」看店家資訊，點「直接訂位」填寫人數與時間。"
 
 
 def _recommendation_reason_for_shop(shop: dict, answer: str) -> str:
@@ -339,8 +395,9 @@ def _recommendation_reason_for_shop(shop: dict, answer: str) -> str:
         if len(cells) < 2:
             continue
         if any(alias and alias in cells[0] for alias in aliases):
-            reason = cells[1]
-            if reason and "推薦理由" not in reason:
+            reason = cells[2] if len(cells) >= 3 else cells[1]
+            reason = reason.replace("**", "").strip()
+            if reason and "推薦" not in reason:
                 return _truncate(reason, 140)
 
     summary = str(shop.get("ai_summary") or "").strip()
