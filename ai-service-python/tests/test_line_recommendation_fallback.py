@@ -48,3 +48,101 @@ async def test_line_reply_falls_back_to_flex_when_agent_skips_search(monkeypatch
     assert messages[1]["type"] == "flex"
     bubble = messages[1]["contents"]["contents"][0]
     assert bubble["body"]["contents"][1]["text"] == "橘色涮涮屋 信義館"
+
+
+def test_line_detail_helpers_use_manifest_reviews_and_photo_fallbacks(monkeypatch):
+    monkeypatch.setattr(
+        main,
+        "_LINE_MEDIA_CACHE",
+        {
+            "shops": {
+                "123": {
+                    "galleryUrls": ["https://img.example/a.jpg", "https://img.example/b.jpg"],
+                    "photoUrls": ["https://img.example/b.jpg", "https://img.example/c.jpg"],
+                    "reviews": [
+                        {"author": "A", "rating": 5, "text": "湯頭細緻，肉品和海鮮都有水準。"},
+                        {"author": "B", "rating": 3, "text": "尖峰時段上菜稍慢，建議避開熱門時間。"},
+                    ],
+                }
+            }
+        },
+    )
+    monkeypatch.setattr(main, "best_shop_photo_url", lambda shop_id: "https://img.example/cover.jpg")
+
+    candidates = main._line_photo_candidates(123)
+    assert candidates == [
+        "https://img.example/cover.jpg",
+        "https://img.example/a.jpg",
+        "https://img.example/b.jpg",
+        "https://img.example/c.jpg",
+    ]
+
+    html = main._line_review_html(main._line_review_groups(123))
+    assert "精選正負評" in html
+    assert "正面摘要" in html
+    assert "需要留意" in html
+    assert "湯頭細緻" in html
+
+    map_url = main._line_google_maps_uri("辛殿麻辣鍋", "台北市信義區")
+    assert map_url.startswith("https://www.google.com/maps/search/")
+    assert "query=" in map_url
+
+
+@pytest.mark.anyio
+async def test_line_shop_detail_renders_concierge_sections(monkeypatch):
+    async def fake_fetch_shop(shop_id: int):
+        return {
+            "id": shop_id,
+            "name": "辛殿麻辣鍋｜信義店",
+            "district": "信義區",
+            "mrtStation": "市政府",
+            "address": "台北市信義區松壽路",
+            "avgPrice": 900,
+            "score": 4.2,
+            "comments": 5500,
+            "businessHours": "週一至週日 11:30-22:00",
+        }
+
+    async def fake_fetch_metadata(shop_id: int):
+        return {
+            "aiSummary": "麻辣鍋吃到飽，肉品、海鮮與甜點選擇完整。",
+            "signatureDishes": '["麻辣鍋", "海鮮拼盤"]',
+            "atmosphereTags": '["聚餐", "信義商圈"]',
+            "openingHours": '["週一至週日 11:30-22:00"]',
+            "pricePerPerson": "NT$ 900",
+            "bookingDifficulty": "建議提前訂位",
+            "phone": "02-1234-5678",
+        }
+
+    async def fake_fetch_policy(shop_id: int):
+        return {"needsDeposit": True, "depositPerPerson": 300, "reason": "熱門時段保留座位"}
+
+    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_shop)
+    monkeypatch.setattr(main, "_fetch_java_ai_metadata", fake_fetch_metadata)
+    monkeypatch.setattr(main, "_fetch_java_booking_policy", fake_fetch_policy)
+    monkeypatch.setattr(main, "_line_photo_candidates", lambda shop_id: ["https://img.example/cover.jpg"])
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+    monkeypatch.setattr(
+        main,
+        "_LINE_MEDIA_CACHE",
+        {
+            "shops": {
+                "10115": {
+                    "reviews": [
+                        {"author": "A", "rating": 5, "text": "湯頭與肉品表現穩定。"},
+                        {"author": "B", "rating": 3, "text": "尖峰時段要注意等候。"},
+                    ]
+                }
+            }
+        },
+    )
+
+    response = await main.line_shop_detail(10115)
+    html = response.body.decode("utf-8")
+
+    assert "/line/photo/10115" in html
+    assert "推薦依據" in html
+    assert "精選正負評" in html
+    assert "訂金與訂位規則" in html
+    assert "Google 地圖開啟" in html
+    assert "填日期人數" in html
