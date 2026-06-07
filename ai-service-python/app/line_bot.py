@@ -16,6 +16,7 @@ LINE_REPLY_ENDPOINT = "https://api.line.me/v2/bot/message/reply"
 LINE_LOADING_ENDPOINT = "https://api.line.me/v2/bot/chat/loading/start"
 MAX_LINE_MESSAGES = 5
 MAX_FLEX_CARDS = 3
+LINE_PHOTO_VERSION = "20260607b"
 
 _SHOP_MEDIA_CACHE: dict[str, Any] | None = None
 _COVER_INDEX_OVERRIDES: dict[int, int] = {
@@ -288,7 +289,7 @@ def _shop_image_uri(shop_id: int, public_web_url: str) -> str | None:
     raw_url = _best_shop_photo(shop_id)
     if not raw_url:
         return None
-    return _web_uri(public_web_url, f"/line/photo/{shop_id}")
+    return _web_uri(public_web_url, f"/line/photo/{shop_id}?v={LINE_PHOTO_VERSION}")
 
 
 def _best_shop_photo(shop_id: int) -> str | None:

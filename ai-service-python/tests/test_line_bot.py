@@ -71,6 +71,18 @@ def test_build_line_flex_message_uses_table_reason_column():
     assert reason == "高人氣麻辣鍋吃到飽，肉品與甜點評價極佳"
 
 
+def test_build_line_flex_message_versions_photo_url():
+    message = build_line_flex_message(
+        shops=[{"shop_id": 10115, "name": "辛殿麻辣鍋｜信義店"}],
+        recommended_shop_ids=[10115],
+        answer="",
+        public_web_url="https://bytebites.example.com",
+    )
+
+    hero_url = message["messages"][1]["contents"]["contents"][0]["hero"]["url"]
+    assert hero_url.startswith("https://bytebites.example.com/line/photo/10115?v=")
+
+
 @pytest.mark.anyio
 async def test_reply_messages_returns_preview_when_disabled():
     result = await reply_messages(

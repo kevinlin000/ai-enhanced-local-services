@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.guardrail import GuardrailViolation, check_input, filter_output
 from app.line_bot import (
+    LINE_PHOTO_VERSION,
     best_shop_photo_url,
     build_line_flex_message,
     build_text_message,
@@ -59,6 +60,7 @@ ai_requests = PromCounter("bytebites_ai_requests_total", "AI endpoint requests",
 ai_tokens = PromCounter("bytebites_ai_tokens_total", "Gemini token usage", ["model", "kind"])
 ai_latency = Histogram("bytebites_ai_latency_seconds", "AI endpoint latency", ["endpoint"])
 logger = logging.getLogger("bytebites.ai")
+LINE_RECOMMENDATION_TTL_SECONDS = 1800
 
 
 def taipei_today() -> date_cls:
@@ -2418,7 +2420,7 @@ async def line_shop_photo(shop_id: int):
     return Response(
         upstream.content,
         media_type=upstream.headers.get("content-type") or "image/jpeg",
-        headers={"Cache-Control": "public, max-age=86400"},
+        headers={"Cache-Control": "no-store, max-age=0"},
     )
 
 
@@ -2433,10 +2435,11 @@ async def line_shop_detail(shop_id: int):
     avg_price = shop.get("avgPrice") or shop.get("avg_price")
     phone = _html_escape(str(shop.get("phone") or ""))
     photo = best_shop_photo_url(shop_id)
+    image_uri = _line_public_uri(f"/line/photo/{shop_id}?v={LINE_PHOTO_VERSION}") if photo else ""
     hero = (
         f"""
       <div class="hero">
-        <img src="/line/photo/{shop_id}" alt="{name}">
+        <img src="{image_uri}" alt="{name}">
       </div>
         """
         if photo
@@ -2544,6 +2547,113 @@ async def line_booking_confirm(shop_id: int, people: int = 2, date: str = "", ti
     return HTMLResponse(_line_shell(f"{name} 訂位完成", body))
 
 
+async def _build_line_more_recommendations(user_text: str, user_id: str) -> list[dict] | None:
+    if not _line_more_recommendation_intent(user_text):
+        return None
+    state = _load_line_recommendation_state(user_id)
+    previous_query = str(state.get("query") or "").strip()
+    if not previous_query:
+        return [build_text_message("可以，請先告訴我想找的地點和類型，例如「信義區火鍋」或「中山站聚餐」。")]
+
+    seen_ids = {
+        int(shop_id)
+        for shop_id in state.get("shown_shop_ids", [])
+        if str(shop_id).isdigit()
+    }
+    try:
+        shops = await _semantic_hits(previous_query, top_k=30)
+    except Exception:
+        logger.exception("line_more_search_failed user_id=%s query=%s", user_id, previous_query)
+        return [build_text_message("我暫時無法取得更多餐廳，請稍後再試一次。")]
+
+    remaining = [
+        shop
+        for shop in shops
+        if (sid := _shop_id(shop)) is not None and sid not in seen_ids
+    ]
+    if not remaining:
+        return [build_text_message("目前同一個條件下沒有更多明顯符合的餐廳了。你可以放寬地區或換一個類型，我再幫你找。")]
+
+    selected_ids = [
+        int(sid)
+        for shop in remaining[:3]
+        if (sid := _shop_id(shop)) is not None
+    ]
+    _save_line_recommendation_state(
+        user_id,
+        query=previous_query,
+        shown_shop_ids=[*seen_ids, *selected_ids],
+    )
+    flex_or_bundle = build_line_flex_message(
+        shops=remaining,
+        recommended_shop_ids=selected_ids,
+        answer="",
+        public_web_url=settings.line_public_web_url,
+    )
+    messages = flex_or_bundle.get("messages") if flex_or_bundle.get("type") == "_bundle" else [flex_or_bundle]
+    return messages or [build_text_message("我找到更多候選，但 LINE 卡片暫時無法產生，請再試一次。")]
+
+
+def _line_more_recommendation_intent(text: str) -> bool:
+    normalized = str(text or "").strip().lower()
+    return any(
+        phrase in normalized
+        for phrase in (
+            "還有嗎",
+            "還有沒有",
+            "還有其他",
+            "更多",
+            "別家",
+            "其他家",
+            "不要這",
+            "不想要這",
+            "換一家",
+            "換幾家",
+        )
+    )
+
+
+def _line_recommendation_state_key(user_id: str) -> str:
+    return f"line:recommendation:{user_id}"
+
+
+def _load_line_recommendation_state(user_id: str) -> dict:
+    try:
+        raw = session_store.client().get(_line_recommendation_state_key(user_id))
+    except Exception:
+        logger.exception("line_recommendation_state_load_failed user_id=%s", user_id)
+        return {}
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _save_line_recommendation_state(user_id: str, query: str, shown_shop_ids: list[int]) -> None:
+    deduped: list[int] = []
+    for shop_id in shown_shop_ids:
+        try:
+            sid = int(shop_id)
+        except (TypeError, ValueError):
+            continue
+        if sid not in deduped:
+            deduped.append(sid)
+    try:
+        session_store.client().setex(
+            _line_recommendation_state_key(user_id),
+            LINE_RECOMMENDATION_TTL_SECONDS,
+            json.dumps(
+                {"query": query, "shown_shop_ids": deduped[-60:]},
+                ensure_ascii=False,
+            ),
+        )
+    except Exception:
+        logger.exception("line_recommendation_state_save_failed user_id=%s", user_id)
+
+
 async def _build_line_reply_messages(event: dict) -> list[dict]:
     event_type = event.get("type")
     source = event.get("source") or {}
@@ -2576,6 +2686,10 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     if not user_text:
         return [build_text_message("我沒看到文字內容，可以再傳一次餐廳需求嗎？")]
 
+    more_messages = await _build_line_more_recommendations(user_text, user_id)
+    if more_messages is not None:
+        return more_messages
+
     if source.get("type") == "user":
         await show_loading_animation(
             user_id=user_id,
@@ -2603,8 +2717,21 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
             public_web_url=settings.line_public_web_url,
         )
         if flex_or_bundle.get("type") == "_bundle":
-            return flex_or_bundle.get("messages") or []
-        return [flex_or_bundle]
+            messages = flex_or_bundle.get("messages") or []
+        else:
+            messages = [flex_or_bundle]
+        shown_ids = (
+            [int(shop_id) for shop_id in recommended_ids if str(shop_id).isdigit()]
+            if isinstance(recommended_ids, list)
+            else [
+                int(sid)
+                for shop in shops[:3]
+                if (sid := _shop_id(shop)) is not None
+            ]
+        )
+        _save_line_recommendation_state(user_id, query=user_text, shown_shop_ids=shown_ids)
+        if messages:
+            return messages
 
     return [build_text_message(answer or "我需要再多一點條件，才能幫你推薦餐廳。")]
 
@@ -2669,12 +2796,21 @@ async def _reserve_line_booking(shop_id: int, people: int, booking_date: str, bo
     return payload
 
 
+def _line_public_uri(path: str) -> str:
+    base = settings.line_public_web_url.rstrip("/")
+    if not path.startswith("/"):
+        path = f"/{path}"
+    return f"{base}{path}"
+
+
 def _line_shell(title: str, body: str) -> str:
     return f"""<!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store">
+  <meta http-equiv="Pragma" content="no-cache">
   <title>{_html_escape(title)}</title>
   <style>
     body {{ margin:0; background:#f7f3ec; color:#171512; font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif; }}
