@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import httpx
 from dataclasses import dataclass, field
 from datetime import date as date_cls, datetime, timedelta
@@ -63,6 +64,7 @@ ai_tokens = PromCounter("bytebites_ai_tokens_total", "Gemini token usage", ["mod
 ai_latency = Histogram("bytebites_ai_latency_seconds", "AI endpoint latency", ["endpoint"])
 logger = logging.getLogger("bytebites.ai")
 LINE_RECOMMENDATION_TTL_SECONDS = 1800
+LINE_LOCATION_TTL_SECONDS = 1800
 _LINE_MEDIA_CACHE: dict | None = None
 PREMIUM_HOTPOT_SUPPLEMENT_IDS = (10009,)
 
@@ -2904,6 +2906,72 @@ def _save_line_recommendation_state(user_id: str, query: str, shown_shop_ids: li
         logger.exception("line_recommendation_state_save_failed user_id=%s", user_id)
 
 
+def _line_location_state_key(user_id: str) -> str:
+    return f"line:location:{user_id}"
+
+
+def _load_line_location_state(user_id: str) -> dict:
+    try:
+        raw = session_store.client().get(_line_location_state_key(user_id))
+    except Exception:
+        logger.exception("line_location_state_load_failed user_id=%s", user_id)
+        return {}
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _save_line_location_state(user_id: str, message: dict) -> dict:
+    state = {
+        "title": str(message.get("title") or "").strip(),
+        "address": str(message.get("address") or "").strip(),
+        "latitude": message.get("latitude"),
+        "longitude": message.get("longitude"),
+    }
+    try:
+        session_store.client().setex(
+            _line_location_state_key(user_id),
+            LINE_LOCATION_TTL_SECONDS,
+            json.dumps(state, ensure_ascii=False),
+        )
+    except Exception:
+        logger.exception("line_location_state_save_failed user_id=%s", user_id)
+    return state
+
+
+def _line_effective_text_with_location(user_text: str, location_state: dict) -> str:
+    location_text = _line_location_text(location_state)
+    if not location_text:
+        return user_text
+    if _line_text_has_explicit_location(user_text):
+        return user_text
+    return f"{location_text}附近，{user_text}"
+
+
+def _line_location_text(location_state: dict) -> str:
+    address = str(location_state.get("address") or "").strip()
+    title = str(location_state.get("title") or "").strip()
+    if address:
+        return address
+    if title and title != "你分享的位置":
+        return title
+    return ""
+
+
+def _line_text_has_explicit_location(text: str) -> bool:
+    return bool(
+        re.search(
+            r"(台北|新北|基隆|桃園|新竹|台中|台南|高雄|宜蘭|花蓮|台東|澎湖|金門|馬祖|"
+            r"[^\s，,。；;]{1,8}(區|市|縣|站|路|街|巷|商圈|夜市|百貨|附近))",
+            text,
+        )
+    )
+
+
 async def _build_line_reply_messages(event: dict) -> list[dict]:
     event_type = event.get("type")
     source = event.get("source") or {}
@@ -2922,8 +2990,9 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     message = event.get("message") or {}
     message_type = message.get("type")
     if message_type == "location":
-        title = message.get("title") or "你分享的位置"
-        address = message.get("address") or ""
+        state = _save_line_location_state(user_id, message)
+        title = state.get("title") or "你分享的位置"
+        address = state.get("address") or ""
         return [
             build_text_message(
                 f"我收到位置了：{title} {address}\n接著告訴我想吃什麼或用餐情境，我會用這個位置附近幫你找。"
@@ -2935,6 +3004,10 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     user_text = str(message.get("text") or "").strip()
     if not user_text:
         return [build_text_message("我沒看到文字內容，可以再傳一次餐廳需求嗎？")]
+    effective_user_text = _line_effective_text_with_location(
+        user_text,
+        _load_line_location_state(user_id),
+    )
 
     more_messages = await _build_line_more_recommendations(user_text, user_id)
     if more_messages is not None:
@@ -2949,8 +3022,8 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
         )
 
     try:
-        check_input(user_text)
-        answer, _tools_used, tool_result = await _run_agent_turn(user_text, f"line:{user_id}")
+        check_input(effective_user_text)
+        answer, _tools_used, tool_result = await _run_agent_turn(effective_user_text, f"line:{user_id}")
     except GuardrailViolation:
         return [build_text_message("這個內容我不能協助處理。可以換一個餐廳或訂位相關的問法。")]
     except Exception:
@@ -2979,11 +3052,11 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
                 if (sid := _shop_id(shop)) is not None
             ]
         )
-        _save_line_recommendation_state(user_id, query=user_text, shown_shop_ids=shown_ids)
+        _save_line_recommendation_state(user_id, query=effective_user_text, shown_shop_ids=shown_ids)
         if messages:
             return messages
 
-    fallback_messages = await _build_line_fallback_recommendation_cards(user_text, user_id)
+    fallback_messages = await _build_line_fallback_recommendation_cards(effective_user_text, user_id)
     if fallback_messages:
         return fallback_messages
 

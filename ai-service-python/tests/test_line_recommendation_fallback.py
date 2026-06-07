@@ -14,6 +14,16 @@ def test_line_force_recommendation_cards_skips_booking_and_payment_queries():
     assert not _line_should_force_recommendation_cards("我要付款訂金")
 
 
+def test_line_location_context_merges_into_nearby_text():
+    state = {"title": "台北101", "address": "台北市信義區市府路45號"}
+
+    assert (
+        main._line_effective_text_with_location("附近高級火鍋", state)
+        == "台北市信義區市府路45號附近，附近高級火鍋"
+    )
+    assert main._line_effective_text_with_location("中山站附近火鍋", state) == "中山站附近火鍋"
+
+
 @pytest.mark.anyio
 async def test_line_reply_falls_back_to_flex_when_agent_skips_search(monkeypatch):
     async def fake_run_agent_turn(query: str, session_id: str):
@@ -48,6 +58,45 @@ async def test_line_reply_falls_back_to_flex_when_agent_skips_search(monkeypatch
     assert messages[1]["type"] == "flex"
     bubble = messages[1]["contents"]["contents"][0]
     assert bubble["body"]["contents"][1]["text"] == "橘色涮涮屋 信義館"
+
+
+@pytest.mark.anyio
+async def test_line_text_uses_saved_location_context(monkeypatch):
+    captured = {}
+
+    async def fake_run_agent_turn(query: str, session_id: str):
+        captured["query"] = query
+        return "我推薦橘色涮涮屋。", [], {}
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        captured["fallback_query"] = query
+        return [
+            {
+                "shop_id": 10009,
+                "name": "橘色涮涮屋 信義館",
+                "district": "信義區",
+                "mrt_station": "市政府",
+                "avg_price": 1200,
+                "ai_summary": "精緻涮涮屋路線。",
+            }
+        ]
+
+    monkeypatch.setattr(main, "_load_line_location_state", lambda user_id: {"address": "台北市信義區市府路45號"})
+    monkeypatch.setattr(main, "_run_agent_turn", fake_run_agent_turn)
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "附近高級火鍋"},
+        }
+    )
+
+    assert captured["query"] == "台北市信義區市府路45號附近，附近高級火鍋"
+    assert messages[0]["type"] == "text"
 
 
 def test_line_detail_helpers_use_manifest_reviews_and_photo_fallbacks(monkeypatch):
