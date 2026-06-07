@@ -90,6 +90,53 @@ def test_prefer_rich_hits_filters_low_detail_seed_when_possible():
 
 
 @pytest.mark.anyio
+async def test_web_agent_stream_forces_cards_when_model_skips_search(monkeypatch):
+    class EmptyResponse:
+        text = "我先用文字推薦青花驕。"
+
+        class Candidate:
+            class Content:
+                parts = []
+
+            content = Content()
+
+        candidates = [Candidate()]
+
+    async def fake_tool_semantic_search(query: str):
+        return {
+            "shops": [
+                {"shop_id": 10022, "name": "青花驕 中山北店", "district": "中山區"},
+                {"shop_id": 10123, "name": "海霸王 中山店", "district": "中山"},
+            ]
+        }
+
+    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: EmptyResponse())
+    monkeypatch.setattr(main, "tool_semantic_search", fake_tool_semantic_search)
+    monkeypatch.setattr(
+        main,
+        "_build_agent_recommendation_decision",
+        lambda query, tool_result: main.AgentRecommendationDecision(
+            recommended_shop_ids=[10022, 10123],
+            narrative="我推薦青花驕與海霸王。",
+            rejected_shop_ids=[],
+        ),
+    )
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "推薦中山區的中式餐廳",
+            "test-web-stream",
+        )
+    ]
+
+    done = events[-1]
+    assert "semantic_shop_search" in done["tools_used"]
+    assert done["recommended_shop_ids"] == [10022, 10123]
+    assert [shop["shop_id"] for shop in done["tool_result"]["shops"]] == [10022, 10123]
+
+
+@pytest.mark.anyio
 async def test_line_reply_falls_back_to_flex_when_agent_skips_search(monkeypatch):
     async def fake_run_agent_turn(query: str, session_id: str):
         return "我推薦橘色涮涮屋。", [], {}

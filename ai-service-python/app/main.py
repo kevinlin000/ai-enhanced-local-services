@@ -2445,6 +2445,25 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
 
         if not function_call:
             if not state.tools_used:
+                if _line_should_force_recommendation_cards(query):
+                    tool_name = "semantic_shop_search"
+                    tool_args = {"query": query}
+                    yield {
+                        "type": "tool_execution_start",
+                        "name": tool_name,
+                        "args": tool_args,
+                        "session_id": session_id,
+                    }
+                    tool_result = await tool_semantic_search(query)
+                    _after_tool_call(state, tool_name, tool_result)
+                    yield {
+                        "type": "tool_execution_end",
+                        "name": tool_name,
+                        "result_summary": _tool_result_summary(tool_result),
+                        "session_id": session_id,
+                    }
+                    yield {"type": "tool", "name": tool_name}
+                    break
                 # Zero tool calls — answer already computed; fast path, chunk as-is
                 direct_answer = filter_output(response.text)
                 if _booking_intent(query):
