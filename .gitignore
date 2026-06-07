@@ -93,6 +93,7 @@ docs/codex-task-*.md
 docs/cc-task-*.md
 
 # Reviews scraper tooling (data + secrets out; scripts in)
+/reviews.db
 tools/reviews-scraper/reviews.db
 tools/reviews-scraper/reviews.db-*
 tools/reviews-scraper/google_reviews.json
