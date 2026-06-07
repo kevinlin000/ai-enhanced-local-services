@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import json
 
 import pytest
 
@@ -78,6 +79,8 @@ def test_build_line_flex_message_reason_uses_features_not_booking_status():
                 "shop_id": 10009,
                 "name": "橘色涮涮屋 信義館",
                 "district": "信義區",
+                "mrt_station": "市政府",
+                "category": "hotpot",
                 "avg_price": 1200,
                 "booking_difficulty": "預約困難",
                 "signature_dishes": ["頂級肉品", "海鮮套餐", "杏仁豆腐"],
@@ -95,9 +98,16 @@ def test_build_line_flex_message_reason_uses_features_not_booking_status():
         if item.get("type") == "text"
     ]
     joined = " ".join(texts)
+    payload = json.dumps(message, ensure_ascii=False)
     assert "預約困難" not in joined
     assert "頂級肉品" in joined
     assert "海鮮套餐" in joined
+    assert "為什麼適合你" in payload
+    assert "信義區" in payload
+    assert "火鍋" in payload
+    assert "高級路線" in payload
+    assert "看完整分析" in payload
+    assert "填日期人數" in payload
 
 
 def test_build_line_flex_message_versions_photo_url():

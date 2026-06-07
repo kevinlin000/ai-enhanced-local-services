@@ -216,14 +216,14 @@ def _build_shop_bubble(shop: dict, rank: int, public_web_url: str, answer: str) 
     mrt = str(shop.get("mrt_station") or "")
     price = str(shop.get("price_per_person") or (f"NT$ {shop.get('avg_price')}" if shop.get("avg_price") else "價位未標示"))
     summary = _recommendation_reason_for_shop(shop, answer)
-    tags = [str(tag) for tag in (shop.get("atmosphere_tags") or [])[:2]]
-    dishes = [str(dish) for dish in (shop.get("signature_dishes") or [])[:2]]
+    decision_points = _line_decision_points(shop)
+    match_chips = _line_match_chips(shop)
     detail_uri = _web_uri(public_web_url, f"/line/shop/{shop_id}") if shop_id else _web_uri(public_web_url, "/line/shop")
     reserve_uri = _web_uri(public_web_url, f"/line/book/{shop_id}") if shop_id else detail_uri
     image_uri = _shop_image_uri(shop_id, public_web_url)
 
     body_contents: list[dict[str, Any]] = [
-        {"type": "text", "text": f"No.{rank}", "size": "xs", "color": "#16833a", "weight": "bold"},
+        {"type": "text", "text": f"BYTEBITES PICK {rank}", "size": "xs", "color": "#16833a", "weight": "bold"},
         {"type": "text", "text": _truncate(name, 46), "size": "lg", "weight": "bold", "wrap": True},
         {
             "type": "text",
@@ -233,27 +233,55 @@ def _build_shop_bubble(shop: dict, rank: int, public_web_url: str, answer: str) 
             "wrap": True,
             "margin": "sm",
         },
-        {"type": "text", "text": price, "size": "sm", "color": "#666666", "wrap": True},
-        {"type": "separator", "margin": "md"},
-        {"type": "text", "text": "推薦理由", "size": "sm", "weight": "bold", "margin": "md"},
-        {"type": "text", "text": _truncate(summary, 140), "size": "sm", "color": "#333333", "wrap": True},
     ]
-    highlights = [*dishes, *tags]
-    if highlights:
+
+    if match_chips:
         body_contents.append(
             {
-                "type": "text",
-                "text": "亮點：" + "、".join(highlights[:3]),
-                "size": "xs",
-                "color": "#16833a",
-                "wrap": True,
+                "type": "box",
+                "layout": "horizontal",
+                "spacing": "xs",
                 "margin": "md",
+                "contents": [_line_chip(label) for label in match_chips[:3]],
             }
         )
+
+    body_contents.extend(
+        [
+            {"type": "separator", "margin": "md"},
+            {"type": "text", "text": "為什麼適合你", "size": "sm", "weight": "bold", "margin": "md"},
+            {"type": "text", "text": _truncate(summary, 120), "size": "sm", "color": "#333333", "wrap": True},
+        ]
+    )
+
+    if decision_points:
+        body_contents.append(
+            {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "xs",
+                "margin": "md",
+                "contents": [_line_decision_row(point) for point in decision_points[:2]],
+            }
+        )
+
+    body_contents.append(
+        {
+            "type": "text",
+            "text": f"{price}。完整評論、電話與營業時間在詳情頁。",
+            "size": "xs",
+            "color": "#777777",
+            "wrap": True,
+            "margin": "md",
+        }
+    )
 
     bubble: dict[str, Any] = {
         "type": "bubble",
         "size": "mega",
+        "styles": {
+            "footer": {"separator": True},
+        },
         "body": {
             "type": "box",
             "layout": "vertical",
@@ -269,13 +297,13 @@ def _build_shop_bubble(shop: dict, rank: int, public_web_url: str, answer: str) 
                     "type": "button",
                     "style": "primary",
                     "height": "sm",
-                    "action": {"type": "uri", "label": "查看詳情", "uri": detail_uri},
+                    "action": {"type": "uri", "label": "看完整分析", "uri": detail_uri},
                 },
                 {
                     "type": "button",
                     "style": "secondary",
                     "height": "sm",
-                    "action": {"type": "uri", "label": "直接訂位", "uri": reserve_uri},
+                    "action": {"type": "uri", "label": "填日期人數", "uri": reserve_uri},
                 },
             ],
         },
@@ -290,6 +318,110 @@ def _build_shop_bubble(shop: dict, rank: int, public_web_url: str, answer: str) 
             "action": {"type": "uri", "uri": detail_uri},
         }
     return bubble
+
+
+def _line_chip(label: str) -> dict[str, Any]:
+    return {
+        "type": "box",
+        "layout": "vertical",
+        "backgroundColor": "#e9f6ee",
+        "cornerRadius": "md",
+        "paddingAll": "6px",
+        "contents": [
+            {
+                "type": "text",
+                "text": _truncate(label, 12),
+                "size": "xs",
+                "color": "#16833a",
+                "weight": "bold",
+                "align": "center",
+                "wrap": True,
+            }
+        ],
+    }
+
+
+def _line_decision_row(text: str) -> dict[str, Any]:
+    return {
+        "type": "box",
+        "layout": "horizontal",
+        "spacing": "sm",
+        "contents": [
+            {"type": "text", "text": "✓", "size": "xs", "color": "#16833a", "flex": 0},
+            {
+                "type": "text",
+                "text": _truncate(text, 52),
+                "size": "xs",
+                "color": "#444444",
+                "wrap": True,
+                "flex": 1,
+            },
+        ],
+    }
+
+
+def _line_match_chips(shop: dict) -> list[str]:
+    chips: list[str] = []
+    district = str(shop.get("district") or "").strip()
+    mrt = str(shop.get("mrt_station") or "").strip()
+    category = _category_label(str(shop.get("category") or shop.get("category_slug") or "").strip())
+    avg_price = _numeric_price(shop)
+
+    if district:
+        chips.append(district)
+    if category:
+        chips.append(category)
+    if avg_price >= 1000:
+        chips.append("高級路線")
+    elif avg_price and avg_price <= 500:
+        chips.append("好入手")
+    if mrt and len(chips) < 3:
+        chips.append(f"{mrt}旁")
+    return _dedupe_labels(chips)
+
+
+def _line_decision_points(shop: dict) -> list[str]:
+    dishes = [str(dish).strip() for dish in (shop.get("signature_dishes") or []) if str(dish).strip()]
+    tags = [str(tag).strip() for tag in (shop.get("atmosphere_tags") or []) if str(tag).strip()]
+    points: list[str] = []
+
+    if dishes:
+        points.append("招牌重點：" + "、".join(dishes[:2]))
+    if tags:
+        points.append("用餐情境：" + "、".join(tags[:2]))
+
+    rating = shop.get("rating")
+    comments = shop.get("comments") or shop.get("review_count")
+    if rating and comments:
+        points.append(f"Google {rating} 分，累積 {comments} 則評論")
+    elif rating:
+        points.append(f"Google {rating} 分，可先看詳情比較評論")
+
+    return _dedupe_labels(points)
+
+
+def _numeric_price(shop: dict) -> int:
+    for key in ("avg_price", "price"):
+        value = shop.get(key)
+        if isinstance(value, (int, float)):
+            return int(value)
+    text = str(shop.get("price_per_person") or "")
+    match = re.search(r"\d[\d,]*", text)
+    if not match:
+        return 0
+    return int(match.group(0).replace(",", ""))
+
+
+def _dedupe_labels(labels: list[str]) -> list[str]:
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for label in labels:
+        normalized = _plain_line_text(label)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped.append(normalized)
+    return deduped
 
 
 def _shop_image_uri(shop_id: int, public_web_url: str) -> str | None:
