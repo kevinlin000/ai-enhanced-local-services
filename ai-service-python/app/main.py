@@ -6,10 +6,17 @@ from datetime import date as date_cls, datetime, timedelta
 from typing import AsyncIterator
 from zoneinfo import ZoneInfo
 from app import session_store
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.guardrail import GuardrailViolation, check_input, filter_output
+from app.line_bot import (
+    build_line_flex_message,
+    build_text_message,
+    reply_messages,
+    show_loading_animation,
+    verify_line_signature,
+)
 from google import genai
 from google.genai.errors import ClientError, ServerError
 from google.genai import types
@@ -28,6 +35,11 @@ class Settings(BaseSettings):
     gemini_embedding_model: str = "gemini-embedding-001"
     gemini_chat_model: str = "gemini-3.1-flash-lite"
     gemini_agent_model: str = "gemini-3.1-flash-lite"
+    line_channel_secret: str = ""
+    line_channel_access_token: str = ""
+    line_signature_verify: bool = True
+    line_reply_enabled: bool = False
+    line_public_web_url: str = "http://localhost:3000"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -2327,6 +2339,125 @@ async def agent_stream(req: AgentRequest):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@app.get("/api/line/webhook")
+async def line_webhook_check():
+    return {
+        "status": "ok",
+        "service": "bytebites-line-bot",
+        "reply_enabled": settings.line_reply_enabled,
+    }
+
+
+@app.post("/api/line/webhook")
+async def line_webhook(request: Request):
+    body_bytes = await request.body()
+    signature = request.headers.get("x-line-signature")
+    if not verify_line_signature(
+        body_bytes=body_bytes,
+        signature=signature,
+        channel_secret=settings.line_channel_secret,
+        enabled=settings.line_signature_verify,
+    ):
+        raise HTTPException(status_code=400, detail="Invalid LINE signature")
+
+    try:
+        payload = json.loads(body_bytes.decode("utf-8")) if body_bytes else {}
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON body") from exc
+
+    results: list[dict] = []
+    for event in payload.get("events", []):
+        reply_token = event.get("replyToken")
+        messages = await _build_line_reply_messages(event)
+        if reply_token and messages:
+            result = await reply_messages(
+                reply_token=reply_token,
+                messages=messages,
+                channel_access_token=settings.line_channel_access_token,
+                enabled=settings.line_reply_enabled,
+            )
+        else:
+            result = {"ok": True, "skipped": True, "reason": "No replyToken or no messages"}
+        results.append(
+            {
+                "event_type": event.get("type"),
+                "message_type": (event.get("message") or {}).get("type"),
+                "reply_result": result,
+            }
+        )
+
+    return {
+        "status": "ok",
+        "events_count": len(payload.get("events", [])),
+        "results": results,
+    }
+
+
+async def _build_line_reply_messages(event: dict) -> list[dict]:
+    event_type = event.get("type")
+    source = event.get("source") or {}
+    user_id = str(source.get("userId") or "anonymous-line-user")
+
+    if event_type == "follow":
+        return [
+            build_text_message(
+                "嗨，我是 ByteBites AI。你可以直接傳「信義區想吃火鍋」「中山站適合聚餐」這類需求，我會回你 3 張餐廳推薦卡。"
+            )
+        ]
+
+    if event_type != "message":
+        return []
+
+    message = event.get("message") or {}
+    message_type = message.get("type")
+    if message_type == "location":
+        title = message.get("title") or "你分享的位置"
+        address = message.get("address") or ""
+        return [
+            build_text_message(
+                f"我收到位置了：{title} {address}\n接著告訴我想吃什麼或用餐情境，我會用這個位置附近幫你找。"
+            )
+        ]
+    if message_type != "text":
+        return [build_text_message("目前先支援文字與位置訊息。你可以直接告訴我想吃什麼、在哪裡、幾個人。")]
+
+    user_text = str(message.get("text") or "").strip()
+    if not user_text:
+        return [build_text_message("我沒看到文字內容，可以再傳一次餐廳需求嗎？")]
+
+    if source.get("type") == "user":
+        await show_loading_animation(
+            user_id=user_id,
+            channel_access_token=settings.line_channel_access_token,
+            enabled=settings.line_reply_enabled,
+            loading_seconds=20,
+        )
+
+    try:
+        check_input(user_text)
+        answer, _tools_used, tool_result = await _run_agent_turn(user_text, f"line:{user_id}")
+    except GuardrailViolation:
+        return [build_text_message("這個內容我不能協助處理。可以換一個餐廳或訂位相關的問法。")]
+    except Exception:
+        logger.exception("line_agent_failed user_id=%s text=%s", user_id, user_text)
+        return [build_text_message("AI 目前暫時無法完成推薦，請稍後再試一次，或換個地點 / 條件重新輸入。")]
+
+    shops = tool_result.get("shops") if isinstance(tool_result, dict) else None
+    if isinstance(shops, list) and shops:
+        recommended_ids = tool_result.get("agent_decision", {}).get("recommended_shop_ids")
+        flex_or_bundle = build_line_flex_message(
+            shops=shops,
+            recommended_shop_ids=recommended_ids if isinstance(recommended_ids, list) else None,
+            answer=answer,
+            public_web_url=settings.line_public_web_url,
+        )
+        if flex_or_bundle.get("type") == "_bundle":
+            return flex_or_bundle.get("messages") or []
+        return [flex_or_bundle]
+
+    return [build_text_message(answer or "我需要再多一點條件，才能幫你推薦餐廳。")]
 
 
 @app.delete("/api/ai/session/{session_id}")

@@ -1,0 +1,62 @@
+import base64
+import hashlib
+import hmac
+
+import pytest
+
+from app.line_bot import build_line_flex_message, reply_messages, verify_line_signature
+
+
+def test_verify_line_signature_accepts_valid_signature():
+    body = b'{"events":[]}'
+    secret = "test-secret"
+    signature = base64.b64encode(
+        hmac.new(secret.encode("utf-8"), body, hashlib.sha256).digest()
+    ).decode("utf-8")
+
+    assert verify_line_signature(body, signature, secret)
+
+
+def test_verify_line_signature_rejects_invalid_signature():
+    assert not verify_line_signature(b"{}", "bad-signature", "test-secret")
+
+
+def test_build_line_flex_message_limits_to_three_cards():
+    shops = [
+        {
+            "shop_id": index,
+            "name": f"店家 {index}",
+            "district": "中山",
+            "mrt_station": "中山",
+            "ai_summary": "適合聚餐。",
+        }
+        for index in range(1, 6)
+    ]
+
+    message = build_line_flex_message(
+        shops=shops,
+        recommended_shop_ids=[4, 2, 1, 5],
+        answer="為你整理 3 間店。",
+        public_web_url="https://bytebites.example.com",
+    )
+
+    assert message["type"] == "_bundle"
+    flex = message["messages"][1]
+    assert flex["type"] == "flex"
+    bubbles = flex["contents"]["contents"]
+    assert len(bubbles) == 3
+    assert bubbles[0]["body"]["contents"][1]["text"] == "店家 4"
+
+
+@pytest.mark.anyio
+async def test_reply_messages_returns_preview_when_disabled():
+    result = await reply_messages(
+        reply_token="reply-token",
+        messages=[{"type": "text", "text": "hello"}],
+        channel_access_token="",
+        enabled=False,
+    )
+
+    assert result["ok"] is True
+    assert result["skipped"] is True
+    assert result["messages_preview"][0]["text"] == "hello"
