@@ -2571,6 +2571,13 @@ async def line_webhook(request: Request):
         channel_secret=settings.line_channel_secret,
         enabled=settings.line_signature_verify,
     ):
+        logger.warning(
+            "line_webhook_invalid_signature verify=%s signature_present=%s secret_len=%s body_len=%s",
+            settings.line_signature_verify,
+            bool(signature),
+            len((settings.line_channel_secret or "").strip()),
+            len(body_bytes),
+        )
         raise HTTPException(status_code=400, detail="Invalid LINE signature")
 
     try:

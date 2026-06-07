@@ -170,8 +170,8 @@ function formatSimilarPrice(shop: Pick<Shop, "id" | "avgPrice">) {
   return undefined;
 }
 
-function normalizeBrandName(name: string) {
-  return name
+function normalizeBrandName(name?: string | null) {
+  return String(name ?? "")
     .replace(/[｜|].*$/g, "")
     .replace(/\s*(台北|臺北)?(信義|大安|中山|松山|內湖|士林|北投|萬華|中正|南港|文山|大同).*/g, "")
     .replace(/\s*(分店|總店|旗艦店|門市|店)$/g, "")
@@ -462,7 +462,7 @@ function buildCategorySimilarCards(baseShop: Shop, candidates: Shop[]): RankedSi
   const baseBrand = normalizeBrandName(baseShop.name);
 
   return candidates
-    .filter((candidate) => candidate.id !== baseShop.id && !isLegacySeedShop(candidate.id))
+    .filter((candidate) => Boolean(candidate?.id && candidate.name) && candidate.id !== baseShop.id && !isLegacySeedShop(candidate.id))
     .map((candidate) => {
       const sameDistrict = Boolean(baseShop.district && candidate.district === baseShop.district);
       const sameMrt = Boolean(baseShop.mrtStation && candidate.mrtStation === baseShop.mrtStation);
