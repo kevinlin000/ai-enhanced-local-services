@@ -5,7 +5,6 @@ const AI_API = "";
 // Client-side calls must go through Next.js rewrite proxy to avoid
 // mixed content (HTTPS page → HTTP API). Only use from "use client" components.
 const CLIENT_JAVA_API = "/api/java";
-const CLIENT_AI_API = "/api/ai";
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...init, cache: "no-store" });
@@ -425,7 +424,7 @@ export const javaApi = {
       `${CLIENT_JAVA_API}/api/shop/search?${sp.toString()}`,
     );
   },
-  merchantShops: (_token?: string | null) =>
+  merchantShops: () =>
     fetchJson<{ success: boolean; data: MerchantShop[] }>(
       `${CLIENT_JAVA_API}/api/merchant/shops`,
       { headers: merchantHeaders() },

@@ -184,7 +184,7 @@ function ShopsPageContent() {
     if (q) params.set("q", q);
     if (searchMode === "ai") params.set("mode", "ai");
     router.replace(`/shops${params.size ? "?" + params.toString() : ""}`, { scroll: false });
-  }, [selectedTypes, selectedDistricts, selectedMrt, q, searchMode]);
+  }, [selectedTypes, selectedDistricts, selectedMrt, q, searchMode, router]);
 
   // debounce q
   useEffect(() => {

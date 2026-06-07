@@ -2564,8 +2564,21 @@ async def line_shop_photo(shop_id: int):
 
 
 @app.get("/line/shop/{shop_id}", response_class=HTMLResponse)
-async def line_shop_detail(shop_id: int, lineUserId: str = ""):
+async def line_shop_detail(
+    shop_id: int,
+    lineUserId: str = "",
+    name: str = "",
+    district: str = "",
+    mrt: str = "",
+    avgPrice: str = "",
+):
     shop = await _fetch_java_shop(shop_id)
+    if not shop:
+        shop = _line_shop_fallback_from_query(shop_id, name, district, mrt, avgPrice)
+    if not shop:
+        shop = _line_shop_fallback_from_media(shop_id)
+    if not shop:
+        shop = _line_shop_minimal_fallback(shop_id)
     if not shop:
         return HTMLResponse(_line_html_page("找不到店家", "這間店目前無法取得資料。", []), status_code=404)
     metadata = await _fetch_java_ai_metadata(shop_id)
@@ -3698,6 +3711,50 @@ async def _fetch_java_shop_by_fallback_name(shop_id: int) -> dict | None:
     except Exception:
         logger.exception("line_shop_fallback_fetch_failed shop_id=%s", shop_id)
         return None
+
+
+def _line_shop_fallback_from_query(shop_id: int, name: str, district: str, mrt: str, avg_price: str) -> dict | None:
+    shop_name = str(name or "").strip()
+    if not shop_name:
+        return None
+    shop: dict[str, object] = {
+        "id": shop_id,
+        "name": shop_name,
+        "district": str(district or "").strip(),
+        "mrtStation": str(mrt or "").strip(),
+    }
+    try:
+        if str(avg_price or "").strip():
+            shop["avgPrice"] = int(float(str(avg_price).strip()))
+    except ValueError:
+        pass
+    return shop
+
+
+def _line_shop_fallback_from_media(shop_id: int) -> dict | None:
+    manifest_shop = _line_media_shop(shop_id)
+    if not manifest_shop:
+        return None
+    overview_raw = manifest_shop.get("overview") if isinstance(manifest_shop, dict) else {}
+    overview = overview_raw if isinstance(overview_raw, dict) else {}
+    name = _LINE_SHOP_NAME_FALLBACKS.get(shop_id) or str(overview.get("name") or "").strip()
+    if not name:
+        name = f"店家 {shop_id}"
+    return {
+        "id": shop_id,
+        "name": name,
+        "district": str(overview.get("district") or "台北").strip(),
+        "mrtStation": str(overview.get("mrtStation") or overview.get("mrt_station") or "").strip(),
+    }
+
+
+def _line_shop_minimal_fallback(shop_id: int) -> dict:
+    return {
+        "id": shop_id,
+        "name": f"店家 {shop_id}",
+        "district": "台北",
+        "mrtStation": "",
+    }
 
 
 async def _fetch_java_ai_metadata(shop_id: int) -> dict:

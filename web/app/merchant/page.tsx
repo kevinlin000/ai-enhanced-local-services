@@ -72,7 +72,7 @@ export default function MerchantPage() {
       setLoading(true);
       setError(null);
       try {
-        const response = await javaApi.merchantShops(merchantToken);
+        const response = await javaApi.merchantShops();
         if (!response.success) throw new Error("無法載入店家權限");
         if (cancelled) return;
         setShops(response.data);
