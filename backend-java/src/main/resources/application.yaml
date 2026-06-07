@@ -77,7 +77,7 @@ line:
 
 jwt:
   secret: ${JWT_SECRET:change-me-in-production-this-is-only-for-dev-environment-must-be-at-least-256-bits}
-  ttl-hours: 2
+  ttl-hours: ${JWT_TTL_HOURS:24}
 
 tappay:
   partner-key: ${TAPPAY_PARTNER_KEY}

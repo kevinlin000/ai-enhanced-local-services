@@ -38,10 +38,21 @@ export function useAuth() {
         return res.json() as Promise<{ success: boolean; data?: AuthUser }>;
       })
       .then((payload) => {
-        if (!cancelled) setUser(payload.success && payload.data ? payload.data : null);
+        if (cancelled) return;
+        if (payload.success && payload.data) {
+          setUser(payload.data);
+          return;
+        }
+        localStorage.removeItem(KEY);
+        setToken(null);
+        setUser(null);
       })
       .catch(() => {
-        if (!cancelled) setUser(null);
+        if (!cancelled) {
+          localStorage.removeItem(KEY);
+          setToken(null);
+          setUser(null);
+        }
       });
 
     return () => {
