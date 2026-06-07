@@ -64,6 +64,7 @@ ai_latency = Histogram("bytebites_ai_latency_seconds", "AI endpoint latency", ["
 logger = logging.getLogger("bytebites.ai")
 LINE_RECOMMENDATION_TTL_SECONDS = 1800
 _LINE_MEDIA_CACHE: dict | None = None
+PREMIUM_HOTPOT_SUPPLEMENT_IDS = (10009,)
 
 
 def taipei_today() -> date_cls:
@@ -372,6 +373,18 @@ def _station_proximity_score(constraints: dict, payload: dict) -> float:
     return score
 
 
+def _normalize_district_name(value: str | None) -> str:
+    return str(value or "").strip().lower().removesuffix("區")
+
+
+def _district_matches(constraints: dict, payload: dict) -> bool:
+    district = _normalize_district_name(payload.get("district"))
+    return bool(district) and any(
+        _normalize_district_name(target) == district
+        for target in constraints["districts"]
+    )
+
+
 def _has_hotpot_semantics(payload: dict) -> bool:
     text = _payload_text(payload)
     has_strong_hint = any(keyword.lower() in text for keyword in HOTPOT_STRONG_HINTS)
@@ -383,22 +396,31 @@ def _has_hotpot_semantics(payload: dict) -> bool:
     return any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["hotpot"])
 
 
-def _premium_hotpot_key(constraints: dict, hit: dict) -> tuple[int, int, float, int, int, int, int, float]:
+def _premium_hotpot_key(constraints: dict, hit: dict) -> tuple[int, int, int, float, int, int, int, float]:
     avg_price = hit.get("avg_price") or 0
-    booking = str(hit.get("booking_difficulty") or "")
     tags = set(hit.get("atmosphere_tags") or [])
     text = _payload_text(hit)
     station_score = _station_proximity_score(constraints, hit)
-    district_match = 1 if any(
-        target.lower() == str(hit.get("district") or "").lower()
-        for target in constraints["districts"]
-    ) else 0
+    district_match = 1 if _district_matches(constraints, hit) else 0
     has_premium_cues = 1 if any(
-        keyword in text for keyword in ("和牛", "a5", "套餐", "預約困難", "提前訂位", "無菜單", "松葉蟹", "龍蝦")
+        keyword in text
+        for keyword in (
+            "和牛",
+            "a5",
+            "套餐",
+            "無菜單",
+            "松葉蟹",
+            "龍蝦",
+            "精緻",
+            "頂級",
+            "高品質",
+            "涮涮屋",
+            "杏仁豆腐",
+            "海鮮套餐",
+        )
     ) else 0
     premium_price = 1 if avg_price >= 1000 else 0
     mid_price = 1 if avg_price >= 800 else 0
-    hard_to_book = 1 if ("困難" in booking or "提前" in booking) else 0
     date_night = 1 if ({"約會", "商務"} & tags) else 0
     nearby_bucket = 0
     if constraints["wants_nearby"] or constraints["stations"]:
@@ -414,7 +436,6 @@ def _premium_hotpot_key(constraints: dict, hit: dict) -> tuple[int, int, float, 
         premium_price,
         station_score,
         district_match,
-        hard_to_book,
         has_premium_cues,
         date_night or mid_price,
         hit["rerank_score"],
@@ -449,7 +470,7 @@ def _metadata_bonus(query: str, payload: dict) -> float:
         bonus += 0.14
 
     if constraints["districts"]:
-        if any(target.lower() == district for target in constraints["districts"]):
+        if _district_matches(constraints, payload):
             bonus += 0.42
         else:
             bonus -= 0.18
@@ -606,6 +627,56 @@ async def _fetch_all_shops_fallback() -> list[dict]:
     return enriched
 
 
+def _java_shop_to_search_hit(shop: dict, metadata: dict | None = None) -> dict:
+    metadata = metadata or {}
+    type_id = shop.get("typeId")
+    payload = {
+        "shop_id": shop.get("id"),
+        "name": shop.get("name"),
+        "district": shop.get("district") or shop.get("area"),
+        "mrt_station": shop.get("mrtStation"),
+        "score": 0.0,
+        "category": TYPE_ID_TO_CATEGORY.get(type_id),
+        "category_slug": TYPE_ID_TO_CATEGORY.get(type_id),
+        "avg_price": shop.get("avgPrice"),
+        "ai_summary": metadata.get("aiSummary"),
+        "signature_dishes": _parse_json_list(metadata.get("signatureDishes")),
+        "atmosphere_tags": _parse_json_list(metadata.get("atmosphereTags")),
+        "booking_difficulty": metadata.get("bookingDifficulty"),
+        "price_per_person": metadata.get("pricePerPerson"),
+        "hot_seat_vouchers": [],
+    }
+    if not payload["category_slug"]:
+        inferred = _category_slug_from_payload(payload)
+        payload["category"] = inferred
+        payload["category_slug"] = inferred
+    return payload
+
+
+async def _premium_hotpot_supplements(constraints: dict, existing_ids: set[int]) -> list[dict]:
+    if "hotpot" not in constraints["categories"] or not constraints.get("wants_luxury"):
+        return []
+
+    supplements: list[dict] = []
+    for shop_id in PREMIUM_HOTPOT_SUPPLEMENT_IDS:
+        if shop_id in existing_ids:
+            continue
+        shop = await _fetch_java_shop(shop_id)
+        if not shop:
+            continue
+        hit = _java_shop_to_search_hit(shop, await _fetch_java_ai_metadata(shop_id))
+        if not _has_hotpot_semantics(hit):
+            continue
+        if constraints["districts"] and not _district_matches(constraints, hit):
+            continue
+        hit["ai_summary"] = hit.get("ai_summary") or "精緻涮涮屋路線，主打高品質食材、細緻服務與較正式的聚餐氛圍。"
+        hit["signature_dishes"] = hit.get("signature_dishes") or ["頂級肉品", "海鮮套餐", "杏仁豆腐"]
+        hit["atmosphere_tags"] = hit.get("atmosphere_tags") or ["精緻", "商務", "約會"]
+        hit["price_per_person"] = hit.get("price_per_person") or f"NT$ {hit.get('avg_price')}"
+        supplements.append(hit)
+    return supplements
+
+
 async def _semantic_hits(query: str, top_k: int) -> list[dict]:
     gemini = get_gemini()
     emb_resp = gemini.models.embed_content(
@@ -649,13 +720,20 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
         logger.warning("qdrant_unavailable_fallback query=%r error=%s", query, exc)
         raw_hits = await _fetch_all_shops_fallback()
 
+    constraints = _extract_query_constraints(query)
+    supplement_hits = await _premium_hotpot_supplements(
+        constraints,
+        {int(hit["shop_id"]) for hit in raw_hits if hit.get("shop_id")},
+    )
+    if supplement_hits:
+        raw_hits.extend(supplement_hits)
+
     shop_ids = [hit["shop_id"] for hit in raw_hits if hit["shop_id"]]
     voucher_map = await _fetch_hot_seat_vouchers(shop_ids)
     for hit in raw_hits:
         hit["hot_seat_vouchers"] = voucher_map.get(hit["shop_id"], [])
         hit["rerank_score"] = hit["score"] + _metadata_bonus(query, hit) + _fallback_keyword_score(query, hit)
 
-    constraints = _extract_query_constraints(query)
     if constraints["categories"] or constraints["stations"] or constraints["districts"] or constraints["wants_hot_seat"]:
         logger.warning(
             "search_constraints query=%r constraints=%s",
@@ -730,24 +808,20 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             )
 
     if any(keyword in query.lower() for keyword in LUXURY_HINTS):
-        def luxury_score(hit: dict) -> tuple[int, int, float, int, int, int, int, float]:
+        def luxury_score(hit: dict) -> tuple[int, int, int, float, int, int, int, float]:
             if requested_hotpot:
                 return _premium_hotpot_key(constraints, hit)
 
             avg_price = hit.get("avg_price") or 0
-            booking = str(hit.get("booking_difficulty") or "")
             tags = set(hit.get("atmosphere_tags") or [])
             station_score = _station_proximity_score(constraints, hit)
-            district_match = 1 if any(
-                target.lower() == str(hit.get("district") or "").lower()
-                for target in constraints["districts"]
-            ) else 0
+            district_match = 1 if _district_matches(constraints, hit) else 0
             return (
                 0,
                 1 if avg_price >= 1000 else 0,
+                0,
                 station_score,
                 district_match,
-                1 if ("困難" in booking or "提前" in booking) else 0,
                 1 if ({"約會", "商務"} & tags) else 0,
                 1 if avg_price >= 800 else 0,
                 hit["rerank_score"],
@@ -776,10 +850,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             return _semantic_category_slug(hit) == "hotpot" or _has_hotpot_semantics(hit)
 
         def is_nearby_hit(hit: dict) -> bool:
-            return _station_proximity_score(constraints, hit) > 0 or any(
-                target.lower() == str(hit.get("district") or "").lower()
-                for target in constraints["districts"]
-            )
+            return _station_proximity_score(constraints, hit) > 0 or _district_matches(constraints, hit)
 
         near_hotpot_hits = [hit for hit in raw_hits if is_hotpot_like(hit) and is_nearby_hit(hit)]
         far_hotpot_hits = [hit for hit in raw_hits if is_hotpot_like(hit) and not is_nearby_hit(hit)]
@@ -826,13 +897,10 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
     if constraints["wants_nearby"] and (constraints["stations"] or constraints["districts"]):
         def _is_strict_nearby(hit: dict) -> bool:
             mrt = str(hit.get("mrt_station") or "").lower()
-            district = str(hit.get("district") or "").lower()
             station_match = _station_proximity_score(constraints, hit) > 0 or any(
                 s.lower() in mrt for s in constraints["stations"]
             )
-            district_match = any(
-                d.lower() in district for d in constraints["districts"]
-            )
+            district_match = _district_matches(constraints, hit)
             return station_match or district_match
 
         strict_nearby = [h for h in raw_hits if _is_strict_nearby(h)]
@@ -887,10 +955,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
     if constraints["districts"]:
         strict_district = [
             hit for hit in raw_hits
-            if any(
-                target.lower() == str(hit.get("district") or "").lower()
-                for target in constraints["districts"]
-            )
+            if _district_matches(constraints, hit)
         ]
         raw_hits = strict_district
         logger.warning(
@@ -1129,7 +1194,7 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 - 明確推薦需求：已有地點、料理類型、用途、人數、日期/時段中的至少 2 個，或指定店名 → 可以查 tool 並推薦。
 - 模糊需求：只有「想聚餐」「7 個人能聚餐」「適合聊天」「附近好吃」「推薦餐廳」但缺少區域、日期/時段或料理偏好 → 不要硬推薦；先用 2-3 個短問題收斂需求（區域、日期/時段、料理/氣氛）。
 - 若使用者問「比較」「哪個適合」「幫我挑」「適合安靜聊天/家庭/約會」→ 回答必須有判斷依據，不只列店名。
-- 查到多家候選時，優先用 markdown table 比較：店家｜區域/捷運｜適合原因｜注意事項｜可否線上訂位。
+- 查到多家候選時，用短段落或條列比較，不要輸出 markdown table；LINE 內表格會跑版。
 - 若是口味真實性問題（如「正宗川菜」「香麻辣」「像日本當地」），先說明判斷維度，再推薦符合的店。
 - 需要追問時不要道歉；用「我先幫你收斂方向」的語氣，讓使用者知道下一步怎麼回答。
 - 不要把不確定資訊寫成事實；資料未標示時寫「目前資料未標示」。
@@ -1148,7 +1213,7 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 - 推薦型回答固定結構：
   1. 一句「我先用什麼條件篩選」的方向判斷。
   2. 一句「我會優先推哪幾間／為什麼」的結論。
-  3. 若有 2 家以上，用 markdown table 比較，不要只用 numbered list。
+  3. 若有 2 家以上，用 1-3 行短條列比較，不要輸出 markdown table。
   4. 結尾給下一步 CTA，例如「如果你告訴我日期與人數，我可以直接幫你查可訂時段。」
 - 模糊需求不要硬推薦。先用 2-3 個問題收斂：區域/捷運、日期時段、人數、料理或氣氛偏好。
 - 多人聚餐、安靜聊天、正宗口味、約會、家庭聚餐這類需求，回答要先說判斷維度，例如包廂/座位寬鬆、評論提到的環境、是否可線上訂位。
@@ -1218,10 +1283,26 @@ def _shop_id(shop: dict) -> int | None:
 
 def _shop_brand_key(shop: dict) -> str:
     name = str(shop.get("name") or "").strip()
-    for sep in ("｜", "|", " ", "　"):
+    for sep in ("｜", "|", " ", "　", "-", "－", "("):
         if sep in name:
-            name = name.split(sep, 1)[0]
+            prefix = name.split(sep, 1)[0].strip()
+            if prefix and prefix not in {"店家", "餐廳"}:
+                name = prefix
+            break
     return name.strip()
+
+
+def _dedupe_shops_by_brand(shops: list[dict]) -> list[dict]:
+    selected: list[dict] = []
+    seen: set[str] = set()
+    for shop in shops:
+        key = _shop_brand_key(shop).lower()
+        if key and key in seen:
+            continue
+        if key:
+            seen.add(key)
+        selected.append(shop)
+    return selected
 
 
 def _shop_branch_label(shop: dict, brand: str) -> str:
@@ -1654,7 +1735,7 @@ def _build_agent_recommendation_decision(query: str, tool_result: dict) -> Agent
 JSON schema:
 {{
   "recommended_shop_ids": [number],
-  "narrative": "user-facing markdown in Traditional Chinese",
+  "narrative": "user-facing plain Traditional Chinese, no markdown table",
   "rejected_shop_ids": [number],
   "rejection_summary": "optional one-line reason"
 }}
@@ -1675,12 +1756,13 @@ JSON schema:
 - recommended_shop_ids 只有 1 家時，narrative 結尾必須加：「若想擴大範圍，可以嘗試詢問鄰近區域或相關類型（如美式餐廳）。」
 - recommended_shop_ids 為 0 家時，narrative 要建議放寬地點或相關類型。
 - rejected_shop_ids 放入候選中未推薦的店，尤其是不符分類、地點或需求的店。
-- 若使用者需求帶有比較意味（例如適合安靜聊天、家庭聚餐、正宗口味、多人聚餐），narrative 優先用 markdown table 呈現比較，欄位可用：店家｜區域/捷運｜推薦理由｜注意事項。
+- narrative 不得輸出 markdown table，不得使用 |、:---、** 這類格式符號。
+- 若使用者需求帶有比較意味（例如適合安靜聊天、家庭聚餐、正宗口味、多人聚餐），narrative 用短條列呈現比較：每家 1 行，格式為「店名：特色；提醒」。
 - 若使用者需求資訊不足但已查到候選，不要假裝完全確定；先給 2-3 個方向，再用一句話追問區域、時段或料理偏好。
 - narrative 應該像 concierge，不像搜尋列表。建議格式：
   - 第一段：我先用「地點 / 類型 / 用途 / 可訂狀態」幫你篩。
   - 第二段：明確結論，例如「我會優先看這 2 家」。
-  - 表格：店家｜適合原因｜注意事項｜下一步。
+  - 比較條列：店家：適合原因；需要留意的地方。
   - CTA：若未指定日期/人數，請使用者補；若已指定，邀請查可訂或直接訂位。
 - 避免只輸出「為您推薦以下三間熱門選擇」後接三個 bullet；這看起來像搜尋結果，不像 AI concierge。
 - 不要編造候選資料以外的資訊。"""
@@ -2617,6 +2699,17 @@ async def _build_line_more_recommendations(user_text: str, user_id: str) -> list
         for shop in shops
         if (sid := _shop_id(shop)) is not None and sid not in seen_ids
     ]
+    seen_brands = {
+        _shop_brand_key(shop).lower()
+        for shop in shops
+        if (sid := _shop_id(shop)) is not None and sid in seen_ids
+    }
+    remaining = [
+        shop
+        for shop in remaining
+        if not (brand := _shop_brand_key(shop).lower()) or brand not in seen_brands
+    ]
+    remaining = _dedupe_shops_by_brand(remaining)
     if not remaining:
         return [build_text_message("目前同一個條件下沒有更多明顯符合的餐廳了。你可以放寬地區或換一個類型，我再幫你找。")]
 
@@ -2655,8 +2748,31 @@ def _line_more_recommendation_intent(text: str) -> bool:
             "不想要這",
             "換一家",
             "換幾家",
+            "只有",
+            "才1家",
+            "才2家",
+            "才3家",
+            "才 1 家",
+            "才 2 家",
+            "才 3 家",
+            "重複",
+            "不要重複",
         )
     )
+
+
+def _line_plain_text(text: str) -> str:
+    kept: list[str] = []
+    for raw_line in str(text or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if "|" in line or ":---" in line:
+            continue
+        kept.append(line)
+    cleaned = " ".join(kept).replace("**", "").replace("__", "")
+    cleaned = " ".join(cleaned.split())
+    return cleaned or "我先幫你整理符合需求的餐廳，請看下方卡片。"
 
 
 def _line_recommendation_state_key(user_id: str) -> str:
@@ -2779,7 +2895,7 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
         if messages:
             return messages
 
-    return [build_text_message(answer or "我需要再多一點條件，才能幫你推薦餐廳。")]
+    return [build_text_message(_line_plain_text(answer or "我需要再多一點條件，才能幫你推薦餐廳。"))]
 
 
 async def _fetch_java_shop(shop_id: int) -> dict | None:

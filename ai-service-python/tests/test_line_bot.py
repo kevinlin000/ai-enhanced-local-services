@@ -48,7 +48,7 @@ def test_build_line_flex_message_limits_to_three_cards():
     assert bubbles[0]["body"]["contents"][1]["text"] == "店家 4"
 
 
-def test_build_line_flex_message_uses_table_reason_column():
+def test_build_line_flex_message_ignores_markdown_table_reason():
     message = build_line_flex_message(
         shops=[
             {
@@ -67,8 +67,37 @@ def test_build_line_flex_message_uses_table_reason_column():
         public_web_url="https://bytebites.example.com",
     )
 
-    reason = message["messages"][1]["contents"]["contents"][0]["body"]["contents"][7]["text"]
-    assert reason == "高人氣麻辣鍋吃到飽，肉品與甜點評價極佳"
+    reason = message["messages"][1]["contents"]["contents"][0]["body"]["contents"][6]["text"]
+    assert reason == "備援摘要。"
+
+
+def test_build_line_flex_message_reason_uses_features_not_booking_status():
+    message = build_line_flex_message(
+        shops=[
+            {
+                "shop_id": 10009,
+                "name": "橘色涮涮屋 信義館",
+                "district": "信義區",
+                "avg_price": 1200,
+                "booking_difficulty": "預約困難",
+                "signature_dishes": ["頂級肉品", "海鮮套餐", "杏仁豆腐"],
+                "atmosphere_tags": ["精緻", "商務"],
+            }
+        ],
+        recommended_shop_ids=[10009],
+        answer="",
+        public_web_url="https://bytebites.example.com",
+    )
+
+    texts = [
+        item["text"]
+        for item in message["messages"][1]["contents"]["contents"][0]["body"]["contents"]
+        if item.get("type") == "text"
+    ]
+    joined = " ".join(texts)
+    assert "預約困難" not in joined
+    assert "頂級肉品" in joined
+    assert "海鮮套餐" in joined
 
 
 def test_build_line_flex_message_versions_photo_url():

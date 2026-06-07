@@ -187,11 +187,22 @@ def _select_recommended_shops(
     shops: list[dict],
     recommended_shop_ids: list[int] | None,
 ) -> list[dict]:
+    def dedupe_brand(items: list[dict]) -> list[dict]:
+        selected: list[dict] = []
+        seen: set[str] = set()
+        for shop in items:
+            key = _brand_key(str(shop.get("name") or ""))
+            if key in seen:
+                continue
+            seen.add(key)
+            selected.append(shop)
+        return selected
+
     if not recommended_shop_ids:
-        return shops[:MAX_FLEX_CARDS]
+        return dedupe_brand(shops)[:MAX_FLEX_CARDS]
     by_id = {int(shop.get("shop_id")): shop for shop in shops if shop.get("shop_id") is not None}
-    selected = [by_id[int(shop_id)] for shop_id in recommended_shop_ids if int(shop_id) in by_id]
-    return selected or shops[:MAX_FLEX_CARDS]
+    selected = dedupe_brand([by_id[int(shop_id)] for shop_id in recommended_shop_ids if int(shop_id) in by_id])
+    return selected or dedupe_brand(shops)[:MAX_FLEX_CARDS]
 
 
 def best_shop_photo_url(shop_id: int) -> str | None:
@@ -204,7 +215,6 @@ def _build_shop_bubble(shop: dict, rank: int, public_web_url: str, answer: str) 
     district = str(shop.get("district") or "")
     mrt = str(shop.get("mrt_station") or "")
     price = str(shop.get("price_per_person") or (f"NT$ {shop.get('avg_price')}" if shop.get("avg_price") else "價位未標示"))
-    booking = str(shop.get("booking_difficulty") or "可查看訂位狀態")
     summary = _recommendation_reason_for_shop(shop, answer)
     tags = [str(tag) for tag in (shop.get("atmosphere_tags") or [])[:2]]
     dishes = [str(dish) for dish in (shop.get("signature_dishes") or [])[:2]]
@@ -224,7 +234,6 @@ def _build_shop_bubble(shop: dict, rank: int, public_web_url: str, answer: str) 
             "margin": "sm",
         },
         {"type": "text", "text": price, "size": "sm", "color": "#666666", "wrap": True},
-        {"type": "text", "text": booking, "size": "sm", "color": "#666666", "wrap": True},
         {"type": "separator", "margin": "md"},
         {"type": "text", "text": "推薦理由", "size": "sm", "weight": "bold", "margin": "md"},
         {"type": "text", "text": _truncate(summary, 140), "size": "sm", "color": "#333333", "wrap": True},
@@ -366,10 +375,10 @@ def _compact_answer_for_line(answer: str) -> str:
         if set(line.replace(" ", "")) <= {"-", ":"}:
             continue
         kept.append(line)
-    cleaned = " ".join(kept)
+    cleaned = _plain_line_text(" ".join(kept))
     if not cleaned:
         return "我先幫你整理 3 間符合需求的餐廳，請左右滑動查看卡片。"
-    return _truncate(cleaned.replace("**", ""), 180)
+    return _truncate(cleaned, 180)
 
 
 def _line_recommendation_intro(count: int) -> str:
@@ -379,35 +388,12 @@ def _line_recommendation_intro(count: int) -> str:
 
 
 def _recommendation_reason_for_shop(shop: dict, answer: str) -> str:
-    name = str(shop.get("name") or "")
-    aliases = [name]
-    if " " in name:
-        aliases.append(name.split(" ", 1)[0])
-    if "｜" in name:
-        aliases.append(name.split("｜", 1)[0])
-    if "|" in name:
-        aliases.append(name.split("|", 1)[0])
-
-    for raw_line in (answer or "").splitlines():
-        line = raw_line.strip()
-        if "|" not in line:
-            continue
-        cells = [cell.strip(" -:") for cell in line.strip("|").split("|")]
-        if len(cells) < 2:
-            continue
-        if any(alias and alias in cells[0] for alias in aliases):
-            reason = cells[2] if len(cells) >= 3 else cells[1]
-            reason = reason.replace("**", "").strip()
-            if reason and "推薦" not in reason:
-                return _truncate(reason, 140)
-
     summary = str(shop.get("ai_summary") or "").strip()
     if summary:
-        return _truncate(summary, 140)
+        return _truncate(_plain_line_text(summary), 140)
 
     tags = [str(tag) for tag in (shop.get("atmosphere_tags") or [])[:2]]
     dishes = [str(dish) for dish in (shop.get("signature_dishes") or [])[:2]]
-    booking = str(shop.get("booking_difficulty") or "").strip()
     price = str(shop.get("price_per_person") or "").strip()
     highlights = [*dishes, *tags]
     if dishes and tags:
@@ -415,10 +401,9 @@ def _recommendation_reason_for_shop(shop: dict, answer: str) -> str:
     if dishes:
         return _truncate(f"招牌包含{ '、'.join(dishes[:3]) }，可先看詳情確認菜單與評價。", 140)
     if tags:
-        extra = f"，{booking}" if booking and booking != "未提及" else ""
-        return _truncate(f"評論標籤偏向{ '、'.join(tags[:2]) }{extra}。", 140)
+        return _truncate(f"評論標籤偏向{ '、'.join(tags[:2]) }，適合先看詳情比較用餐情境。", 140)
     if price:
-        return _truncate(f"人均約{price}，適合先看詳情確認菜色、評論與訂位規則。", 140)
+        return _truncate(f"人均約{price}，適合先看詳情確認菜色、評論與用餐氛圍。", 140)
     if highlights:
         return _truncate("符合本次需求，亮點包含" + "、".join(highlights[:3]) + "。", 140)
 
@@ -441,6 +426,24 @@ def _category_label(category: str) -> str:
         "fine-dining": "高級餐廳",
         "cafe": "咖啡甜點",
     }.get(category, category)
+
+
+def _brand_key(name: str) -> str:
+    normalized = name.strip()
+    for sep in ("｜", "|", " ", "　", "-", "－", "("):
+        if sep in normalized:
+            prefix = normalized.split(sep, 1)[0].strip()
+            if prefix and prefix not in {"店家", "餐廳"}:
+                normalized = prefix
+            break
+    return normalized.strip().lower() or name.strip().lower()
+
+
+def _plain_line_text(text: str) -> str:
+    cleaned = str(text or "").replace("**", "").replace("__", "")
+    cleaned = re.sub(r"`([^`]*)`", r"\1", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned.strip()
 
 
 def _truncate(text: str, max_length: int) -> str:
