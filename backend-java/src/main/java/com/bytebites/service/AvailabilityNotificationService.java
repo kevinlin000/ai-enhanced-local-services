@@ -92,7 +92,7 @@ public class AvailabilityNotificationService {
 
     public Result myWatches() {
         Long userId = currentUserIdOrNull();
-        if (userId == null) return Result.fail("請先登入或使用 demo mode");
+        if (userId == null) return Result.fail("請先用 LINE 登入");
         expireOldWatches(userId);
         return Result.ok(jdbcTemplate.queryForList(
                 """
@@ -112,7 +112,7 @@ public class AvailabilityNotificationService {
 
     public Result myNotifications() {
         Long userId = currentUserIdOrNull();
-        if (userId == null) return Result.fail("請先登入或使用 demo mode");
+        if (userId == null) return Result.fail("請先用 LINE 登入");
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
                 """
                 SELECT n.id, n.type, n.title, n.body, n.shop_id AS shopId, n.watch_id AS watchId,
@@ -150,7 +150,7 @@ public class AvailabilityNotificationService {
 
     public Result cancelWatch(Long watchId) {
         Long userId = currentUserIdOrNull();
-        if (userId == null) return Result.fail("請先登入或使用 demo mode");
+        if (userId == null) return Result.fail("請先用 LINE 登入");
         int updated = jdbcTemplate.update(
                 """
                 UPDATE tb_availability_watch
@@ -169,7 +169,7 @@ public class AvailabilityNotificationService {
 
     public Result markRead(Long notificationId) {
         Long userId = currentUserIdOrNull();
-        if (userId == null) return Result.fail("請先登入或使用 demo mode");
+        if (userId == null) return Result.fail("請先用 LINE 登入");
         int updated = jdbcTemplate.update(
                 """
                 UPDATE tb_user_notification
@@ -185,7 +185,7 @@ public class AvailabilityNotificationService {
 
     public Result markAllRead() {
         Long userId = currentUserIdOrNull();
-        if (userId == null) return Result.fail("請先登入或使用 demo mode");
+        if (userId == null) return Result.fail("請先用 LINE 登入");
         int updated = jdbcTemplate.update(
                 """
                 UPDATE tb_user_notification

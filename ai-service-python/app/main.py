@@ -417,6 +417,8 @@ def _has_hotpot_semantics(payload: dict) -> bool:
 
 def _is_burger_hit(payload: dict) -> bool:
     name = str(payload.get("name") or "").lower()
+    if any(keyword.lower() in name for keyword in BURGER_BLOCK_HINTS):
+        return False
     return any(keyword.lower() in name for keyword in BURGER_TEXT_HINTS)
 
 
@@ -3281,6 +3283,7 @@ async def _build_line_cards_for_query(
     if not selected:
         return None
 
+    selected_shops = _shops_for_ids(shops, selected)
     _save_line_recommendation_state(user_id, query=save_query or query, shown_shop_ids=selected)
     flex_or_bundle = build_line_flex_message(
         shops=shops,
@@ -3290,7 +3293,38 @@ async def _build_line_cards_for_query(
         line_user_id=user_id,
     )
     messages = flex_or_bundle.get("messages") if flex_or_bundle.get("type") == "_bundle" else [flex_or_bundle]
+    intro = _line_scope_expansion_intro(query, selected_shops)
+    if intro and messages and messages[0].get("type") == "text":
+        messages[0]["text"] = intro
     return messages or None
+
+
+def _shops_for_ids(shops: list[dict], selected_ids: list[int]) -> list[dict]:
+    by_id = {
+        int(shop_id): shop
+        for shop in shops
+        if (shop_id := _shop_id(shop)) is not None
+    }
+    return [by_id[shop_id] for shop_id in selected_ids if shop_id in by_id]
+
+
+def _line_scope_expansion_intro(query: str, selected_shops: list[dict]) -> str | None:
+    if not selected_shops:
+        return None
+    constraints = _extract_query_constraints(query)
+    requested_districts = constraints.get("districts") or []
+    if not requested_districts:
+        return None
+    district_matches = sum(1 for shop in selected_shops if _district_matches(constraints, shop))
+    if district_matches >= len(selected_shops):
+        return None
+
+    district_label = "、".join(f"{district}區" for district in requested_districts)
+    category_label = "漢堡店" if constraints.get("wants_burger") else "餐廳"
+    return (
+        f"{district_label}符合條件較少，我先擴大到台北{category_label}，整理 {len(selected_shops)} 間符合需求的餐廳。"
+        "請左右滑動查看卡片，點「看完整分析」看菜色、評論與訂位規則；點「填日期人數」直接進訂位表單。"
+    )
 
 
 async def _build_line_card_request(user_text: str, user_id: str) -> list[dict] | None:

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 import { javaApi } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 type FavoriteShopButtonProps = {
   shopId: number;
@@ -11,11 +12,17 @@ type FavoriteShopButtonProps = {
 };
 
 export function FavoriteShopButton({ shopId, compact = false, inverted = false }: FavoriteShopButtonProps) {
+  const { isLoggedIn, login, mounted } = useAuth();
   const [favorited, setFavorited] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (mounted && !isLoggedIn) {
+      setFavorited(false);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     javaApi.favoriteStatus(shopId)
@@ -31,10 +38,14 @@ export function FavoriteShopButton({ shopId, compact = false, inverted = false }
     return () => {
       cancelled = true;
     };
-  }, [shopId]);
+  }, [isLoggedIn, mounted, shopId]);
 
   const toggle = async () => {
     if (busy) return;
+    if (mounted && !isLoggedIn) {
+      login();
+      return;
+    }
     setBusy(true);
     const next = !favorited;
     setFavorited(next);

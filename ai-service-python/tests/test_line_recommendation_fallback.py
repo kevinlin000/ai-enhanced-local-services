@@ -62,6 +62,20 @@ def test_premium_hotpot_key_prefers_luxury_cues_over_plain_hotpot():
     assert main._premium_hotpot_key(constraints, orange) > main._premium_hotpot_key(constraints, plain)
 
 
+def test_burger_hit_rejects_brunch_fillers():
+    assert main._is_burger_hit({"name": "Bounce Back 美式漢堡"})
+    assert main._is_burger_hit({"name": "TakeOut Burger&Cafe 忠孝新生店"})
+    assert not main._is_burger_hit(
+        {
+            "name": (
+                "鹿境早午餐 Arrival Brunch & Cafe - 早午餐推薦 ｜ 餐廳 ｜"
+                "小巨蛋早午餐 ｜ 漢堡"
+            )
+        }
+    )
+    assert not main._is_burger_hit({"name": "軟食力 行天宮店"})
+
+
 @pytest.mark.anyio
 async def test_line_reply_falls_back_to_flex_when_agent_skips_search(monkeypatch):
     async def fake_run_agent_turn(query: str, session_id: str):
@@ -133,6 +147,50 @@ async def test_line_user_recommendation_returns_cards_without_agent(monkeypatch)
     assert len(messages) == 2
     assert messages[1]["type"] == "flex"
     assert messages[1]["contents"]["contents"][0]["body"]["contents"][1]["text"] == "橘色涮涮屋 信義館"
+
+
+@pytest.mark.anyio
+async def test_line_burger_reply_explains_expanded_scope(monkeypatch):
+    async def fail_run_agent_turn(query: str, session_id: str):
+        raise AssertionError("clear line recommendation should not wait for agent text")
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        return [
+            {
+                "shop_id": 10201,
+                "name": "Juicy Bun Burger 就是棒 美式餐廳 政大店",
+                "district": "文山",
+                "category": "美式料理",
+            },
+            {
+                "shop_id": 10746,
+                "name": "林斯漢堡美式餐廳Lin’s Burger 台北信義店",
+                "district": "信義",
+                "category": "美式料理",
+            },
+            {
+                "shop_id": 10618,
+                "name": "TakeOut Burger&Cafe 忠孝新生店",
+                "district": "中正",
+                "category": "美式料理",
+            },
+        ]
+
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "_run_agent_turn", fail_run_agent_turn)
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "推薦中山區高級漢堡店"},
+        }
+    )
+
+    assert messages[0]["text"].startswith("中山區符合條件較少，我先擴大到台北漢堡店")
+    assert len(messages[1]["contents"]["contents"]) == 3
 
 
 def test_line_background_push_is_opt_in(monkeypatch):

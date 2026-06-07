@@ -185,18 +185,22 @@ function merchantHeaders(): HeadersInit {
   };
 }
 
-function authOrDemoHeaders(contentType = false): HeadersInit {
+export class AuthRequiredError extends Error {
+  constructor() {
+    super("請先用 LINE 登入後再使用此功能");
+    this.name = "AuthRequiredError";
+  }
+}
+
+function authHeaders(contentType = false): HeadersInit {
   const headers: Record<string, string> = {};
   if (contentType) headers["Content-Type"] = "application/json";
 
   const token = typeof window !== "undefined"
     ? window.localStorage.getItem("bytebites_token")
     : null;
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  } else {
-    headers["X-Demo-Mode"] = "true";
-  }
+  if (!token) throw new AuthRequiredError();
+  headers.Authorization = `Bearer ${token}`;
   return headers;
 }
 
@@ -261,7 +265,7 @@ export const javaApi = {
       };
     }>(`${CLIENT_JAVA_API}/api/booking/pay-test`, {
       method: "POST",
-      headers: authOrDemoHeaders(true),
+      headers: authHeaders(true),
       body: JSON.stringify({ bookingCode }),
     }),
   payBookingByPrime: (body: { prime: string; amount: number; bookingCode: string }) =>
@@ -278,7 +282,7 @@ export const javaApi = {
       };
     }>(`${CLIENT_JAVA_API}/api/payment/tappay/pay-by-prime`, {
       method: "POST",
-      headers: authOrDemoHeaders(true),
+      headers: authHeaders(true),
       body: JSON.stringify({
         prime: body.prime,
         amount: body.amount,
@@ -289,14 +293,14 @@ export const javaApi = {
   myBookings: () =>
     fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking[] }>(
       `${CLIENT_JAVA_API}/api/booking/my`,
-      { headers: authOrDemoHeaders() },
+      { headers: authHeaders() },
     ),
   cancelBooking: (bookingCode: string) =>
     fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking }>(
       `${CLIENT_JAVA_API}/api/booking/${encodeURIComponent(bookingCode)}/cancel`,
       {
         method: "POST",
-        headers: authOrDemoHeaders(true),
+        headers: authHeaders(true),
       },
     ),
   createAvailabilityWatch: (body: {
@@ -310,7 +314,7 @@ export const javaApi = {
       `${CLIENT_JAVA_API}/api/availability/watches`,
       {
         method: "POST",
-        headers: authOrDemoHeaders(true),
+        headers: authHeaders(true),
         body: JSON.stringify({
           shopId: body.shopId,
           date: body.date,
@@ -323,14 +327,14 @@ export const javaApi = {
   availabilityWatches: () =>
     fetchJson<{ success: boolean; errorMsg?: string; data: AvailabilityWatch[] }>(
       `${CLIENT_JAVA_API}/api/availability/watches`,
-      { headers: authOrDemoHeaders() },
+      { headers: authHeaders() },
     ),
   cancelAvailabilityWatch: (id: number) =>
     fetchJson<{ success: boolean; errorMsg?: string; data: { id: number; status: "CANCELED" } }>(
       `${CLIENT_JAVA_API}/api/availability/watches/${id}/cancel`,
       {
         method: "POST",
-        headers: authOrDemoHeaders(true),
+        headers: authHeaders(true),
       },
     ),
   notifications: () =>
@@ -339,14 +343,14 @@ export const javaApi = {
       errorMsg?: string;
       data: { unreadCount: number; items: UserNotification[] };
     }>(`${CLIENT_JAVA_API}/api/availability/notifications`, {
-      headers: authOrDemoHeaders(),
+      headers: authHeaders(),
     }),
   markNotificationRead: (id: number) =>
     fetchJson<{ success: boolean; errorMsg?: string; data: { id: number; status: "READ" } }>(
       `${CLIENT_JAVA_API}/api/availability/notifications/${id}/read`,
       {
         method: "POST",
-        headers: authOrDemoHeaders(true),
+        headers: authHeaders(true),
       },
     ),
   markAllNotificationsRead: () =>
@@ -354,25 +358,25 @@ export const javaApi = {
       `${CLIENT_JAVA_API}/api/availability/notifications/read-all`,
       {
         method: "POST",
-        headers: authOrDemoHeaders(true),
+        headers: authHeaders(true),
       },
     ),
   favoriteShops: () =>
     fetchJson<{ success: boolean; errorMsg?: string; data: FavoriteShop[] }>(
       `${CLIENT_JAVA_API}/api/favorites/shops`,
-      { headers: authOrDemoHeaders() },
+      { headers: authHeaders() },
     ),
   favoriteStatus: (shopId: number) =>
     fetchJson<{ success: boolean; errorMsg?: string; data: { shopId: number; favorited: boolean } }>(
       `${CLIENT_JAVA_API}/api/favorites/shops/${shopId}`,
-      { headers: authOrDemoHeaders() },
+      { headers: authHeaders() },
     ),
   saveFavoriteShop: (shopId: number) =>
     fetchJson<{ success: boolean; errorMsg?: string; data: { shopId: number; favorited: boolean } }>(
       `${CLIENT_JAVA_API}/api/favorites/shops/${shopId}`,
       {
         method: "POST",
-        headers: authOrDemoHeaders(true),
+        headers: authHeaders(true),
       },
     ),
   removeFavoriteShop: (shopId: number) =>
@@ -380,7 +384,7 @@ export const javaApi = {
       `${CLIENT_JAVA_API}/api/favorites/shops/${shopId}`,
       {
         method: "DELETE",
-        headers: authOrDemoHeaders(true),
+        headers: authHeaders(true),
       },
     ),
   tappayMockCallback: (body: { orderId: number; payType: number; amount: number }) =>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Heart, MapPin, Star } from "lucide-react";
 import { javaApi, type FavoriteShop } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { getStyleByTypeId } from "@/lib/categoryStyle";
 import { proxyImageUrl } from "@/lib/photoProxy";
 import { getBestShopCardPhoto, getShopOverview } from "@/lib/shopPhotoManifest";
@@ -21,6 +22,7 @@ function formatSpend(shop: FavoriteShop) {
 }
 
 export default function FavoritesPage() {
+  const { isLoggedIn, login, mounted } = useAuth();
   const [items, setItems] = useState<FavoriteShop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -35,6 +37,13 @@ export default function FavoritesPage() {
   }, [items]);
 
   useEffect(() => {
+    if (!mounted) return;
+    if (!isLoggedIn) {
+      setItems([]);
+      setError("");
+      setLoading(false);
+      return;
+    }
     javaApi.favoriteShops()
       .then((response) => {
         if (response.success) {
@@ -46,7 +55,7 @@ export default function FavoritesPage() {
       })
       .catch((err) => setError(err instanceof Error ? err.message : "讀取收藏失敗"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [isLoggedIn, mounted]);
 
   const remove = async (shopId: number) => {
     setItems((current) => current.filter((shop) => shop.shopId !== shopId));
@@ -83,7 +92,22 @@ export default function FavoritesPage() {
         </div>
 
         <div className="p-5 md:p-8">
-          {loading ? (
+          {mounted && !isLoggedIn ? (
+            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-10 text-center">
+              <Heart className="mx-auto h-10 w-10 text-amber-700" />
+              <h2 className="mt-4 text-2xl font-black text-amber-950">請先用 LINE 登入</h2>
+              <p className="mt-2 text-sm leading-6 text-amber-800">
+                收藏餐廳會綁定 LINE 帳號；登入後才能同步收藏、訂位與通知。
+              </p>
+              <button
+                type="button"
+                onClick={login}
+                className="mt-6 inline-flex rounded-full bg-emerald-700 px-5 py-3 text-sm font-black text-white hover:bg-emerald-800"
+              >
+                用 LINE 登入
+              </button>
+            </div>
+          ) : loading ? (
             <div className="rounded-2xl border border-dashed p-10 text-center text-zinc-500">
               讀取收藏中...
             </div>
