@@ -81,6 +81,7 @@ async def test_line_user_recommendation_starts_background_push(monkeypatch):
         "_start_line_background_recommendation",
         lambda user_id, user_text: started.update({"user_id": user_id, "user_text": user_text}),
     )
+    monkeypatch.setattr(main.settings, "line_background_push_enabled", True)
 
     messages = await main._build_line_reply_messages(
         {
@@ -97,6 +98,15 @@ async def test_line_user_recommendation_starts_background_push(monkeypatch):
             "text": "收到，我正在幫你整理符合條件的餐廳。完成後會直接把推薦卡片傳給你。",
         }
     ]
+
+
+def test_line_background_push_is_opt_in(monkeypatch):
+    monkeypatch.setattr(main.settings, "line_background_push_enabled", False)
+
+    assert not main._line_should_start_background_recommendation(
+        {"type": "user"},
+        "推薦信義區高級火鍋",
+    )
 
 
 @pytest.mark.anyio

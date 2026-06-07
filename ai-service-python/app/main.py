@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     line_signature_verify: bool = True
     line_reply_enabled: bool = False
     line_public_web_url: str = "http://localhost:3000"
+    line_background_push_enabled: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -2434,6 +2435,7 @@ async def agent_stream(req: AgentRequest):
 
 
 @app.get("/api/line/webhook")
+@app.get("/line/webhook")
 async def line_webhook_check():
     return {
         "status": "ok",
@@ -2443,6 +2445,7 @@ async def line_webhook_check():
 
 
 @app.post("/api/line/webhook")
+@app.post("/line/webhook")
 async def line_webhook(request: Request):
     body_bytes = await request.body()
     signature = request.headers.get("x-line-signature")
@@ -3079,6 +3082,8 @@ async def _build_line_agent_recommendation_messages(
 
 
 def _line_should_start_background_recommendation(source: dict, user_text: str) -> bool:
+    if not settings.line_background_push_enabled:
+        return False
     if source.get("type") != "user":
         return False
     if _booking_intent(user_text) or _payment_intent(user_text):
