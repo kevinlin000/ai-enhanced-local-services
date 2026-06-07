@@ -129,7 +129,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             user.setLineDisplayName(profile.getName());
             user.setLinePictureUrl(profile.getPicture());
             user.setNickName(profile.getName() != null ? profile.getName() : "user_" + RandomUtil.randomString(6));
-            user.setPhone("");
+            user.setPhone(userJpaService.linePlaceholderPhone(profile.getSub()));
             user = userJpaService.save(user);
         } else {
             user.setLineDisplayName(profile.getName());
