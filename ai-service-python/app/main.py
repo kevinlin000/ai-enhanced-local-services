@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -18,6 +19,7 @@ from app.line_bot import (
     best_shop_photo_url,
     build_line_flex_message,
     build_text_message,
+    push_messages,
     reply_messages,
     show_loading_animation,
     verify_line_signature,
@@ -3030,6 +3032,86 @@ async def _build_line_contextual_followup(user_text: str, user_id: str) -> list[
     return messages or [build_text_message("我已依新條件重新整理，但 LINE 卡片暫時無法產生，請再試一次。")]
 
 
+async def _build_line_agent_recommendation_messages(
+    user_text: str,
+    user_id: str,
+) -> list[dict]:
+    try:
+        check_input(user_text)
+        answer, _tools_used, tool_result = await _run_agent_turn(user_text, f"line:{user_id}")
+    except GuardrailViolation:
+        return [build_text_message("這個內容我不能協助處理。可以換一個餐廳或訂位相關的問法。")]
+    except Exception:
+        logger.exception("line_agent_failed user_id=%s text=%s", user_id, user_text)
+        return [build_text_message("AI 目前暫時無法完成推薦，請稍後再試一次，或換個地點 / 條件重新輸入。")]
+
+    shops = tool_result.get("shops") if isinstance(tool_result, dict) else None
+    if isinstance(shops, list) and shops:
+        recommended_ids = tool_result.get("agent_decision", {}).get("recommended_shop_ids")
+        flex_or_bundle = build_line_flex_message(
+            shops=shops,
+            recommended_shop_ids=recommended_ids if isinstance(recommended_ids, list) else None,
+            answer=answer,
+            public_web_url=settings.line_public_web_url,
+        )
+        if flex_or_bundle.get("type") == "_bundle":
+            messages = flex_or_bundle.get("messages") or []
+        else:
+            messages = [flex_or_bundle]
+        shown_ids = (
+            [int(shop_id) for shop_id in recommended_ids if str(shop_id).isdigit()]
+            if isinstance(recommended_ids, list)
+            else [
+                int(sid)
+                for shop in shops[:3]
+                if (sid := _shop_id(shop)) is not None
+            ]
+        )
+        _save_line_recommendation_state(user_id, query=user_text, shown_shop_ids=shown_ids)
+        if messages:
+            return messages
+
+    fallback_messages = await _build_line_fallback_recommendation_cards(user_text, user_id)
+    if fallback_messages:
+        return fallback_messages
+
+    return [build_text_message(_line_plain_text(answer or "我需要再多一點條件，才能幫你推薦餐廳。"))]
+
+
+def _line_should_start_background_recommendation(source: dict, user_text: str) -> bool:
+    if source.get("type") != "user":
+        return False
+    if _booking_intent(user_text) or _payment_intent(user_text):
+        return False
+    return _line_should_force_recommendation_cards(user_text)
+
+
+def _start_line_background_recommendation(user_id: str, user_text: str) -> None:
+    asyncio.create_task(_run_line_background_recommendation(user_id=user_id, user_text=user_text))
+
+
+async def _run_line_background_recommendation(user_id: str, user_text: str) -> None:
+    await show_loading_animation(
+        user_id=user_id,
+        channel_access_token=settings.line_channel_access_token,
+        enabled=settings.line_reply_enabled,
+        loading_seconds=60,
+    )
+    messages = await _build_line_agent_recommendation_messages(user_text, user_id)
+    result = await push_messages(
+        user_id=user_id,
+        messages=messages,
+        channel_access_token=settings.line_channel_access_token,
+        enabled=settings.line_reply_enabled,
+    )
+    logger.info(
+        "line_background_recommendation_pushed user_id=%s ok=%s status_code=%s",
+        user_id,
+        result.get("ok"),
+        result.get("status_code"),
+    )
+
+
 def _line_cancel_context_intent(text: str) -> bool:
     normalized = str(text or "").strip()
     return normalized in {"取消", "不用了", "先不用", "算了", "不要找了", "停止", "先不要"}
@@ -3127,6 +3209,14 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     if more_messages is not None:
         return more_messages
 
+    if _line_should_start_background_recommendation(source, effective_user_text):
+        _start_line_background_recommendation(user_id, effective_user_text)
+        return [
+            build_text_message(
+                "收到，我正在幫你整理符合條件的餐廳。完成後會直接把推薦卡片傳給你。"
+            )
+        ]
+
     if source.get("type") == "user":
         await show_loading_animation(
             user_id=user_id,
@@ -3135,46 +3225,7 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
             loading_seconds=20,
         )
 
-    try:
-        check_input(effective_user_text)
-        answer, _tools_used, tool_result = await _run_agent_turn(effective_user_text, f"line:{user_id}")
-    except GuardrailViolation:
-        return [build_text_message("這個內容我不能協助處理。可以換一個餐廳或訂位相關的問法。")]
-    except Exception:
-        logger.exception("line_agent_failed user_id=%s text=%s", user_id, user_text)
-        return [build_text_message("AI 目前暫時無法完成推薦，請稍後再試一次，或換個地點 / 條件重新輸入。")]
-
-    shops = tool_result.get("shops") if isinstance(tool_result, dict) else None
-    if isinstance(shops, list) and shops:
-        recommended_ids = tool_result.get("agent_decision", {}).get("recommended_shop_ids")
-        flex_or_bundle = build_line_flex_message(
-            shops=shops,
-            recommended_shop_ids=recommended_ids if isinstance(recommended_ids, list) else None,
-            answer=answer,
-            public_web_url=settings.line_public_web_url,
-        )
-        if flex_or_bundle.get("type") == "_bundle":
-            messages = flex_or_bundle.get("messages") or []
-        else:
-            messages = [flex_or_bundle]
-        shown_ids = (
-            [int(shop_id) for shop_id in recommended_ids if str(shop_id).isdigit()]
-            if isinstance(recommended_ids, list)
-            else [
-                int(sid)
-                for shop in shops[:3]
-                if (sid := _shop_id(shop)) is not None
-            ]
-        )
-        _save_line_recommendation_state(user_id, query=effective_user_text, shown_shop_ids=shown_ids)
-        if messages:
-            return messages
-
-    fallback_messages = await _build_line_fallback_recommendation_cards(effective_user_text, user_id)
-    if fallback_messages:
-        return fallback_messages
-
-    return [build_text_message(_line_plain_text(answer or "我需要再多一點條件，才能幫你推薦餐廳。"))]
+    return await _build_line_agent_recommendation_messages(effective_user_text, user_id)
 
 
 async def _fetch_java_shop(shop_id: int) -> dict | None:

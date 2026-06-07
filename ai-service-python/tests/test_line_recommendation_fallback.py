@@ -69,6 +69,37 @@ async def test_line_reply_falls_back_to_flex_when_agent_skips_search(monkeypatch
 
 
 @pytest.mark.anyio
+async def test_line_user_recommendation_starts_background_push(monkeypatch):
+    started = {}
+
+    async def fail_run_agent_turn(query: str, session_id: str):
+        raise AssertionError("user recommendation should run in background")
+
+    monkeypatch.setattr(main, "_run_agent_turn", fail_run_agent_turn)
+    monkeypatch.setattr(
+        main,
+        "_start_line_background_recommendation",
+        lambda user_id, user_text: started.update({"user_id": user_id, "user_text": user_text}),
+    )
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "推薦信義區高級火鍋"},
+        }
+    )
+
+    assert started == {"user_id": "test-user", "user_text": "推薦信義區高級火鍋"}
+    assert messages == [
+        {
+            "type": "text",
+            "text": "收到，我正在幫你整理符合條件的餐廳。完成後會直接把推薦卡片傳給你。",
+        }
+    ]
+
+
+@pytest.mark.anyio
 async def test_line_text_uses_saved_location_context(monkeypatch):
     captured = {}
 

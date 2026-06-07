@@ -13,6 +13,7 @@ import httpx
 logger = logging.getLogger("bytebites.line")
 
 LINE_REPLY_ENDPOINT = "https://api.line.me/v2/bot/message/reply"
+LINE_PUSH_ENDPOINT = "https://api.line.me/v2/bot/message/push"
 LINE_LOADING_ENDPOINT = "https://api.line.me/v2/bot/chat/loading/start"
 MAX_LINE_MESSAGES = 5
 MAX_FLEX_CARDS = 3
@@ -129,6 +130,55 @@ async def reply_messages(
 
     if response.status_code >= 400:
         logger.warning("line_reply_failed status=%s body=%s", response.status_code, response.text)
+        return {
+            "ok": False,
+            "status_code": response.status_code,
+            "response_text": response.text,
+        }
+    return {"ok": True, "status_code": response.status_code}
+
+
+async def push_messages(
+    user_id: str,
+    messages: list[dict[str, Any]],
+    channel_access_token: str,
+    enabled: bool,
+) -> dict[str, Any]:
+    normalized_user_id = (user_id or "").strip()
+    normalized = _normalize_messages(messages)
+    if not normalized_user_id:
+        return {"ok": False, "skipped": True, "reason": "No LINE user id"}
+    if not normalized:
+        return {"ok": True, "skipped": True, "reason": "No LINE messages"}
+
+    token = (channel_access_token or "").strip()
+    if not enabled or not token or token.startswith("your_"):
+        return {
+            "ok": True,
+            "skipped": True,
+            "reason": "LINE push disabled or channel access token missing",
+            "messages_preview": normalized,
+        }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                LINE_PUSH_ENDPOINT,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "to": normalized_user_id,
+                    "messages": normalized[:MAX_LINE_MESSAGES],
+                },
+            )
+    except Exception as exc:
+        logger.warning("line_push_request_failed error=%s", exc)
+        return {"ok": False, "skipped": True, "reason": str(exc)}
+
+    if response.status_code >= 400:
+        logger.warning("line_push_failed status=%s body=%s", response.status_code, response.text)
         return {
             "ok": False,
             "status_code": response.status_code,

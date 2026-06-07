@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from app.line_bot import build_line_flex_message, reply_messages, verify_line_signature
+from app.line_bot import build_line_flex_message, push_messages, reply_messages, verify_line_signature
 
 
 def test_verify_line_signature_accepts_valid_signature():
@@ -126,6 +126,20 @@ def test_build_line_flex_message_versions_photo_url():
 async def test_reply_messages_returns_preview_when_disabled():
     result = await reply_messages(
         reply_token="reply-token",
+        messages=[{"type": "text", "text": "hello"}],
+        channel_access_token="",
+        enabled=False,
+    )
+
+    assert result["ok"] is True
+    assert result["skipped"] is True
+    assert result["messages_preview"][0]["text"] == "hello"
+
+
+@pytest.mark.anyio
+async def test_push_messages_returns_preview_when_disabled():
+    result = await push_messages(
+        user_id="line-user",
         messages=[{"type": "text", "text": "hello"}],
         channel_access_token="",
         enabled=False,
