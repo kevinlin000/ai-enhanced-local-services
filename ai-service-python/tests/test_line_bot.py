@@ -122,6 +122,18 @@ def test_build_line_flex_message_versions_photo_url():
     assert hero_url.startswith("https://bytebites.example.com/line/photo/10115?v=")
 
 
+def test_build_line_flex_message_uses_media_alias_for_orange():
+    message = build_line_flex_message(
+        shops=[{"shop_id": 10009, "name": "橘色涮涮屋 信義館"}],
+        recommended_shop_ids=[10009],
+        answer="",
+        public_web_url="https://bytebites.example.com",
+    )
+
+    bubble = message["messages"][1]["contents"]["contents"][0]
+    assert bubble["hero"]["url"].startswith("https://bytebites.example.com/line/photo/10009?v=")
+
+
 @pytest.mark.anyio
 async def test_reply_messages_returns_preview_when_disabled():
     result = await reply_messages(

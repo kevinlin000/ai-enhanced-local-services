@@ -20,6 +20,9 @@ MAX_FLEX_CARDS = 3
 LINE_PHOTO_VERSION = "20260607b"
 
 _SHOP_MEDIA_CACHE: dict[str, Any] | None = None
+_SHOP_MEDIA_ALIASES: dict[int, int] = {
+    10009: 10550,
+}
 _COVER_INDEX_OVERRIDES: dict[int, int] = {
     10100: 0,
     10104: 0,
@@ -485,7 +488,10 @@ def _shop_image_uri(shop_id: int, public_web_url: str) -> str | None:
 
 def _best_shop_photo(shop_id: int) -> str | None:
     payload = _load_shop_media()
-    shop = (payload.get("shops") or {}).get(str(shop_id))
+    shops = payload.get("shops") or {}
+    shop = shops.get(str(shop_id))
+    if not isinstance(shop, dict):
+        shop = shops.get(str(_SHOP_MEDIA_ALIASES.get(shop_id, shop_id)))
     if not isinstance(shop, dict):
         return None
     urls = _dedupe_urls([url for url in [*(shop.get("galleryUrls") or []), *(shop.get("photoUrls") or [])] if url])
@@ -566,7 +572,7 @@ def _compact_answer_for_line(answer: str) -> str:
 def _line_recommendation_intro(count: int) -> str:
     if count <= 0:
         return "我需要再多一點條件，才能幫你推薦餐廳。"
-    return f"我先幫你整理 {count} 間符合需求的餐廳。請左右滑動查看卡片，點「查看詳情」看店家資訊，點「直接訂位」填寫人數與時間。"
+    return f"我先幫你整理 {count} 間符合需求的餐廳。請左右滑動查看卡片，點「看完整分析」看菜色、評論與訂位規則；點「填日期人數」直接進訂位表單。"
 
 
 def _recommendation_reason_for_shop(shop: dict, answer: str) -> str:

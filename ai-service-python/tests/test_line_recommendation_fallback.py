@@ -246,6 +246,40 @@ def test_line_detail_helpers_use_manifest_reviews_and_photo_fallbacks(monkeypatc
     assert "query=" in map_url
 
 
+def test_line_detail_helpers_use_orange_media_alias(monkeypatch):
+    monkeypatch.setattr(
+        main,
+        "_LINE_MEDIA_CACHE",
+        {
+            "shops": {
+                "10550": {
+                    "galleryUrls": ["https://img.example/orange.jpg"],
+                    "reviews": [
+                        {"author": "A", "rating": 5, "text": "肉品、海鮮與服務都很細緻。"},
+                        {"author": "B", "rating": 3, "text": "熱門時段建議先訂位。"},
+                    ],
+                }
+            }
+        },
+    )
+    monkeypatch.setattr(main, "best_shop_photo_url", lambda shop_id: None)
+
+    assert main._line_photo_candidates(10009) == ["https://img.example/orange.jpg"]
+    review_html = main._line_review_html(main._line_review_groups(10009))
+    assert "肉品、海鮮與服務" in review_html
+    assert "熱門時段建議先訂位" in review_html
+
+
+def test_line_detail_helpers_normalize_rating_and_hours():
+    assert main._line_display_rating(47) == "4.7"
+    assert main._line_display_rating(4.0) == "4"
+    assert main._line_business_hours(
+        {"businessHours": '{"mon":"11:30-23:00","tue":"11:30-23:00"}'},
+        {},
+    ) == ["週一 11:30-23:00", "週二 11:30-23:00"]
+    assert main._line_business_hours({"openHours": "11:30-23:00"}, {}) == ["每日 11:30-23:00"]
+
+
 @pytest.mark.anyio
 async def test_line_shop_detail_renders_concierge_sections(monkeypatch):
     async def fake_fetch_shop(shop_id: int):

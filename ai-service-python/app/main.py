@@ -69,6 +69,9 @@ logger = logging.getLogger("bytebites.ai")
 LINE_RECOMMENDATION_TTL_SECONDS = 1800
 LINE_LOCATION_TTL_SECONDS = 1800
 _LINE_MEDIA_CACHE: dict | None = None
+_LINE_MEDIA_ALIASES: dict[int, int] = {
+    10009: 10550,
+}
 PREMIUM_HOTPOT_SUPPLEMENT_IDS = (10009,)
 
 
@@ -2538,7 +2541,7 @@ async def line_shop_detail(shop_id: int):
     summary = _html_escape(_line_detail_summary(shop, metadata, manifest_shop))
     dishes = _parse_json_list(metadata.get("signatureDishes"))[:4]
     tags = _parse_json_list(metadata.get("atmosphereTags"))[:3]
-    hours = _parse_json_list(metadata.get("openingHours") or shop.get("businessHours"))[:7]
+    hours = _line_business_hours(shop, metadata)[:7]
     price = _html_escape(str(metadata.get("pricePerPerson") or (f"NT$ {avg_price}" if avg_price else "價位未標示")))
     booking = _html_escape(str(metadata.get("bookingDifficulty") or "可查看訂位狀態"))
     deposit = _line_deposit_summary(policy)
@@ -2548,11 +2551,12 @@ async def line_shop_detail(shop_id: int):
     map_uri = _line_google_maps_uri(str(shop.get("name") or ""), str(shop.get("address") or ""))
     map_link = _html_escape(map_uri)
     basis_items = _line_recommendation_basis(shop, metadata, manifest_shop)
+    rating_label = _line_display_rating(rating)
     info_bits = [
         district or "台北",
         f"捷運{mrt}" if mrt else "",
         price,
-        f"Google {rating} 分" if rating else "",
+        f"Google {rating_label} 分" if rating_label else "",
         f"{comments} 則評論" if comments else "",
     ]
     hero = (
@@ -3345,8 +3349,74 @@ def _line_media_payload() -> dict:
 
 
 def _line_media_shop(shop_id: int) -> dict:
-    shop = (_line_media_payload().get("shops") or {}).get(str(shop_id))
+    shops = _line_media_payload().get("shops") or {}
+    shop = shops.get(str(shop_id))
+    if not isinstance(shop, dict):
+        shop = shops.get(str(_LINE_MEDIA_ALIASES.get(shop_id, shop_id)))
     return shop if isinstance(shop, dict) else {}
+
+
+def _line_display_rating(raw) -> str:
+    try:
+        rating = float(raw)
+    except (TypeError, ValueError):
+        return ""
+    if rating <= 0:
+        return ""
+    if 5 < rating <= 50:
+        rating = rating / 10
+    return f"{rating:.1f}".rstrip("0").rstrip(".")
+
+
+def _line_business_hours(shop: dict, metadata: dict) -> list[str]:
+    raw_candidates = [
+        metadata.get("openingHours"),
+        metadata.get("businessHours"),
+        shop.get("businessHours"),
+        shop.get("business_hours"),
+        shop.get("openHours"),
+        shop.get("open_hours"),
+    ]
+    for raw in raw_candidates:
+        hours = _line_parse_hours(raw)
+        if hours:
+            return hours
+    return []
+
+
+def _line_parse_hours(raw) -> list[str]:
+    if not raw:
+        return []
+    if isinstance(raw, list):
+        return [str(item).strip() for item in raw if str(item).strip()]
+    if isinstance(raw, dict):
+        labels = {
+            "mon": "週一",
+            "tue": "週二",
+            "wed": "週三",
+            "thu": "週四",
+            "fri": "週五",
+            "sat": "週六",
+            "sun": "週日",
+        }
+        hours = []
+        for key in ("mon", "tue", "wed", "thu", "fri", "sat", "sun"):
+            value = str(raw.get(key) or "").strip()
+            if value:
+                hours.append(f"{labels[key]} {value}")
+        return hours
+    text = str(raw).strip()
+    if not text:
+        return []
+    try:
+        parsed = json.loads(text)
+    except (TypeError, ValueError):
+        parsed = None
+    if parsed is not None:
+        return _line_parse_hours(parsed)
+    if re.fullmatch(r"\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}", text):
+        return [f"每日 {text}"]
+    return [text]
 
 
 def _line_photo_candidates(shop_id: int) -> list[str]:
@@ -3388,8 +3458,9 @@ def _line_recommendation_basis(shop: dict, metadata: dict, manifest_shop: dict) 
         basis.append("用餐情境標籤：" + "、".join(tags))
     rating = shop.get("score") or shop.get("rating")
     comments = shop.get("comments") or shop.get("reviewCount")
-    if rating and comments:
-        basis.append(f"Google 評分 {rating}，累積 {comments} 則評論，可作為穩定度參考。")
+    rating_label = _line_display_rating(rating)
+    if rating_label and comments:
+        basis.append(f"Google 評分 {rating_label}，累積 {comments} 則評論，可作為穩定度參考。")
     overview = manifest_shop.get("overview") if isinstance(manifest_shop, dict) else {}
     buckets = (overview or {}).get("price_buckets")
     if isinstance(buckets, list) and buckets:
