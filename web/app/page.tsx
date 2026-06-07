@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Bot, Search, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowRight, Bot, Search, Sparkles } from "lucide-react";
 import { javaApi, type Category, type Shop, type ShopAiMetadata } from "@/lib/api";
 import { getCategoryStyle, getStyleByTypeId } from "@/lib/categoryStyle";
 import { isLegacySeedShop } from "@/lib/legacySeedShops";
@@ -336,7 +336,14 @@ function UtilityStrip() {
   );
 }
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: Promise<{ login_failed?: string }>;
+}) {
+  const params = await searchParams;
+  const loginFailed = params?.login_failed;
+
   const [categoriesRes, shopCountRes] = await Promise.all([
     javaApi.listCategories().catch(() => ({ data: [] as Category[] })),
     javaApi.shopCount().catch(() => ({ data: 0 })),
@@ -375,6 +382,14 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-[#f6f1e8] text-[#1c1914]">
+      {loginFailed ? (
+        <div className="border-b border-red-200 bg-red-50 px-6 py-3 text-sm font-bold text-red-900 md:px-12">
+          <div className="mx-auto flex max-w-7xl items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>LINE 登入失敗：{loginFailed}</span>
+          </div>
+        </div>
+      ) : null}
       <section className="border-b border-[#ded7c9] px-6 py-14 md:px-12 md:py-20">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1fr] lg:items-center">
           <div>

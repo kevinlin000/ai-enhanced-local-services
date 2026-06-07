@@ -42,6 +42,7 @@ public class LineOAuthService {
     }
 
     public String buildAuthorizeUrl(String state) {
+        validateConfigured();
         return authorizeUrl
                 + "?response_type=code"
                 + "&client_id=" + clientId
@@ -51,6 +52,7 @@ public class LineOAuthService {
     }
 
     public LineProfile exchangeCodeForProfile(String code) {
+        validateConfigured();
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "authorization_code");
         form.add("code", code);
@@ -95,6 +97,13 @@ public class LineOAuthService {
             return profile;
         } catch (Exception e) {
             throw new IllegalStateException("failed to decode id_token payload", e);
+        }
+    }
+
+    private void validateConfigured() {
+        if (clientId == null || clientId.isBlank() || "placeholder_channel_id".equals(clientId)
+                || clientSecret == null || clientSecret.isBlank() || "placeholder_channel_secret".equals(clientSecret)) {
+            throw new IllegalStateException("LINE OAuth is not configured. Set LINE_CHANNEL_ID and LINE_CHANNEL_SECRET.");
         }
     }
 

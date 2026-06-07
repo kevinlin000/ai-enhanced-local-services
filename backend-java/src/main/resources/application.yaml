@@ -69,6 +69,7 @@ line:
     client-id: ${LINE_CHANNEL_ID:placeholder_channel_id}
     client-secret: ${LINE_CHANNEL_SECRET:placeholder_channel_secret}
     redirect-uri: ${LINE_REDIRECT_URI:http://localhost:8081/api/auth/line/callback}
+    frontend-url: ${FRONTEND_URL:http://localhost:3000}
     authorize-url: https://access.line.me/oauth2/v2.1/authorize
     token-url: https://api.line.me/oauth2/v2.1/token
     verify-url: https://api.line.me/oauth2/v2.1/verify

@@ -61,7 +61,7 @@ function isActive(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isLoggedIn, login, logout, mounted } = useAuth();
+  const { isLoggedIn, login, logout, mounted, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -81,6 +81,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ? "min-h-screen bg-[#f6f1e8] text-[#171512] md:grid md:grid-cols-[84px_minmax(0,1fr)]"
     : "min-h-screen bg-[#f6f1e8] text-[#171512] md:grid md:grid-cols-[292px_minmax(0,1fr)]";
 
+  const displayName = mounted && isLoggedIn ? user?.displayName ?? "ByteBites User" : "訪客模式";
+  const pictureUrl = mounted && isLoggedIn ? user?.pictureUrl : null;
+
   return (
     <div className={shellClass}>
       <aside className="hidden border-r border-black/10 bg-[#f7f3ec] md:sticky md:top-0 md:flex md:h-screen md:flex-col">
@@ -88,6 +91,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/" className={`${collapsed ? "text-3xl" : "text-4xl"} font-black tracking-[-0.08em]`}>
             bb
           </Link>
+        </div>
+
+        <div className={`${collapsed ? "px-3" : "px-8"} pb-6`}>
+          <div className={`flex items-center gap-4 ${collapsed ? "justify-center" : ""}`}>
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-black/5">
+              {pictureUrl ? (
+                <img
+                  src={pictureUrl}
+                  alt={displayName}
+                  className="h-full w-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <UserCircle className="h-8 w-8 text-zinc-500" />
+              )}
+            </div>
+            {!collapsed ? (
+              <div className="min-w-0">
+                <p className="truncate text-lg font-black tracking-[-0.03em]">{displayName}</p>
+                <p className="mt-0.5 text-xs font-medium text-zinc-500">
+                  {mounted && isLoggedIn ? "LINE 已登入" : "Demo mode"}
+                </p>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className={`${collapsed ? "px-3" : "px-6"} pb-5`}>
@@ -149,22 +177,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className={`space-y-3 ${collapsed ? "px-3" : "px-6"} py-6`}>
-          <div className={`flex items-center gap-3 rounded-2xl px-3 py-3 ${collapsed ? "justify-center" : ""}`}>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white">
-              <UserCircle className="h-6 w-6 text-zinc-500" />
-            </div>
-            {!collapsed ? (
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black">
-                  {mounted && isLoggedIn ? "ByteBites User" : "訪客模式"}
-                </p>
-                <p className="text-xs text-zinc-500">
-                  {mounted && isLoggedIn ? "LINE 已登入" : "Demo mode"}
-                </p>
-              </div>
-            ) : null}
-          </div>
-
           {mounted ? (
             isLoggedIn ? (
               <button

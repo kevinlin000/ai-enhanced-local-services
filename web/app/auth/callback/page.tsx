@@ -13,7 +13,8 @@ function AuthCallbackContent() {
       localStorage.setItem("bytebites_token", token);
       router.replace("/");
     } else {
-      router.replace("/?login_failed=1");
+      const error = params.get("error") ?? "LINE login failed";
+      router.replace(`/?login_failed=${encodeURIComponent(error)}`);
     }
   }, [params, router]);
 

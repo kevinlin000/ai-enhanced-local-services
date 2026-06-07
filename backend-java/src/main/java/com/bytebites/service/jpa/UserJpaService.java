@@ -20,6 +20,10 @@ public class UserJpaService {
         return repo.findByLineUserId(lineUserId);
     }
 
+    public Optional<UserJpa> findById(Long id) {
+        return repo.findById(id);
+    }
+
     @Transactional
     public UserJpa save(UserJpa user) {
         return repo.save(user);
