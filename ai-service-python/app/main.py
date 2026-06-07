@@ -404,7 +404,7 @@ def _has_hotpot_semantics(payload: dict) -> bool:
     return any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["hotpot"])
 
 
-def _premium_hotpot_key(constraints: dict, hit: dict) -> tuple[int, int, int, float, int, int, int, float]:
+def _premium_hotpot_key(constraints: dict, hit: dict) -> tuple[int, int, int, int, int, float, int, int, float]:
     avg_price = hit.get("avg_price") or 0
     tags = set(hit.get("atmosphere_tags") or [])
     text = _payload_text(hit)
@@ -439,13 +439,14 @@ def _premium_hotpot_key(constraints: dict, hit: dict) -> tuple[int, int, int, fl
         elif district_match:
             nearby_bucket = 1
     return (
-        1 if _semantic_category_slug(hit) == "hotpot" else 0,
-        nearby_bucket,
         premium_price,
-        station_score,
-        district_match,
         has_premium_cues,
+        nearby_bucket,
+        district_match,
+        1 if _semantic_category_slug(hit) == "hotpot" else 0,
+        station_score,
         date_night or mid_price,
+        1 if avg_price >= 800 else 0,
         hit["rerank_score"],
     )
 
@@ -816,7 +817,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             )
 
     if any(keyword in query.lower() for keyword in LUXURY_HINTS):
-        def luxury_score(hit: dict) -> tuple[int, int, int, float, int, int, int, float]:
+        def luxury_score(hit: dict) -> tuple:
             if requested_hotpot:
                 return _premium_hotpot_key(constraints, hit)
 
@@ -2779,6 +2780,138 @@ async def _build_line_more_recommendations(user_text: str, user_id: str) -> list
     return messages or [build_text_message("我找到更多候選，但 LINE 卡片暫時無法產生，請再試一次。")]
 
 
+async def _build_line_cards_for_query(
+    query: str,
+    user_id: str,
+    selected_ids: list[int] | None = None,
+    save_query: str | None = None,
+) -> list[dict] | None:
+    try:
+        shops = await _semantic_hits(query, top_k=30)
+    except Exception:
+        logger.exception("line_card_search_failed user_id=%s query=%s", user_id, query)
+        return None
+    if not shops:
+        return None
+
+    deduped = _dedupe_shops_by_brand(shops)
+    if selected_ids:
+        selected = [int(shop_id) for shop_id in selected_ids if str(shop_id).isdigit()]
+    else:
+        selected = [
+            int(sid)
+            for shop in deduped[:3]
+            if (sid := _shop_id(shop)) is not None
+        ]
+    selected = [shop_id for shop_id in selected if any(_shop_id(shop) == shop_id for shop in shops)]
+    if not selected:
+        return None
+
+    _save_line_recommendation_state(user_id, query=save_query or query, shown_shop_ids=selected)
+    flex_or_bundle = build_line_flex_message(
+        shops=shops,
+        recommended_shop_ids=selected,
+        answer="",
+        public_web_url=settings.line_public_web_url,
+    )
+    messages = flex_or_bundle.get("messages") if flex_or_bundle.get("type") == "_bundle" else [flex_or_bundle]
+    return messages or None
+
+
+async def _build_line_card_request(user_text: str, user_id: str) -> list[dict] | None:
+    if not _line_card_request_intent(user_text):
+        return None
+    state = _load_line_recommendation_state(user_id)
+    previous_query = str(state.get("query") or "").strip()
+    if not previous_query:
+        return [build_text_message("可以，請先告訴我地點和類型，例如「信義區高級火鍋」，我會直接回圖卡。")]
+    selected_ids = [
+        int(shop_id)
+        for shop_id in state.get("shown_shop_ids", [])
+        if str(shop_id).isdigit()
+    ]
+    messages = await _build_line_cards_for_query(
+        previous_query,
+        user_id,
+        selected_ids=selected_ids or None,
+        save_query=previous_query,
+    )
+    return messages or [build_text_message("我暫時無法重送剛剛的圖卡，請再輸入一次地點和類型。")]
+
+
+async def _build_line_named_selection_cards(user_text: str, user_id: str) -> list[dict] | None:
+    normalized = _line_selection_token(user_text)
+    if not normalized:
+        return None
+    state = _load_line_recommendation_state(user_id)
+    previous_query = str(state.get("query") or "").strip()
+    if not previous_query:
+        return None
+    try:
+        shops = await _semantic_hits(previous_query, top_k=30)
+    except Exception:
+        logger.exception("line_named_selection_search_failed user_id=%s query=%s", user_id, previous_query)
+        return None
+    matches = [
+        shop
+        for shop in shops
+        if _line_shop_matches_selection(shop, normalized)
+    ]
+    if not matches:
+        return None
+    selected_ids = [
+        int(sid)
+        for shop in _dedupe_shops_by_brand(matches)[:3]
+        if (sid := _shop_id(shop)) is not None
+    ]
+    if not selected_ids:
+        return None
+    _save_line_recommendation_state(
+        user_id,
+        query=previous_query,
+        shown_shop_ids=[*state.get("shown_shop_ids", []), *selected_ids],
+    )
+    flex_or_bundle = build_line_flex_message(
+        shops=shops,
+        recommended_shop_ids=selected_ids,
+        answer="",
+        public_web_url=settings.line_public_web_url,
+    )
+    messages = flex_or_bundle.get("messages") if flex_or_bundle.get("type") == "_bundle" else [flex_or_bundle]
+    return messages or None
+
+
+def _line_card_request_intent(text: str) -> bool:
+    normalized = str(text or "").strip().lower()
+    return bool(normalized) and any(
+        phrase in normalized
+        for phrase in ("圖卡", "卡片", "給我卡", "給我圖", "用卡片", "出卡", "flex")
+    )
+
+
+def _line_selection_token(text: str) -> str:
+    normalized = re.sub(r"\s+", "", str(text or "").strip().lower())
+    normalized = normalized.strip("，,。.!！?？")
+    if not normalized or len(normalized) > 12:
+        return ""
+    if _line_card_request_intent(normalized) or _line_more_recommendation_intent(normalized):
+        return ""
+    if _line_should_force_recommendation_cards(normalized) or _booking_intent(normalized) or _payment_intent(normalized):
+        return ""
+    return normalized
+
+
+def _line_shop_matches_selection(shop: dict, token: str) -> bool:
+    name = re.sub(r"\s+", "", str(shop.get("name") or "").lower())
+    brand = re.sub(r"\s+", "", _shop_brand_key(shop).lower())
+    return bool(token) and (
+        token in name
+        or token in brand
+        or name.startswith(token)
+        or brand.startswith(token)
+    )
+
+
 def _line_more_recommendation_intent(text: str) -> bool:
     normalized = str(text or "").strip().lower()
     return any(
@@ -2813,12 +2946,6 @@ def _line_should_force_recommendation_cards(text: str) -> bool:
         return False
     if _booking_intent(normalized) or _payment_intent(normalized):
         return False
-    if not any(
-        phrase in normalized
-        for phrase in ("推薦", "找", "想吃", "想找", "哪間", "哪家", "餐廳")
-    ):
-        return False
-
     constraints = _extract_query_constraints(normalized)
     has_food_or_place = bool(
         constraints["categories"]
@@ -2827,37 +2954,27 @@ def _line_should_force_recommendation_cards(text: str) -> bool:
         or constraints["wants_luxury"]
         or constraints["wants_hot_seat"]
     )
-    return has_food_or_place
+    has_request_phrase = any(
+        phrase in normalized
+        for phrase in ("推薦", "找", "想吃", "想找", "哪間", "哪家", "餐廳")
+    )
+    has_specific_dining_need = bool(
+        constraints["categories"]
+        and (
+            constraints["districts"]
+            or constraints["stations"]
+            or constraints["wants_luxury"]
+            or constraints["wants_nearby"]
+            or constraints["wants_hot_seat"]
+        )
+    )
+    return has_food_or_place and (has_request_phrase or has_specific_dining_need)
 
 
 async def _build_line_fallback_recommendation_cards(user_text: str, user_id: str) -> list[dict] | None:
     if not _line_should_force_recommendation_cards(user_text):
         return None
-    try:
-        shops = await _semantic_hits(user_text, top_k=30)
-    except Exception:
-        logger.exception("line_fallback_search_failed user_id=%s query=%s", user_id, user_text)
-        return None
-    if not shops:
-        return None
-
-    selected_ids = [
-        int(sid)
-        for shop in _dedupe_shops_by_brand(shops)[:3]
-        if (sid := _shop_id(shop)) is not None
-    ]
-    if not selected_ids:
-        return None
-
-    _save_line_recommendation_state(user_id, query=user_text, shown_shop_ids=selected_ids)
-    flex_or_bundle = build_line_flex_message(
-        shops=shops,
-        recommended_shop_ids=selected_ids,
-        answer="",
-        public_web_url=settings.line_public_web_url,
-    )
-    messages = flex_or_bundle.get("messages") if flex_or_bundle.get("type") == "_bundle" else [flex_or_bundle]
-    return messages or None
+    return await _build_line_cards_for_query(user_text, user_id)
 
 
 def _line_plain_text(text: str) -> str:
@@ -3217,6 +3334,18 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     more_messages = await _build_line_more_recommendations(user_text, user_id)
     if more_messages is not None:
         return more_messages
+
+    card_request_messages = await _build_line_card_request(user_text, user_id)
+    if card_request_messages is not None:
+        return card_request_messages
+
+    named_selection_messages = await _build_line_named_selection_cards(user_text, user_id)
+    if named_selection_messages is not None:
+        return named_selection_messages
+
+    forced_card_messages = await _build_line_fallback_recommendation_cards(effective_user_text, user_id)
+    if forced_card_messages is not None:
+        return forced_card_messages
 
     if _line_should_start_background_recommendation(source, effective_user_text):
         _start_line_background_recommendation(user_id, effective_user_text)

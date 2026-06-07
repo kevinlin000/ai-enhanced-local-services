@@ -7,6 +7,8 @@ from app.main import _line_should_force_recommendation_cards
 
 def test_line_force_recommendation_cards_for_clear_restaurant_query():
     assert _line_should_force_recommendation_cards("推薦信義區高級火鍋")
+    assert _line_should_force_recommendation_cards("信義區高級火鍋")
+    assert _line_should_force_recommendation_cards("附近高級火鍋")
 
 
 def test_line_force_recommendation_cards_skips_booking_and_payment_queries():
@@ -30,6 +32,34 @@ def test_line_followup_adjustment_merge_rules():
     assert not main._line_adjustment_intent("還有嗎")
     assert main._line_merge_followup_query("信義區高級火鍋", "不要吃到飽") == "信義區高級火鍋，排除條件：不要吃到飽"
     assert main._line_merge_followup_query("信義區高級火鍋", "改成大安區") == "信義區高級火鍋，調整需求：改成大安區"
+
+
+def test_premium_hotpot_key_prefers_luxury_cues_over_plain_hotpot():
+    constraints = main._extract_query_constraints("信義區高級火鍋")
+    orange = {
+        "shop_id": 10009,
+        "name": "橘色涮涮屋 信義館",
+        "district": "信義區",
+        "mrt_station": "市政府",
+        "category_slug": "hotpot",
+        "avg_price": 1200,
+        "signature_dishes": ["海鮮套餐", "杏仁豆腐"],
+        "atmosphere_tags": ["精緻", "商務"],
+        "rerank_score": 0.1,
+    }
+    plain = {
+        "shop_id": 10199,
+        "name": "平價火鍋 信義店",
+        "district": "信義區",
+        "mrt_station": "市政府",
+        "category_slug": "hotpot",
+        "avg_price": 450,
+        "signature_dishes": ["火鍋"],
+        "atmosphere_tags": ["聚餐"],
+        "rerank_score": 0.9,
+    }
+
+    assert main._premium_hotpot_key(constraints, orange) > main._premium_hotpot_key(constraints, plain)
 
 
 @pytest.mark.anyio
@@ -69,19 +99,28 @@ async def test_line_reply_falls_back_to_flex_when_agent_skips_search(monkeypatch
 
 
 @pytest.mark.anyio
-async def test_line_user_recommendation_starts_background_push(monkeypatch):
-    started = {}
-
+async def test_line_user_recommendation_returns_cards_without_agent(monkeypatch):
     async def fail_run_agent_turn(query: str, session_id: str):
-        raise AssertionError("user recommendation should run in background")
+        raise AssertionError("clear line recommendation should not wait for agent text")
 
+    async def fake_semantic_hits(query: str, top_k: int):
+        return [
+            {
+                "shop_id": 10009,
+                "name": "橘色涮涮屋 信義館",
+                "district": "信義區",
+                "mrt_station": "市政府",
+                "avg_price": 1200,
+                "ai_summary": "精緻涮涮屋路線。",
+            }
+        ]
+
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
     monkeypatch.setattr(main, "_run_agent_turn", fail_run_agent_turn)
-    monkeypatch.setattr(
-        main,
-        "_start_line_background_recommendation",
-        lambda user_id, user_text: started.update({"user_id": user_id, "user_text": user_text}),
-    )
+    monkeypatch.setattr(main, "_start_line_background_recommendation", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_background_push_enabled", True)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
         {
@@ -91,13 +130,9 @@ async def test_line_user_recommendation_starts_background_push(monkeypatch):
         }
     )
 
-    assert started == {"user_id": "test-user", "user_text": "推薦信義區高級火鍋"}
-    assert messages == [
-        {
-            "type": "text",
-            "text": "收到，我正在幫你整理符合條件的餐廳。完成後會直接把推薦卡片傳給你。",
-        }
-    ]
+    assert len(messages) == 2
+    assert messages[1]["type"] == "flex"
+    assert messages[1]["contents"]["contents"][0]["body"]["contents"][1]["text"] == "橘色涮涮屋 信義館"
 
 
 def test_line_background_push_is_opt_in(monkeypatch):
@@ -144,8 +179,91 @@ async def test_line_text_uses_saved_location_context(monkeypatch):
         }
     )
 
-    assert captured["query"] == "台北市信義區市府路45號附近，附近高級火鍋"
-    assert messages[0]["type"] == "text"
+    assert captured["fallback_query"] == "台北市信義區市府路45號附近，附近高級火鍋"
+    assert messages[1]["type"] == "flex"
+
+
+@pytest.mark.anyio
+async def test_line_card_request_replays_previous_cards(monkeypatch):
+    captured = {}
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        captured["query"] = query
+        return [
+            {
+                "shop_id": 10009,
+                "name": "橘色涮涮屋 信義館",
+                "district": "信義區",
+                "mrt_station": "市政府",
+                "avg_price": 1200,
+                "ai_summary": "精緻涮涮屋路線。",
+            }
+        ]
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009]},
+    )
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "給我圖卡啊"},
+        }
+    )
+
+    assert captured["query"] == "信義區高級火鍋"
+    assert messages[1]["type"] == "flex"
+    assert messages[1]["contents"]["contents"][0]["body"]["contents"][1]["text"] == "橘色涮涮屋 信義館"
+
+
+@pytest.mark.anyio
+async def test_line_short_name_selects_previous_recommendation(monkeypatch):
+    async def fake_semantic_hits(query: str, top_k: int):
+        return [
+            {
+                "shop_id": 10009,
+                "name": "橘色涮涮屋 信義館",
+                "district": "信義區",
+                "mrt_station": "市政府",
+                "avg_price": 1200,
+                "ai_summary": "精緻涮涮屋路線。",
+            },
+            {
+                "shop_id": 10115,
+                "name": "辛殿麻辣鍋｜信義店",
+                "district": "信義區",
+                "mrt_station": "市政府",
+                "avg_price": 900,
+                "ai_summary": "麻辣鍋吃到飽。",
+            },
+        ]
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009, 10115]},
+    )
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "橘色"},
+        }
+    )
+
+    bubbles = messages[1]["contents"]["contents"]
+    assert len(bubbles) == 1
+    assert bubbles[0]["body"]["contents"][1]["text"] == "橘色涮涮屋 信義館"
 
 
 @pytest.mark.anyio
