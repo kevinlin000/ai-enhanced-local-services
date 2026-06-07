@@ -319,9 +319,7 @@ public class AvailabilityNotificationService {
         if (currentUserId != null) return currentUserId;
         String normalizedLineUserId = normalizeLineUserId(lineUserId);
         if (normalizedLineUserId == null) return null;
-        return userJpaService.findByLineId(normalizedLineUserId)
-                .map(user -> user.getId())
-                .orElse(null);
+        return userJpaService.findOrCreateLineUser(normalizedLineUserId).getId();
     }
 
     private String normalizeTime(String raw) {

@@ -296,7 +296,16 @@ def _build_shop_bubble(
         },
     ) if shop_id else "/line/shop"
     detail_uri = _web_uri(public_web_url, detail_path) if shop_id else _web_uri(public_web_url, "/line/shop")
-    reserve_path = _with_query(f"/line/book/{shop_id}", {"lineUserId": line_user_id}) if shop_id else "/line/shop"
+    reserve_path = _with_query(
+        f"/line/book/{shop_id}",
+        {
+            "lineUserId": line_user_id,
+            "name": name,
+            "district": district,
+            "mrt": mrt,
+            "avgPrice": shop.get("avg_price") or shop.get("avgPrice"),
+        },
+    ) if shop_id else "/line/shop"
     reserve_uri = _web_uri(public_web_url, reserve_path) if shop_id else detail_uri
     image_uri = _shop_image_uri(shop_id, public_web_url)
 

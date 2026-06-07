@@ -20,6 +20,21 @@ public class UserJpaService {
         return repo.findByLineUserId(lineUserId);
     }
 
+    @Transactional
+    public UserJpa findOrCreateLineUser(String lineUserId) {
+        String normalized = lineUserId == null ? "" : lineUserId.trim();
+        if (normalized.isBlank() || normalized.length() > 128) {
+            throw new IllegalArgumentException("lineUserId is required");
+        }
+        return repo.findByLineUserId(normalized).orElseGet(() -> {
+            UserJpa user = new UserJpa();
+            user.setLineUserId(normalized);
+            user.setLineDisplayName("LINE Bot User");
+            user.setNickName("LINE Bot User");
+            return repo.save(user);
+        });
+    }
+
     public Optional<UserJpa> findById(Long id) {
         return repo.findById(id);
     }

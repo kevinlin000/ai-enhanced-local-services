@@ -150,7 +150,9 @@ def test_build_line_flex_message_booking_link_carries_line_user_id():
     )
 
     reserve_uri = message["messages"][1]["contents"]["contents"][0]["footer"]["contents"][1]["action"]["uri"]
-    assert reserve_uri == "https://bytebites.example.com/line/book/10009?lineUserId=Uabc123"
+    assert reserve_uri.startswith("https://bytebites.example.com/line/book/10009?")
+    assert "lineUserId=Uabc123" in reserve_uri
+    assert "name=" in reserve_uri
 
 
 @pytest.mark.anyio

@@ -137,6 +137,9 @@ CATEGORY_ALIASES = {
 }
 
 SUPPORTED_CATEGORY_SLUGS = set(CATEGORY_FALLBACK_KEYWORDS)
+BURGER_QUERY_HINTS = {"漢堡", "burger", "burgers", "美式漢堡"}
+BURGER_TEXT_HINTS = {"漢堡", "burger", "手拍牛肉", "美式漢堡"}
+BURGER_BLOCK_HINTS = {"早餐", "早午餐", "brunch", "豆漿", "飯糰", "蛋餅", "燒餅", "軟食力"}
 
 
 def _canonical_category_slug(slug: str | None) -> str:
@@ -286,6 +289,7 @@ def _extract_query_constraints(query: str) -> dict:
     wants_hot_seat = any(keyword in query_lower for keyword in ("hot seat", "熱座", "搶位", "限量", "秒殺"))
     wants_nearby = any(keyword in query_lower for keyword in ("附近", "nearby"))
     wants_luxury = any(keyword in query_lower for keyword in LUXURY_HINTS)
+    wants_burger = any(keyword in query_lower for keyword in BURGER_QUERY_HINTS)
 
     has_primary_food_category = any(category != "fine-dining" for category in categories)
     if wants_luxury and has_primary_food_category:
@@ -300,6 +304,7 @@ def _extract_query_constraints(query: str) -> dict:
         "wants_hot_seat": wants_hot_seat,
         "wants_nearby": wants_nearby,
         "wants_luxury": wants_luxury,
+        "wants_burger": wants_burger,
     }
 
 
@@ -408,6 +413,21 @@ def _has_hotpot_semantics(payload: dict) -> bool:
     if has_block_hint:
         return False
     return any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS["hotpot"])
+
+
+def _is_burger_hit(payload: dict) -> bool:
+    name = str(payload.get("name") or "").lower()
+    return any(keyword.lower() in name for keyword in BURGER_TEXT_HINTS)
+
+
+def _burger_sort_key(constraints: dict, hit: dict) -> tuple[int, float, int, int, float]:
+    return (
+        1 if _district_matches(constraints, hit) else 0,
+        _station_proximity_score(constraints, hit),
+        1 if _semantic_category_slug(hit) == "american" else 0,
+        int(hit.get("avg_price") or 0),
+        float(hit.get("rerank_score") or hit.get("score") or 0.0),
+    )
 
 
 def _premium_hotpot_key(constraints: dict, hit: dict) -> tuple[int, int, int, int, int, float, int, int, float]:
@@ -653,6 +673,7 @@ def _java_shop_to_search_hit(shop: dict, metadata: dict | None = None) -> dict:
         "score": 0.0,
         "category": TYPE_ID_TO_CATEGORY.get(type_id),
         "category_slug": TYPE_ID_TO_CATEGORY.get(type_id),
+        "type_id": type_id,
         "avg_price": shop.get("avgPrice"),
         "ai_summary": metadata.get("aiSummary"),
         "signature_dishes": _parse_json_list(metadata.get("signatureDishes")),
@@ -690,6 +711,45 @@ async def _premium_hotpot_supplements(constraints: dict, existing_ids: set[int])
         hit["price_per_person"] = hit.get("price_per_person") or f"NT$ {hit.get('avg_price')}"
         supplements.append(hit)
     return supplements
+
+
+async def _burger_supplements(constraints: dict, existing_ids: set[int], limit: int = 12) -> list[dict]:
+    if not constraints.get("wants_burger"):
+        return []
+
+    supplements: list[dict] = []
+    try:
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            response = await client.get(
+                f"{settings.java_backend_url}/api/shop/search",
+                params={"q": "burger", "page": 1, "size": max(limit, 12)},
+            )
+        if response.status_code != 200:
+            return []
+        payload = response.json()
+        data = payload.get("data") if isinstance(payload, dict) else {}
+        records = data.get("records") if isinstance(data, dict) else []
+    except Exception:
+        logger.exception("burger_supplement_failed")
+        return []
+
+    for shop in records or []:
+        if not isinstance(shop, dict):
+            continue
+        try:
+            shop_id = int(shop.get("id") or 0)
+        except (TypeError, ValueError):
+            continue
+        if not shop_id or shop_id in existing_ids:
+            continue
+        hit = _java_shop_to_search_hit(shop)
+        hit["rerank_score"] = float(hit.get("score") or 0.0) + _metadata_bonus("漢堡 美式餐廳", hit)
+        if not _is_burger_hit(hit):
+            continue
+        supplements.append(hit)
+
+    supplements.sort(key=lambda hit: _burger_sort_key(constraints, hit), reverse=True)
+    return supplements[:limit]
 
 
 async def _semantic_hits(query: str, top_k: int) -> list[dict]:
@@ -742,6 +802,12 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
     )
     if supplement_hits:
         raw_hits.extend(supplement_hits)
+    burger_hits = await _burger_supplements(
+        constraints,
+        {int(hit["shop_id"]) for hit in raw_hits if hit.get("shop_id")},
+    )
+    if burger_hits:
+        raw_hits.extend(burger_hits)
 
     shop_ids = [hit["shop_id"] for hit in raw_hits if hit["shop_id"]]
     voucher_map = await _fetch_hot_seat_vouchers(shop_ids)
@@ -767,6 +833,18 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
                 bool(hit.get("hot_seat_vouchers")),
             )
     raw_hits.sort(key=lambda hit: hit["rerank_score"], reverse=True)
+
+    if constraints.get("wants_burger"):
+        burger_only = [hit for hit in raw_hits if _is_burger_hit(hit)]
+        burger_other = [hit for hit in raw_hits if not _is_burger_hit(hit)]
+        burger_only.sort(key=lambda hit: _burger_sort_key(constraints, hit), reverse=True)
+        raw_hits = burger_only + burger_other
+        logger.warning(
+            "search_burger_partition query=%r burger=%s others=%s",
+            query,
+            [hit.get("name") for hit in burger_only[:8]],
+            [hit.get("name") for hit in burger_other[:8]],
+        )
 
     if constraints["categories"]:
         def category_match(hit: dict) -> bool:
@@ -935,6 +1013,14 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
         )
 
     if constraints["categories"]:
+        if constraints.get("wants_burger"):
+            raw_hits = [hit for hit in raw_hits if _is_burger_hit(hit)]
+            logger.warning(
+                "search_strict_burger_filter query=%r strict=%s",
+                query,
+                [hit.get("name") for hit in raw_hits[:8]],
+            )
+            return raw_hits[:top_k]
         authoritative_category = [
             hit for hit in raw_hits
             if _authoritative_category_slug(hit) in constraints["categories"]
@@ -2623,8 +2709,16 @@ async def line_shop_detail(
     deposit = _line_deposit_summary(policy)
     review_groups = _line_review_groups(shop_id)
     image_uri = _html_escape(_line_detail_image_uri(shop_id))
-    line_query = f"?lineUserId={quote_plus(lineUserId)}" if lineUserId else ""
-    booking_uri = _line_public_uri(f"/line/book/{shop_id}{line_query}")
+    booking_uri = _line_public_uri(
+        _line_booking_path(
+            shop_id,
+            lineUserId,
+            str(shop.get("name") or ""),
+            str(shop.get("district") or ""),
+            str(shop.get("mrtStation") or shop.get("mrt_station") or ""),
+            str(avg_price or ""),
+        )
+    )
     map_uri = _line_google_maps_uri(str(shop.get("name") or ""), str(shop.get("address") or ""))
     map_link = _html_escape(map_uri)
     basis_items = _line_recommendation_basis(shop, metadata, manifest_shop)
@@ -2686,12 +2780,22 @@ async def line_shop_detail(
 async def line_booking_entry(
     shop_id: int,
     lineUserId: str = "",
+    name: str = "",
+    district: str = "",
+    mrt: str = "",
+    avgPrice: str = "",
     people: int = 2,
     date: str = "",
     time: str = "19:00",
     tableType: str = "normal",
 ):
     shop = await _fetch_java_shop(shop_id)
+    if not shop:
+        shop = _line_shop_fallback_from_query(shop_id, name, district, mrt, avgPrice)
+    if not shop:
+        shop = _line_shop_fallback_from_media(shop_id)
+    if not shop:
+        shop = _line_shop_minimal_fallback(shop_id)
     policy = await _fetch_java_booking_policy(shop_id)
     name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
     district = _html_escape(str((shop or {}).get("district") or ""))
@@ -2702,7 +2806,9 @@ async def line_booking_entry(
     selected_time = time if time else "19:00"
     selected_table_type = tableType if tableType in {"normal", "bar", "private"} else "normal"
     deposit_summary = _html_escape(_line_deposit_summary(policy))
-    detail_uri = _line_public_uri(f"/line/shop/{shop_id}")
+    detail_uri = _line_public_uri(
+        f"/line/shop/{shop_id}?lineUserId={quote_plus(lineUserId)}&name={quote_plus(str((shop or {}).get('name') or ''))}&district={quote_plus(str((shop or {}).get('district') or ''))}&mrt={quote_plus(str((shop or {}).get('mrtStation') or (shop or {}).get('mrt_station') or ''))}&avgPrice={quote_plus(str((shop or {}).get('avgPrice') or (shop or {}).get('avg_price') or ''))}"
+    )
     confirm_uri = _line_public_uri(f"/line/book/{shop_id}/confirm")
     line_user_id = _html_escape(lineUserId)
     body = f"""
@@ -2733,6 +2839,10 @@ async def line_booking_entry(
             </label>
             <input type="hidden" name="tableType" value="{_html_escape(selected_table_type)}">
             <input type="hidden" name="lineUserId" value="{line_user_id}">
+            <input type="hidden" name="name" value="{name}">
+            <input type="hidden" name="district" value="{district}">
+            <input type="hidden" name="mrt" value="{_html_escape(str((shop or {}).get("mrtStation") or (shop or {}).get("mrt_station") or ""))}">
+            <input type="hidden" name="avgPrice" value="{_html_escape(str((shop or {}).get("avgPrice") or (shop or {}).get("avg_price") or ""))}">
             <button class="primary" type="submit">送出並查看狀態</button>
           </form>
         </section>
@@ -2758,8 +2868,18 @@ async def line_booking_confirm(
     time: str = "19:00",
     tableType: str = "normal",
     lineUserId: str = "",
+    name: str = "",
+    district: str = "",
+    mrt: str = "",
+    avgPrice: str = "",
 ):
     shop = await _fetch_java_shop(shop_id)
+    if not shop:
+        shop = _line_shop_fallback_from_query(shop_id, name, district, mrt, avgPrice)
+    if not shop:
+        shop = _line_shop_fallback_from_media(shop_id)
+    if not shop:
+        shop = _line_shop_minimal_fallback(shop_id)
     name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
     error = _validate_line_booking(people, date, time, tableType)
     if error:
@@ -2787,7 +2907,7 @@ async def line_booking_confirm(
                 message,
                 [
                     ("通知我有空位", watch_uri),
-                    ("重新填寫", _line_public_uri(f"/line/book/{shop_id}")),
+                    ("重新填寫", _line_public_uri(f"/line/book/{shop_id}?lineUserId={quote_plus(lineUserId)}")),
                     ("查看店家資訊", _line_public_uri(f"/line/shop/{shop_id}")),
                 ],
             ),
@@ -2901,6 +3021,10 @@ def _line_booking_result_page(
     )
     my_bookings_uri = _line_public_uri(f"/line/my-bookings?lineUserId={quote_plus(line_user_id)}")
     title = "訂位保留成功" if status == "PENDING_PAYMENT" else "訂位完成"
+    if status == "CANCELED":
+        title = "訂位已取消"
+    elif status == "EXPIRED":
+        title = "訂位已逾期"
     deposit_note = _line_booking_deposit_note(status, needs_deposit, deposit_total, hold_expires_at)
     payment_note = f"<p>付款交易編號：<strong>{payment_trans_id}</strong></p>" if payment_trans_id else ""
     actions = [
@@ -4492,6 +4616,29 @@ def _line_public_uri(path: str) -> str:
     if not path.startswith("/"):
         path = f"/{path}"
     return f"{base}{path}"
+
+
+def _line_booking_path(
+    shop_id: int,
+    line_user_id: str = "",
+    name: str = "",
+    district: str = "",
+    mrt: str = "",
+    avg_price: str = "",
+) -> str:
+    params = {
+        "lineUserId": line_user_id,
+        "name": name,
+        "district": district,
+        "mrt": mrt,
+        "avgPrice": avg_price,
+    }
+    query = "&".join(
+        f"{key}={quote_plus(str(value))}"
+        for key, value in params.items()
+        if str(value or "").strip()
+    )
+    return f"/line/book/{shop_id}?{query}" if query else f"/line/book/{shop_id}"
 
 
 def _line_google_maps_uri(name: str, address: str) -> str:
