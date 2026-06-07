@@ -407,11 +407,40 @@ def _recommendation_reason_for_shop(shop: dict, answer: str) -> str:
 
     tags = [str(tag) for tag in (shop.get("atmosphere_tags") or [])[:2]]
     dishes = [str(dish) for dish in (shop.get("signature_dishes") or [])[:2]]
+    booking = str(shop.get("booking_difficulty") or "").strip()
+    price = str(shop.get("price_per_person") or "").strip()
     highlights = [*dishes, *tags]
+    if dishes and tags:
+        return _truncate(f"主打{ '、'.join(dishes[:2]) }，適合{ '、'.join(tags[:2]) }。", 140)
+    if dishes:
+        return _truncate(f"招牌包含{ '、'.join(dishes[:3]) }，可先看詳情確認菜單與評價。", 140)
+    if tags:
+        extra = f"，{booking}" if booking and booking != "未提及" else ""
+        return _truncate(f"評論標籤偏向{ '、'.join(tags[:2]) }{extra}。", 140)
+    if price:
+        return _truncate(f"人均約{price}，適合先看詳情確認菜色、評論與訂位規則。", 140)
     if highlights:
         return _truncate("符合本次需求，亮點包含" + "、".join(highlights[:3]) + "。", 140)
 
-    return "符合你這次的地點與餐廳類型需求，建議查看詳情後再確認可訂時段。"
+    district = str(shop.get("district") or "").strip()
+    category = _category_label(str(shop.get("category") or "").strip())
+    return _truncate(f"{district or '台北'}{category or '餐廳'}候選，詳情頁會整理菜色、電話、評論與訂位資訊。", 140)
+
+
+def _category_label(category: str) -> str:
+    return {
+        "hotpot": "火鍋",
+        "yakiniku": "燒肉",
+        "izakaya": "居酒屋",
+        "japanese": "日式料理",
+        "american": "美式餐廳",
+        "euro": "義法料理",
+        "chinese": "中式餐廳",
+        "korean": "韓式餐廳",
+        "vegetarian": "蔬食餐廳",
+        "fine-dining": "高級餐廳",
+        "cafe": "咖啡甜點",
+    }.get(category, category)
 
 
 def _truncate(text: str, max_length: int) -> str:

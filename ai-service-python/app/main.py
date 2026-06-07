@@ -1,8 +1,10 @@
+import base64
 import json
 import logging
 import httpx
 from dataclasses import dataclass, field
 from datetime import date as date_cls, datetime, timedelta
+from pathlib import Path
 from typing import AsyncIterator
 from zoneinfo import ZoneInfo
 from app import session_store
@@ -61,6 +63,7 @@ ai_tokens = PromCounter("bytebites_ai_tokens_total", "Gemini token usage", ["mod
 ai_latency = Histogram("bytebites_ai_latency_seconds", "AI endpoint latency", ["endpoint"])
 logger = logging.getLogger("bytebites.ai")
 LINE_RECOMMENDATION_TTL_SECONDS = 1800
+_LINE_MEDIA_CACHE: dict | None = None
 
 
 def taipei_today() -> date_cls:
@@ -2429,20 +2432,33 @@ async def line_shop_detail(shop_id: int):
     shop = await _fetch_java_shop(shop_id)
     if not shop:
         return HTMLResponse(_line_html_page("找不到店家", "這間店目前無法取得資料。", []), status_code=404)
+    metadata = await _fetch_java_ai_metadata(shop_id)
+    policy = await _fetch_java_booking_policy(shop_id)
     name = _html_escape(str(shop.get("name") or f"店家 {shop_id}"))
     district = _html_escape(str(shop.get("district") or ""))
     address = _html_escape(str(shop.get("address") or ""))
     avg_price = shop.get("avgPrice") or shop.get("avg_price")
-    phone = _html_escape(str(shop.get("phone") or ""))
+    phone_raw = str(metadata.get("phone") or shop.get("phone") or "").strip()
+    phone = _html_escape(phone_raw)
+    tel_href = _html_escape("tel:" + "".join(ch for ch in phone_raw if ch.isdigit() or ch == "+")) if phone_raw else ""
+    summary = _html_escape(str(metadata.get("aiSummary") or metadata.get("highlightReview") or "目前沒有足夠的餐廳介紹資料。"))
+    dishes = _parse_json_list(metadata.get("signatureDishes"))[:4]
+    tags = _parse_json_list(metadata.get("atmosphereTags"))[:3]
+    hours = _parse_json_list(metadata.get("openingHours"))[:7]
+    price = _html_escape(str(metadata.get("pricePerPerson") or (f"NT$ {avg_price}" if avg_price else "價位未標示")))
+    booking = _html_escape(str(metadata.get("bookingDifficulty") or "可查看訂位狀態"))
+    deposit = _line_deposit_summary(policy)
+    reviews = _line_review_snippets(shop_id)
     photo = best_shop_photo_url(shop_id)
-    image_uri = _line_public_uri(f"/line/photo/{shop_id}?v={LINE_PHOTO_VERSION}") if photo else ""
+    image_uri = await _line_photo_data_uri(photo) if photo else ""
+    booking_uri = _line_public_uri(f"/line/book/{shop_id}")
     hero = (
         f"""
       <div class="hero">
         <img src="{image_uri}" alt="{name}">
       </div>
         """
-        if photo
+        if image_uri
         else '<div class="hero hero-fallback"><span>ByteBites</span></div>'
     )
     body = f"""
@@ -2450,13 +2466,24 @@ async def line_shop_detail(shop_id: int):
       <main>
         <p class="eyebrow">ByteBites 推薦餐廳</p>
         <h1>{name}</h1>
-        <div class="meta">{district or "台北"}{f" · NT$ {avg_price}" if avg_price else ""}</div>
+        <div class="meta">{district or "台北"} · {price} · {booking}</div>
+        <section>
+          <h2>餐廳特色</h2>
+          <p>{summary}</p>
+          {_line_pills_html([*dishes, *tags])}
+        </section>
+        {_line_review_html(reviews)}
+        <section>
+          <h2>訂位與訂金</h2>
+          <p>{_html_escape(deposit)}</p>
+        </section>
         <section>
           <h2>店家資訊</h2>
           <p>{address or "地址資料未標示"}</p>
-          <p>{phone or "電話資料未標示"}</p>
+          <p>{f'<a href="{tel_href}">{phone}</a>' if phone and tel_href else "電話資料未標示"}</p>
+          {_line_hours_html(hours)}
         </section>
-        <a class="primary" href="/line/book/{shop_id}">直接訂位</a>
+        <a class="primary" href="{booking_uri}">直接訂位</a>
       </main>
     """
     return HTMLResponse(_line_shell(name, body))
@@ -2465,15 +2492,23 @@ async def line_shop_detail(shop_id: int):
 @app.get("/line/book/{shop_id}", response_class=HTMLResponse)
 async def line_booking_entry(shop_id: int):
     shop = await _fetch_java_shop(shop_id)
+    policy = await _fetch_java_booking_policy(shop_id)
     name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
     tomorrow = taipei_today() + timedelta(days=1)
+    deposit_summary = _html_escape(_line_deposit_summary(policy))
+    detail_uri = _line_public_uri(f"/line/shop/{shop_id}")
+    confirm_uri = _line_public_uri(f"/line/book/{shop_id}/confirm")
     body = f"""
       <main>
         <p class="eyebrow">ByteBites 訂位入口</p>
         <h1>{name}</h1>
         <section>
+          <h2>訂金政策</h2>
+          <p>{deposit_summary}</p>
+        </section>
+        <section>
           <h2>填寫訂位資訊</h2>
-          <form class="booking-form" method="get" action="/line/book/{shop_id}/confirm">
+          <form class="booking-form" method="get" action="{confirm_uri}">
             <label>人數
               <select name="people">
                 {''.join(f'<option value="{people}"{" selected" if people == 2 else ""}>{people} 人</option>' for people in range(1, 13))}
@@ -2491,7 +2526,7 @@ async def line_booking_entry(shop_id: int):
             <button class="primary" type="submit">送出訂位</button>
           </form>
         </section>
-        <a class="secondary" href="/line/shop/{shop_id}">查看店家資訊</a>
+        <a class="secondary" href="{detail_uri}">查看店家資訊</a>
       </main>
     """
     return HTMLResponse(_line_shell(f"{name} 訂位", body))
@@ -2507,7 +2542,10 @@ async def line_booking_confirm(shop_id: int, people: int = 2, date: str = "", ti
             _line_html_page(
                 "訂位資料需要修正",
                 error,
-                [("返回填寫", f"/line/book/{shop_id}"), ("查看店家資訊", f"/line/shop/{shop_id}")],
+                [
+                    ("返回填寫", _line_public_uri(f"/line/book/{shop_id}")),
+                    ("查看店家資訊", _line_public_uri(f"/line/shop/{shop_id}")),
+                ],
             ),
             status_code=400,
         )
@@ -2519,7 +2557,10 @@ async def line_booking_confirm(shop_id: int, people: int = 2, date: str = "", ti
             _line_html_page(
                 "訂位未完成",
                 message,
-                [("重新填寫", f"/line/book/{shop_id}"), ("查看店家資訊", f"/line/shop/{shop_id}")],
+                [
+                    ("重新填寫", _line_public_uri(f"/line/book/{shop_id}")),
+                    ("查看店家資訊", _line_public_uri(f"/line/shop/{shop_id}")),
+                ],
             ),
             status_code=409,
         )
@@ -2529,7 +2570,12 @@ async def line_booking_confirm(shop_id: int, people: int = 2, date: str = "", ti
     status = _html_escape(str(booking.get("status") or "CONFIRMED"))
     needs_deposit = bool(booking.get("needsDeposit"))
     deposit_total = booking.get("depositTotal") or 0
-    deposit_note = f"<p>此訂位需要保留訂金 NT$ {deposit_total}，可回到 ByteBites 後續完成付款流程。</p>" if needs_deposit else "<p>目前不需要訂金。</p>"
+    deposit_note = (
+        f"<p>需訂金：NT$ {deposit_total}。此訂位已先保留，請回到 ByteBites 後續完成付款流程。</p>"
+        if needs_deposit
+        else "<p>免訂金，已直接建立訂位。</p>"
+    )
+    detail_uri = _line_public_uri(f"/line/shop/{shop_id}")
     body = f"""
       <main>
         <p class="eyebrow">ByteBites 訂位完成</p>
@@ -2541,7 +2587,7 @@ async def line_booking_confirm(shop_id: int, people: int = 2, date: str = "", ti
           <p>狀態：{status}</p>
           {deposit_note}
         </section>
-        <a class="primary" href="/line/shop/{shop_id}">查看店家資訊</a>
+        <a class="primary" href="{detail_uri}">查看店家資訊</a>
       </main>
     """
     return HTMLResponse(_line_shell(f"{name} 訂位完成", body))
@@ -2750,6 +2796,34 @@ async def _fetch_java_shop(shop_id: int) -> dict | None:
         return None
 
 
+async def _fetch_java_ai_metadata(shop_id: int) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{settings.java_backend_url}/api/shop/{shop_id}/ai-metadata")
+        if response.status_code != 200:
+            return {}
+        payload = response.json()
+        data = payload.get("data")
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        logger.exception("line_shop_metadata_fetch_failed shop_id=%s", shop_id)
+        return {}
+
+
+async def _fetch_java_booking_policy(shop_id: int) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{settings.java_backend_url}/api/shop/{shop_id}/booking-policy")
+        if response.status_code != 200:
+            return {}
+        payload = response.json()
+        data = payload.get("data")
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        logger.exception("line_booking_policy_fetch_failed shop_id=%s", shop_id)
+        return {}
+
+
 def _validate_line_booking(people: int, booking_date: str, booking_time: str, table_type: str) -> str | None:
     if people < 1 or people > 12:
         return "訂位人數需介於 1 到 12 人。"
@@ -2796,11 +2870,111 @@ async def _reserve_line_booking(shop_id: int, people: int, booking_date: str, bo
     return payload
 
 
+async def _line_photo_data_uri(photo_url: str | None) -> str:
+    if not photo_url:
+        return ""
+    try:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            upstream = await client.get(
+                photo_url,
+                headers={
+                    "User-Agent": "Mozilla/5.0",
+                    "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+                    "Referer": "https://www.google.com/",
+                },
+            )
+        if upstream.status_code >= 400 or len(upstream.content) > 400_000:
+            return ""
+        content_type = upstream.headers.get("content-type") or "image/jpeg"
+        encoded = base64.b64encode(upstream.content).decode("ascii")
+        return f"data:{content_type};base64,{encoded}"
+    except Exception:
+        logger.exception("line_photo_data_uri_failed")
+        return ""
+
+
+def _line_deposit_summary(policy: dict) -> str:
+    if not policy:
+        return "目前無法取得訂金政策，送出訂位後會以系統回覆為準。"
+    if policy.get("needsDeposit"):
+        per_person = policy.get("depositPerPerson") or 0
+        reason = str(policy.get("reason") or "此店需保留訂金")
+        return f"需訂金：NT$ {per_person} / 人。原因：{reason}。"
+    reason = str(policy.get("reason") or "免訂金")
+    return f"免訂金。原因：{reason}。"
+
+
+def _line_media_payload() -> dict:
+    global _LINE_MEDIA_CACHE
+    if _LINE_MEDIA_CACHE is not None:
+        return _LINE_MEDIA_CACHE
+    path = Path(__file__).resolve().parents[2] / "web" / "data" / "shop-media.json"
+    try:
+        _LINE_MEDIA_CACHE = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        _LINE_MEDIA_CACHE = {}
+    return _LINE_MEDIA_CACHE
+
+
+def _line_review_snippets(shop_id: int) -> list[dict]:
+    shop = (_line_media_payload().get("shops") or {}).get(str(shop_id))
+    reviews = shop.get("reviews") if isinstance(shop, dict) else []
+    if not isinstance(reviews, list):
+        return []
+    critical = [r for r in reviews if 0 < _line_review_rating(r) <= 3 and r.get("text")]
+    positive = [r for r in reviews if _line_review_rating(r) >= 4 and r.get("text")]
+    picked = [*critical[:2], *positive[:1]]
+    return picked[:3]
+
+
+def _line_review_rating(review: dict) -> float:
+    try:
+        return float(review.get("rating") or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _line_review_html(reviews: list[dict]) -> str:
+    if not reviews:
+        return ""
+    cards = []
+    for review in reviews:
+        rating = int(_line_review_rating(review))
+        label = "注意" if rating <= 3 else "好評"
+        text = _html_escape(_truncate_words(str(review.get("text") or ""), 90))
+        author = _html_escape(str(review.get("author") or "Google 評論"))
+        cards.append(
+            f'<div class="review"><div><strong>{label}</strong> · {author} · {"★" * rating}</div><p>{text}</p></div>'
+        )
+    return f"<section><h2>評論重點</h2>{''.join(cards)}</section>"
+
+
+def _line_pills_html(items: list[str]) -> str:
+    clean = [_html_escape(str(item)) for item in items if str(item).strip()]
+    if not clean:
+        return ""
+    return '<div class="pills">' + "".join(f"<span>{item}</span>" for item in clean[:6]) + "</div>"
+
+
+def _line_hours_html(hours: list[str]) -> str:
+    clean = [_html_escape(str(item)) for item in hours if str(item).strip()]
+    if not clean:
+        return ""
+    return '<div class="hours">' + "".join(f"<p>{item}</p>" for item in clean[:7]) + "</div>"
+
+
 def _line_public_uri(path: str) -> str:
     base = settings.line_public_web_url.rstrip("/")
     if not path.startswith("/"):
         path = f"/{path}"
     return f"{base}{path}"
+
+
+def _truncate_words(text: str, max_length: int) -> str:
+    clean = " ".join(text.split())
+    if len(clean) <= max_length:
+        return clean
+    return clean[: max_length - 1].rstrip() + "…"
 
 
 def _line_shell(title: str, body: str) -> str:
@@ -2824,6 +2998,12 @@ def _line_shell(title: str, body: str) -> str:
     .meta {{ margin-top:10px; color:#6f6a62; font-weight:700; }}
     section {{ margin-top:22px; padding:16px; border:1px solid rgba(0,0,0,.08); border-radius:14px; background:rgba(255,255,255,.72); }}
     p {{ line-height:1.7; }}
+    a {{ color:#16833a; font-weight:800; text-decoration:none; }}
+    .pills {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }}
+    .pills span {{ border-radius:999px; background:#eaf4ec; color:#16833a; font-size:12px; font-weight:900; padding:6px 10px; }}
+    .review {{ margin-top:12px; padding-left:12px; border-left:3px solid #f1c45c; }}
+    .review p {{ margin:6px 0 0; color:#514d47; }}
+    .hours p {{ margin:4px 0; }}
     .booking-form {{ display:grid; gap:14px; margin-top:12px; }}
     label {{ display:grid; gap:6px; color:#514d47; font-size:13px; font-weight:800; }}
     input, select {{ min-height:48px; border:1px solid rgba(0,0,0,.14); border-radius:12px; background:#fff; color:#171512; font:inherit; font-size:16px; padding:0 12px; }}
