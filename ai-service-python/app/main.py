@@ -2546,7 +2546,7 @@ async def line_shop_detail(shop_id: int):
     booking = _html_escape(str(metadata.get("bookingDifficulty") or "可查看訂位狀態"))
     deposit = _line_deposit_summary(policy)
     review_groups = _line_review_groups(shop_id)
-    image_uri = _line_public_uri(f"/line/photo/{shop_id}?v={LINE_PHOTO_VERSION}") if _line_photo_candidates(shop_id) else ""
+    image_uri = _html_escape(_line_detail_image_uri(shop_id))
     booking_uri = _line_public_uri(f"/line/book/{shop_id}")
     map_uri = _line_google_maps_uri(str(shop.get("name") or ""), str(shop.get("address") or ""))
     map_link = _html_escape(map_uri)
@@ -3430,6 +3430,11 @@ def _line_photo_candidates(shop_id: int) -> list[str]:
         if isinstance(urls, list):
             candidates.extend(str(url) for url in urls if url)
     return _dedupe_text(candidates)
+
+
+def _line_detail_image_uri(shop_id: int) -> str:
+    candidates = _line_photo_candidates(shop_id)
+    return candidates[0] if candidates else ""
 
 
 def _line_detail_summary(shop: dict, metadata: dict, manifest_shop: dict) -> str:

@@ -332,7 +332,8 @@ async def test_line_shop_detail_renders_concierge_sections(monkeypatch):
     response = await main.line_shop_detail(10115)
     html = response.body.decode("utf-8")
 
-    assert "/line/photo/10115" in html
+    assert "https://img.example/cover.jpg" in html
+    assert "/line/photo/10115" not in html
     assert "推薦依據" in html
     assert "精選正負評" in html
     assert "訂金與訂位規則" in html
