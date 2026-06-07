@@ -6,6 +6,7 @@ import com.bytebites.entity.jpa.BookingJpa;
 import com.bytebites.enums.PayType;
 import com.bytebites.repository.BookingJpaRepository;
 import com.bytebites.service.BookingHoldService;
+import com.bytebites.service.BookingLineNotificationService;
 import com.bytebites.service.TapPayService;
 import com.bytebites.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,9 @@ public class PaymentController {
     @Autowired
     BookingHoldService bookingHoldService;
 
+    @Autowired
+    BookingLineNotificationService bookingLineNotificationService;
+
     /**
      * 真實 TapPay Sandbox Pay by Prime 串接。
      * 前端先呼叫 TapPay JS SDK 取得 prime，再 POST 到此 endpoint。
@@ -43,6 +47,7 @@ public class PaymentController {
         Long orderId  = Long.valueOf(body.get("orderId").toString());
         Long amount   = Long.valueOf(body.getOrDefault("amount", 1280).toString());
         String bookingCode = (String) body.get("bookingCode");   // 可為 null（舊流程相容）
+        BookingJpa bookingForPayment = null;
 
         if (bookingCode != null && !bookingCode.isBlank()) {
             Optional<BookingJpa> opt = bookingRepo.findByBookingCode(bookingCode);
@@ -53,6 +58,18 @@ public class PaymentController {
             if (booking.getStatus() == BookingHoldService.STATUS_CANCELED) return Result.fail("訂位已取消，無法付款");
             if (booking.getStatus() == BookingHoldService.STATUS_EXPIRED) return Result.fail("此保留已逾期，請重新建立訂位");
             if (bookingHoldService.expireIfDue(booking)) return Result.fail("此保留已逾期，請重新建立訂位");
+            if (!booking.getNeedsDeposit()) return Result.fail("此訂位免訂金、無需付款");
+            if (booking.getStatus() == BookingHoldService.STATUS_PAID) {
+                return Result.ok(Map.of(
+                        "status", "PAID",
+                        "rec_trade_id", booking.getPaymentTransId() != null ? booking.getPaymentTransId() : "",
+                        "bookingCode", booking.getBookingCode(),
+                        "amount", booking.getDepositTotal(),
+                        "msg", "訂位已付款，回傳既有交易編號"
+                ));
+            }
+            bookingForPayment = booking;
+            amount = Long.valueOf(booking.getDepositTotal());
         }
 
         Map<String, Object> r = tapPay.payByPrime(prime, amount, orderId);
@@ -63,16 +80,18 @@ public class PaymentController {
 
             // 回寫訂位記錄：status=2(已付款), payment_trans_id=rec_trade_id
             if (bookingCode != null && !bookingCode.isBlank()) {
-                Optional<BookingJpa> opt = bookingRepo.findByBookingCode(bookingCode);
-                opt.ifPresentOrElse(
-                        bk -> {
-                            bk.setStatus(BookingHoldService.STATUS_PAID);
-                            bk.setPaymentTransId(recTradeId);
-                            bookingRepo.save(bk);
-                            log.info("[Payment] bookingCode={} → status=2, trans={}", bookingCode, recTradeId);
-                        },
-                        () -> log.warn("[Payment] bookingCode={} 找不到訂位記錄", bookingCode)
-                );
+                BookingJpa bk = bookingForPayment != null
+                        ? bookingForPayment
+                        : bookingRepo.findByBookingCode(bookingCode).orElse(null);
+                if (bk == null) {
+                    log.warn("[Payment] bookingCode={} 找不到訂位記錄", bookingCode);
+                } else {
+                    bk.setStatus(BookingHoldService.STATUS_PAID);
+                    bk.setPaymentTransId(recTradeId);
+                    bookingRepo.save(bk);
+                    bookingLineNotificationService.pushBookingUpdated(bk, "paid");
+                    log.info("[Payment] bookingCode={} → status=2, trans={}", bookingCode, recTradeId);
+                }
             }
 
             return Result.ok(Map.of(

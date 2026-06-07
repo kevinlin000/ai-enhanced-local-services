@@ -2925,7 +2925,6 @@ async def line_booking_confirm(
         )
 
     booking = result.get("data") if isinstance(result.get("data"), dict) else {}
-    await _push_line_booking_update(lineUserId, booking, "reserved")
     return HTMLResponse(_line_booking_result_page(shop_id, name, booking, lineUserId))
 
 
@@ -2957,7 +2956,6 @@ async def line_booking_pay(shop_id: int, bookingCode: str, lineUserId: str = "")
         "paymentTransId": payment.get("rec_trade_id"),
         "depositTotal": payment.get("amount"),
     }
-    await _push_line_booking_update(lineUserId, booking, "paid")
     return HTMLResponse(_line_booking_result_page(shop_id, name, booking, lineUserId, payment=payment))
 
 

@@ -6,9 +6,9 @@ import com.bytebites.entity.jpa.BookingJpa;
 import com.bytebites.repository.BookingJpaRepository;
 import com.bytebites.service.AvailabilityNotificationService;
 import com.bytebites.service.BookingHoldService;
+import com.bytebites.service.BookingLineNotificationService;
 import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.IShopService;
-import com.bytebites.service.LineNotificationClient;
 import com.bytebites.service.jpa.UserJpaService;
 import com.bytebites.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +53,7 @@ public class BookingController {
     private final DepositPolicy depositPolicy;
     private final BookingHoldService bookingHoldService;
     private final AvailabilityNotificationService availabilityNotificationService;
-    private final LineNotificationClient lineNotificationClient;
+    private final BookingLineNotificationService bookingLineNotificationService;
     private final UserJpaService userJpaService;
     private final JdbcTemplate jdbcTemplate;
     private final PlatformTransactionManager transactionManager;
@@ -181,6 +181,7 @@ public class BookingController {
         booking.setIdempotencyKey(idempotencyKey);
 
         bookingRepo.saveAndFlush(booking);
+        bookingLineNotificationService.pushBookingUpdated(booking, "reserved");
 
         log.info("[Booking] code={} shop={} people={} date={} time={} table={} needsDeposit={} status={}",
                 booking.getBookingCode(), shopId, people, bookingDate, time, table,
@@ -243,6 +244,7 @@ public class BookingController {
         b.setPaymentTransId(demoTransId);
         b.setStatus(BookingHoldService.STATUS_PAID);
         bookingRepo.save(b);
+        bookingLineNotificationService.pushBookingUpdated(b, "paid");
 
         log.info("[Booking pay-test] {} demo-paid via agent, trans={}", bookingCode, demoTransId);
 
@@ -340,19 +342,13 @@ public class BookingController {
         booking.setStatus(BookingHoldService.STATUS_CANCELED);
         bookingRepo.saveAndFlush(booking);
         Map<String, Object> response = bookingResponse(booking, shopName, false);
-        notifyLineBookingCanceled(booking.getUserId(), response);
+        bookingLineNotificationService.pushBookingUpdated(booking, "canceled");
 
         log.info("[Booking cancel] code={} shop={} people={} date={} time={}",
                 booking.getBookingCode(), booking.getShopId(), booking.getPeople(),
                 booking.getBookingDate(), booking.getBookingTime());
 
         return Result.ok(response);
-    }
-
-    private void notifyLineBookingCanceled(Long userId, Map<String, Object> booking) {
-        if (userId == null) return;
-        userJpaService.findLineNotificationUserId(userId)
-                .ifPresent(lineUserId -> lineNotificationClient.pushBookingUpdated(lineUserId, booking, "canceled"));
     }
 
     private Map<String, Object> bookingResponse(BookingJpa booking, String shopName, boolean idempotentReplay) {
