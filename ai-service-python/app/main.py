@@ -2761,6 +2761,59 @@ def _line_more_recommendation_intent(text: str) -> bool:
     )
 
 
+def _line_should_force_recommendation_cards(text: str) -> bool:
+    normalized = str(text or "").strip().lower()
+    if not normalized:
+        return False
+    if _booking_intent(normalized) or _payment_intent(normalized):
+        return False
+    if not any(
+        phrase in normalized
+        for phrase in ("推薦", "找", "想吃", "想找", "哪間", "哪家", "餐廳")
+    ):
+        return False
+
+    constraints = _extract_query_constraints(normalized)
+    has_food_or_place = bool(
+        constraints["categories"]
+        or constraints["districts"]
+        or constraints["stations"]
+        or constraints["wants_luxury"]
+        or constraints["wants_hot_seat"]
+    )
+    return has_food_or_place
+
+
+async def _build_line_fallback_recommendation_cards(user_text: str, user_id: str) -> list[dict] | None:
+    if not _line_should_force_recommendation_cards(user_text):
+        return None
+    try:
+        shops = await _semantic_hits(user_text, top_k=30)
+    except Exception:
+        logger.exception("line_fallback_search_failed user_id=%s query=%s", user_id, user_text)
+        return None
+    if not shops:
+        return None
+
+    selected_ids = [
+        int(sid)
+        for shop in _dedupe_shops_by_brand(shops)[:3]
+        if (sid := _shop_id(shop)) is not None
+    ]
+    if not selected_ids:
+        return None
+
+    _save_line_recommendation_state(user_id, query=user_text, shown_shop_ids=selected_ids)
+    flex_or_bundle = build_line_flex_message(
+        shops=shops,
+        recommended_shop_ids=selected_ids,
+        answer="",
+        public_web_url=settings.line_public_web_url,
+    )
+    messages = flex_or_bundle.get("messages") if flex_or_bundle.get("type") == "_bundle" else [flex_or_bundle]
+    return messages or None
+
+
 def _line_plain_text(text: str) -> str:
     kept: list[str] = []
     for raw_line in str(text or "").splitlines():
@@ -2894,6 +2947,10 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
         _save_line_recommendation_state(user_id, query=user_text, shown_shop_ids=shown_ids)
         if messages:
             return messages
+
+    fallback_messages = await _build_line_fallback_recommendation_cards(user_text, user_id)
+    if fallback_messages:
+        return fallback_messages
 
     return [build_text_message(_line_plain_text(answer or "我需要再多一點條件，才能幫你推薦餐廳。"))]
 
