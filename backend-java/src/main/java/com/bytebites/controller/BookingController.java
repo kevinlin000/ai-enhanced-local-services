@@ -26,9 +26,12 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -254,13 +257,31 @@ public class BookingController {
 
     @GetMapping("/my")
     public Result myBookings(@RequestParam(required = false) String lineUserId) {
-        Long userId = currentUserIdOrNull();
-        if (userId == null && lineUserId != null && !lineUserId.isBlank()) {
-            userId = userJpaService.findOrCreateLineUser(lineUserId.trim()).getId();
+        UserDTO current = UserHolder.getUser();
+        Set<Long> userIds = new LinkedHashSet<>();
+        String currentLineUserId = current != null ? current.getLineUserId() : null;
+        if (current != null && current.getId() != null) {
+            userIds.add(current.getId());
+            currentLineUserId = userJpaService.findById(current.getId())
+                    .map(user -> user.getLineUserId() == null ? "" : user.getLineUserId().trim())
+                    .filter(value -> !value.isBlank())
+                    .orElse(currentLineUserId);
         }
-        if (userId == null) return Result.fail("請先登入");
 
-        List<Map<String, Object>> bookings = bookingRepo.findByUserIdOrderByCreatedAtDesc(userId)
+        String requestedLineUserId = lineUserId != null && !lineUserId.isBlank() ? lineUserId.trim() : null;
+        if (current != null && current.getId() != null && requestedLineUserId != null) {
+            if (currentLineUserId == null || !requestedLineUserId.equals(currentLineUserId.trim())) {
+                return Result.fail("LINE 身分不符，請重新登入");
+            }
+        }
+
+        String effectiveLineUserId = requestedLineUserId != null ? requestedLineUserId : currentLineUserId;
+        if (effectiveLineUserId != null && !effectiveLineUserId.isBlank()) {
+            userIds.add(userJpaService.findOrCreateLineUser(effectiveLineUserId).getId());
+        }
+        if (userIds.isEmpty()) return Result.fail("請先登入");
+
+        List<Map<String, Object>> bookings = bookingRepo.findByUserIdInOrderByCreatedAtDesc(new ArrayList<>(userIds))
                 .stream()
                 .map(booking -> {
                     bookingHoldService.expireIfDue(booking);
@@ -268,7 +289,15 @@ public class BookingController {
                     String shopName = shop != null ? shop.getName() : null;
                     return bookingResponse(booking, shopName, false);
                 })
-                .collect(Collectors.toList());
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toMap(
+                                item -> String.valueOf(item.get("bookingCode")),
+                                item -> item,
+                                (first, ignored) -> first,
+                                LinkedHashMap::new
+                        ),
+                        map -> new ArrayList<>(map.values())
+                ));
         return Result.ok(bookings);
     }
 

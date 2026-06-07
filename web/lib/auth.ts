@@ -9,6 +9,7 @@ export type AuthUser = {
   displayName: string;
   pictureUrl?: string | null;
   lineLinked: boolean;
+  lineUserId?: string | null;
 };
 
 export function useAuth() {

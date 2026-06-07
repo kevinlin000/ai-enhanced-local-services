@@ -2996,7 +2996,6 @@ async def line_booking_cancel(shop_id: int, bookingCode: str, lineUserId: str = 
             status_code=409,
         )
     booking = result.get("data") if isinstance(result.get("data"), dict) else {}
-    await _push_line_booking_update(lineUserId, booking, "canceled")
     return HTMLResponse(_line_booking_result_page(shop_id, name, booking, lineUserId))
 
 

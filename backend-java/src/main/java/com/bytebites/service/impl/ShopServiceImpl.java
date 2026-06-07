@@ -93,9 +93,13 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         }
         if (StrUtil.isNotBlank(cacheValue)) {
             log.debug("cache path: redis hit, id={}", id);
-            Shop cachedShop = JSONUtil.toBean(cacheValue, Shop.class);
-            shopLocalCache.put(id, cachedShop);
-            return Result.ok(cachedShop);
+            Shop cachedShop = decodeCachedShop(cacheValue);
+            if (cachedShop != null && cachedShop.getId() != null) {
+                shopLocalCache.put(id, cachedShop);
+                return Result.ok(cachedShop);
+            }
+            log.warn("cache path: invalid shop cache, delete and fallback db, id={}", id);
+            stringRedisTemplate.delete(key);
         }
 
         Shop shop = getById(id);
@@ -109,6 +113,26 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(shop), CACHE_SHOP_TTL, TimeUnit.MINUTES);
         shopLocalCache.put(id, shop);
         return Result.ok(shop);
+    }
+
+    private Shop decodeCachedShop(String cacheValue) {
+        try {
+            Shop direct = JSONUtil.toBean(cacheValue, Shop.class);
+            if (direct != null && direct.getId() != null) {
+                return direct;
+            }
+
+            Object data = JSONUtil.parseObj(cacheValue).get("data");
+            if (data != null) {
+                Shop nested = JSONUtil.toBean(JSONUtil.toJsonStr(data), Shop.class);
+                if (nested != null && nested.getId() != null) {
+                    return nested;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("failed to decode shop cache", e);
+        }
+        return null;
     }
 
     /**

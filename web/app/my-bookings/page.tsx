@@ -84,7 +84,8 @@ function formatHoldCountdown(holdExpiresAt: string | null | undefined, nowMs: nu
 }
 
 export default function MyBookingsPage() {
-  const { isLoggedIn, login, mounted } = useAuth();
+  const { isLoggedIn, login, mounted, user } = useAuth();
+  const lineUserId = user?.lineUserId ?? null;
   const [bookings, setBookings] = useState<MyBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -107,7 +108,7 @@ export default function MyBookingsPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await javaApi.myBookings();
+      const response = await javaApi.myBookings(lineUserId);
       if (!response.success) {
         setError(response.errorMsg ?? "讀取訂位失敗");
         setBookings([]);
@@ -120,7 +121,7 @@ export default function MyBookingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [isLoggedIn, mounted]);
+  }, [isLoggedIn, lineUserId, mounted]);
 
   useEffect(() => {
     if (!mounted) return;

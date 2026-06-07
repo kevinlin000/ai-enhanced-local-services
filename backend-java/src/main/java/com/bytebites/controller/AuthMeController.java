@@ -38,7 +38,8 @@ public class AuthMeController {
                 user.getId(),
                 displayName,
                 pictureUrl,
-                user.getLineUserId() != null
+                user.getLineUserId() != null,
+                user.getLineUserId()
         ));
     }
 
@@ -55,7 +56,8 @@ public class AuthMeController {
             Long id,
             String displayName,
             String pictureUrl,
-            boolean lineLinked
+            boolean lineLinked,
+            String lineUserId
     ) {
     }
 }

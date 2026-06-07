@@ -36,6 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 UserDTO userDTO = new UserDTO();
                 userDTO.setId(userId);
+                userDTO.setLineUserId(claims.get("lineUserId", String.class));
                 UserHolder.saveUser(userDTO);
 
                 UsernamePasswordAuthenticationToken auth =

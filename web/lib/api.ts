@@ -290,9 +290,9 @@ export const javaApi = {
         orderId: Math.floor(Math.random() * 100000000),
       }),
     }),
-  myBookings: () =>
+  myBookings: (lineUserId?: string | null) =>
     fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking[] }>(
-      `${CLIENT_JAVA_API}/api/booking/my`,
+      `${CLIENT_JAVA_API}/api/booking/my${lineUserId ? `?lineUserId=${encodeURIComponent(lineUserId)}` : ""}`,
       { headers: authHeaders() },
     ),
   cancelBooking: (bookingCode: string) =>
