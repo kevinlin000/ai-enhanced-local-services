@@ -2,10 +2,12 @@ import base64
 import hashlib
 import hmac
 import json
+import time
 
 import pytest
 
 from app.line_bot import build_line_flex_message, push_messages, reply_messages, verify_line_signature
+from app.main import _line_context, _line_user_id_from_token, settings
 
 
 def test_verify_line_signature_accepts_valid_signature():
@@ -156,6 +158,42 @@ def test_build_line_flex_message_booking_link_carries_line_action_token():
     assert "lineUserId=" not in reserve_uri
     assert "lt=v1." in reserve_uri
     assert "name=" in reserve_uri
+
+
+def test_line_context_upgrades_legacy_line_user_id_to_action_token():
+    line_user_id, token = _line_context("", "Ulegacy123")
+
+    assert line_user_id == "Ulegacy123"
+    assert token.startswith("v1.")
+    assert _line_user_id_from_token(token) == "Ulegacy123"
+
+
+def test_line_context_upgrades_legacy_channel_secret_token(monkeypatch):
+    payload = f"Ulegacy456|line_action|{int(time.time()) + 3600}".encode("utf-8")
+    payload_b64 = base64.urlsafe_b64encode(payload).decode("utf-8").rstrip("=")
+    sig = hmac.new(b"legacy-channel-secret", payload_b64.encode("utf-8"), hashlib.sha256).digest()
+    token = "v1." + payload_b64 + "." + base64.urlsafe_b64encode(sig).decode("utf-8").rstrip("=")
+    monkeypatch.setattr(settings, "line_channel_secret", "legacy-channel-secret")
+
+    line_user_id, upgraded_token = _line_context(token, "")
+
+    assert line_user_id == "Ulegacy456"
+    assert upgraded_token.startswith("v1.")
+    assert upgraded_token != token
+    assert _line_user_id_from_token(upgraded_token) == "Ulegacy456"
+
+
+def test_line_context_upgrades_unsigned_legacy_action_token():
+    payload = f"Ulegacy789|line_action|{int(time.time()) + 3600}".encode("utf-8")
+    payload_b64 = base64.urlsafe_b64encode(payload).decode("utf-8").rstrip("=")
+    token = "v1." + payload_b64 + ".stale-signature"
+
+    line_user_id, upgraded_token = _line_context(token, "")
+
+    assert line_user_id == "Ulegacy789"
+    assert upgraded_token.startswith("v1.")
+    assert upgraded_token != token
+    assert _line_user_id_from_token(upgraded_token) == "Ulegacy789"
 
 
 @pytest.mark.anyio

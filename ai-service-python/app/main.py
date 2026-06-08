@@ -92,7 +92,6 @@ def _line_action_secret() -> bytes:
     value = (
         settings.line_action_secret
         or settings.line_internal_webhook_secret
-        or settings.line_channel_secret
         or "dev-line-action-secret"
     )
     return value.strip().encode("utf-8")
@@ -107,7 +106,7 @@ def _decode_urlsafe(value: str) -> bytes:
     return base64.urlsafe_b64decode((value + padding).encode("utf-8"))
 
 
-def _line_user_id_from_token(token: str) -> str:
+def _line_user_id_from_token_with_secret(token: str, secret: bytes) -> str:
     normalized = str(token or "").strip()
     if not normalized:
         return ""
@@ -117,7 +116,7 @@ def _line_user_id_from_token(token: str) -> str:
             return ""
         payload_b64 = parts[1]
         expected_sig = base64.urlsafe_b64encode(
-            hmac.new(_line_action_secret(), payload_b64.encode("utf-8"), hashlib.sha256).digest()
+            hmac.new(secret, payload_b64.encode("utf-8"), hashlib.sha256).digest()
         ).decode("utf-8").rstrip("=")
         if not hmac.compare_digest(expected_sig, parts[2]):
             return ""
@@ -132,11 +131,48 @@ def _line_user_id_from_token(token: str) -> str:
         return ""
 
 
+def _line_user_id_from_token(token: str) -> str:
+    return _line_user_id_from_token_with_secret(token, _line_action_secret())
+
+
+def _line_user_id_from_unsigned_legacy_token(token: str) -> str:
+    normalized = str(token or "").strip()
+    try:
+        parts = normalized.split(".")
+        if len(parts) != 3 or parts[0] != "v1":
+            return ""
+        payload = _decode_urlsafe(parts[1]).decode("utf-8")
+        line_user_id, scope, expires_at = payload.split("|", 2)
+        user_id = line_user_id.strip()
+        if not user_id or len(user_id) > 128:
+            return ""
+        if scope != "line_action":
+            return ""
+        if int(time.time()) > int(expires_at):
+            return ""
+        return user_id
+    except Exception:
+        return ""
+
+
 def _line_context(lt: str = "", line_user_id: str = "") -> tuple[str, str]:
     token = str(lt or "").strip()
     resolved_user_id = _line_user_id_from_token(token)
     if resolved_user_id:
         return resolved_user_id, token
+    legacy_channel_secret = str(settings.line_channel_secret or "").strip()
+    if legacy_channel_secret:
+        legacy_user_id = _line_user_id_from_token_with_secret(token, legacy_channel_secret.encode("utf-8"))
+        if legacy_user_id:
+            return legacy_user_id, _line_token_for_user(legacy_user_id)
+    legacy_user_id = _line_user_id_from_unsigned_legacy_token(token)
+    if legacy_user_id:
+        return legacy_user_id, _line_token_for_user(legacy_user_id)
+    legacy_user_id = str(line_user_id or "").strip()
+    if legacy_user_id and len(legacy_user_id) <= 128:
+        # Backward compatibility for LINE cards issued before lt signed tokens existed.
+        # Newly generated cards still use lt, but old cards can self-upgrade after one click.
+        return legacy_user_id, _line_token_for_user(legacy_user_id)
     return "", ""
 PREMIUM_HOTPOT_SUPPLEMENT_IDS = (10009,)
 LOW_DETAIL_SEED_SHOP_IDS = {

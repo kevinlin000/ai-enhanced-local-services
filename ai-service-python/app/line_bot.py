@@ -126,7 +126,6 @@ def _line_action_secret() -> bytes:
     value = (
         os.getenv("LINE_ACTION_SECRET")
         or os.getenv("LINE_INTERNAL_WEBHOOK_SECRET")
-        or os.getenv("LINE_CHANNEL_SECRET")
         or "dev-line-action-secret"
     )
     return value.strip().encode("utf-8")
