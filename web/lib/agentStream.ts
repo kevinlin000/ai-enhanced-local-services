@@ -32,6 +32,7 @@ export type AgentStreamEvent =
       narrative?: string;
       rejected_shop_ids?: number[];
       rejection_summary?: string | null;
+      scope_note?: string | null;
       transaction?: AgentTransaction | null;
       tools_used?: string[];
       tool_result?: unknown;
@@ -48,6 +49,7 @@ export type AgentStreamEvent =
       narrative?: string;
       rejected_shop_ids?: number[];
       rejection_summary?: string | null;
+      scope_note?: string | null;
       transaction?: AgentTransaction | null;
       tools_used?: string[];
       tool_result?: unknown;

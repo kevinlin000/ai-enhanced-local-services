@@ -24,6 +24,7 @@ import { streamAgentResponse, type AgentTransaction } from "@/lib/agentStream";
 import { useAuth } from "@/lib/auth";
 import { AgentShopCard, type AgentShop } from "@/components/AgentShopCard";
 import { MarkdownMessage } from "@/components/MarkdownMessage";
+import { agentFinalPayloadFromEvent } from "@/lib/agentResponse";
 
 const AI_API = "";
 
@@ -38,6 +39,7 @@ interface Msg {
   done?: boolean;
   shops?: AgentShop[];
   transaction?: AgentTransaction;
+  scopeNote?: string;
 }
 
 type ToolStepStatus = "active" | "done";
@@ -112,50 +114,6 @@ function upsertToolStep(
 
 function uniqueTools(tools: string[] | undefined, name: string): string[] {
   return [...new Set([...(tools ?? []), name])];
-}
-
-function shopId(shop: AgentShop): number {
-  return Number(shop.shop_id ?? (shop as unknown as { id?: number | string }).id);
-}
-
-function normalizeAgentShop(shop: AgentShop): AgentShop | null {
-  const id = shopId(shop);
-  if (!Number.isFinite(id)) return null;
-  const raw = shop as unknown as {
-    avgPrice?: number | null;
-    mrtStation?: string | null;
-  };
-  return {
-    ...shop,
-    shop_id: id,
-    mrt_station: shop.mrt_station ?? raw.mrtStation ?? null,
-    avg_price: shop.avg_price ?? raw.avgPrice ?? null,
-    price_per_person:
-      shop.price_per_person ??
-      (raw.avgPrice != null ? `NT$ ${raw.avgPrice}` : null),
-  };
-}
-
-function selectRecommendedShops(
-  shops: AgentShop[] | undefined,
-  recommendedShopIds: number[] | undefined,
-): AgentShop[] | undefined {
-  const normalized = shops
-    ?.map(normalizeAgentShop)
-    .filter((shop): shop is AgentShop => Boolean(shop));
-  if (!normalized || normalized.length === 0) return undefined;
-  if (!recommendedShopIds?.length) return normalized.slice(0, 3);
-  const byId = new Map(normalized.map((shop) => [shopId(shop), shop]));
-  const selected = recommendedShopIds
-    .map((id) => byId.get(Number(id)))
-    .filter((shop): shop is AgentShop => Boolean(shop));
-  if (selected.length === 0) return normalized.slice(0, 3);
-  const selectedIds = new Set(selected.map(shopId));
-  const filled = [
-    ...selected,
-    ...normalized.filter((shop) => !selectedIds.has(shopId(shop))),
-  ];
-  return filled.slice(0, Math.min(3, normalized.length));
 }
 
 function renderableText(value: string): string {
@@ -873,11 +831,7 @@ export default function AiPage() {
               return next;
             });
           } else if (event.type === "agent_end" || event.type === "done") {
-            const toolResult = event.tool_result as { shops?: AgentShop[] } | undefined;
-            const shops = selectRecommendedShops(
-              toolResult?.shops,
-              event.recommended_shop_ids,
-            );
+            const finalPayload = agentFinalPayloadFromEvent(event);
             setMessages((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
@@ -888,8 +842,9 @@ export default function AiPage() {
                 content: event.answer || last.content,
                 statusLabel: STATUS_LABELS.agent_end,
                 toolsUsed: event.tools_used ?? last.toolsUsed,
-                shops: shops ?? last.shops,
-                transaction: event.transaction ?? last.transaction,
+                shops: finalPayload.shops ?? last.shops,
+                transaction: finalPayload.transaction ?? last.transaction,
+                scopeNote: finalPayload.scopeNote ?? last.scopeNote,
                 finalEventHandled: true,
                 done: true,
               };
@@ -1024,6 +979,11 @@ export default function AiPage() {
                 </div>
                 {m.shops && m.shops.length > 0 ? (
                   <div className="mt-3 w-full space-y-3">
+                    {m.scopeNote ? (
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium leading-6 text-amber-950">
+                        {m.scopeNote}
+                      </div>
+                    ) : null}
                     {m.shops.map((shop, rank) => (
                       <AgentShopCard key={shop.shop_id} shop={shop} rank={rank + 1} />
                     ))}

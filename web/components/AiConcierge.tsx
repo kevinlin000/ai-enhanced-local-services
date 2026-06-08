@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, CircleDashed, Loader2, Send, Sparkles, X } from "lucide-react";
-import { streamAgentResponse } from "@/lib/agentStream";
+import { streamAgentResponse, type AgentTransaction } from "@/lib/agentStream";
 import { MarkdownMessage } from "@/components/MarkdownMessage";
 import { useAuth } from "@/lib/auth";
+import type { AgentShop } from "@/components/AgentShopCard";
+import { agentFinalPayloadFromEvent } from "@/lib/agentResponse";
 
 type Hit = {
   shop_id: number;
@@ -26,6 +28,9 @@ type Msg = {
   query?: string;
   done?: boolean;
   hasShops?: boolean;
+  shops?: AgentShop[];
+  transaction?: AgentTransaction;
+  scopeNote?: string;
 };
 
 type ToolStep = {
@@ -64,6 +69,72 @@ function upsertToolStep(
 
 function uniqueTools(tools: string[] | undefined, name: string): string[] {
   return [...new Set([...(tools ?? []), name])];
+}
+
+function formatShopMeta(shop: AgentShop): string {
+  return [
+    shop.district,
+    shop.mrt_station ? `捷運${shop.mrt_station}` : null,
+    shop.price_per_person ?? (shop.avg_price != null ? `NT$ ${shop.avg_price}` : null),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function CompactShopPreview({ shop, rank }: { shop: AgentShop; rank: number }) {
+  const summary = (shop.ai_summary ?? "").replace(/\s+/g, " ").trim();
+  const dishes = (shop.signature_dishes ?? []).filter(Boolean).slice(0, 2).join("、");
+  return (
+    <Link
+      href={`/shops/${shop.shop_id}`}
+      className="block rounded-xl border border-foreground/10 bg-background/80 px-3 py-2.5 text-left transition hover:border-primary/40"
+    >
+      <div className="flex items-center gap-2">
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+          {rank}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-xs font-bold text-foreground">{shop.name}</span>
+      </div>
+      {formatShopMeta(shop) ? (
+        <div className="mt-1 truncate text-[11px] text-muted-foreground">{formatShopMeta(shop)}</div>
+      ) : null}
+      {dishes || summary ? (
+        <div className="mt-1 line-clamp-2 text-[11px] leading-5 text-muted-foreground">
+          {dishes ? `招牌：${dishes}` : summary}
+        </div>
+      ) : null}
+    </Link>
+  );
+}
+
+function CompactTransactionStatus({ transaction }: { transaction: AgentTransaction }) {
+  const shopLabel = transaction.shop_name ?? `店家 ID ${transaction.shop_id ?? "-"}`;
+  const statusLabel: Record<AgentTransaction["status"], string> = {
+    CONFIRMED: "訂位完成",
+    PAID: "已付款",
+    PENDING_PAYMENT: "待付訂金",
+    PAYMENT_FAILED: "付款未完成",
+    FAILED: "訂位失敗",
+    EXPIRED: "保留逾期",
+  };
+  return (
+    <div className="mt-3 rounded-xl border border-foreground/10 bg-background/80 px-3 py-2.5 text-xs leading-5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-bold text-foreground">{statusLabel[transaction.status]}</span>
+        {transaction.booking_code ? (
+          <span className="font-mono text-[10px] text-muted-foreground">{transaction.booking_code}</span>
+        ) : null}
+      </div>
+      <div className="mt-1 text-muted-foreground">
+        {shopLabel} · {transaction.date ?? "-"} {transaction.time ?? ""}
+      </div>
+      {transaction.status === "PENDING_PAYMENT" ? (
+        <Link href="/bookings" className="mt-2 inline-flex rounded-full bg-primary px-3 py-1 text-[11px] font-bold text-white">
+          前往付款
+        </Link>
+      ) : null}
+    </div>
+  );
 }
 
 export function AiConcierge() {
@@ -207,8 +278,8 @@ export function AiConcierge() {
               return next;
             });
           } else if (event.type === "agent_end" || event.type === "done") {
-            const toolResult = event.tool_result as { shops?: unknown[] } | undefined;
-            const hasShops = (toolResult?.shops?.length ?? 0) > 0;
+            const finalPayload = agentFinalPayloadFromEvent(event);
+            const hasShops = (finalPayload.shops?.length ?? 0) > 0;
             setMessages((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
@@ -221,6 +292,9 @@ export function AiConcierge() {
                 tools_used: event.tools_used ?? last.tools_used,
                 done: true,
                 hasShops,
+                shops: finalPayload.shops ?? last.shops,
+                transaction: finalPayload.transaction ?? last.transaction,
+                scopeNote: finalPayload.scopeNote ?? last.scopeNote,
                 final_event_handled: true,
               };
               return next;
@@ -403,16 +477,28 @@ export function AiConcierge() {
                     )}
 
                     {m.role === "ai" && m.done && m.hasShops && m.query && (
-                      <div className="mt-3 border-t border-foreground/10 pt-2.5 text-center">
+                      <div className="mt-3 space-y-2 border-t border-foreground/10 pt-2.5">
+                        {m.scopeNote ? (
+                          <div className="rounded-xl bg-amber-50 px-3 py-2 text-left text-[11px] leading-5 text-amber-950">
+                            {m.scopeNote}
+                          </div>
+                        ) : null}
+                        {m.shops?.slice(0, 3).map((shop, rank) => (
+                          <CompactShopPreview key={shop.shop_id} shop={shop} rank={rank + 1} />
+                        ))}
                         <Link
                           href={`/ai?q=${encodeURIComponent(m.query)}`}
                           onClick={() => setOpen(false)}
-                          className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition"
+                          className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary transition hover:bg-primary/20"
                         >
-                          想看詳細卡片？在 AI Chat 查看完整推薦 →
+                          查看完整卡片與比較表 →
                         </Link>
                       </div>
                     )}
+
+                    {m.role === "ai" && m.done && m.transaction ? (
+                      <CompactTransactionStatus transaction={m.transaction} />
+                    ) : null}
                   </div>
 
                   {m.tools_used && m.tools_used.length > 0 && (

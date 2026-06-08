@@ -1288,7 +1288,7 @@ async def tool_search_by_mrt(station: str, radius: int = 500) -> dict:
 
 async def tool_semantic_search(query: str) -> dict:
     hits = await _semantic_hits(query, top_k=5)
-    return {"shops": hits}
+    return await _build_agent_search_result(query, hits)
 
 
 async def tool_create_hot_seat_order(voucher_id: int) -> dict:
@@ -2332,6 +2332,11 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
 
     if state.last_tool_result.get("shops"):
         decision = _build_agent_recommendation_decision(query, state.last_tool_result)
+        state.last_tool_result = await _enrich_agent_search_result(
+            query,
+            state.last_tool_result,
+            decision.recommended_shop_ids,
+        )
         if decision.narrative:
             final_answer = decision.narrative
             state.last_tool_result["agent_decision"] = _decision_payload(decision)
@@ -2483,6 +2488,9 @@ async def agent(req: AgentRequest):
     return {
         "query":      req.query,
         "answer":     final_answer,
+        **last_tool_result.get("agent_decision", {}),
+        "transaction": last_tool_result.get("transaction"),
+        "scope_note": last_tool_result.get("scope_note"),
         "tools_used": tools_used,
         "tool_result": last_tool_result,
         "session_id": session_id,
@@ -2675,6 +2683,11 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 full_answer = clarification
             else:
                 decision = _build_agent_recommendation_decision(query, state.last_tool_result)
+                state.last_tool_result = await _enrich_agent_search_result(
+                    query,
+                    state.last_tool_result,
+                    decision.recommended_shop_ids,
+                )
                 full_answer = decision.narrative
                 state.last_tool_result["agent_decision"] = _decision_payload(decision)
         chunk_size = 18
@@ -2701,6 +2714,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
         "answer": full_answer,
         **state.last_tool_result.get("agent_decision", {}),
         "transaction": state.last_tool_result.get("transaction"),
+        "scope_note": state.last_tool_result.get("scope_note"),
         "tools_used": state.tools_used,
         "tool_result": state.last_tool_result,
         "session_id": session_id,
@@ -3593,6 +3607,52 @@ def _shops_for_ids(shops: list[dict], selected_ids: list[int]) -> list[dict]:
 
 
 async def _hydrate_line_card_shops(shops: list[dict], selected_ids: list[int]) -> list[dict]:
+    return await _hydrate_agent_search_shops(shops, selected_ids)
+
+
+async def _build_agent_search_result(
+    query: str,
+    shops: list[dict],
+    recommended_shop_ids: list[int] | None = None,
+) -> dict:
+    result = {"shops": shops}
+    return await _enrich_agent_search_result(query, result, recommended_shop_ids)
+
+
+async def _enrich_agent_search_result(
+    query: str,
+    tool_result: dict,
+    recommended_shop_ids: list[int] | None = None,
+) -> dict:
+    if not isinstance(tool_result, dict):
+        return tool_result
+    shops = tool_result.get("shops")
+    if not isinstance(shops, list) or not shops:
+        return tool_result
+
+    selected_ids = [
+        int(shop_id)
+        for shop_id in (recommended_shop_ids or [])
+        if str(shop_id).isdigit()
+    ]
+    if not selected_ids:
+        selected_ids = [
+            int(sid)
+            for shop in shops[:3]
+            if (sid := _shop_id(shop)) is not None
+        ]
+
+    tool_result["shops"] = await _hydrate_agent_search_shops(shops, selected_ids)
+    selected_shops = _shops_for_ids(tool_result["shops"], selected_ids)
+    scope_note = _search_scope_note(query, selected_shops)
+    if scope_note:
+        tool_result["scope_note"] = scope_note
+    else:
+        tool_result.pop("scope_note", None)
+    return tool_result
+
+
+async def _hydrate_agent_search_shops(shops: list[dict], selected_ids: list[int]) -> list[dict]:
     selected_set = {
         int(shop_id)
         for shop_id in selected_ids
@@ -3624,6 +3684,10 @@ async def _hydrate_line_card_shops(shops: list[dict], selected_ids: list[int]) -
 
 
 def _line_card_has_rich_context(shop: dict) -> bool:
+    return _shop_has_rich_context(shop)
+
+
+def _shop_has_rich_context(shop: dict) -> bool:
     return bool(
         str(shop.get("ai_summary") or "").strip()
         or _parse_json_list(shop.get("signature_dishes"))
@@ -3631,7 +3695,7 @@ def _line_card_has_rich_context(shop: dict) -> bool:
     )
 
 
-def _line_scope_expansion_intro(query: str, selected_shops: list[dict]) -> str | None:
+def _search_scope_note(query: str, selected_shops: list[dict]) -> str | None:
     if not selected_shops:
         return None
     constraints = _extract_query_constraints(query)
@@ -3644,7 +3708,6 @@ def _line_scope_expansion_intro(query: str, selected_shops: list[dict]) -> str |
             return (
                 f"{station_label}附近符合條件較少，我保留最接近的選項，並擴大到台北{category_label}，"
                 f"整理 {len(selected_shops)} 間符合需求的餐廳。"
-                "請左右滑動查看卡片，點「看完整分析」看菜色、評論與訂位規則；點「填日期人數」直接進訂位表單。"
             )
     requested_districts = constraints.get("districts") or []
     if not requested_districts:
@@ -3657,6 +3720,15 @@ def _line_scope_expansion_intro(query: str, selected_shops: list[dict]) -> str |
     category_label = _category_label_for_constraints(constraints)
     return (
         f"{district_label}符合條件較少，我先擴大到台北{category_label}，整理 {len(selected_shops)} 間符合需求的餐廳。"
+    )
+
+
+def _line_scope_expansion_intro(query: str, selected_shops: list[dict]) -> str | None:
+    note = _search_scope_note(query, selected_shops)
+    if not note:
+        return None
+    return (
+        f"{note}"
         "請左右滑動查看卡片，點「看完整分析」看菜色、評論與訂位規則；點「填日期人數」直接進訂位表單。"
     )
 

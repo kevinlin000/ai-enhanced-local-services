@@ -132,8 +132,8 @@ async def test_web_agent_stream_forces_cards_when_model_skips_search(monkeypatch
     async def fake_tool_semantic_search(query: str):
         return {
             "shops": [
-                {"shop_id": 10022, "name": "青花驕 中山北店", "district": "中山區"},
-                {"shop_id": 10123, "name": "海霸王 中山店", "district": "中山"},
+                {"shop_id": 10022, "name": "青花驕 中山北店", "district": "中山區", "ai_summary": "中山聚餐。"},
+                {"shop_id": 10123, "name": "海霸王 中山店", "district": "中山", "ai_summary": "中式聚餐。"},
             ]
         }
 
@@ -161,6 +161,50 @@ async def test_web_agent_stream_forces_cards_when_model_skips_search(monkeypatch
     assert "semantic_shop_search" in done["tools_used"]
     assert done["recommended_shop_ids"] == [10022, 10123]
     assert [shop["shop_id"] for shop in done["tool_result"]["shops"]] == [10022, 10123]
+
+
+@pytest.mark.anyio
+async def test_tool_semantic_search_returns_hydrated_shops_and_scope_note(monkeypatch):
+    async def fake_semantic_hits(query: str, top_k: int):
+        return [
+            {
+                "shop_id": 10680,
+                "name": "TakeOut Burger&Cafe 民權店",
+                "district": "中山",
+                "category": "美式料理",
+            },
+            {
+                "shop_id": 10201,
+                "name": "Juicy Bun Burger 政大店",
+                "district": "文山",
+                "category": "美式料理",
+                "ai_summary": "政大附近美式漢堡。",
+            },
+            {
+                "shop_id": 10746,
+                "name": "Lin’s Burger 台北信義店",
+                "district": "信義",
+                "category": "美式料理",
+                "ai_summary": "信義區美式餐廳。",
+            },
+        ]
+
+    async def fake_fetch_metadata(shop_id: int):
+        return {
+            "aiSummary": "主打厚實漢堡與美式餐點。",
+            "signatureDishes": '["牛肉漢堡", "薯條"]',
+            "atmosphereTags": '["朋友聚餐"]',
+            "pricePerPerson": "NT$ 300-600",
+        }
+
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "_fetch_java_ai_metadata", fake_fetch_metadata)
+
+    result = await main.tool_semantic_search("推薦中山區高級漢堡店")
+
+    assert result["scope_note"].startswith("中山區符合條件較少，我先擴大到台北漢堡店")
+    assert result["shops"][0]["ai_summary"] == "主打厚實漢堡與美式餐點。"
+    assert result["shops"][0]["signature_dishes"] == ["牛肉漢堡", "薯條"]
 
 
 @pytest.mark.anyio
