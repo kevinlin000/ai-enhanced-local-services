@@ -257,6 +257,7 @@ STATION_HINTS = {
     "市政府站": {"市政府", "市政府站"},
     "信義安和站": {"信義安和", "信義安和站", "大安站"},
     "象山站": {"象山", "象山站"},
+    "芝山站": {"芝山", "芝山站"},
 }
 
 DISTRICT_HINTS = {
@@ -282,11 +283,31 @@ STATION_NEIGHBORHOODS = {
     "信義安和": {"信義安和": 1.0, "市政府": 0.55, "象山": 0.35},
     "行天宮": {"行天宮": 1.0, "中山國小": 0.45, "雙連": 0.3},
     "象山": {"象山": 1.0, "市政府": 0.45, "信義安和": 0.35},
+    "芝山": {"芝山": 1.0, "士林": 0.6, "明德": 0.55, "劍潭": 0.35},
 }
 
 LUXURY_HINTS = {"高級", "精緻", "約會大餐", "請客", "慶生", "高檔", "高價"}
 HOTPOT_STRONG_HINTS = {"火鍋", "鍋物", "麻辣鍋", "酸菜白肉鍋", "涮涮鍋", "涮涮屋", "壽喜燒", "羊肉爐", "鴛鴦鍋"}
 HOTPOT_BLOCK_HINTS = {"拉麵", "鐵板燒", "韓式烤肉", "燒肉", "串燒"}
+
+
+def _resolve_taipei_district(address: str | None, fallback: str | None = None) -> str:
+    text = str(address or "")
+    for district in DISTRICT_HINTS:
+        simplified_name = (
+            district
+            .replace("萬", "万")
+            .replace("華", "华")
+            .replace("義", "义")
+            .replace("內", "内")
+        )
+        if (
+            f"{district}區" in text
+            or f"{district}区" in text
+            or f"{simplified_name}区" in text
+        ):
+            return district
+    return str(fallback or "").strip()
 
 
 def get_gemini() -> genai.Client:
@@ -349,10 +370,12 @@ def _parse_json_list(raw) -> list[str]:
 
 
 def _payload_text(payload: dict) -> str:
+    district = _resolve_taipei_district(payload.get("address"), payload.get("district"))
     parts: list[str] = [
         payload.get("name", ""),
-        payload.get("district", ""),
+        district,
         payload.get("mrt_station", ""),
+        payload.get("address", ""),
         payload.get("category", ""),
         payload.get("ai_summary", ""),
         payload.get("booking_difficulty", ""),
@@ -367,7 +390,15 @@ def _extract_query_constraints(query: str) -> dict:
     query_lower = query.lower()
     stations = []
     for canonical, keywords in STATION_HINTS.items():
-        if any(keyword.lower() in query_lower for keyword in keywords):
+        matched_station = False
+        for keyword in keywords:
+            keyword_lower = keyword.lower()
+            if not keyword_lower.endswith("站") and f"{keyword_lower}區" in query_lower:
+                continue
+            if keyword_lower in query_lower:
+                matched_station = True
+                break
+        if matched_station:
             station = canonical.replace("站", "")
             if station not in stations:
                 stations.append(station)
@@ -486,11 +517,14 @@ def _semantic_category_slug(payload: dict) -> str:
 
 def _station_proximity_score(constraints: dict, payload: dict) -> float:
     mrt_station = str(payload.get("mrt_station") or "")
-    if not constraints["stations"] or not mrt_station:
+    if not constraints["stations"]:
         return 0.0
 
     score = 0.0
+    text = _payload_text(payload)
     for target in constraints["stations"]:
+        if target and (target in mrt_station or target.lower() in text):
+            score = max(score, 1.0)
         score = max(score, STATION_NEIGHBORHOODS.get(target, {}).get(mrt_station, 0.0))
     return score
 
@@ -500,7 +534,7 @@ def _normalize_district_name(value: str | None) -> str:
 
 
 def _district_matches(constraints: dict, payload: dict) -> bool:
-    district = _normalize_district_name(payload.get("district"))
+    district = _normalize_district_name(_resolve_taipei_district(payload.get("address"), payload.get("district")))
     return bool(district) and any(
         _normalize_district_name(target) == district
         for target in constraints["districts"]
@@ -586,7 +620,7 @@ def _metadata_bonus(query: str, payload: dict) -> float:
     query_lower = query.lower()
     constraints = _extract_query_constraints(query)
     bonus = 0.0
-    district = str(payload.get("district") or "").lower()
+    district = _resolve_taipei_district(payload.get("address"), payload.get("district")).lower()
     mrt_station = str(payload.get("mrt_station") or "").lower()
     category = str(payload.get("category") or "").lower()
     category_slug = _semantic_category_slug(payload)
@@ -616,10 +650,7 @@ def _metadata_bonus(query: str, payload: dict) -> float:
             bonus -= 0.18
 
     if constraints["stations"]:
-        best_station_score = 0.0
-        for target in constraints["stations"]:
-            neighborhood = STATION_NEIGHBORHOODS.get(target, {})
-            best_station_score = max(best_station_score, neighborhood.get(mrt_station, 0.0))
+        best_station_score = _station_proximity_score(constraints, payload)
 
         if best_station_score >= 1.0:
             bonus += 0.5
@@ -751,7 +782,8 @@ async def _fetch_all_shops_fallback() -> list[dict]:
                 {
                     "shop_id": shop["id"],
                     "name": shop.get("name"),
-                    "district": shop.get("district"),
+                    "district": _resolve_taipei_district(shop.get("address"), shop.get("district")),
+                    "address": shop.get("address"),
                     "mrt_station": shop.get("mrtStation"),
                     "score": 0.0,
                     "category": TYPE_ID_TO_CATEGORY.get(shop.get("typeId")),
@@ -773,7 +805,8 @@ def _java_shop_to_search_hit(shop: dict, metadata: dict | None = None) -> dict:
     payload = {
         "shop_id": shop.get("id"),
         "name": shop.get("name"),
-        "district": shop.get("district") or shop.get("area"),
+        "district": _resolve_taipei_district(shop.get("address"), shop.get("district") or shop.get("area")),
+        "address": shop.get("address"),
         "mrt_station": shop.get("mrtStation"),
         "score": 0.0,
         "category": TYPE_ID_TO_CATEGORY.get(type_id),
@@ -910,7 +943,8 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
                 {
                     "shop_id": payload.get("shop_id"),
                     "name": payload.get("name"),
-                    "district": payload.get("district"),
+                    "district": _resolve_taipei_district(payload.get("address"), payload.get("district")),
+                    "address": payload.get("address"),
                     "mrt_station": payload.get("mrt_station"),
                     "score": float(result.score),
                     "category": payload.get("category"),
@@ -1192,7 +1226,10 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             hit for hit in raw_hits
             if _district_matches(constraints, hit)
         ]
-        raw_hits = strict_district
+        if strict_district:
+            loose_district = [hit for hit in raw_hits if hit not in strict_district]
+            min_results = min(top_k, 3)
+            raw_hits = strict_district if len(strict_district) >= min_results else strict_district + loose_district
         logger.warning(
             "search_strict_district_filter query=%r districts=%s strict=%s",
             query,
@@ -1206,8 +1243,10 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             if _station_proximity_score(constraints, hit) > 0
             or any(target.lower() in str(hit.get("mrt_station") or "").lower() for target in constraints["stations"])
         ]
-        if strict_station or not constraints["districts"]:
-            raw_hits = strict_station
+        if strict_station:
+            loose_station = [hit for hit in raw_hits if hit not in strict_station]
+            min_results = min(top_k, 3)
+            raw_hits = strict_station if len(strict_station) >= min_results else strict_station + loose_station
         logger.warning(
             "search_strict_station_filter query=%r stations=%s strict=%s",
             query,
@@ -3090,6 +3129,30 @@ async def line_booking_pay(shop_id: int, bookingCode: str, lt: str = "", lineUse
     line_user_id, line_token = _line_context(lt, lineUserId)
     shop = await _fetch_java_shop(shop_id)
     name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
+    booking = await _fetch_line_booking(bookingCode, line_user_id, line_token)
+    if not booking:
+        return HTMLResponse(
+            _line_html_page(
+                "付款未完成",
+                "找不到這筆訂位，請回到訂位狀態確認。",
+                [
+                    ("查看訂位狀態", _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(bookingCode)}&lt={quote_plus(line_token)}")),
+                    ("返回店家資訊", _line_public_uri(f"/line/shop/{shop_id}")),
+                ],
+            ),
+            status_code=404,
+        )
+    status = str(booking.get("status") or "")
+    if status != "PENDING_PAYMENT":
+        return HTMLResponse(_line_booking_result_page(shop_id, name, booking, line_user_id, line_token))
+    return HTMLResponse(_line_booking_payment_page(shop_id, name, booking, line_token))
+
+
+@app.post("/line/book/{shop_id}/pay/confirm", response_class=HTMLResponse)
+async def line_booking_pay_confirm(shop_id: int, bookingCode: str, lt: str = "", lineUserId: str = ""):
+    line_user_id, line_token = _line_context(lt, lineUserId)
+    shop = await _fetch_java_shop(shop_id)
+    name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
     result = await _pay_line_booking(bookingCode, line_user_id, line_token)
     if not result.get("success"):
         message = str(result.get("errorMsg") or "訂金付款失敗，請稍後再試。")
@@ -3115,6 +3178,49 @@ async def line_booking_pay(shop_id: int, bookingCode: str, lt: str = "", lineUse
         "depositTotal": payment.get("amount"),
     }
     return HTMLResponse(_line_booking_result_page(shop_id, name, booking, line_user_id, line_token, payment=payment))
+
+
+def _line_booking_payment_page(shop_id: int, escaped_shop_name: str, booking: dict, line_token: str) -> str:
+    booking_code_raw = str(booking.get("bookingCode") or "")
+    booking_code = _html_escape(booking_code_raw)
+    people = _html_escape(str(booking.get("people") or ""))
+    booking_date = _html_escape(str(booking.get("date") or ""))
+    booking_time = _html_escape(str(booking.get("time") or ""))
+    deposit_total = _html_escape(str(booking.get("depositTotal") or 0))
+    hold_expires_at = _html_escape(str(booking.get("holdExpiresAt") or ""))
+    confirm_uri = _line_public_uri(
+        f"/line/book/{shop_id}/pay/confirm?bookingCode={quote_plus(booking_code_raw)}&lt={quote_plus(line_token)}"
+    )
+    status_uri = _line_public_uri(
+        f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code_raw)}&lt={quote_plus(line_token)}"
+    )
+    body = f"""
+      <main>
+        <p class="eyebrow">ByteBites 訂金付款</p>
+        <h1>確認訂金付款</h1>
+        <div class="meta">{escaped_shop_name} · {booking_date} {booking_time} · {people} 人</div>
+        <section>
+          <h2>付款金額</h2>
+          <p><strong>NT$ {deposit_total}</strong></p>
+          <p>訂位編號：<strong>{booking_code}</strong></p>
+          <p>座位保留到：{hold_expires_at or "依系統狀態為準"}</p>
+        </section>
+        <section>
+          <h2>選擇付款方式</h2>
+          <div class="payment-options">
+            <div class="payment-option selected"><strong>信用卡</strong><span>TapPay sandbox 測試卡</span></div>
+            <div class="payment-option"><strong>LINE Pay</strong><span>Demo wallet authorization</span></div>
+            <div class="payment-option"><strong>Apple Pay</strong><span>Demo wallet authorization</span></div>
+            <div class="payment-option"><strong>街口支付</strong><span>Demo wallet authorization</span></div>
+          </div>
+        </section>
+        <form class="actions" method="post" action="{confirm_uri}">
+          <button class="primary" type="submit">確認 demo 付款</button>
+          <a class="secondary" href="{status_uri}">返回訂位狀態</a>
+        </form>
+      </main>
+    """
+    return _line_shell("確認訂金付款", body)
 
 
 @app.get("/line/book/{shop_id}/status", response_class=HTMLResponse)
@@ -3482,6 +3588,17 @@ def _line_scope_expansion_intro(query: str, selected_shops: list[dict]) -> str |
     if not selected_shops:
         return None
     constraints = _extract_query_constraints(query)
+    requested_stations = constraints.get("stations") or []
+    if requested_stations:
+        station_matches = sum(1 for shop in selected_shops if _station_proximity_score(constraints, shop) > 0)
+        if station_matches < len(selected_shops):
+            station_label = "、".join(f"{station}站" for station in requested_stations)
+            category_label = _category_label_for_constraints(constraints)
+            return (
+                f"{station_label}附近符合條件較少，我保留最接近的選項，並擴大到台北{category_label}，"
+                f"整理 {len(selected_shops)} 間符合需求的餐廳。"
+                "請左右滑動查看卡片，點「看完整分析」看菜色、評論與訂位規則；點「填日期人數」直接進訂位表單。"
+            )
     requested_districts = constraints.get("districts") or []
     if not requested_districts:
         return None
@@ -3490,11 +3607,26 @@ def _line_scope_expansion_intro(query: str, selected_shops: list[dict]) -> str |
         return None
 
     district_label = "、".join(f"{district}區" for district in requested_districts)
-    category_label = "漢堡店" if constraints.get("wants_burger") else "餐廳"
+    category_label = _category_label_for_constraints(constraints)
     return (
         f"{district_label}符合條件較少，我先擴大到台北{category_label}，整理 {len(selected_shops)} 間符合需求的餐廳。"
         "請左右滑動查看卡片，點「看完整分析」看菜色、評論與訂位規則；點「填日期人數」直接進訂位表單。"
     )
+
+
+def _category_label_for_constraints(constraints: dict) -> str:
+    categories = constraints.get("categories") or []
+    if constraints.get("wants_burger"):
+        return "漢堡店"
+    if "hotpot" in categories:
+        return "火鍋"
+    if "yakiniku" in categories:
+        return "燒肉"
+    if "chinese" in categories:
+        return "中式餐廳"
+    if "american" in categories:
+        return "美式餐廳"
+    return "餐廳"
 
 
 async def _build_line_card_request(user_text: str, user_id: str) -> list[dict] | None:
@@ -3875,6 +4007,10 @@ async def _build_line_agent_recommendation_messages(
         )
         _save_line_recommendation_state(user_id, query=user_text, shown_shop_ids=shown_ids)
         if messages:
+            selected_shops = _shops_for_ids(shops, shown_ids)
+            intro = _line_scope_expansion_intro(user_text, selected_shops)
+            if intro and messages[0].get("type") == "text":
+                messages[0]["text"] = intro
             return messages
 
     fallback_messages = await _build_line_fallback_recommendation_cards(user_text, user_id)
@@ -4961,6 +5097,10 @@ def _line_shell(title: str, body: str) -> str:
     .hours p {{ margin:4px 0; }}
     .status-list p {{ margin:6px 0; }}
     .booking-form {{ display:grid; gap:14px; margin-top:12px; }}
+    .payment-options {{ display:grid; gap:10px; margin-top:12px; }}
+    .payment-option {{ display:flex; justify-content:space-between; gap:12px; padding:12px 14px; border:1px solid rgba(0,0,0,.12); border-radius:8px; background:#fff; }}
+    .payment-option span {{ color:#6f6a62; font-size:13px; font-weight:700; text-align:right; }}
+    .payment-option.selected {{ border-color:#16833a; background:#eef8f1; }}
     label {{ display:grid; gap:6px; color:#514d47; font-size:13px; font-weight:800; }}
     input, select {{ min-height:48px; border:1px solid rgba(0,0,0,.14); border-radius:8px; background:#fff; color:#171512; font:inherit; font-size:16px; padding:0 12px; }}
     button {{ border:0; font:inherit; cursor:pointer; }}

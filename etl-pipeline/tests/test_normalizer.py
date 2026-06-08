@@ -23,5 +23,15 @@ def test_extract_district_handles_taipei_address_with_wrong_target():
     )
 
 
+def test_extract_district_handles_simplified_area_suffix():
+    assert (
+        extract_district_from_address("104台北市中山区集英里抚顺街11號1樓", "大同")
+        == "中山"
+    )
+    assert extract_district_from_address("110台北市信义区松山路11號", "南港") == "信義"
+    assert extract_district_from_address("114台北市内湖区民權東路六段", "南港") == "內湖"
+    assert extract_district_from_address("108台北市万华区漢中街", "中正") == "萬華"
+
+
 def test_extract_district_falls_back_when_address_missing():
     assert extract_district_from_address(None, "南港") == "南港"

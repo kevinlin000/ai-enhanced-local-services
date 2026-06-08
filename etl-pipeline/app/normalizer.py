@@ -20,7 +20,18 @@ def extract_district_from_address(address: str | None, fallback: str | None = No
     """Prefer the real Google address district; crawler target district is only fallback."""
     text = address or ""
     for district in TAIPEI_DISTRICTS:
-        if f"{district}區" in text:
+        simplified_name = (
+            district
+            .replace("萬", "万")
+            .replace("華", "华")
+            .replace("義", "义")
+            .replace("內", "内")
+        )
+        if (
+            f"{district}區" in text
+            or f"{district}区" in text
+            or f"{simplified_name}区" in text
+        ):
             return district
     return fallback or ""
 

@@ -26,6 +26,31 @@ def test_line_location_context_merges_into_nearby_text():
     assert main._line_effective_text_with_location("中山站附近火鍋", state) == "中山站附近火鍋"
 
 
+def test_zhishan_station_nearby_constraints_and_expansion_intro():
+    constraints = main._extract_query_constraints("我想吃芝山站附近的火鍋")
+    assert constraints["stations"] == ["芝山"]
+    assert constraints["categories"] == ["hotpot"]
+
+    selected = [
+        {"name": "錢都日式涮涮鍋 士林芝山店", "district": "士林", "category_slug": "hotpot"},
+        {"name": "山上走走 日式鍋物台北華山店", "district": "中正", "category_slug": "hotpot"},
+        {"name": "麻凡麻辣火鍋", "district": "中山", "category_slug": "hotpot"},
+    ]
+
+    assert main._station_proximity_score(constraints, selected[0]) == 1.0
+    intro = main._line_scope_expansion_intro("我想吃芝山站附近的火鍋", selected)
+    assert intro
+    assert "芝山站附近符合條件較少" in intro
+    assert "擴大到台北火鍋" in intro
+
+
+def test_resolve_taipei_district_accepts_simplified_area_suffix():
+    assert main._resolve_taipei_district("104台北市中山区集英里抚顺街11號1樓", "大同") == "中山"
+    assert main._resolve_taipei_district("110台北市信义区松山路11號", "南港") == "信義"
+    assert main._resolve_taipei_district("114台北市内湖区民權東路六段", "南港") == "內湖"
+    assert main._resolve_taipei_district("108台北市万华区漢中街", "中正") == "萬華"
+
+
 def test_line_followup_adjustment_merge_rules():
     assert main._line_adjustment_intent("不要吃到飽")
     assert main._line_adjustment_intent("改成大安區")
@@ -251,6 +276,48 @@ async def test_line_burger_reply_explains_expanded_scope(monkeypatch):
 
     assert messages[0]["text"].startswith("中山區符合條件較少，我先擴大到台北漢堡店")
     assert len(messages[1]["contents"]["contents"]) == 3
+
+
+@pytest.mark.anyio
+async def test_line_agent_cards_explain_station_scope_expansion(monkeypatch):
+    async def fake_run_agent_turn(query: str, session_id: str):
+        return (
+            "我先幫你整理 3 間符合需求的餐廳。",
+            ["semantic_shop_search"],
+            {
+                "shops": [
+                    {
+                        "shop_id": 10344,
+                        "name": "錢都日式涮涮鍋 士林芝山店",
+                        "district": "士林",
+                        "category_slug": "hotpot",
+                    },
+                    {
+                        "shop_id": 10687,
+                        "name": "山上走走 日式鍋物台北華山店",
+                        "district": "中正",
+                        "category_slug": "hotpot",
+                    },
+                    {
+                        "shop_id": 10481,
+                        "name": "麻凡麻辣火鍋",
+                        "district": "中山",
+                        "category_slug": "hotpot",
+                    },
+                ],
+                "agent_decision": {"recommended_shop_ids": [10344, 10687, 10481]},
+            },
+        )
+
+    monkeypatch.setattr(main, "_run_agent_turn", fake_run_agent_turn)
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_agent_recommendation_messages("我想吃芝山站附近的火鍋", "test-user")
+
+    assert messages[0]["text"].startswith("芝山站附近符合條件較少")
+    assert "擴大到台北火鍋" in messages[0]["text"]
+    assert messages[1]["type"] == "flex"
 
 
 def test_line_background_push_is_opt_in(monkeypatch):
