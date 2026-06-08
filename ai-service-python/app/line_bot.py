@@ -321,6 +321,7 @@ def _build_shop_bubble(
         },
     ) if shop_id else "/line/shop"
     detail_uri = _web_uri(public_web_url, detail_path) if shop_id else _web_uri(public_web_url, "/line/shop")
+    parking_uri = f"{detail_uri}#parking"
     reserve_path = _with_query(
         f"/line/book/{shop_id}",
         {
@@ -416,6 +417,12 @@ def _build_shop_bubble(
                     "style": "secondary",
                     "height": "sm",
                     "action": {"type": "uri", "label": "填日期人數", "uri": reserve_uri},
+                },
+                {
+                    "type": "button",
+                    "style": "secondary",
+                    "height": "sm",
+                    "action": {"type": "uri", "label": "附近停車", "uri": parking_uri},
                 },
             ],
         },

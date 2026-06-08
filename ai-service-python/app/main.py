@@ -1497,6 +1497,7 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 - 使用者提到明確捷運站名（例如信義安和、中山國小、象山、雙連、市政府）時，優先使用 search_shops_by_mrt。
 - 若同時指定捷運站與料理類型，先查捷運站附近，再用分類、評論摘要與可訂狀態篩選。
 - 使用者說「附近」但沒有目前位置時，先追問區域或捷運站，不要假設位置。
+- 使用者明確提到開車、停車或導航時，推薦後提醒可在店家詳情查看附近停車場與 Google Maps 導航；未提到時不要主動把停車當成主要推薦理由。
 
 ==== 回答風格 ====
 - 開頭先給一句處理方向，例如「我先幫你用區域、口味與可訂狀態篩選。」
@@ -2911,6 +2912,7 @@ async def line_shop_detail(
         return HTMLResponse(_line_html_page("找不到店家", "這間店目前無法取得資料。", []), status_code=404)
     metadata = await _fetch_java_ai_metadata(shop_id)
     policy = await _fetch_java_booking_policy(shop_id)
+    parking_lots = await _fetch_java_nearby_parking(shop.get("x"), shop.get("y"), limit=3)
     manifest_shop = _line_media_shop(shop_id)
     name = _html_escape(str(shop.get("name") or f"店家 {shop_id}"))
     district = _html_escape(str(shop.get("district") or ""))
@@ -2989,8 +2991,10 @@ async def line_shop_detail(
           <p>{f'<a href="{tel_href}">{phone}</a>' if phone and tel_href else "電話資料未標示"}</p>
           {_line_hours_html(hours)}
         </section>
+        {_line_parking_html(parking_lots)}
         <div class="actions">
           <a class="primary" href="{booking_uri}">填日期人數</a>
+          {f'<a class="secondary" href="#parking">附近停車場</a>' if parking_lots else ''}
           <a class="secondary" href="{map_link}">Google 地圖開啟</a>
         </div>
       </main>
@@ -4419,6 +4423,30 @@ async def _fetch_java_booking_policy(shop_id: int) -> dict:
         return {}
 
 
+async def _fetch_java_nearby_parking(lng: object, lat: object, limit: int = 3) -> list[dict]:
+    try:
+        lng_value = float(lng) if lng is not None else None
+        lat_value = float(lat) if lat is not None else None
+    except (TypeError, ValueError):
+        return []
+    if lng_value is None or lat_value is None:
+        return []
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                f"{settings.java_backend_url}/api/parking/nearby",
+                params={"lng": lng_value, "lat": lat_value, "radius": 900, "limit": limit},
+            )
+        if response.status_code != 200:
+            return []
+        payload = response.json()
+        data = payload.get("data")
+        return data if isinstance(data, list) else []
+    except Exception:
+        logger.exception("line_parking_fetch_failed lng=%s lat=%s", lng, lat)
+        return []
+
+
 async def _fetch_line_display_name(line_user_id: str) -> str:
     user_id = str(line_user_id or "").strip()
     token = (settings.line_channel_access_token or "").strip()
@@ -5112,6 +5140,67 @@ def _line_hours_html(hours: list[str]) -> str:
     return '<div class="hours">' + "".join(f"<p>{item}</p>" for item in clean[:7]) + "</div>"
 
 
+def _line_parking_html(lots: list[dict]) -> str:
+    if not lots:
+        return ""
+    cards: list[str] = []
+    for lot in lots[:3]:
+        name = _html_escape(str(lot.get("name") or "停車場"))
+        area = _html_escape(str(lot.get("area") or ""))
+        address = _html_escape(str(lot.get("address") or ""))
+        distance = _line_parking_distance(lot.get("distanceMeters"))
+        spaces = _line_parking_spaces(lot)
+        pay_text = _html_escape(str(lot.get("payText") or ""))
+        service_time = _html_escape(str(lot.get("serviceTime") or ""))
+        navigation_url = _html_escape(str(lot.get("navigationUrl") or ""))
+        details = " · ".join(part for part in [area, distance, spaces] if part)
+        address_html = f"<p>{address}</p>" if address else ""
+        pay_html = f"<p>收費：{pay_text}</p>" if pay_text else ""
+        service_html = f"<p>服務：{service_time}</p>" if service_time else ""
+        navigation_html = f'<a href="{navigation_url}">導航到停車場</a>' if navigation_url else ""
+        cards.append(
+            f"""
+            <div class="parking-card">
+              <strong>{name}</strong>
+              <p>{_html_escape(details)}</p>
+              {address_html}
+              {pay_html}
+              {service_html}
+              {navigation_html}
+            </div>
+            """
+        )
+    return f"""
+        <section id="parking">
+          <h2>附近停車場</h2>
+          <p>依店家座標排序，車位以台北市公開即時資料為準。</p>
+          <div class="parking-list">{''.join(cards)}</div>
+        </section>
+    """
+
+
+def _line_parking_distance(value: object) -> str:
+    try:
+        meters = int(round(float(value)))
+    except (TypeError, ValueError):
+        return ""
+    if meters >= 1000:
+        return f"{meters / 1000:.1f} km"
+    return f"{max(1, meters)} m"
+
+
+def _line_parking_spaces(lot: dict) -> str:
+    available = lot.get("availableCar")
+    total = lot.get("totalCar")
+    if isinstance(available, int) and isinstance(total, int):
+        return f"剩 {available} / {total} 格"
+    if isinstance(available, int):
+        return f"剩 {available} 格"
+    if isinstance(total, int):
+        return f"共 {total} 格"
+    return "車位資料更新中"
+
+
 def _line_public_uri(path: str) -> str:
     base = settings.line_public_web_url.rstrip("/")
     if not path.startswith("/"):
@@ -5216,6 +5305,10 @@ def _line_shell(title: str, body: str) -> str:
     .bullets li + li {{ margin-top:6px; }}
     .review {{ margin-top:12px; padding-left:12px; border-left:3px solid #f1c45c; }}
     .review p {{ margin:6px 0 0; color:#514d47; }}
+    .parking-list {{ display:grid; gap:10px; margin-top:12px; }}
+    .parking-card {{ padding:12px; border:1px solid rgba(0,0,0,.08); border-radius:8px; background:#fff; }}
+    .parking-card p {{ margin:6px 0 0; color:#514d47; font-size:14px; }}
+    .parking-card a {{ display:inline-flex; margin-top:10px; }}
     .hours p {{ margin:4px 0; }}
     .status-list p {{ margin:6px 0; }}
     .booking-form {{ display:grid; gap:14px; margin-top:12px; }}

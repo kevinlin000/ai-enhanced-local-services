@@ -118,6 +118,8 @@ def test_build_line_flex_message_reason_uses_features_not_booking_status():
     assert "高級路線" in payload
     assert "看完整分析" in payload
     assert "填日期人數" in payload
+    assert "附近停車" in payload
+    assert "#parking" in payload
 
 
 def test_build_line_flex_message_fallback_reason_is_not_generic_candidate():

@@ -42,6 +42,7 @@ public class SecurityConfig {
                                 "/api/category/**",
                                 "/api/mrt/**",
                                 "/api/merchant/**",
+                                "/api/parking/**",
                                 "/api/shop/**",
                                 "/api/shop/nearby-mrt/**",
                                 "/api/shop-type/**",

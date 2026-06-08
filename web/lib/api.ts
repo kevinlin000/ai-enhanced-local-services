@@ -106,6 +106,22 @@ export type VoucherOffer = {
   endTime?: string;
 };
 
+export type NearbyParkingLot = {
+  id: string;
+  name: string;
+  area?: string;
+  address?: string;
+  lng: number;
+  lat: number;
+  distanceMeters: number;
+  totalCar?: number | null;
+  availableCar?: number | null;
+  payText?: string;
+  serviceTime?: string;
+  updatedAt?: string;
+  navigationUrl: string;
+};
+
 export type MerchantShop = {
   id: number;
   name: string;
@@ -225,6 +241,17 @@ export const javaApi = {
     ),
   shopDetail: (id: number) =>
     fetchJson<{ success: boolean; data: Shop }>(`${JAVA_API}/api/shop/${id}`),
+  nearbyParking: (params: { lng: number; lat: number; radius?: number; limit?: number }) => {
+    const sp = new URLSearchParams({
+      lng: String(params.lng),
+      lat: String(params.lat),
+      radius: String(params.radius ?? 800),
+      limit: String(params.limit ?? 5),
+    });
+    return fetchJson<{ success: boolean; data: NearbyParkingLot[] }>(
+      `${JAVA_API}/api/parking/nearby?${sp.toString()}`,
+    );
+  },
   shopAiMetadata: (id: string | number) =>
     fetchJson<{ success: boolean; data: ShopAiMetadata | null }>(
       `${JAVA_API}/api/shop/${id}/ai-metadata`,
