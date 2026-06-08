@@ -84,8 +84,7 @@ function formatHoldCountdown(holdExpiresAt: string | null | undefined, nowMs: nu
 }
 
 export default function MyBookingsPage() {
-  const { isLoggedIn, login, mounted, user } = useAuth();
-  const lineUserId = user?.lineUserId ?? null;
+  const { isLoggedIn, isAuthLoading, login, mounted } = useAuth();
   const [bookings, setBookings] = useState<MyBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -99,6 +98,10 @@ export default function MyBookingsPage() {
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   const loadBookings = useCallback(async () => {
+    if (mounted && isAuthLoading) {
+      setLoading(true);
+      return;
+    }
     if (mounted && !isLoggedIn) {
       setBookings([]);
       setLoading(false);
@@ -108,7 +111,7 @@ export default function MyBookingsPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await javaApi.myBookings(lineUserId);
+      const response = await javaApi.myBookings();
       if (!response.success) {
         setError(response.errorMsg ?? "讀取訂位失敗");
         setBookings([]);
@@ -121,7 +124,7 @@ export default function MyBookingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [isLoggedIn, lineUserId, mounted]);
+  }, [isAuthLoading, isLoggedIn, mounted]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -355,12 +358,12 @@ export default function MyBookingsPage() {
               <h2 className="text-2xl font-black">訂位紀錄</h2>
               <p className="mt-1 text-sm text-zinc-500">付款完成後訂位成立；取消或逾期會釋放店家容量。</p>
             </div>
-            <Button variant="outline" onClick={loadBookings} disabled={loading || (mounted && !isLoggedIn)}>
+            <Button variant="outline" onClick={loadBookings} disabled={loading || isAuthLoading || (mounted && !isLoggedIn)}>
               重新整理
             </Button>
           </div>
 
-          {mounted && !isLoggedIn ? (
+          {mounted && !isAuthLoading && !isLoggedIn ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-10 text-center">
               <p className="text-lg font-black text-amber-950">請先用 LINE 登入</p>
               <p className="mt-2 text-sm leading-6 text-amber-800">
@@ -376,7 +379,7 @@ export default function MyBookingsPage() {
             </div>
           ) : null}
 
-          {mounted && !isLoggedIn ? null : loading ? (
+          {mounted && !isAuthLoading && !isLoggedIn ? null : loading ? (
             <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-5 py-10 text-center text-zinc-500">
               讀取訂位中...
             </div>

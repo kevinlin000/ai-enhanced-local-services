@@ -4,6 +4,8 @@ import com.bytebites.dto.Result;
 import com.bytebites.service.IUserService;
 import com.bytebites.service.oauth.LineOAuthService;
 import com.bytebites.service.oauth.LineOAuthService.LineProfile;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +23,7 @@ import java.util.UUID;
 @RequestMapping("/api/auth/line")
 @RequiredArgsConstructor
 public class AuthController {
+    private static final String STATE_COOKIE = "bb_line_oauth_state";
 
     private final LineOAuthService lineOAuthService;
     private final IUserService userService;
@@ -31,7 +34,8 @@ public class AuthController {
     @GetMapping("/login")
     public void startLogin(HttpServletResponse resp) throws IOException {
         String state = UUID.randomUUID().toString();
-        // TODO: persist state for CSRF check in v1.1
+        resp.addHeader("Set-Cookie", STATE_COOKIE + "=" + encode(state)
+                + "; Path=/api/auth/line; HttpOnly; SameSite=Lax; Max-Age=600");
         try {
             String url = lineOAuthService.buildAuthorizeUrl(state);
             resp.sendRedirect(url);
@@ -46,10 +50,18 @@ public class AuthController {
         @RequestParam(required = false) String error,
         @RequestParam(required = false, name = "error_description") String errorDescription,
         @RequestParam(required = false) String state,
+        HttpServletRequest req,
         HttpServletResponse resp
     ) throws IOException {
         if (error != null || code == null || code.isBlank()) {
+            clearStateCookie(resp);
             redirectToFrontend(resp, null, errorDescription != null ? errorDescription : "LINE login canceled");
+            return;
+        }
+        String expectedState = readCookie(req, STATE_COOKIE);
+        clearStateCookie(resp);
+        if (state == null || state.isBlank() || expectedState == null || !expectedState.equals(state)) {
+            redirectToFrontend(resp, null, "LINE login state expired. Please try again.");
             return;
         }
 
@@ -63,16 +75,31 @@ public class AuthController {
     }
 
     private void redirectToFrontend(HttpServletResponse resp, String token, String error) throws IOException {
-        StringBuilder url = new StringBuilder(frontendUrl).append("/auth/callback?");
+        StringBuilder url = new StringBuilder(frontendUrl).append("/auth/callback");
         if (token != null && !token.isBlank()) {
-            url.append("token=").append(encode(token));
+            url.append("#token=").append(encode(token));
         } else {
-            url.append("error=").append(encode(error != null ? error : "LINE login failed"));
+            url.append("?error=").append(encode(error != null ? error : "LINE login failed"));
         }
         resp.sendRedirect(url.toString());
     }
 
     private String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private String readCookie(HttpServletRequest req, String name) {
+        Cookie[] cookies = req.getCookies();
+        if (cookies == null) return null;
+        for (Cookie cookie : cookies) {
+            if (name.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+        return null;
+    }
+
+    private void clearStateCookie(HttpServletResponse resp) {
+        resp.addHeader("Set-Cookie", STATE_COOKIE + "=; Path=/api/auth/line; HttpOnly; SameSite=Lax; Max-Age=0");
     }
 }

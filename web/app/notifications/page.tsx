@@ -18,7 +18,7 @@ const watchTone: Record<AvailabilityWatch["status"], string> = {
 };
 
 export default function NotificationsPage() {
-  const { isLoggedIn, login, mounted } = useAuth();
+  const { isLoggedIn, isAuthLoading, login, mounted } = useAuth();
   const [items, setItems] = useState<UserNotification[]>([]);
   const [watches, setWatches] = useState<AvailabilityWatch[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -29,6 +29,10 @@ export default function NotificationsPage() {
   const [markingAll, setMarkingAll] = useState(false);
 
   const load = useCallback(async () => {
+    if (mounted && isAuthLoading) {
+      setLoading(true);
+      return;
+    }
     if (mounted && !isLoggedIn) {
       setItems([]);
       setWatches([]);
@@ -56,7 +60,7 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [isLoggedIn, mounted]);
+  }, [isAuthLoading, isLoggedIn, mounted]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -138,13 +142,13 @@ export default function NotificationsPage() {
                 <Button variant="outline" onClick={markAllRead} disabled={loading || unreadCount === 0 || markingAll}>
                   {markingAll ? "處理中..." : "全部已讀"}
                 </Button>
-                <Button variant="outline" onClick={load} disabled={loading || (mounted && !isLoggedIn)}>
+                <Button variant="outline" onClick={load} disabled={loading || isAuthLoading || (mounted && !isLoggedIn)}>
                   重新整理
                 </Button>
               </div>
             </div>
 
-            {mounted && !isLoggedIn ? (
+            {mounted && !isAuthLoading && !isLoggedIn ? (
               <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-10 text-center">
                 <p className="text-lg font-black text-amber-950">請先用 LINE 登入</p>
                 <p className="mt-2 text-sm leading-6 text-amber-800">
@@ -160,7 +164,7 @@ export default function NotificationsPage() {
               </div>
             ) : null}
 
-            {mounted && !isLoggedIn ? null : loading ? (
+            {mounted && !isAuthLoading && !isLoggedIn ? null : loading ? (
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-5 py-10 text-center text-zinc-500">
                 讀取通知中...
               </div>

@@ -68,7 +68,7 @@ function uniqueTools(tools: string[] | undefined, name: string): string[] {
 
 export function AiConcierge() {
   const pathname = usePathname();
-  const { isLoggedIn, login, mounted } = useAuth();
+  const { isLoggedIn, isAuthLoading, login, mounted } = useAuth();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -97,6 +97,7 @@ export function AiConcierge() {
   const handleSend = async () => {
     const msg = input.trim();
     if (!msg || loading) return;
+    if (mounted && isAuthLoading) return;
     if (mounted && !isLoggedIn) {
       setMessages((prev) => [
         ...prev,
@@ -310,7 +311,7 @@ export function AiConcierge() {
             {messages.length === 0 && (
               <div className="py-8 text-center text-sm text-muted-foreground">
                 <Sparkles className="mx-auto mb-2 h-8 w-8 text-primary/50" />
-                {mounted && !isLoggedIn ? (
+                {mounted && !isAuthLoading && !isLoggedIn ? (
                   <>
                     <p className="font-semibold text-foreground">請先用 LINE 登入</p>
                     <p className="mt-2 leading-6">AI 對話會連動訂位、付款與通知。</p>
@@ -463,11 +464,11 @@ export function AiConcierge() {
                 }}
                 placeholder="輸入你想吃什麼..."
                 className="flex-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                disabled={loading || (mounted && !isLoggedIn)}
+                disabled={loading || isAuthLoading || (mounted && !isLoggedIn)}
               />
               <button
                 onClick={handleSend}
-                disabled={loading || !input.trim() || (mounted && !isLoggedIn)}
+                disabled={loading || isAuthLoading || !input.trim() || (mounted && !isLoggedIn)}
                 className="rounded-lg bg-primary p-2 text-white hover:bg-primary/90 disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />

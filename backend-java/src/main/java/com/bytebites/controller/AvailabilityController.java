@@ -26,7 +26,8 @@ public class AvailabilityController {
             String tableType = String.valueOf(body.getOrDefault("tableType", "normal"));
             int people = Integer.parseInt(body.getOrDefault("people", 2).toString());
             String lineUserId = body.get("lineUserId") == null ? null : body.get("lineUserId").toString();
-            return availability.createWatch(shopId, date, time, tableType, people, lineUserId);
+            String lineActionToken = body.get("lineActionToken") == null ? null : body.get("lineActionToken").toString();
+            return availability.createWatch(shopId, date, time, tableType, people, lineUserId, lineActionToken);
         } catch (NullPointerException | NumberFormatException | DateTimeParseException ex) {
             return Result.fail("watch 格式錯誤，請確認 shopId/date/time/people");
         }

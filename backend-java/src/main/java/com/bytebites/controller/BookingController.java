@@ -9,6 +9,7 @@ import com.bytebites.service.BookingHoldService;
 import com.bytebites.service.BookingLineNotificationService;
 import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.IShopService;
+import com.bytebites.service.LineActionTokenService;
 import com.bytebites.service.jpa.UserJpaService;
 import com.bytebites.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +56,7 @@ public class BookingController {
     private final AvailabilityNotificationService availabilityNotificationService;
     private final BookingLineNotificationService bookingLineNotificationService;
     private final UserJpaService userJpaService;
+    private final LineActionTokenService lineActionTokenService;
     private final JdbcTemplate jdbcTemplate;
     private final PlatformTransactionManager transactionManager;
 
@@ -258,7 +260,10 @@ public class BookingController {
     }
 
     @GetMapping("/my")
-    public Result myBookings(@RequestParam(required = false) String lineUserId) {
+    public Result myBookings(
+            @RequestParam(required = false) String lineUserId,
+            @RequestParam(required = false) String lineActionToken
+    ) {
         UserDTO current = UserHolder.getUser();
         Set<Long> userIds = new LinkedHashSet<>();
         String currentLineUserId = current != null ? current.getLineUserId() : null;
@@ -277,9 +282,14 @@ public class BookingController {
             }
         }
 
-        String effectiveLineUserId = requestedLineUserId != null ? requestedLineUserId : currentLineUserId;
-        if (effectiveLineUserId != null && !effectiveLineUserId.isBlank()) {
-            userIds.add(userJpaService.resolveLineIdentity(effectiveLineUserId, null).getId());
+        if (current == null && requestedLineUserId != null) {
+            lineActionTokenService.resolveOwnerId(requestedLineUserId, lineActionToken, null)
+                    .ifPresent(userIds::add);
+        } else {
+            String effectiveLineUserId = requestedLineUserId != null ? requestedLineUserId : currentLineUserId;
+            if (effectiveLineUserId != null && !effectiveLineUserId.isBlank()) {
+                userIds.add(userJpaService.resolveLineIdentity(effectiveLineUserId, null).getId());
+            }
         }
         if (userIds.isEmpty()) return Result.fail("請先登入");
 
@@ -408,10 +418,7 @@ public class BookingController {
     }
 
     private Long resolveLineUserOwnerId(Map<String, Object> body) {
-        String lineUserId = body.get("lineUserId") == null ? "" : body.get("lineUserId").toString().trim();
-        if (lineUserId.isBlank() || lineUserId.length() > 128) return null;
-        String displayName = body.get("lineDisplayName") == null ? "" : body.get("lineDisplayName").toString().trim();
-        return userJpaService.resolveLineIdentity(lineUserId, displayName).getId();
+        return lineActionTokenService.resolveOwnerId(body).orElse(null);
     }
 
     private void ensureSlotInventory(Long shopId, LocalDate bookingDate, String time, String tableType) {

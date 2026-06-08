@@ -8,7 +8,12 @@ function AuthCallbackContent() {
   const params = useSearchParams();
 
   useEffect(() => {
-    const token = params.get("token");
+    const hashParams = new URLSearchParams(
+      typeof window !== "undefined" && window.location.hash.startsWith("#")
+        ? window.location.hash.slice(1)
+        : "",
+    );
+    const token = hashParams.get("token") ?? params.get("token");
     if (token) {
       localStorage.setItem("bytebites_token", token);
       window.location.replace("/");

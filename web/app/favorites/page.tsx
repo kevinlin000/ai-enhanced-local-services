@@ -22,7 +22,7 @@ function formatSpend(shop: FavoriteShop) {
 }
 
 export default function FavoritesPage() {
-  const { isLoggedIn, login, mounted } = useAuth();
+  const { isLoggedIn, isAuthLoading, login, mounted } = useAuth();
   const [items, setItems] = useState<FavoriteShop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -38,6 +38,7 @@ export default function FavoritesPage() {
 
   useEffect(() => {
     if (!mounted) return;
+    if (isAuthLoading) return;
     if (!isLoggedIn) {
       setItems([]);
       setError("");
@@ -55,7 +56,7 @@ export default function FavoritesPage() {
       })
       .catch((err) => setError(err instanceof Error ? err.message : "讀取收藏失敗"))
       .finally(() => setLoading(false));
-  }, [isLoggedIn, mounted]);
+  }, [isAuthLoading, isLoggedIn, mounted]);
 
   const remove = async (shopId: number) => {
     setItems((current) => current.filter((shop) => shop.shopId !== shopId));
@@ -92,7 +93,7 @@ export default function FavoritesPage() {
         </div>
 
         <div className="p-5 md:p-8">
-          {mounted && !isLoggedIn ? (
+          {mounted && !isAuthLoading && !isLoggedIn ? (
             <div className="rounded-3xl border border-amber-200 bg-amber-50 p-10 text-center">
               <Heart className="mx-auto h-10 w-10 text-amber-700" />
               <h2 className="mt-4 text-2xl font-black text-amber-950">請先用 LINE 登入</h2>

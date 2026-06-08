@@ -1,8 +1,12 @@
 import asyncio
+import base64
 import contextvars
+import hashlib
+import hmac
 import json
 import logging
 import re
+import time
 import httpx
 from dataclasses import dataclass, field
 from datetime import date as date_cls, datetime, timedelta
@@ -20,6 +24,7 @@ from app.line_bot import (
     best_shop_photo_url,
     build_line_flex_message,
     build_text_message,
+    line_action_token,
     push_messages,
     reply_messages,
     show_loading_animation,
@@ -50,6 +55,7 @@ class Settings(BaseSettings):
     line_public_web_url: str = "http://localhost:3000"
     line_background_push_enabled: bool = False
     line_internal_webhook_secret: str = ""
+    line_action_secret: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -71,6 +77,7 @@ ai_latency = Histogram("bytebites_ai_latency_seconds", "AI endpoint latency", ["
 logger = logging.getLogger("bytebites.ai")
 LINE_RECOMMENDATION_TTL_SECONDS = 1800
 LINE_LOCATION_TTL_SECONDS = 1800
+LINE_ACTION_TOKEN_TTL_SECONDS = 60 * 60 * 24
 _LINE_MEDIA_CACHE: dict | None = None
 _LINE_PROFILE_CACHE: dict[str, str] = {}
 _LINE_MEDIA_ALIASES: dict[int, int] = {
@@ -79,6 +86,58 @@ _LINE_MEDIA_ALIASES: dict[int, int] = {
 _LINE_SHOP_NAME_FALLBACKS: dict[int, str] = {
     10009: "橘色涮涮屋 信義館",
 }
+
+
+def _line_action_secret() -> bytes:
+    value = (
+        settings.line_action_secret
+        or settings.line_internal_webhook_secret
+        or settings.line_channel_secret
+        or "dev-line-action-secret"
+    )
+    return value.strip().encode("utf-8")
+
+
+def _line_token_for_user(line_user_id: str) -> str:
+    return line_action_token(line_user_id, ttl_seconds=LINE_ACTION_TOKEN_TTL_SECONDS)
+
+
+def _decode_urlsafe(value: str) -> bytes:
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode((value + padding).encode("utf-8"))
+
+
+def _line_user_id_from_token(token: str) -> str:
+    normalized = str(token or "").strip()
+    if not normalized:
+        return ""
+    try:
+        parts = normalized.split(".")
+        if len(parts) != 3 or parts[0] != "v1":
+            return ""
+        payload_b64 = parts[1]
+        expected_sig = base64.urlsafe_b64encode(
+            hmac.new(_line_action_secret(), payload_b64.encode("utf-8"), hashlib.sha256).digest()
+        ).decode("utf-8").rstrip("=")
+        if not hmac.compare_digest(expected_sig, parts[2]):
+            return ""
+        payload = _decode_urlsafe(payload_b64).decode("utf-8")
+        line_user_id, scope, expires_at = payload.split("|", 2)
+        if scope != "line_action":
+            return ""
+        if int(time.time()) > int(expires_at):
+            return ""
+        return line_user_id.strip()
+    except Exception:
+        return ""
+
+
+def _line_context(lt: str = "", line_user_id: str = "") -> tuple[str, str]:
+    token = str(lt or "").strip()
+    resolved_user_id = _line_user_id_from_token(token)
+    if resolved_user_id:
+        return resolved_user_id, token
+    return "", ""
 PREMIUM_HOTPOT_SUPPLEMENT_IDS = (10009,)
 LOW_DETAIL_SEED_SHOP_IDS = {
     10001, 10002, 10003, 10004, 10005,
@@ -938,7 +997,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
                 [hit.get("name") for hit in other_hits[:8]],
             )
 
-    if any(keyword in query.lower() for keyword in LUXURY_HINTS):
+    if any(keyword in query.lower() for keyword in LUXURY_HINTS) and not constraints.get("wants_burger"):
         def luxury_score(hit: dict) -> tuple:
             if requested_hotpot:
                 return _premium_hotpot_key(constraints, hit)
@@ -2738,12 +2797,14 @@ async def line_shop_photo(shop_id: int):
 @app.get("/line/shop/{shop_id}", response_class=HTMLResponse)
 async def line_shop_detail(
     shop_id: int,
+    lt: str = "",
     lineUserId: str = "",
     name: str = "",
     district: str = "",
     mrt: str = "",
     avgPrice: str = "",
 ):
+    line_user_id, line_token = _line_context(lt, lineUserId)
     shop = await _fetch_java_shop(shop_id)
     if not shop:
         shop = _line_shop_fallback_from_query(shop_id, name, district, mrt, avgPrice)
@@ -2778,7 +2839,7 @@ async def line_shop_detail(
     booking_uri = _line_public_uri(
         _line_booking_path(
             shop_id,
-            lineUserId,
+            line_token,
             str(shop.get("name") or ""),
             str(shop.get("district") or ""),
             str(shop.get("mrtStation") or shop.get("mrt_station") or ""),
@@ -2845,6 +2906,7 @@ async def line_shop_detail(
 @app.get("/line/book/{shop_id}", response_class=HTMLResponse)
 async def line_booking_entry(
     shop_id: int,
+    lt: str = "",
     lineUserId: str = "",
     name: str = "",
     district: str = "",
@@ -2855,6 +2917,7 @@ async def line_booking_entry(
     time: str = "19:00",
     tableType: str = "normal",
 ):
+    line_user_id, line_token = _line_context(lt, lineUserId)
     shop = await _fetch_java_shop(shop_id)
     if not shop:
         shop = _line_shop_fallback_from_query(shop_id, name, district, mrt, avgPrice)
@@ -2873,10 +2936,10 @@ async def line_booking_entry(
     selected_table_type = tableType if tableType in {"normal", "bar", "private"} else "normal"
     deposit_summary = _html_escape(_line_deposit_summary(policy))
     detail_uri = _line_public_uri(
-        f"/line/shop/{shop_id}?lineUserId={quote_plus(lineUserId)}&name={quote_plus(str((shop or {}).get('name') or ''))}&district={quote_plus(str((shop or {}).get('district') or ''))}&mrt={quote_plus(str((shop or {}).get('mrtStation') or (shop or {}).get('mrt_station') or ''))}&avgPrice={quote_plus(str((shop or {}).get('avgPrice') or (shop or {}).get('avg_price') or ''))}"
+        f"/line/shop/{shop_id}?lt={quote_plus(line_token)}&name={quote_plus(str((shop or {}).get('name') or ''))}&district={quote_plus(str((shop or {}).get('district') or ''))}&mrt={quote_plus(str((shop or {}).get('mrtStation') or (shop or {}).get('mrt_station') or ''))}&avgPrice={quote_plus(str((shop or {}).get('avgPrice') or (shop or {}).get('avg_price') or ''))}"
     )
     confirm_uri = _line_public_uri(f"/line/book/{shop_id}/confirm")
-    line_user_id = _html_escape(lineUserId)
+    escaped_line_token = _html_escape(line_token)
     body = f"""
       <main>
         <p class="eyebrow">ByteBites 訂位入口</p>
@@ -2904,7 +2967,7 @@ async def line_booking_entry(
               </select>
             </label>
             <input type="hidden" name="tableType" value="{_html_escape(selected_table_type)}">
-            <input type="hidden" name="lineUserId" value="{line_user_id}">
+            <input type="hidden" name="lt" value="{escaped_line_token}">
             <input type="hidden" name="name" value="{name}">
             <input type="hidden" name="district" value="{district}">
             <input type="hidden" name="mrt" value="{_html_escape(str((shop or {}).get("mrtStation") or (shop or {}).get("mrt_station") or ""))}">
@@ -2933,12 +2996,14 @@ async def line_booking_confirm(
     date: str = "",
     time: str = "19:00",
     tableType: str = "normal",
+    lt: str = "",
     lineUserId: str = "",
     name: str = "",
     district: str = "",
     mrt: str = "",
     avgPrice: str = "",
 ):
+    line_user_id, line_token = _line_context(lt, lineUserId)
     shop = await _fetch_java_shop(shop_id)
     if not shop:
         shop = _line_shop_fallback_from_query(shop_id, name, district, mrt, avgPrice)
@@ -2954,18 +3019,18 @@ async def line_booking_confirm(
                 "訂位資料需要修正",
                 error,
                 [
-                    ("返回填寫", _line_public_uri(f"/line/book/{shop_id}")),
+                    ("返回填寫", _line_public_uri(f"/line/book/{shop_id}?lt={quote_plus(line_token)}")),
                     ("查看店家資訊", _line_public_uri(f"/line/shop/{shop_id}")),
                 ],
             ),
             status_code=400,
         )
 
-    result = await _reserve_line_booking(shop_id, people, date, time, tableType, lineUserId)
+    result = await _reserve_line_booking(shop_id, people, date, time, tableType, line_user_id, line_token)
     if not result.get("success"):
         message = str(result.get("errorMsg") or "訂位建立失敗，請稍後再試。")
         watch_uri = _line_public_uri(
-            f"/line/availability/watch?shopId={shop_id}&people={people}&date={quote_plus(date)}&time={quote_plus(time)}&tableType={quote_plus(tableType)}&lineUserId={quote_plus(lineUserId)}"
+            f"/line/availability/watch?shopId={shop_id}&people={people}&date={quote_plus(date)}&time={quote_plus(time)}&tableType={quote_plus(tableType)}&lt={quote_plus(line_token)}"
         )
         return HTMLResponse(
             _line_html_page(
@@ -2973,7 +3038,7 @@ async def line_booking_confirm(
                 message,
                 [
                     ("通知我有空位", watch_uri),
-                    ("重新填寫", _line_public_uri(f"/line/book/{shop_id}?lineUserId={quote_plus(lineUserId)}")),
+                    ("重新填寫", _line_public_uri(f"/line/book/{shop_id}?lt={quote_plus(line_token)}")),
                     ("查看店家資訊", _line_public_uri(f"/line/shop/{shop_id}")),
                 ],
             ),
@@ -2981,14 +3046,15 @@ async def line_booking_confirm(
         )
 
     booking = result.get("data") if isinstance(result.get("data"), dict) else {}
-    return HTMLResponse(_line_booking_result_page(shop_id, name, booking, lineUserId))
+    return HTMLResponse(_line_booking_result_page(shop_id, name, booking, line_user_id, line_token))
 
 
 @app.get("/line/book/{shop_id}/pay", response_class=HTMLResponse)
-async def line_booking_pay(shop_id: int, bookingCode: str, lineUserId: str = ""):
+async def line_booking_pay(shop_id: int, bookingCode: str, lt: str = "", lineUserId: str = ""):
+    line_user_id, line_token = _line_context(lt, lineUserId)
     shop = await _fetch_java_shop(shop_id)
     name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
-    result = await _pay_line_booking(bookingCode, lineUserId)
+    result = await _pay_line_booking(bookingCode, line_user_id, line_token)
     if not result.get("success"):
         message = str(result.get("errorMsg") or "訂金付款失敗，請稍後再試。")
         return HTMLResponse(
@@ -2996,7 +3062,7 @@ async def line_booking_pay(shop_id: int, bookingCode: str, lineUserId: str = "")
                 "付款未完成",
                 message,
                 [
-                    ("查看訂位狀態", _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(bookingCode)}&lineUserId={quote_plus(lineUserId)}")),
+                    ("查看訂位狀態", _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(bookingCode)}&lt={quote_plus(line_token)}")),
                     ("返回店家資訊", _line_public_uri(f"/line/shop/{shop_id}")),
                 ],
             ),
@@ -3004,7 +3070,7 @@ async def line_booking_pay(shop_id: int, bookingCode: str, lineUserId: str = "")
         )
 
     payment = result.get("data") if isinstance(result.get("data"), dict) else {}
-    booking = await _fetch_line_booking(bookingCode, lineUserId) or {
+    booking = await _fetch_line_booking(bookingCode, line_user_id, line_token) or {
         "bookingCode": bookingCode,
         "shopId": shop_id,
         "shopName": str((shop or {}).get("name") or f"店家 {shop_id}"),
@@ -3012,14 +3078,15 @@ async def line_booking_pay(shop_id: int, bookingCode: str, lineUserId: str = "")
         "paymentTransId": payment.get("rec_trade_id"),
         "depositTotal": payment.get("amount"),
     }
-    return HTMLResponse(_line_booking_result_page(shop_id, name, booking, lineUserId, payment=payment))
+    return HTMLResponse(_line_booking_result_page(shop_id, name, booking, line_user_id, line_token, payment=payment))
 
 
 @app.get("/line/book/{shop_id}/status", response_class=HTMLResponse)
-async def line_booking_status(shop_id: int, bookingCode: str, lineUserId: str = ""):
+async def line_booking_status(shop_id: int, bookingCode: str, lt: str = "", lineUserId: str = ""):
+    line_user_id, line_token = _line_context(lt, lineUserId)
     shop = await _fetch_java_shop(shop_id)
     name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
-    booking = await _fetch_line_booking(bookingCode, lineUserId)
+    booking = await _fetch_line_booking(bookingCode, line_user_id, line_token)
     if not booking:
         return HTMLResponse(
             _line_html_page(
@@ -3029,14 +3096,15 @@ async def line_booking_status(shop_id: int, bookingCode: str, lineUserId: str = 
             ),
             status_code=404,
         )
-    return HTMLResponse(_line_booking_result_page(shop_id, name, booking, lineUserId))
+    return HTMLResponse(_line_booking_result_page(shop_id, name, booking, line_user_id, line_token))
 
 
 @app.get("/line/book/{shop_id}/cancel", response_class=HTMLResponse)
-async def line_booking_cancel(shop_id: int, bookingCode: str, lineUserId: str = ""):
+async def line_booking_cancel(shop_id: int, bookingCode: str, lt: str = "", lineUserId: str = ""):
+    line_user_id, line_token = _line_context(lt, lineUserId)
     shop = await _fetch_java_shop(shop_id)
     name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
-    result = await _cancel_line_booking(bookingCode, lineUserId)
+    result = await _cancel_line_booking(bookingCode, line_user_id, line_token)
     if not result.get("success"):
         message = str(result.get("errorMsg") or "取消訂位失敗，請稍後再試。")
         return HTMLResponse(
@@ -3044,14 +3112,14 @@ async def line_booking_cancel(shop_id: int, bookingCode: str, lineUserId: str = 
                 "取消未完成",
                 message,
                 [
-                    ("查看訂位狀態", _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(bookingCode)}&lineUserId={quote_plus(lineUserId)}")),
+                    ("查看訂位狀態", _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(bookingCode)}&lt={quote_plus(line_token)}")),
                     ("返回店家資訊", _line_public_uri(f"/line/shop/{shop_id}")),
                 ],
             ),
             status_code=409,
         )
     booking = result.get("data") if isinstance(result.get("data"), dict) else {}
-    return HTMLResponse(_line_booking_result_page(shop_id, name, booking, lineUserId))
+    return HTMLResponse(_line_booking_result_page(shop_id, name, booking, line_user_id, line_token))
 
 
 def _line_booking_result_page(
@@ -3059,6 +3127,7 @@ def _line_booking_result_page(
     escaped_shop_name: str,
     booking: dict,
     line_user_id: str = "",
+    line_token: str = "",
     payment: dict | None = None,
 ) -> str:
     booking_code_raw = str(booking.get("bookingCode") or "")
@@ -3074,15 +3143,15 @@ def _line_booking_result_page(
     payment_trans_id = _html_escape(str(booking.get("paymentTransId") or (payment or {}).get("rec_trade_id") or ""))
     detail_uri = _line_public_uri(f"/line/shop/{shop_id}")
     status_uri = _line_public_uri(
-        f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code_raw)}&lineUserId={quote_plus(line_user_id)}"
+        f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code_raw)}&lt={quote_plus(line_token)}"
     )
     pay_uri = _line_public_uri(
-        f"/line/book/{shop_id}/pay?bookingCode={quote_plus(booking_code_raw)}&lineUserId={quote_plus(line_user_id)}"
+        f"/line/book/{shop_id}/pay?bookingCode={quote_plus(booking_code_raw)}&lt={quote_plus(line_token)}"
     )
     cancel_uri = _line_public_uri(
-        f"/line/book/{shop_id}/cancel?bookingCode={quote_plus(booking_code_raw)}&lineUserId={quote_plus(line_user_id)}"
+        f"/line/book/{shop_id}/cancel?bookingCode={quote_plus(booking_code_raw)}&lt={quote_plus(line_token)}"
     )
-    my_bookings_uri = _line_public_uri(f"/line/my-bookings?lineUserId={quote_plus(line_user_id)}")
+    my_bookings_uri = _line_public_uri(f"/line/my-bookings?lt={quote_plus(line_token)}")
     title = "訂位保留成功" if status == "PENDING_PAYMENT" else "訂位完成"
     if status == "CANCELED":
         title = "訂位已取消"
@@ -3120,8 +3189,9 @@ def _line_booking_result_page(
 
 
 @app.get("/line/my-bookings", response_class=HTMLResponse)
-async def line_my_bookings(lineUserId: str = ""):
-    bookings = await _fetch_line_bookings(lineUserId)
+async def line_my_bookings(lt: str = "", lineUserId: str = ""):
+    line_user_id, line_token = _line_context(lt, lineUserId)
+    bookings = await _fetch_line_bookings(line_user_id, line_token)
     if not bookings:
         return HTMLResponse(
             _line_html_page(
@@ -3136,7 +3206,7 @@ async def line_my_bookings(lineUserId: str = ""):
         code = str(booking.get("bookingCode") or "")
         status = str(booking.get("status") or "")
         pay_link = (
-            f'<a class="primary" href="{_line_public_uri(f"/line/book/{shop_id}/pay?bookingCode={quote_plus(code)}&lineUserId={quote_plus(lineUserId)}")}">繳訂金</a>'
+            f'<a class="primary" href="{_line_public_uri(f"/line/book/{shop_id}/pay?bookingCode={quote_plus(code)}&lt={quote_plus(line_token)}")}">繳訂金</a>'
             if status == "PENDING_PAYMENT" and booking.get("needsDeposit")
             else ""
         )
@@ -3150,7 +3220,7 @@ async def line_my_bookings(lineUserId: str = ""):
               <p>{_html_escape(_line_booking_deposit_text(booking))}</p>
               <div class="actions">
                 {pay_link}
-                <a class="secondary" href="{_line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(code)}&lineUserId={quote_plus(lineUserId)}")}">查看狀態</a>
+                <a class="secondary" href="{_line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(code)}&lt={quote_plus(line_token)}")}">查看狀態</a>
               </div>
             </section>
             """
@@ -3172,8 +3242,10 @@ async def line_create_availability_watch(
     time: str,
     people: int = 2,
     tableType: str = "normal",
+    lt: str = "",
     lineUserId: str = "",
 ):
+    line_user_id, line_token = _line_context(lt, lineUserId)
     shop = await _fetch_java_shop(shopId)
     name = _html_escape(str((shop or {}).get("name") or f"店家 {shopId}"))
     error = _validate_line_booking(people, date, time, tableType)
@@ -3182,11 +3254,11 @@ async def line_create_availability_watch(
             _line_html_page(
                 "空位通知資料需要修正",
                 error,
-                [("返回訂位", _line_public_uri(f"/line/book/{shopId}?lineUserId={quote_plus(lineUserId)}"))],
+                [("返回訂位", _line_public_uri(f"/line/book/{shopId}?lt={quote_plus(line_token)}"))],
             ),
             status_code=400,
         )
-    result = await _create_line_availability_watch(shopId, people, date, time, tableType, lineUserId)
+    result = await _create_line_availability_watch(shopId, people, date, time, tableType, line_user_id, line_token)
     if not result.get("success"):
         message = str(result.get("errorMsg") or "空位通知建立失敗，請稍後再試。")
         return HTMLResponse(
@@ -3194,14 +3266,14 @@ async def line_create_availability_watch(
                 "空位通知未建立",
                 message,
                 [
-                    ("重新訂位", _line_public_uri(f"/line/book/{shopId}?lineUserId={quote_plus(lineUserId)}&people={people}&date={quote_plus(date)}&time={quote_plus(time)}&tableType={quote_plus(tableType)}")),
+                    ("重新訂位", _line_public_uri(f"/line/book/{shopId}?lt={quote_plus(line_token)}&people={people}&date={quote_plus(date)}&time={quote_plus(time)}&tableType={quote_plus(tableType)}")),
                     ("查看店家資訊", _line_public_uri(f"/line/shop/{shopId}")),
                 ],
             ),
             status_code=409,
         )
     watch = result.get("data") if isinstance(result.get("data"), dict) else {}
-    await _push_line_availability_watch_created(lineUserId, watch)
+    await _push_line_availability_watch_created(line_user_id, watch)
     body = f"""
       <main>
         <p class="eyebrow">ByteBites 空位通知</p>
@@ -3236,6 +3308,7 @@ async def line_notifications():
     for item in items[:20]:
         shop_id = int(item.get("shopId") or 0)
         line_user_id = str(item.get("lineUserId") or "")
+        line_token = _line_token_for_user(line_user_id) if line_user_id else ""
         cards.append(
             f"""
             <section>
@@ -3243,7 +3316,7 @@ async def line_notifications():
               <p>{_html_escape(str(item.get("body") or ""))}</p>
               <p>狀態：<strong>{_html_escape(str(item.get("status") or ""))}</strong></p>
               <div class="actions">
-                <a class="primary" href="{_line_public_uri(f"/line/book/{shop_id}?people={quote_plus(str(item.get('people') or 2))}&date={quote_plus(str(item.get('date') or ''))}&time={quote_plus(str(item.get('time') or '19:00'))}&tableType={quote_plus(str(item.get('tableType') or 'normal'))}&lineUserId={quote_plus(line_user_id)}")}">立即訂位</a>
+                <a class="primary" href="{_line_public_uri(f"/line/book/{shop_id}?people={quote_plus(str(item.get('people') or 2))}&date={quote_plus(str(item.get('date') or ''))}&time={quote_plus(str(item.get('time') or '19:00'))}&tableType={quote_plus(str(item.get('tableType') or 'normal'))}&lt={quote_plus(line_token)}")}">立即訂位</a>
               </div>
             </section>
             """
@@ -4104,6 +4177,7 @@ async def _reserve_line_booking(
     booking_time: str,
     table_type: str,
     line_user_id: str,
+    line_action_token_value: str,
 ) -> dict:
     user_key = str(line_user_id or "anonymous").strip() or "anonymous"
     idempotency_key = f"line-form:{user_key}:{shop_id}:{people}:{booking_date}:{booking_time}:{table_type}"
@@ -4120,6 +4194,7 @@ async def _reserve_line_booking(
                     "time": booking_time,
                     "tableType": table_type,
                     "lineUserId": line_user_id,
+                    "lineActionToken": line_action_token_value,
                     "lineDisplayName": line_display_name,
                     "idempotencyKey": idempotency_key,
                 },
@@ -4136,13 +4211,13 @@ async def _reserve_line_booking(
     return payload
 
 
-async def _pay_line_booking(booking_code: str, line_user_id: str) -> dict:
+async def _pay_line_booking(booking_code: str, line_user_id: str, line_action_token_value: str) -> dict:
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.post(
                 f"{settings.java_backend_url}/api/booking/pay-test",
                 headers={"Content-Type": "application/json"},
-                json={"bookingCode": booking_code, "lineUserId": line_user_id},
+                json={"bookingCode": booking_code, "lineUserId": line_user_id, "lineActionToken": line_action_token_value},
             )
     except Exception:
         logger.exception("line_booking_pay_failed booking_code=%s", booking_code)
@@ -4156,13 +4231,13 @@ async def _pay_line_booking(booking_code: str, line_user_id: str) -> dict:
     return payload
 
 
-async def _cancel_line_booking(booking_code: str, line_user_id: str) -> dict:
+async def _cancel_line_booking(booking_code: str, line_user_id: str, line_action_token_value: str) -> dict:
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             response = await client.post(
                 f"{settings.java_backend_url}/api/booking/{quote_plus(booking_code)}/cancel",
                 headers={"Content-Type": "application/json"},
-                json={"lineUserId": line_user_id},
+                json={"lineUserId": line_user_id, "lineActionToken": line_action_token_value},
             )
     except Exception:
         logger.exception("line_booking_cancel_failed booking_code=%s", booking_code)
@@ -4176,10 +4251,14 @@ async def _cancel_line_booking(booking_code: str, line_user_id: str) -> dict:
     return payload
 
 
-async def _fetch_line_bookings(line_user_id: str = "") -> list[dict]:
+async def _fetch_line_bookings(line_user_id: str = "", line_action_token_value: str = "") -> list[dict]:
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
-            params = {"lineUserId": line_user_id} if str(line_user_id or "").strip() else {}
+            params = (
+                {"lineUserId": line_user_id, "lineActionToken": line_action_token_value}
+                if str(line_user_id or "").strip()
+                else {}
+            )
             response = await client.get(
                 f"{settings.java_backend_url}/api/booking/my",
                 params=params,
@@ -4197,8 +4276,8 @@ async def _fetch_line_bookings(line_user_id: str = "") -> list[dict]:
     return data if isinstance(data, list) else []
 
 
-async def _fetch_line_booking(booking_code: str, line_user_id: str = "") -> dict | None:
-    for booking in await _fetch_line_bookings(line_user_id):
+async def _fetch_line_booking(booking_code: str, line_user_id: str = "", line_action_token_value: str = "") -> dict | None:
+    for booking in await _fetch_line_bookings(line_user_id, line_action_token_value):
         if str(booking.get("bookingCode") or "") == str(booking_code or ""):
             return booking
     return None
@@ -4211,6 +4290,7 @@ async def _create_line_availability_watch(
     booking_time: str,
     table_type: str,
     line_user_id: str,
+    line_action_token_value: str,
 ) -> dict:
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
@@ -4224,6 +4304,7 @@ async def _create_line_availability_watch(
                     "time": booking_time,
                     "tableType": table_type,
                     "lineUserId": line_user_id,
+                    "lineActionToken": line_action_token_value,
                 },
             )
     except Exception:
@@ -4291,12 +4372,13 @@ def _line_booking_flex_message(booking: dict, phase: str, line_user_id: str = ""
     booking_code = str(booking.get("bookingCode") or "")
     status = str(booking.get("status") or "CONFIRMED")
     needs_deposit = bool(booking.get("needsDeposit"))
+    line_token = _line_token_for_user(line_user_id) if line_user_id else ""
     title = "訂位保留成功，待付訂金" if status == "PENDING_PAYMENT" else "訂位已完成"
     if phase == "paid":
         title = "訂金付款成功，訂位完成"
     if phase == "canceled" or status == "CANCELED":
         title = "訂位已取消"
-    line_query = f"&lineUserId={quote_plus(line_user_id)}" if line_user_id else ""
+    line_query = f"&lt={quote_plus(line_token)}" if line_token else ""
     status_uri = _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code)}{line_query}")
     pay_uri = _line_public_uri(f"/line/book/{shop_id}/pay?bookingCode={quote_plus(booking_code)}{line_query}")
     cancel_uri = _line_public_uri(f"/line/book/{shop_id}/cancel?bookingCode={quote_plus(booking_code)}{line_query}")
@@ -4474,8 +4556,9 @@ def _line_availability_flex_message(payload: dict) -> dict:
     table_type = str(payload.get("tableType") or "normal")
     people = str(payload.get("people") or "2")
     line_user_id = str(payload.get("lineUserId") or "")
+    line_token = _line_token_for_user(line_user_id) if line_user_id else ""
     booking_uri = _line_public_uri(
-        f"/line/book/{shop_id}?people={quote_plus(people)}&date={quote_plus(date)}&time={quote_plus(time)}&tableType={quote_plus(table_type)}&lineUserId={quote_plus(line_user_id)}"
+        f"/line/book/{shop_id}?people={quote_plus(people)}&date={quote_plus(date)}&time={quote_plus(time)}&tableType={quote_plus(table_type)}&lt={quote_plus(line_token)}"
     )
     notifications_uri = _line_public_uri("/line/notifications")
     return {
@@ -4744,14 +4827,14 @@ def _line_public_uri(path: str) -> str:
 
 def _line_booking_path(
     shop_id: int,
-    line_user_id: str = "",
+    line_token: str = "",
     name: str = "",
     district: str = "",
     mrt: str = "",
     avg_price: str = "",
 ) -> str:
     params = {
-        "lineUserId": line_user_id,
+        "lt": line_token,
         "name": name,
         "district": district,
         "mrt": mrt,

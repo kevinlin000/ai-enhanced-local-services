@@ -61,7 +61,7 @@ function isActive(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isLoggedIn, login, logout, mounted, user } = useAuth();
+  const { isLoggedIn, isAuthLoading, login, logout, mounted, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -81,7 +81,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ? "min-h-screen bg-[#f6f1e8] text-[#171512] md:grid md:grid-cols-[84px_minmax(0,1fr)]"
     : "min-h-screen bg-[#f6f1e8] text-[#171512] md:grid md:grid-cols-[292px_minmax(0,1fr)]";
 
-  const displayName = mounted && isLoggedIn ? user?.displayName ?? "ByteBites User" : "訪客模式";
+  const displayName = mounted && isAuthLoading
+    ? "驗證中"
+    : mounted && isLoggedIn
+      ? user?.displayName ?? "ByteBites User"
+      : "請先登入";
   const pictureUrl = mounted && isLoggedIn ? user?.pictureUrl : null;
 
   return (
@@ -111,7 +115,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="min-w-0">
                 <p className="truncate text-lg font-black tracking-[-0.03em]">{displayName}</p>
                 <p className="mt-0.5 text-xs font-medium text-zinc-500">
-                  {mounted && isLoggedIn ? "LINE 已登入" : "Demo mode"}
+                  {mounted && isAuthLoading ? "正在確認 LINE 登入" : mounted && isLoggedIn ? "LINE 已登入" : "未登入"}
                 </p>
               </div>
             ) : null}
@@ -178,7 +182,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className={`space-y-3 ${collapsed ? "px-3" : "px-6"} py-6`}>
           {mounted ? (
-            isLoggedIn ? (
+            isAuthLoading ? null : isLoggedIn ? (
               <button
                 type="button"
                 onClick={logout}

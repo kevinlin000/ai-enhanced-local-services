@@ -140,14 +140,26 @@ function selectRecommendedShops(
   shops: AgentShop[] | undefined,
   recommendedShopIds: number[] | undefined,
 ): AgentShop[] | undefined {
-  if (!shops || !recommendedShopIds?.length) return undefined;
   const normalized = shops
-    .map(normalizeAgentShop)
+    ?.map(normalizeAgentShop)
     .filter((shop): shop is AgentShop => Boolean(shop));
+  if (!normalized || normalized.length === 0) return undefined;
+  if (!recommendedShopIds?.length) return normalized.slice(0, 3);
   const byId = new Map(normalized.map((shop) => [shopId(shop), shop]));
-  return recommendedShopIds
+  const selected = recommendedShopIds
     .map((id) => byId.get(Number(id)))
     .filter((shop): shop is AgentShop => Boolean(shop));
+  if (selected.length === 0) return normalized.slice(0, 3);
+  const selectedIds = new Set(selected.map(shopId));
+  const filled = [
+    ...selected,
+    ...normalized.filter((shop) => !selectedIds.has(shopId(shop))),
+  ];
+  return filled.slice(0, Math.min(3, normalized.length));
+}
+
+function renderableText(value: string): string {
+  return value.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
 }
 
 function shopRaw(shop: AgentShop) {
@@ -721,7 +733,7 @@ function getOrCreateSessionId(): string {
 }
 
 export default function AiPage() {
-  const { isLoggedIn, login, mounted } = useAuth();
+  const { isLoggedIn, isAuthLoading, login, mounted } = useAuth();
   const [query, setQuery] = useState(() => {
     if (typeof window === "undefined") return "";
     return new URLSearchParams(window.location.search).get("q") ?? "";
@@ -745,6 +757,7 @@ export default function AiPage() {
   async function sendAgentMessage(q: string) {
     if (!q.trim()) return;
     const userMsg = q.trim();
+    if (mounted && isAuthLoading) return;
     if (mounted && !isLoggedIn) {
       setMessages((prev) => [
         ...prev,
@@ -942,7 +955,7 @@ export default function AiPage() {
                   告訴 ByteBites AI，你想吃什麼、幾個人、什麼時間。推薦、訂位、付款與空位通知都在同一個對話裡完成。
                 </p>
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
-                  {mounted && !isLoggedIn ? (
+                  {mounted && !isAuthLoading && !isLoggedIn ? (
                     <button
                       type="button"
                       onClick={login}
@@ -956,7 +969,7 @@ export default function AiPage() {
                       key={preset}
                       type="button"
                       onClick={() => handleRun(preset)}
-                      disabled={loading || (mounted && !isLoggedIn)}
+                      disabled={loading || isAuthLoading || (mounted && !isLoggedIn)}
                       className="rounded-full bg-[#eee8dc] px-4 py-3 text-sm font-bold text-zinc-600 transition hover:bg-[#e5dccb] disabled:opacity-60"
                     >
                       {preset}
@@ -984,7 +997,7 @@ export default function AiPage() {
               >
                 <div className={m.role === "user" ? "max-w-[82%]" : "w-full"}>
                   <AiProgressPanel message={m} />
-                  {m.role === "user" || m.content.trim() ? (
+                  {m.role === "user" || renderableText(m.content) ? (
                     <div
                       className={`rounded-3xl px-4 py-3 text-base leading-7 ${
                         m.role === "user"
@@ -995,7 +1008,7 @@ export default function AiPage() {
                       {m.role === "user" ? (
                         <div className="whitespace-pre-wrap">{m.content}</div>
                       ) : (
-                        <MarkdownMessage content={m.content} />
+                        <MarkdownMessage content={renderableText(m.content) ? m.content : ""} />
                       )}
                     </div>
                   ) : null}
@@ -1032,15 +1045,15 @@ export default function AiPage() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="找餐廳 問 ByteBites AI"
                 onKeyDown={(event) => event.key === "Enter" && !loading && handleRun(query)}
-                disabled={loading || (mounted && !isLoggedIn)}
+                disabled={loading || isAuthLoading || (mounted && !isLoggedIn)}
                 className="h-11 flex-1 border-0 bg-transparent px-2 text-base shadow-none focus-visible:ring-0"
               />
               <Button
                 onClick={() => handleRun(query)}
-                disabled={loading || !query.trim() || (mounted && !isLoggedIn)}
+                disabled={loading || isAuthLoading || !query.trim() || (mounted && !isLoggedIn)}
                 className="h-11 rounded-full bg-[#171512] px-5 font-black text-white hover:bg-black"
               >
-                {loading ? "..." : "送出"}
+                {loading ? "搜尋中" : "送出"}
               </Button>
               <button
                 type="button"

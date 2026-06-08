@@ -84,7 +84,7 @@ export function BookingButton({
 }: {
   shop: { id: number; name: string; avgPrice?: number | null };
 }) {
-  const { isLoggedIn, login, mounted } = useAuth();
+  const { isLoggedIn, isAuthLoading, login, mounted } = useAuth();
   const [step, setStep] = useState<Step>("idle");
   const [sdkReady, setSdkReady] = useState(false);
   const [error, setError] = useState("");
@@ -389,6 +389,7 @@ export function BookingButton({
       <Button
         size="lg"
         onClick={() => {
+          if (mounted && isAuthLoading) return;
           if (mounted && !isLoggedIn) {
             setError("請先用 LINE 登入，再建立訂位。");
             setStep("form");
@@ -412,7 +413,7 @@ export function BookingButton({
           <p className="text-base font-medium mb-1">訂位資訊</p>
           <p className="text-xs text-muted-foreground mb-4">{shop.name}</p>
 
-          {mounted && !isLoggedIn ? (
+          {mounted && !isAuthLoading && !isLoggedIn ? (
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
               <p className="font-semibold">請先用 LINE 登入</p>
               <p className="mt-1 text-xs leading-5 text-amber-800">
@@ -562,14 +563,14 @@ export function BookingButton({
           ) : null}
 
           {policy?.needsDeposit ? (
-            <Button onClick={handleProceedToPay} className="w-full" disabled={mounted && !isLoggedIn}>
+            <Button onClick={handleProceedToPay} className="w-full" disabled={isAuthLoading || (mounted && !isLoggedIn)}>
               保留座位並前往付款
             </Button>
           ) : (
             <Button
               onClick={handleNoDepositConfirm}
               className="w-full"
-              disabled={!policy || (mounted && !isLoggedIn)}
+              disabled={!policy || isAuthLoading || (mounted && !isLoggedIn)}
             >
               {policy ? "確認訂位" : "載入中..."}
             </Button>

@@ -28,13 +28,18 @@ public class AvailabilityNotificationService {
     private final JdbcTemplate jdbcTemplate;
     private final LineNotificationClient lineNotificationClient;
     private final UserJpaService userJpaService;
+    private final LineActionTokenService lineActionTokenService;
 
     public Result createWatch(Long shopId, LocalDate bookingDate, String time, String tableType, int people) {
         return createWatch(shopId, bookingDate, time, tableType, people, null);
     }
 
     public Result createWatch(Long shopId, LocalDate bookingDate, String time, String tableType, int people, String lineUserId) {
-        Long userId = resolveOwnerId(lineUserId);
+        return createWatch(shopId, bookingDate, time, tableType, people, lineUserId, null);
+    }
+
+    public Result createWatch(Long shopId, LocalDate bookingDate, String time, String tableType, int people, String lineUserId, String lineActionToken) {
+        Long userId = resolveOwnerId(lineUserId, lineActionToken);
         if (userId == null) return Result.fail("請先用 LINE 登入網頁，再回來設定空位通知");
         if (shopId == null) return Result.fail("shopId 必填");
         if (bookingDate == null) return Result.fail("date 必填");
@@ -324,12 +329,10 @@ public class AvailabilityNotificationService {
         return user != null ? user.getId() : null;
     }
 
-    private Long resolveOwnerId(String lineUserId) {
+    private Long resolveOwnerId(String lineUserId, String lineActionToken) {
         Long currentUserId = currentUserIdOrNull();
         if (currentUserId != null) return currentUserId;
-        String normalizedLineUserId = normalizeLineUserId(lineUserId);
-        if (normalizedLineUserId == null) return null;
-        return userJpaService.resolveLineIdentity(normalizedLineUserId, null).getId();
+        return lineActionTokenService.resolveOwnerId(lineUserId, lineActionToken, null).orElse(null);
     }
 
     private String normalizeTime(String raw) {

@@ -4,7 +4,9 @@ import hashlib
 import hmac
 import json
 import logging
+import os
 import re
+import time
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -19,6 +21,7 @@ LINE_LOADING_ENDPOINT = "https://api.line.me/v2/bot/chat/loading/start"
 MAX_LINE_MESSAGES = 5
 MAX_FLEX_CARDS = 3
 LINE_PHOTO_VERSION = "20260607b"
+LINE_ACTION_TOKEN_TTL_SECONDS = 60 * 60 * 24
 
 _SHOP_MEDIA_CACHE: dict[str, Any] | None = None
 _SHOP_MEDIA_ALIASES: dict[int, int] = {
@@ -107,6 +110,28 @@ def build_line_flex_message(
     return messages[0] if len(messages) == 1 else {"type": "_bundle", "messages": messages}
 
 
+def line_action_token(line_user_id: str | None, ttl_seconds: int = LINE_ACTION_TOKEN_TTL_SECONDS) -> str:
+    normalized = (line_user_id or "").strip()
+    if not normalized:
+        return ""
+    expires_at = int(time.time()) + max(60, int(ttl_seconds))
+    payload = f"{normalized}|line_action|{expires_at}".encode("utf-8")
+    payload_b64 = base64.urlsafe_b64encode(payload).decode("utf-8").rstrip("=")
+    sig = hmac.new(_line_action_secret(), payload_b64.encode("utf-8"), hashlib.sha256).digest()
+    sig_b64 = base64.urlsafe_b64encode(sig).decode("utf-8").rstrip("=")
+    return f"v1.{payload_b64}.{sig_b64}"
+
+
+def _line_action_secret() -> bytes:
+    value = (
+        os.getenv("LINE_ACTION_SECRET")
+        or os.getenv("LINE_INTERNAL_WEBHOOK_SECRET")
+        or os.getenv("LINE_CHANNEL_SECRET")
+        or "dev-line-action-secret"
+    )
+    return value.strip().encode("utf-8")
+
+
 async def reply_messages(
     reply_token: str,
     messages: list[dict[str, Any]],
@@ -165,7 +190,7 @@ async def push_messages(
     token = (channel_access_token or "").strip()
     if not enabled or not token or token.startswith("your_"):
         return {
-            "ok": True,
+            "ok": False,
             "skipped": True,
             "reason": "LINE push disabled or channel access token missing",
             "messages_preview": normalized,
@@ -285,10 +310,11 @@ def _build_shop_bubble(
     summary = _recommendation_reason_for_shop(shop, answer)
     decision_points = _line_decision_points(shop)
     match_chips = _line_match_chips(shop)
+    action_token = line_action_token(line_user_id)
     detail_path = _with_query(
         f"/line/shop/{shop_id}",
         {
-            "lineUserId": line_user_id,
+            "lt": action_token,
             "name": name,
             "district": district,
             "mrt": mrt,
@@ -299,7 +325,7 @@ def _build_shop_bubble(
     reserve_path = _with_query(
         f"/line/book/{shop_id}",
         {
-            "lineUserId": line_user_id,
+            "lt": action_token,
             "name": name,
             "district": district,
             "mrt": mrt,

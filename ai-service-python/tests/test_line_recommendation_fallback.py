@@ -538,7 +538,8 @@ def test_line_booking_flex_pending_payment_has_pay_action(monkeypatch):
     assert message["altText"] == "訂位保留成功，待付訂金"
     assert footer[0]["action"]["label"] == "立即繳訂金"
     assert "bookingCode=BK-ABC" in footer[0]["action"]["uri"]
-    assert "lineUserId=Uabc123" in footer[0]["action"]["uri"]
+    assert "lineUserId=" not in footer[0]["action"]["uri"]
+    assert "lt=v1." in footer[0]["action"]["uri"]
 
 
 def test_line_booking_result_page_shows_paid_completion(monkeypatch):
@@ -582,7 +583,8 @@ def test_line_availability_flex_prefills_booking_link(monkeypatch):
     assert message["altText"] == "橘色涮涮屋 信義館 有空位了"
     booking_uri = message["contents"]["footer"]["contents"][0]["action"]["uri"]
     assert booking_uri.startswith("https://bytebites.example.com/line/book/10009?")
-    assert "lineUserId=Uabc123" in booking_uri
+    assert "lineUserId=" not in booking_uri
+    assert "lt=v1." in booking_uri
     assert "date=2026-06-08" in booking_uri
     assert "time=19%3A00" in booking_uri
 

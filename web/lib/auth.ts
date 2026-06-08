@@ -12,24 +12,30 @@ export type AuthUser = {
   lineUserId?: string | null;
 };
 
+export type AuthStatus = "loading" | "validating" | "authenticated" | "anonymous" | "expired";
+
 export function useAuth() {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("loading");
 
   useEffect(() => {
     const storedToken = localStorage.getItem(KEY);
     setToken(storedToken);
+    setAuthStatus(storedToken ? "validating" : "anonymous");
     setMounted(true);
   }, []);
 
   useEffect(() => {
     if (!token) {
       setUser(null);
+      if (mounted) setAuthStatus((current) => current === "expired" ? current : "anonymous");
       return;
     }
 
     let cancelled = false;
+    setAuthStatus("validating");
     fetch("/api/java/api/auth/me", {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
@@ -42,27 +48,30 @@ export function useAuth() {
         if (cancelled) return;
         if (payload.success && payload.data) {
           setUser(payload.data);
+          setAuthStatus("authenticated");
           return;
         }
         localStorage.removeItem(KEY);
         setToken(null);
         setUser(null);
+        setAuthStatus("expired");
       })
       .catch(() => {
         if (!cancelled) {
           localStorage.removeItem(KEY);
           setToken(null);
           setUser(null);
+          setAuthStatus("expired");
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [mounted, token]);
 
   const login = () => {
-    const javaApi = process.env.NEXT_PUBLIC_JAVA_API ?? "http://localhost:8081";
+    const javaApi = process.env.NEXT_PUBLIC_JAVA_API ?? "/api/java";
     window.location.href = `${javaApi}/api/auth/line/login`;
   };
 
@@ -70,9 +79,19 @@ export function useAuth() {
     localStorage.removeItem(KEY);
     setToken(null);
     setUser(null);
+    setAuthStatus("anonymous");
   };
 
-  return { token, user, isLoggedIn: !!token, login, logout, mounted };
+  return {
+    token,
+    user,
+    authStatus,
+    isLoggedIn: authStatus === "authenticated" && !!user,
+    isAuthLoading: authStatus === "loading" || authStatus === "validating",
+    login,
+    logout,
+    mounted,
+  };
 }
 
 export function getToken(): string | null {

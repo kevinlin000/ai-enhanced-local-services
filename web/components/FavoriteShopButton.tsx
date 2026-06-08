@@ -12,12 +12,13 @@ type FavoriteShopButtonProps = {
 };
 
 export function FavoriteShopButton({ shopId, compact = false, inverted = false }: FavoriteShopButtonProps) {
-  const { isLoggedIn, login, mounted } = useAuth();
+  const { isLoggedIn, isAuthLoading, login, mounted } = useAuth();
   const [favorited, setFavorited] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (mounted && isAuthLoading) return;
     if (mounted && !isLoggedIn) {
       setFavorited(false);
       setLoading(false);
@@ -38,10 +39,11 @@ export function FavoriteShopButton({ shopId, compact = false, inverted = false }
     return () => {
       cancelled = true;
     };
-  }, [isLoggedIn, mounted, shopId]);
+  }, [isAuthLoading, isLoggedIn, mounted, shopId]);
 
   const toggle = async () => {
     if (busy) return;
+    if (mounted && isAuthLoading) return;
     if (mounted && !isLoggedIn) {
       login();
       return;

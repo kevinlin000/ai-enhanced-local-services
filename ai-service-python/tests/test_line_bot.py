@@ -103,8 +103,10 @@ def test_build_line_flex_message_reason_uses_features_not_booking_status():
     ]
     joined = " ".join(texts)
     payload = json.dumps(message, ensure_ascii=False)
-    assert "lineUserId=Uabc123" in detail_uri
-    assert "lineUserId=Uabc123" in reserve_uri
+    assert "lineUserId=" not in detail_uri
+    assert "lineUserId=" not in reserve_uri
+    assert "lt=v1." in detail_uri
+    assert "lt=v1." in reserve_uri
     assert "預約困難" not in joined
     assert "頂級肉品" in joined
     assert "海鮮套餐" in joined
@@ -140,7 +142,7 @@ def test_build_line_flex_message_uses_media_alias_for_orange():
     assert bubble["hero"]["url"].startswith("https://bytebites.example.com/line/photo/10009?v=")
 
 
-def test_build_line_flex_message_booking_link_carries_line_user_id():
+def test_build_line_flex_message_booking_link_carries_line_action_token():
     message = build_line_flex_message(
         shops=[{"shop_id": 10009, "name": "橘色涮涮屋 信義館"}],
         recommended_shop_ids=[10009],
@@ -151,7 +153,8 @@ def test_build_line_flex_message_booking_link_carries_line_user_id():
 
     reserve_uri = message["messages"][1]["contents"]["contents"][0]["footer"]["contents"][1]["action"]["uri"]
     assert reserve_uri.startswith("https://bytebites.example.com/line/book/10009?")
-    assert "lineUserId=Uabc123" in reserve_uri
+    assert "lineUserId=" not in reserve_uri
+    assert "lt=v1." in reserve_uri
     assert "name=" in reserve_uri
 
 
@@ -178,6 +181,7 @@ async def test_push_messages_returns_preview_when_disabled():
         enabled=False,
     )
 
-    assert result["ok"] is True
+    assert result["ok"] is False
     assert result["skipped"] is True
+    assert "LINE push disabled" in result["reason"]
     assert result["messages_preview"][0]["text"] == "hello"

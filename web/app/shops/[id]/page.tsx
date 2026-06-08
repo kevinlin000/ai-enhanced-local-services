@@ -29,10 +29,13 @@ type RankedSimilarShopCard = SimilarShopCard & {
   hasUsableData: boolean;
 };
 
-function parseTags(raw?: string) {
+function parseTags(raw?: string | string[] | null) {
   if (!raw) return [];
   try {
-    return typeof raw === "string" ? JSON.parse(raw) : raw;
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return Array.isArray(parsed)
+      ? parsed.map((item) => String(item ?? "").trim()).filter(Boolean)
+      : [];
   } catch {
     return [];
   }
@@ -91,8 +94,8 @@ function parseAbsaAspects(absa?: ShopAbsa | null): AbsaAspect[] {
   }
 }
 
-function normalizeInsightTerm(term: string) {
-  return term.replace(/\s+/g, "").replace(/[，。！？、]/g, "").trim();
+function normalizeInsightTerm(term: unknown) {
+  return String(term ?? "").replace(/\s+/g, "").replace(/[，。！？、]/g, "").trim();
 }
 
 function isSpecificInsightTerm(term: string) {
