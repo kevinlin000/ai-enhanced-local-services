@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 import app.main as main
@@ -232,6 +234,40 @@ async def test_line_user_recommendation_returns_cards_without_agent(monkeypatch)
     assert len(messages) == 2
     assert messages[1]["type"] == "flex"
     assert messages[1]["contents"]["contents"][0]["body"]["contents"][1]["text"] == "橘色涮涮屋 信義館"
+
+
+@pytest.mark.anyio
+async def test_line_cards_hydrate_selected_shop_metadata(monkeypatch):
+    async def fake_semantic_hits(query: str, top_k: int):
+        return [
+            {
+                "shop_id": 10680,
+                "name": "TakeOut Burger&Cafe 民權店",
+                "district": "中山",
+                "category": "american",
+                "avg_price": 450,
+            }
+        ]
+
+    async def fake_fetch_metadata(shop_id: int):
+        return {
+            "aiSummary": "主打厚實漢堡與美式餐點，適合想吃肉感漢堡的聚餐。",
+            "signatureDishes": '["牛肉漢堡", "薯條"]',
+            "atmosphereTags": '["朋友聚餐", "快速用餐"]',
+            "pricePerPerson": "NT$ 300-600",
+        }
+
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "_fetch_java_ai_metadata", fake_fetch_metadata)
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_cards_for_query("推薦中山區高級漢堡店", "test-user")
+    payload = json.dumps(messages, ensure_ascii=False)
+
+    assert "主打厚實漢堡" in payload
+    assert "招牌重點：牛肉漢堡、薯條" in payload
+    assert "用餐情境：朋友聚餐、快速用餐" in payload
 
 
 @pytest.mark.anyio

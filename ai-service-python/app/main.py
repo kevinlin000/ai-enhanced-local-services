@@ -786,6 +786,8 @@ async def _fetch_all_shops_fallback() -> list[dict]:
                     "address": shop.get("address"),
                     "mrt_station": shop.get("mrtStation"),
                     "score": 0.0,
+                    "rating": shop.get("score"),
+                    "comments": shop.get("comments"),
                     "category": TYPE_ID_TO_CATEGORY.get(shop.get("typeId")),
                     "category_slug": TYPE_ID_TO_CATEGORY.get(shop.get("typeId")),
                     "avg_price": shop.get("avgPrice"),
@@ -809,6 +811,8 @@ def _java_shop_to_search_hit(shop: dict, metadata: dict | None = None) -> dict:
         "address": shop.get("address"),
         "mrt_station": shop.get("mrtStation"),
         "score": 0.0,
+        "rating": shop.get("score"),
+        "comments": shop.get("comments"),
         "category": TYPE_ID_TO_CATEGORY.get(type_id),
         "category_slug": TYPE_ID_TO_CATEGORY.get(type_id),
         "type_id": type_id,
@@ -947,6 +951,8 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
                     "address": payload.get("address"),
                     "mrt_station": payload.get("mrt_station"),
                     "score": float(result.score),
+                    "rating": payload.get("rating") or payload.get("google_score"),
+                    "comments": payload.get("comments") or payload.get("review_count"),
                     "category": payload.get("category"),
                     "category_slug": payload.get("category_slug"),
                     "type_id": payload.get("type_id"),
@@ -3521,6 +3527,7 @@ async def _build_line_more_recommendations(user_text: str, user_id: str) -> list
         query=previous_query,
         shown_shop_ids=[*seen_ids, *selected_ids],
     )
+    remaining = await _hydrate_line_card_shops(remaining, selected_ids)
     flex_or_bundle = build_line_flex_message(
         shops=remaining,
         recommended_shop_ids=selected_ids,
@@ -3559,6 +3566,7 @@ async def _build_line_cards_for_query(
     if not selected:
         return None
 
+    shops = await _hydrate_line_card_shops(shops, selected)
     selected_shops = _shops_for_ids(shops, selected)
     _save_line_recommendation_state(user_id, query=save_query or query, shown_shop_ids=selected)
     flex_or_bundle = build_line_flex_message(
@@ -3582,6 +3590,45 @@ def _shops_for_ids(shops: list[dict], selected_ids: list[int]) -> list[dict]:
         if (shop_id := _shop_id(shop)) is not None
     }
     return [by_id[shop_id] for shop_id in selected_ids if shop_id in by_id]
+
+
+async def _hydrate_line_card_shops(shops: list[dict], selected_ids: list[int]) -> list[dict]:
+    selected_set = {
+        int(shop_id)
+        for shop_id in selected_ids
+        if str(shop_id).isdigit()
+    }
+    if not selected_set:
+        return shops
+
+    hydrated: list[dict] = []
+    for shop in shops:
+        shop_id = _shop_id(shop)
+        if shop_id not in selected_set or _line_card_has_rich_context(shop):
+            hydrated.append(shop)
+            continue
+
+        metadata = await _fetch_java_ai_metadata(shop_id)
+        if not metadata:
+            hydrated.append(shop)
+            continue
+
+        merged = dict(shop)
+        merged["ai_summary"] = merged.get("ai_summary") or metadata.get("aiSummary") or metadata.get("highlightReview")
+        merged["signature_dishes"] = merged.get("signature_dishes") or _parse_json_list(metadata.get("signatureDishes"))
+        merged["atmosphere_tags"] = merged.get("atmosphere_tags") or _parse_json_list(metadata.get("atmosphereTags"))
+        merged["booking_difficulty"] = merged.get("booking_difficulty") or metadata.get("bookingDifficulty")
+        merged["price_per_person"] = merged.get("price_per_person") or metadata.get("pricePerPerson")
+        hydrated.append(merged)
+    return hydrated
+
+
+def _line_card_has_rich_context(shop: dict) -> bool:
+    return bool(
+        str(shop.get("ai_summary") or "").strip()
+        or _parse_json_list(shop.get("signature_dishes"))
+        or _parse_json_list(shop.get("atmosphere_tags"))
+    )
 
 
 def _line_scope_expansion_intro(query: str, selected_shops: list[dict]) -> str | None:
@@ -3682,6 +3729,7 @@ async def _build_line_named_selection_cards(user_text: str, user_id: str) -> lis
         query=previous_query,
         shown_shop_ids=[*state.get("shown_shop_ids", []), *selected_ids],
     )
+    shops = await _hydrate_line_card_shops(shops, selected_ids)
     flex_or_bundle = build_line_flex_message(
         shops=shops,
         recommended_shop_ids=selected_ids,
@@ -3958,6 +4006,7 @@ async def _build_line_contextual_followup(user_text: str, user_id: str) -> list[
         query=adjusted_query,
         shown_shop_ids=[*seen_ids, *selected_ids],
     )
+    shops = await _hydrate_line_card_shops(shops, selected_ids)
     flex_or_bundle = build_line_flex_message(
         shops=shops,
         recommended_shop_ids=selected_ids,
@@ -3985,6 +4034,16 @@ async def _build_line_agent_recommendation_messages(
     shops = tool_result.get("shops") if isinstance(tool_result, dict) else None
     if isinstance(shops, list) and shops:
         recommended_ids = tool_result.get("agent_decision", {}).get("recommended_shop_ids")
+        shown_ids = (
+            [int(shop_id) for shop_id in recommended_ids if str(shop_id).isdigit()]
+            if isinstance(recommended_ids, list)
+            else [
+                int(sid)
+                for shop in shops[:3]
+                if (sid := _shop_id(shop)) is not None
+            ]
+        )
+        shops = await _hydrate_line_card_shops(shops, shown_ids)
         flex_or_bundle = build_line_flex_message(
             shops=shops,
             recommended_shop_ids=recommended_ids if isinstance(recommended_ids, list) else None,
@@ -3996,15 +4055,6 @@ async def _build_line_agent_recommendation_messages(
             messages = flex_or_bundle.get("messages") or []
         else:
             messages = [flex_or_bundle]
-        shown_ids = (
-            [int(shop_id) for shop_id in recommended_ids if str(shop_id).isdigit()]
-            if isinstance(recommended_ids, list)
-            else [
-                int(sid)
-                for shop in shops[:3]
-                if (sid := _shop_id(shop)) is not None
-            ]
-        )
         _save_line_recommendation_state(user_id, query=user_text, shown_shop_ids=shown_ids)
         if messages:
             selected_shops = _shops_for_ids(shops, shown_ids)

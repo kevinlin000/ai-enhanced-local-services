@@ -493,8 +493,7 @@ def _line_match_chips(shop: dict) -> list[str]:
 
 
 def _line_decision_points(shop: dict) -> list[str]:
-    dishes = [str(dish).strip() for dish in (shop.get("signature_dishes") or []) if str(dish).strip()]
-    tags = [str(tag).strip() for tag in (shop.get("atmosphere_tags") or []) if str(tag).strip()]
+    dishes, tags = _line_card_features(shop)
     points: list[str] = []
 
     if dishes:
@@ -641,11 +640,12 @@ def _line_recommendation_intro(count: int) -> str:
 
 def _recommendation_reason_for_shop(shop: dict, answer: str) -> str:
     summary = str(shop.get("ai_summary") or "").strip()
-    if summary:
+    if summary and not _is_generic_line_summary(summary):
         return _truncate(_plain_line_text(summary), 140)
 
-    tags = [str(tag) for tag in (shop.get("atmosphere_tags") or [])[:2]]
-    dishes = [str(dish) for dish in (shop.get("signature_dishes") or [])[:2]]
+    dishes, tags = _line_card_features(shop)
+    tags = tags[:2]
+    dishes = dishes[:2]
     price = str(shop.get("price_per_person") or "").strip()
     highlights = [*dishes, *tags]
     if dishes and tags:
@@ -660,8 +660,39 @@ def _recommendation_reason_for_shop(shop: dict, answer: str) -> str:
         return _truncate("符合本次需求，亮點包含" + "、".join(highlights[:3]) + "。", 140)
 
     district = str(shop.get("district") or "").strip()
-    category = _category_label(str(shop.get("category") or "").strip())
-    return _truncate(f"{district or '台北'}{category or '餐廳'}候選，詳情頁會整理菜色、電話、評論與訂位資訊。", 140)
+    category = _category_label(str(shop.get("category") or shop.get("category_slug") or "").strip())
+    scope = "、".join(part for part in [district, category] if part)
+    if scope:
+        return _truncate(f"符合{scope}條件，可先看詳情確認菜色、評論亮點與訂位規則。", 140)
+    return "可先看詳情確認菜色、評論亮點與訂位規則，再決定是否訂位。"
+
+
+def _line_card_features(shop: dict) -> tuple[list[str], list[str]]:
+    dishes = [str(dish).strip() for dish in (shop.get("signature_dishes") or []) if str(dish).strip()]
+    tags = [str(tag).strip() for tag in (shop.get("atmosphere_tags") or []) if str(tag).strip()]
+    if dishes or tags:
+        return _dedupe_labels(dishes), _dedupe_labels(tags)
+
+    name = str(shop.get("name") or "").lower()
+    category = str(shop.get("category_slug") or shop.get("category") or "").lower()
+    category_label = _category_label(category)
+
+    if "burger" in name or "漢堡" in name or category in {"american", "美式料理", "美式餐廳"}:
+        return ["漢堡", "美式餐點"], ["朋友聚餐", "快速用餐"]
+    if category == "hotpot" or "火鍋" in category_label or any(token in name for token in ("火鍋", "鍋物", "涮涮鍋", "麻辣鍋")):
+        return ["鍋物", "湯底與肉品"], ["多人聚餐", "想吃熱湯"]
+    if category == "yakiniku" or "燒肉" in category_label or "燒肉" in name:
+        return ["燒肉", "肉品套餐"], ["聚餐", "約會"]
+    if category == "chinese" or "中式" in category_label:
+        return ["中式熱菜", "多人分享"], ["家庭聚餐", "商務聚餐"]
+    if category in {"japanese", "日式料理"} or "日式" in category_label:
+        return ["日式餐點", "定食/鍋物"], ["約會", "小聚"]
+    return [], []
+
+
+def _is_generic_line_summary(summary: str) -> bool:
+    normalized = summary.strip()
+    return bool(re.fullmatch(r".{0,12}(餐廳|火鍋|燒肉|美式料理|美式餐廳|中式餐廳)?候選.*", normalized))
 
 
 def _category_label(category: str) -> str:

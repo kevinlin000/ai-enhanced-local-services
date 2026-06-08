@@ -120,6 +120,30 @@ def test_build_line_flex_message_reason_uses_features_not_booking_status():
     assert "填日期人數" in payload
 
 
+def test_build_line_flex_message_fallback_reason_is_not_generic_candidate():
+    message = build_line_flex_message(
+        shops=[
+            {
+                "shop_id": 10680,
+                "name": "TakeOut Burger&Cafe 民權店",
+                "district": "中山",
+                "category": "american",
+                "avg_price": 450,
+            }
+        ],
+        recommended_shop_ids=[10680],
+        answer="",
+        public_web_url="https://bytebites.example.com",
+    )
+
+    payload = json.dumps(message, ensure_ascii=False)
+
+    assert "候選" not in payload
+    assert "漢堡" in payload
+    assert "招牌重點" in payload
+    assert "用餐情境" in payload
+
+
 def test_build_line_flex_message_versions_photo_url():
     message = build_line_flex_message(
         shops=[{"shop_id": 10115, "name": "辛殿麻辣鍋｜信義店"}],

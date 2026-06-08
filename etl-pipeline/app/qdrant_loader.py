@@ -122,10 +122,16 @@ def main(embed_sleep_seconds: float = DEFAULT_EMBED_SLEEP_SECONDS):
                 "category_slug": CATEGORY_SLUG_BY_TYPE_ID.get(shop["type_id"]),
                 "type_id": shop["type_id"],
                 "score": shop["score"],
+                "rating": shop["score"],
+                "comments": shop["comments"],
                 "avg_price": shop["avg_price"],
                 "lat": shop["y"],
                 "lng": shop["x"],
+                "ai_summary": shop.get("ai_summary"),
+                "signature_dishes": shop.get("signature_dishes"),
+                "atmosphere_tags": shop.get("atmosphere_tags"),
                 "booking_difficulty": shop.get("booking_difficulty"),
+                "price_per_person": shop.get("price_per_person"),
             }
             points.append(PointStruct(id=shop["id"], vector=vector, payload=payload))
             log.info("embedded", idx=i+1, total=len(shops), name=shop["name"], text_preview=text[:80])
@@ -162,10 +168,16 @@ def sync_payloads_only():
             "category_slug": CATEGORY_SLUG_BY_TYPE_ID.get(shop["type_id"]),
             "type_id": shop["type_id"],
             "score": shop["score"],
+            "rating": shop["score"],
+            "comments": shop["comments"],
             "avg_price": shop["avg_price"],
             "lat": shop["y"],
             "lng": shop["x"],
+            "ai_summary": shop.get("ai_summary"),
+            "signature_dishes": shop.get("signature_dishes"),
+            "atmosphere_tags": shop.get("atmosphere_tags"),
             "booking_difficulty": shop.get("booking_difficulty"),
+            "price_per_person": shop.get("price_per_person"),
         }
         qdrant.set_payload(collection_name=COLLECTION, payload=payload, points=[shop["id"]])
         synced += 1
