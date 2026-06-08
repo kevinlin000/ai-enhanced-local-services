@@ -34,6 +34,15 @@ public class UserJpaService {
 
     @Transactional
     public UserJpa resolveLineIdentity(String lineUserId, String displayName) {
+        return resolveLineIdentity(lineUserId, displayName, "line_bot");
+    }
+
+    @Transactional
+    public UserJpa resolveLineLoginIdentity(String lineUserId, String displayName) {
+        return resolveLineIdentity(lineUserId, displayName, "line_direct");
+    }
+
+    private UserJpa resolveLineIdentity(String lineUserId, String displayName, String source) {
         String normalized = lineUserId == null ? "" : lineUserId.trim();
         if (normalized.isBlank() || normalized.length() > 128) {
             throw new IllegalArgumentException("lineUserId is required");
@@ -45,10 +54,16 @@ public class UserJpaService {
         }
 
         UserJpa direct = repo.findByLineUserId(normalized).orElse(null);
+        if ("line_direct".equals(source) && direct != null) {
+            upsertLineIdentityLink(normalized, direct.getId(), displayName, source);
+            updateDisplayNameIfPresent(direct, displayName);
+            return direct;
+        }
+
         Optional<UserJpa> displayMatched = findSingleDisplayNameMatch(displayName, direct == null ? null : direct.getId());
         if (displayMatched.isPresent()) {
             UserJpa matched = displayMatched.get();
-            upsertLineIdentityLink(normalized, matched.getId(), displayName, "line_bot");
+            upsertLineIdentityLink(normalized, matched.getId(), displayName, source);
             if (direct != null && !direct.getId().equals(matched.getId()) && isLineBotPlaceholder(direct)) {
                 migrateLineOwnedRows(direct.getId(), matched.getId());
             }
@@ -56,7 +71,7 @@ public class UserJpaService {
         }
 
         if (direct != null) {
-            upsertLineIdentityLink(normalized, direct.getId(), displayName, "line_direct");
+            upsertLineIdentityLink(normalized, direct.getId(), displayName, source);
             updateDisplayNameIfPresent(direct, displayName);
             return direct;
         }
@@ -70,7 +85,7 @@ public class UserJpaService {
             user.setPhone(linePlaceholderPhone(normalized));
             return repo.save(user);
         });
-        upsertLineIdentityLink(normalized, created.getId(), displayName, "line_bot");
+        upsertLineIdentityLink(normalized, created.getId(), displayName, source);
         return created;
     }
 

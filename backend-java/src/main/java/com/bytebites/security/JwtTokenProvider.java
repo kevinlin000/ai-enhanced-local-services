@@ -18,7 +18,7 @@ public class JwtTokenProvider {
 
     public JwtTokenProvider(
             @Value("${jwt.secret:change-me-in-production-this-is-only-for-dev-environment}") String secret,
-            @Value("${jwt.ttl-hours:2}") long ttlHours
+            @Value("${jwt.ttl-hours:168}") long ttlHours
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.ttlMillis = ttlHours * 60 * 60 * 1000;

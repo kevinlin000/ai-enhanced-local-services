@@ -122,20 +122,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     public String loginWithLine(LineOAuthService.LineProfile profile) {
-        UserJpa user = userJpaService.findByLineId(profile.getSub()).orElse(null);
-        if (user == null) {
-            user = new UserJpa();
+        UserJpa user = userJpaService.resolveLineLoginIdentity(profile.getSub(), profile.getName());
+        if (user.getLineUserId() == null || user.getLineUserId().isBlank() || profile.getSub().equals(user.getLineUserId())) {
             user.setLineUserId(profile.getSub());
-            user.setLineDisplayName(profile.getName());
-            user.setLinePictureUrl(profile.getPicture());
-            user.setNickName(profile.getName() != null ? profile.getName() : "user_" + RandomUtil.randomString(6));
-            user.setPhone(userJpaService.linePlaceholderPhone(profile.getSub()));
-            user = userJpaService.save(user);
-        } else {
-            user.setLineDisplayName(profile.getName());
-            user.setLinePictureUrl(profile.getPicture());
-            user = userJpaService.save(user);
         }
+        user.setLineDisplayName(profile.getName());
+        user.setLinePictureUrl(profile.getPicture());
+        if (user.getNickName() == null || user.getNickName().isBlank() || "LINE Bot User".equals(user.getNickName())) {
+            user.setNickName(profile.getName() != null ? profile.getName() : "user_" + RandomUtil.randomString(6));
+        }
+        user = userJpaService.save(user);
         return jwtTokenProvider.issue(user.getId(), profile.getSub());
     }
 
