@@ -181,6 +181,22 @@
     color: var(--bb-ink);
   }
 
+  .bb-shell-avatar {
+    inline-size: 3rem;
+    block-size: 3rem;
+    max-inline-size: 3rem;
+    max-block-size: 3rem;
+  }
+
+  .bb-shell-avatar-image {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    max-inline-size: 100%;
+    max-block-size: 100%;
+    object-fit: cover;
+  }
+
   .bb-premium-surface {
     border: 1px solid rgb(222 216 203 / 82%);
     background:

@@ -99,12 +99,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className={`${collapsed ? "px-3" : "px-6"} pb-5`}>
           <div className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-background ring-1 ring-border">
+            <div
+              className="bb-shell-avatar flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-background ring-1 ring-border"
+              style={{ width: 48, height: 48, maxWidth: 48, maxHeight: 48 }}
+            >
               {pictureUrl ? (
                 <img
                   src={pictureUrl}
                   alt={displayName}
-                  className="h-full w-full object-cover"
+                  width={48}
+                  height={48}
+                  className="bb-shell-avatar-image"
+                  style={{ width: "100%", height: "100%", maxWidth: "100%", maxHeight: "100%", objectFit: "cover" }}
                   referrerPolicy="no-referrer"
                 />
               ) : (

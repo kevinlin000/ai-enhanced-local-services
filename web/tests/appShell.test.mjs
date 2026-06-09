@@ -21,3 +21,17 @@ test("app shell keeps AI search as a toolbar control", () => {
   assert.match(source, /w-\[260px\].*rounded-lg.*text-sm font-medium/s);
   assert.doesNotMatch(source, /w-\[280px\].*rounded-full.*font-bold/s);
 });
+
+test("app shell constrains remote profile photos", () => {
+  const shell = readFileSync(join(root, "components/AppShell.tsx"), "utf8");
+  const css = readFileSync(join(root, "app/globals.css"), "utf8");
+
+  assert.match(shell, /bb-shell-avatar/);
+  assert.match(shell, /style=\{\{ width:\s*48,\s*height:\s*48,\s*maxWidth:\s*48,\s*maxHeight:\s*48 \}\}/);
+  assert.match(shell, /width=\{48\}/);
+  assert.match(shell, /height=\{48\}/);
+  assert.match(shell, /bb-shell-avatar-image/);
+  assert.match(shell, /objectFit:\s*"cover"/);
+  assert.match(css, /\.bb-shell-avatar\s*\{[^}]*inline-size:\s*3rem;[^}]*block-size:\s*3rem;/s);
+  assert.match(css, /\.bb-shell-avatar-image\s*\{[^}]*object-fit:\s*cover;/s);
+});
