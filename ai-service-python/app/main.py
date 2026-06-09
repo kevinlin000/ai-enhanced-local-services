@@ -245,6 +245,52 @@ SUPPORTED_CATEGORY_SLUGS = set(CATEGORY_FALLBACK_KEYWORDS)
 BURGER_QUERY_HINTS = {"漢堡", "burger", "burgers", "美式漢堡"}
 BURGER_TEXT_HINTS = {"漢堡", "burger", "手拍牛肉", "美式漢堡"}
 BURGER_BLOCK_HINTS = {"早餐", "早午餐", "brunch", "豆漿", "飯糰", "蛋餅", "燒餅", "軟食力"}
+TAIWANESE_CUISINE_QUERY_HINTS = {
+    "台菜",
+    "臺菜",
+    "台式料理",
+    "臺式料理",
+    "台灣料理",
+    "臺灣料理",
+    "台灣菜",
+    "臺灣菜",
+}
+TAIWANESE_CUISINE_STRONG_HINTS = {
+    "台菜",
+    "臺菜",
+    "台式",
+    "臺式",
+    "台灣料理",
+    "臺灣料理",
+    "台灣菜",
+    "臺灣菜",
+    "辦桌",
+    "合菜",
+    "古早味",
+    "家常菜",
+    "熱炒",
+    "客家",
+    "鵝肉",
+    "三杯",
+    "欣葉",
+    "雞家莊",
+    "阿城鵝肉",
+}
+TAIWANESE_CUISINE_BLOCK_HINTS = {
+    "餐酒館",
+    "bistro",
+    "酒吧",
+    "bar",
+    "小酒館",
+    "wine",
+    "調酒",
+    "精釀",
+    "啤酒",
+    "居酒屋",
+    "酒場",
+}
+BUSINESS_DINING_HINTS = {"商務", "請客", "正式", "包廂", "宴席", "聚餐", "老字號", "高級", "精緻"}
+CLOSED_SHOP_HINTS = {"暫停營業", "停業", "歇業", "永久停業", "設備整修", "結束營業"}
 
 
 def _canonical_category_slug(slug: str | None) -> str:
@@ -426,6 +472,7 @@ def _extract_query_constraints(query: str) -> dict:
     wants_nearby = any(keyword in query_lower for keyword in ("附近", "nearby"))
     wants_luxury = any(keyword in query_lower for keyword in LUXURY_HINTS)
     wants_burger = any(keyword in query_lower for keyword in BURGER_QUERY_HINTS)
+    wants_taiwanese_cuisine = any(keyword.lower() in query_lower for keyword in TAIWANESE_CUISINE_QUERY_HINTS)
 
     has_primary_food_category = any(category != "fine-dining" for category in categories)
     if wants_luxury and has_primary_food_category:
@@ -441,6 +488,7 @@ def _extract_query_constraints(query: str) -> dict:
         "wants_nearby": wants_nearby,
         "wants_luxury": wants_luxury,
         "wants_burger": wants_burger,
+        "wants_taiwanese_cuisine": wants_taiwanese_cuisine,
     }
 
 
@@ -561,6 +609,72 @@ def _is_burger_hit(payload: dict) -> bool:
     return any(keyword.lower() in name for keyword in BURGER_TEXT_HINTS)
 
 
+def _taiwanese_identity_text(payload: dict) -> str:
+    parts = [
+        payload.get("name", ""),
+        payload.get("category", ""),
+        payload.get("ai_summary", ""),
+    ]
+    parts.extend(_parse_json_list(payload.get("atmosphere_tags")))
+    return " ".join(str(part) for part in parts if part).lower()
+
+
+def _is_taiwanese_cuisine_mismatch(payload: dict) -> bool:
+    text = _taiwanese_identity_text(payload)
+    return any(keyword.lower() in text for keyword in TAIWANESE_CUISINE_BLOCK_HINTS)
+
+
+def _has_taiwanese_cuisine_semantics(payload: dict) -> bool:
+    text = _payload_text(payload)
+    return any(keyword.lower() in text for keyword in TAIWANESE_CUISINE_STRONG_HINTS)
+
+
+def _normalized_rating(value) -> float:
+    try:
+        rating = float(value or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+    if rating > 5:
+        rating = rating / 10
+    return rating
+
+
+def _is_inactive_search_hit(payload: dict) -> bool:
+    is_active = payload.get("is_active")
+    if isinstance(is_active, bool):
+        return not is_active
+    if str(is_active).strip().lower() in {"false", "0", "inactive", "disabled"}:
+        return True
+
+    text = " ".join(
+        str(part)
+        for part in (
+            payload.get("name", ""),
+            payload.get("ai_summary", ""),
+            payload.get("booking_difficulty", ""),
+        )
+        if part
+    )
+    return any(keyword in text for keyword in CLOSED_SHOP_HINTS)
+
+
+def _taiwanese_cuisine_sort_key(constraints: dict, hit: dict) -> tuple[int, int, int, int, int, int, float, float]:
+    tags = set(hit.get("atmosphere_tags") or [])
+    text = _payload_text(hit)
+    avg_price = int(hit.get("avg_price") or 0)
+    rating = _normalized_rating(hit.get("rating"))
+    return (
+        1 if _has_taiwanese_cuisine_semantics(hit) else 0,
+        0 if _is_taiwanese_cuisine_mismatch(hit) else 1,
+        1 if any(keyword.lower() in text for keyword in BUSINESS_DINING_HINTS) else 0,
+        1 if ({"商務", "聚餐"} & tags) else 0,
+        1 if avg_price >= 800 else 0,
+        1 if _semantic_category_slug(hit) == "chinese" else 0,
+        float(hit.get("rerank_score") or hit.get("score") or 0.0),
+        rating,
+    )
+
+
 def _burger_sort_key(constraints: dict, hit: dict) -> tuple[int, float, int, int, float]:
     return (
         1 if _district_matches(constraints, hit) else 0,
@@ -676,6 +790,14 @@ def _metadata_bonus(query: str, payload: dict) -> float:
             bonus += 0.2
         else:
             bonus -= 0.55
+
+    if constraints.get("wants_taiwanese_cuisine"):
+        if _has_taiwanese_cuisine_semantics(payload):
+            bonus += 0.36
+        if any(keyword.lower() in text for keyword in BUSINESS_DINING_HINTS):
+            bonus += 0.18
+        if _is_taiwanese_cuisine_mismatch(payload):
+            bonus -= 0.75
 
     for canonical, keywords in INTENT_HINTS.items():
         if any(keyword in query_lower for keyword in keywords):
@@ -964,6 +1086,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
                     "atmosphere_tags": _parse_json_list(payload.get("atmosphere_tags")),
                     "booking_difficulty": payload.get("booking_difficulty"),
                     "price_per_person": payload.get("price_per_person"),
+                    "is_active": payload.get("is_active"),
                 }
             )
     except Exception as exc:
@@ -983,6 +1106,11 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
     )
     if burger_hits:
         raw_hits.extend(burger_hits)
+
+    before_active_filter = len(raw_hits)
+    raw_hits = [hit for hit in raw_hits if not _is_inactive_search_hit(hit)]
+    if len(raw_hits) != before_active_filter:
+        logger.warning("search_inactive_filtered count=%s", before_active_filter - len(raw_hits))
 
     shop_ids = [hit["shop_id"] for hit in raw_hits if hit["shop_id"]]
     voucher_map = await _fetch_hot_seat_vouchers(shop_ids)
@@ -1227,6 +1355,36 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             [hit.get("name") for hit in legacy_semantic_category[:8]],
             [hit.get("name") for hit in text_category[:8]],
             [hit.get("name") for hit in strict_category[:8]],
+        )
+
+    if constraints.get("wants_taiwanese_cuisine"):
+        clean_taiwanese_pool = [
+            hit for hit in raw_hits
+            if not _is_taiwanese_cuisine_mismatch(hit)
+        ]
+        strong_taiwanese = [
+            hit for hit in clean_taiwanese_pool
+            if _has_taiwanese_cuisine_semantics(hit)
+        ]
+        generic_chinese = [
+            hit for hit in clean_taiwanese_pool
+            if hit not in strong_taiwanese
+            and _semantic_category_slug(hit) == "chinese"
+        ]
+        rejected_mismatch = [
+            hit for hit in raw_hits
+            if _is_taiwanese_cuisine_mismatch(hit)
+        ]
+        if strong_taiwanese or generic_chinese:
+            strong_taiwanese.sort(key=lambda hit: _taiwanese_cuisine_sort_key(constraints, hit), reverse=True)
+            generic_chinese.sort(key=lambda hit: _taiwanese_cuisine_sort_key(constraints, hit), reverse=True)
+            raw_hits = strong_taiwanese + generic_chinese
+        logger.warning(
+            "search_taiwanese_cuisine_filter query=%r strong=%s generic=%s rejected=%s",
+            query,
+            [hit.get("name") for hit in strong_taiwanese[:8]],
+            [hit.get("name") for hit in generic_chinese[:8]],
+            [hit.get("name") for hit in rejected_mismatch[:8]],
         )
 
     if constraints["districts"]:

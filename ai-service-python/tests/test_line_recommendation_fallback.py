@@ -162,6 +162,78 @@ def test_burger_hit_rejects_brunch_fillers():
     assert not main._is_burger_hit({"name": "軟食力 行天宮店"})
 
 
+def test_taiwanese_cuisine_query_rejects_bistro_fillers():
+    constraints = main._extract_query_constraints("適合商務請客的台菜")
+    assert constraints["categories"] == ["chinese"]
+    assert constraints["wants_taiwanese_cuisine"]
+
+    taicai = {
+        "name": "欣葉台菜創始店",
+        "category_slug": "chinese",
+        "avg_price": 1200,
+        "rating": 4.5,
+        "ai_summary": "老字號台菜與合菜餐廳，適合商務請客與家庭聚餐。",
+        "signature_dishes": ["煎豬肝", "三杯雞"],
+        "atmosphere_tags": ["商務", "聚餐"],
+        "rerank_score": 0.1,
+    }
+    bistro = {
+        "name": "紅皇后川酒・RED QUEEN BISTRO",
+        "category_slug": "chinese",
+        "avg_price": 1100,
+        "rating": 4.5,
+        "ai_summary": "中式餐酒館，主打調酒、小酌與聚會氣氛。",
+        "signature_dishes": ["藤椒浪花白肉"],
+        "atmosphere_tags": ["餐酒館", "聚餐"],
+        "rerank_score": 0.9,
+    }
+
+    assert main._has_taiwanese_cuisine_semantics(taicai)
+    assert not main._is_taiwanese_cuisine_mismatch(taicai)
+    assert main._is_taiwanese_cuisine_mismatch(bistro)
+    assert (
+        main._taiwanese_cuisine_sort_key(constraints, taicai)
+        > main._taiwanese_cuisine_sort_key(constraints, bistro)
+    )
+    assert main._metadata_bonus("適合商務請客的台菜", taicai) > main._metadata_bonus(
+        "適合商務請客的台菜",
+        bistro,
+    )
+
+    business_taicai = {
+        "name": "新東南海鮮餐廳 松山店",
+        "category_slug": "chinese",
+        "avg_price": 1500,
+        "rating": 44,
+        "ai_summary": "海鮮台菜，適合商務宴客與多人合菜。",
+        "signature_dishes": ["龍蝦三明治"],
+        "atmosphere_tags": ["商務", "聚餐"],
+        "rerank_score": 2.7,
+    }
+    popular_taicai = {
+        "name": "享鴨 烤鴨與中華料理 台北忠孝東店",
+        "category_slug": "chinese",
+        "avg_price": 885,
+        "rating": 48,
+        "ai_summary": "烤鴨與熱炒，適合朋友家庭聚餐。",
+        "signature_dishes": ["烤鴨"],
+        "atmosphere_tags": ["聚餐"],
+        "rerank_score": 2.4,
+    }
+
+    assert main._normalized_rating(48) == 4.8
+    assert (
+        main._taiwanese_cuisine_sort_key(constraints, business_taicai)
+        > main._taiwanese_cuisine_sort_key(constraints, popular_taicai)
+    )
+
+
+def test_inactive_search_hit_detects_closed_restaurants():
+    assert main._is_inactive_search_hit({"name": "【設備整修暫停營業】心潮飯店"})
+    assert main._is_inactive_search_hit({"name": "測試餐廳", "is_active": False})
+    assert not main._is_inactive_search_hit({"name": "欣葉台菜創始店", "is_active": True})
+
+
 def test_prefer_rich_hits_filters_low_detail_seed_when_possible():
     hits = [
         {"shop_id": 10014, "name": "劉山東小牛肉麵 中山店"},
