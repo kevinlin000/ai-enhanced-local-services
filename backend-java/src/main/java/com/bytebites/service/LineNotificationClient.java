@@ -12,7 +12,7 @@ import java.util.Map;
 @Slf4j
 @Service
 public class LineNotificationClient {
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final String aiServiceUrl;
     private final String internalSecret;
 
@@ -20,6 +20,11 @@ public class LineNotificationClient {
             @Value("${bytebites.ai-service-url:http://localhost:8000}") String aiServiceUrl,
             @Value("${bytebites.line-internal-secret:}") String internalSecret
     ) {
+        this(new RestTemplate(), aiServiceUrl, internalSecret);
+    }
+
+    LineNotificationClient(RestTemplate restTemplate, String aiServiceUrl, String internalSecret) {
+        this.restTemplate = restTemplate;
         this.aiServiceUrl = aiServiceUrl;
         this.internalSecret = internalSecret;
     }
