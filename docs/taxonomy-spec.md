@@ -171,11 +171,10 @@ Tag can be considered for promotion to main category only if all conditions pass
 
 Watchlist now:
 - `#牛排`
-- `#韓式`
 
 Current decision:
-- enough to keep as tags
-- not enough to restore as main category yet
+- `#牛排` remains a tag. It is useful as a cuisine/format facet, but it should not return as a primary category unless it becomes a clear first-layer user intent with enough non-chain coverage.
+- `韓式料理` is already a primary category. `#韓式` remains only as a secondary compatibility tag for clearly Korean or mixed-format restaurants.
 
 Important:
 - `#Brunch` may exceed count threshold but still stays tag.
@@ -276,7 +275,7 @@ Required callouts:
 | 10162 | 小紅莓石頭火鍋城 | 火鍋 | 2001 火鍋 | - | - | 不變 |
 | 10163 | 一千零一夜廚房 | 高級餐廳 | 2011 自助餐 | - | - | 高級餐廳 -> 自助餐 |
 | 10164 | 青樓中式餐酒館 | 中式料理 | 2008 中式料理 | - | 餐酒館 | 不變 |
-| 10165 | 梨谷韓式鐵板烤肉 忠孝總店 | 日式燒肉 | 2002 日式燒肉 | - | 韓式 | 不變 |
+| 10165 | 梨谷韓式鐵板烤肉 忠孝總店 | 日式燒肉 | 2009 韓式料理 | - | 韓式 | 韓式主打店，歸入韓式料理 + #韓式 |
 | 10166 | 潮肉壽喜燒-永吉店 | 高級餐廳 | 2001 火鍋 | - | 吃到飽 | 高級餐廳 -> 火鍋 |
 | 10167 | 磚窯古早料理南港創始店 | 中式料理 | 2008 中式料理 | - | - | 不變 |
 | 10168 | 石二鍋 台北捷運後山埤店 | 火鍋 | 2001 火鍋 | - | - | 不變 |
@@ -301,7 +300,7 @@ Required callouts:
 | 10187 | 布納咖啡館 內湖館 | 義法料理 | 2012 咖啡/甜點 | - | - | 義法料理 -> 咖啡/甜點 |
 | 10188 | 築間幸福鍋物 台北內湖店 | 火鍋 | 2001 火鍋 | - | - | 不變 |
 | 10189 | 刁民-酸菜魚 西門中華店 | 中式料理 | 2008 中式料理 | - | - | 不變 |
-| 10190 | 弘大一號出口 | 火鍋 | 2002 日式燒肉 | - | 韓式 | 韓式主類取消；改日式燒肉 + #韓式 |
+| 10190 | 弘大一號出口 | 火鍋 | 2009 韓式料理 | - | 韓式 | 韓式主打店，歸入韓式料理 + #韓式 |
 | 10191 | 鼎泰豐 天母店 | 中式料理 | 2008 中式料理 | [高級] | - | 不變 |
 | 10192 | 武侍酒 日式居酒屋 | 居酒屋 | 2003 居酒屋 | - | - | 不變 |
 | 10193 | Lazy Pasta 慵懶義式廚房文山政大店 | 義法料理 | 2007 義法料理 | - | 義式 | 不變 |
@@ -359,7 +358,7 @@ Examples:
 - `旭集` / `饗饗` / `饗食天堂` / `島語` -> `2011`
 - `夏慕尼` -> `2007` + `#鐵板燒`
 - `西堤` -> `2007` + `#牛排`
-- `弘大一號出口` / `梨谷韓式鐵板烤肉` -> `2002` + `#韓式`
+- `弘大一號出口` / `梨谷韓式鐵板烤肉` -> `2009` + `#韓式`
 - `小小樹食` / `旭穗蔬食` / `蔬食百匯` / `小品雅廚` -> `2005`
 
 ### Step 3. Keyword correction
@@ -369,16 +368,21 @@ Run only when Step 1 and Step 2 are weak or conflicting.
 Priority:
 1. buffet / cafeteria
 2. hotpot / sukiyaki / shabu
-3. yakiniku / barbecue
-4. izakaya / pub
-5. vegetarian
-6. cafe / dessert
-7. chinese
-8. western
+3. vegetarian / vegan
+4. korean primary cuisine
+5. international cuisine
+6. yakiniku / barbecue
+7. izakaya / pub
+8. western / euro
+9. brunch / american
+10. cafe / dessert
+11. japanese
+12. chinese
 
 Reason:
 - Current code lets `高級`, `吃到飽`, `鐵板燒` over-influence `type_id`.
 - New logic must classify cuisine first, then badge/tag second.
+- Side dishes such as kimchi must not create `韓式料理` or `#韓式`; verified exceptions live in `manual_overrides.json` `suppress_tags`.
 
 ### Step 4. Badge extraction
 
@@ -398,7 +402,7 @@ Tags should be independent from main category.
 Examples:
 - `Brunch`, `早午餐`
 - `牛排`
-- `韓式`
+- `韓式` only for clearly Korean or mixed Korean-format restaurants, not side dishes
 - `法式`, `義式`
 - `餐酒館`
 - `約會`, `商務`, `包廂`, `景觀`, `親子`
