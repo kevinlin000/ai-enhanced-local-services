@@ -399,6 +399,7 @@ export function AiConcierge() {
               <button
                 onClick={handleSend}
                 disabled={loading || isAuthLoading || !input.trim() || (mounted && !isLoggedIn)}
+                aria-label="送出"
                 className="rounded-lg bg-primary p-2 text-white hover:bg-primary/90 disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />

@@ -214,3 +214,26 @@ test("AI page updates pending payment transaction after demo payment succeeds", 
   await expect(page.getByText("交易編號：E2E-TRADE-PAID")).toBeVisible();
   await expect(page.getByText("信用卡 Demo 付款完成：Demo paid")).toBeVisible();
 });
+
+test("mobile AI concierge renders the shared agent result contract", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockAuthenticatedUser(page);
+  await mockAgentRecommendation(page);
+
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "AI Concierge" }).click();
+  const input = page.getByPlaceholder("輸入你想吃什麼...");
+  await expect(input).toBeEnabled();
+  await input.fill("推薦中山區漢堡");
+  await page.getByRole("button", { name: "送出" }).click();
+
+  await expect(page.getByText("中山區符合條件較少，我先擴大到台北漢堡店")).toBeVisible();
+  await expect(page.getByText("測試漢堡 B").first()).toBeVisible();
+  await expect(page.getByText("測試漢堡 A").first()).toBeVisible();
+  await expect(page.getByText("測試漢堡 C").first()).toBeVisible();
+  await expect(page.getByText("done duplicate should not overwrite agent_end")).toHaveCount(0);
+
+  await page.getByRole("link", { name: /查看完整卡片與比較表/ }).click();
+  await expect(page).toHaveURL(/\/ai\?q=.*%E6%8E%A8%E8%96%A6%E4%B8%AD%E5%B1%B1%E5%8D%80%E6%BC%A2%E5%A0%A1/);
+});
