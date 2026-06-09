@@ -2709,6 +2709,71 @@ def _agent_booking_followup_from_history(query: str, history: list[dict]) -> Too
     )
 
 
+async def _agent_more_recommendations_from_history(query: str, history: list[dict]) -> ToolGuardResult | None:
+    if not _line_more_recommendation_intent(query):
+        return None
+
+    recommendation = _latest_recommendation_context(history)
+    previous_query = str(recommendation.get("query") or "").strip()
+    shops = recommendation.get("shops") if isinstance(recommendation, dict) else []
+    if not previous_query:
+        return ToolGuardResult(
+            action="direct",
+            direct_answer="可以，請先告訴我想找的地點和類型，例如「信義區火鍋」或「中山站聚餐」。",
+        )
+    seen_ids = {
+        int(shop.get("shop_id"))
+        for shop in shops
+        if isinstance(shop, dict) and str(shop.get("shop_id") or "").isdigit()
+    }
+
+    try:
+        hits = await _semantic_hits(previous_query, top_k=30)
+    except Exception:
+        logger.exception("agent_more_recommendations_failed query=%s", previous_query)
+        return ToolGuardResult(
+            action="direct",
+            direct_answer="我暫時無法取得更多餐廳，請稍後再試一次。",
+        )
+
+    remaining = [
+        shop
+        for shop in hits
+        if (sid := _shop_id(shop)) is not None and sid not in seen_ids
+    ]
+    seen_brands = {
+        _shop_brand_key(shop).lower()
+        for shop in hits
+        if (sid := _shop_id(shop)) is not None and sid in seen_ids
+    }
+    remaining = [
+        shop
+        for shop in remaining
+        if not (brand := _shop_brand_key(shop).lower()) or brand not in seen_brands
+    ]
+    remaining = _dedupe_shops_by_brand(remaining)
+    if not remaining:
+        return ToolGuardResult(
+            action="direct",
+            direct_answer="目前同一個條件下沒有更多明顯符合的餐廳了。你可以放寬地區或換一個類型，我再幫你找。",
+        )
+
+    selected_ids = [
+        int(sid)
+        for shop in remaining[:3]
+        if (sid := _shop_id(shop)) is not None
+    ]
+    search_result = await _build_agent_search_result(previous_query, remaining, selected_ids)
+    search_result["agent_decision"] = _decision_payload(
+        AgentRecommendationDecision(
+            recommended_shop_ids=selected_ids,
+            narrative="我避開剛剛已推薦的店，另外整理了這幾個選項。",
+            rejected_shop_ids=[],
+        )
+    )
+    return ToolGuardResult(action="continue", last_tool_result=search_result)
+
+
 def _find_shop_from_tool_result(tool_result: dict, shop_id: int | None) -> dict | None:
     if shop_id is None:
         return None
@@ -3188,6 +3253,23 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
             )
         return final_answer, [], {}
 
+    more_recommendations = await _agent_more_recommendations_from_history(effective_query, history)
+    if more_recommendations is not None:
+        if more_recommendations.action == "direct":
+            final_answer = more_recommendations.direct_answer or ""
+            state.last_tool_result = more_recommendations.last_tool_result or {}
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {"role": "model", "content": final_answer},
+                    ],
+                )
+            return final_answer, [], state.last_tool_result
+        state.tools_used.append("semantic_shop_search")
+        state.last_tool_result = more_recommendations.last_tool_result or {}
+
     booking_followup = _agent_booking_followup_from_history(effective_query, history)
     if booking_followup is not None:
         if booking_followup.action == "direct":
@@ -3213,7 +3295,7 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
             _after_tool_call(state, "create_booking", tool_result)
 
     for _ in range(4):
-        if state.booking_result is not None or final_answer:
+        if state.booking_result is not None or final_answer or state.last_tool_result.get("shops"):
             break
         response = generate(
             settings.gemini_agent_model,
@@ -3552,6 +3634,53 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
         yield done_payload
         return
 
+    more_recommendations = await _agent_more_recommendations_from_history(effective_query, history)
+    if more_recommendations is not None:
+        if more_recommendations.action == "direct":
+            full_answer = more_recommendations.direct_answer or ""
+            state.last_tool_result = more_recommendations.last_tool_result or {}
+            chunk_size = 18
+            for i in range(0, len(full_answer), chunk_size):
+                chunk = full_answer[i : i + chunk_size]
+                yield {"type": "message_update", "content": chunk}
+                yield {"type": "chunk", "content": chunk}
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {"role": "model", "content": full_answer},
+                    ],
+                )
+            done_payload = {
+                "type": "done",
+                "answer": full_answer,
+                **_agent_response_contract(state.last_tool_result),
+                "tools_used": [],
+                "tool_result": state.last_tool_result,
+                "session_id": session_id,
+            }
+            yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+            yield done_payload
+            return
+
+        tool_name = "semantic_shop_search"
+        yield {
+            "type": "tool_execution_start",
+            "name": tool_name,
+            "args": {"query": str(_latest_recommendation_context(history).get("query") or effective_query)},
+            "session_id": session_id,
+        }
+        state.tools_used.append(tool_name)
+        state.last_tool_result = more_recommendations.last_tool_result or {}
+        yield {
+            "type": "tool_execution_end",
+            "name": tool_name,
+            "result_summary": _tool_result_summary(state.last_tool_result),
+            "session_id": session_id,
+        }
+        yield {"type": "tool", "name": tool_name}
+
     booking_followup = _agent_booking_followup_from_history(effective_query, history)
     if booking_followup is not None:
         if booking_followup.action == "direct":
@@ -3608,7 +3737,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
 
     # Phase 1: tool-calling loop (sync) — yields tool events as each fires
     for _ in range(4):
-        if state.booking_result is not None or direct_answer is not None:
+        if state.booking_result is not None or direct_answer is not None or state.last_tool_result.get("shops"):
             break
         response = generate(
             settings.gemini_agent_model,
@@ -5216,8 +5345,11 @@ def _line_more_recommendation_intent(text: str) -> bool:
             "才 3 家",
             "重複",
             "不要重複",
+            "不喜歡",
+            "不要第",
+            "換掉",
         )
-    )
+    ) or bool(re.search(r"(不要|不喜歡|換掉).{0,6}第?[一二兩三四五六七八九十\d]{1,3}(間|家|個)", normalized))
 
 
 def _line_should_force_recommendation_cards(text: str) -> bool:
