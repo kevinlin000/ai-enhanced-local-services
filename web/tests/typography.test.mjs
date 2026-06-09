@@ -41,9 +41,14 @@ test("UI typography caps heavy weights for a lighter product feel", () => {
   assert.match(globals, /\.font-semibold\s*{\s*font-weight:\s*550;/);
 });
 
-test("primary AI and home surfaces avoid heavy demo-style cards", () => {
+test("primary product surfaces avoid heavy demo-style cards", () => {
   const offenders = [];
-  const files = ["app/page.tsx", "app/ai/page.tsx"];
+  const files = [
+    "app/page.tsx",
+    "app/ai/page.tsx",
+    "app/shops/[id]/page.tsx",
+    "components/ShopDetailTabs.tsx",
+  ];
 
   for (const file of files) {
     const source = readFileSync(join(root, file), "utf8");

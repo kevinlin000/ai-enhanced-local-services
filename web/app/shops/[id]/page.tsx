@@ -746,7 +746,7 @@ export default async function ShopDetailPage({
       </div>
 
       <section className="max-w-4xl mx-auto px-4 md:px-8 mt-4">
-        <div className={`relative overflow-hidden bg-gradient-to-br ${style.gradient} rounded-2xl min-h-[320px] md:min-h-[360px] p-6 md:p-10`}>
+        <div className={`relative min-h-[320px] overflow-hidden rounded-lg bg-gradient-to-br ${style.gradient} p-6 md:min-h-[360px] md:p-10`}>
           <div className="absolute right-4 top-4 z-20">
             <FavoriteShopButton shopId={shop.id} compact inverted={Boolean(coverPhoto)} />
           </div>
@@ -761,7 +761,7 @@ export default async function ShopDetailPage({
             </>
           ) : null}
           <div className="relative flex h-full items-start gap-4 md:items-end">
-            <div className="hidden md:flex h-16 w-16 rounded-xl bg-background/60 backdrop-blur items-center justify-center shrink-0">
+            <div className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-background/60 backdrop-blur md:flex">
               <Icon className="h-8 w-8 text-foreground/60" strokeWidth={1.5} />
             </div>
             <div className="flex-1">
@@ -770,12 +770,13 @@ export default async function ShopDetailPage({
                   {style.label}
                 </span>
                 {shop.district ? (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-background/60 backdrop-blur">
-                    📍 {shop.district}
+                  <span className="inline-flex items-center gap-1 rounded-full bg-background/60 px-2 py-0.5 text-xs backdrop-blur">
+                    <MapPin className="h-3 w-3" />
+                    {shop.district}
                   </span>
                 ) : null}
               </div>
-              <h1 className={`text-2xl md:text-4xl font-bold tracking-normal ${coverPhoto ? "text-white" : ""}`}>{shop.name}</h1>
+              <h1 className={`text-2xl font-semibold tracking-normal md:text-3xl ${coverPhoto ? "text-white" : ""}`}>{shop.name}</h1>
               {shop.address ? (
                 <p className={`text-sm mt-2 ${coverPhoto ? "text-white/85" : "text-foreground/70"}`}>{shop.address}</p>
               ) : null}
@@ -786,39 +787,39 @@ export default async function ShopDetailPage({
 
       <section className="max-w-4xl mx-auto px-4 md:px-8 mt-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-xl border p-4">
+          <div className="rounded-lg border p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
               <Star className="h-3.5 w-3.5" />
               評分
             </div>
-            <div className="font-mono text-2xl font-bold">
+            <div className="font-mono text-xl font-medium">
               {shop.score ? (shop.score / 10).toFixed(1) : "—"}
             </div>
           </div>
-          <div className="rounded-xl border p-4">
+          <div className="rounded-lg border p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
               <MessageSquare className="h-3.5 w-3.5" />
               評論數
             </div>
-            <div className="font-mono text-2xl font-bold">
+            <div className="font-mono text-xl font-medium">
               {shop.comments?.toLocaleString() ?? "—"}
             </div>
           </div>
-          <div className="rounded-xl border p-4">
+          <div className="rounded-lg border p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
               <DollarSign className="h-3.5 w-3.5" />
               平均消費
             </div>
-            <div className="font-mono text-2xl font-bold">
+            <div className="font-mono text-xl font-medium">
               {formatDetailPrice(shop, ai, overview?.price_overview)}
             </div>
           </div>
-          <div className="rounded-xl border p-4">
+          <div className="rounded-lg border p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
               <MapPin className="h-3.5 w-3.5" />
               區域
             </div>
-            <div className="text-2xl font-bold">
+            <div className="text-xl font-medium">
               {shop.district ?? shop.area ?? "—"}
             </div>
           </div>
@@ -827,11 +828,11 @@ export default async function ShopDetailPage({
 
       {(hotSeatOffers.length > 0 || merchantOffers.length > 0) && (
         <section id="offers" className="max-w-4xl mx-auto px-4 md:px-8 mt-6 space-y-6">
-          <div className="rounded-2xl border bg-muted/20 p-5 md:p-6">
+          <div className="rounded-lg border bg-muted/20 p-5 md:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div className="max-w-2xl">
                 <div className="text-xs font-mono text-muted-foreground">BOOKING STRATEGY</div>
-                <h2 className="text-lg font-semibold mt-1">{bookingAdvice.title}</h2>
+                <h2 className="mt-1 text-lg font-medium">{bookingAdvice.title}</h2>
                 <p className="text-sm text-muted-foreground mt-2">{bookingAdvice.body}</p>
               </div>
               {bestHotSeatOffer ? (
@@ -861,7 +862,7 @@ export default async function ShopDetailPage({
                     : null;
                   const isBest = bestHotSeatOffer?.id === offer.id;
                   return (
-                    <div key={offer.id} className="rounded-xl border border-primary/20 bg-primary/[0.03] p-4">
+                    <div key={offer.id} className="rounded-lg border border-primary/20 bg-primary/[0.03] p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
@@ -876,27 +877,27 @@ export default async function ShopDetailPage({
                             <div className="text-sm text-muted-foreground mt-1">{offer.subTitle}</div>
                           ) : null}
                         </div>
-                        <div className={`text-right shrink-0 rounded-lg border px-3 py-2 ${getUrgencyTone(stock)}`}>
+                        <div className={`shrink-0 rounded-lg border px-3 py-2 text-right ${getUrgencyTone(stock)}`}>
                           <div className="text-xs text-muted-foreground">剩餘名額</div>
-                          <div className="text-2xl font-bold">{stock}</div>
+                          <div className="text-xl font-medium">{stock}</div>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4 text-sm">
                         <div className="rounded-lg bg-background p-3 border">
                           <div className="text-xs text-muted-foreground">搶位價</div>
-                          <div className="font-semibold mt-1">{formatCurrency(offer.payValue)}</div>
+                          <div className="mt-1 font-medium">{formatCurrency(offer.payValue)}</div>
                         </div>
                         <div className="rounded-lg bg-background p-3 border">
                           <div className="text-xs text-muted-foreground">原價值</div>
-                          <div className="font-semibold mt-1">
+                          <div className="mt-1 font-medium">
                             {formatCurrency(offer.actualValue)}
                             {discount ? <span className="text-xs text-primary ml-2">{discount} 折</span> : null}
                           </div>
                         </div>
                         <div className="rounded-lg bg-background p-3 border col-span-2 md:col-span-1">
                           <div className="text-xs text-muted-foreground">立刻省下</div>
-                          <div className="font-semibold mt-1 text-primary">{formatCurrency(offer.saving)}</div>
+                          <div className="mt-1 font-medium text-primary">{formatCurrency(offer.saving)}</div>
                         </div>
                       </div>
 
@@ -922,13 +923,13 @@ export default async function ShopDetailPage({
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {merchantOffers.map((offer) => (
-                  <div key={offer.id} className="rounded-xl border p-4">
+                  <div key={offer.id} className="rounded-lg border p-4">
                     <div className="font-medium">{offer.title}</div>
                     {offer.subTitle ? (
                       <div className="text-sm text-muted-foreground mt-1">{offer.subTitle}</div>
                     ) : null}
                     <div className="flex items-center gap-2 mt-3">
-                      <span className="font-semibold">{formatCurrency(offer.payValue)}</span>
+                      <span className="font-medium">{formatCurrency(offer.payValue)}</span>
                       <span className="text-xs text-muted-foreground line-through">
                         {formatCurrency(offer.actualValue)}
                       </span>

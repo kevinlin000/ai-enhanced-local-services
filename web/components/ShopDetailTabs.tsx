@@ -159,10 +159,10 @@ function ReviewCard({ review }: { review: ReviewSnippet }) {
     : null;
 
   return (
-    <div className="bg-white shadow-sm rounded-xl border border-gray-100 p-6">
+    <div className="rounded-lg border border-gray-100 bg-white p-6">
       {/* header: name + stars + language badge */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-gray-900">{review.author}</span>
+        <span className="text-sm font-medium text-gray-900">{review.author}</span>
         {starRating(review.rating)}
         {langBadge ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
@@ -269,9 +269,9 @@ function DataGapCallout({
   actionLabel?: string;
 }) {
   return (
-    <div className="rounded-2xl border bg-stone-50 p-6">
+    <div className="rounded-lg border bg-stone-50 p-6">
       <div className="text-xs font-mono uppercase tracking-normal text-muted-foreground">Data pending</div>
-      <div className="mt-2 text-xl font-semibold">{title}</div>
+      <div className="mt-2 text-lg font-medium">{title}</div>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">{body}</p>
       {actionHref && actionLabel ? (
         <a
@@ -353,7 +353,7 @@ export function ShopDetailTabs(props: Props) {
               onClick={() => setActiveTab(tab.key)}
               className={`pb-3 pt-1 border-b-2 transition-colors ${
                 activeTab === tab.key
-                  ? "border-foreground font-semibold text-foreground"
+                  ? "border-foreground font-medium text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -365,13 +365,13 @@ export function ShopDetailTabs(props: Props) {
 
       {activeTab === "overview" ? (
         <div className="space-y-8 pt-6">
-          <div className="rounded-2xl border bg-background p-5">
+          <div className="rounded-lg border bg-background p-5">
             <ExpandableText text={props.introText} limit={260} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {overviewCards.map((card) => (
-              <div key={card.label} className="rounded-2xl border bg-background p-5">
+              <div key={card.label} className="rounded-lg border bg-background p-5">
                 <div className="text-xs text-muted-foreground">{card.label}</div>
                 <div className="mt-2 text-base font-medium leading-relaxed">{card.value}</div>
                 {card.hint ? <div className="mt-1 text-sm text-muted-foreground">{card.hint}</div> : null}
@@ -383,7 +383,7 @@ export function ShopDetailTabs(props: Props) {
             <div className="space-y-3">
               <div className="flex items-end justify-between gap-4">
                 <div>
-                  <h3 className="text-lg font-semibold">餐廳特色</h3>
+                  <h3 className="text-lg font-medium">餐廳特色</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
                     先看結論；完整評論根據與正負面細節放在評論頁。
                   </p>
@@ -400,8 +400,8 @@ export function ShopDetailTabs(props: Props) {
               </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {props.featureHighlights.map((item) => (
-                  <div key={item.label} className="rounded-2xl border bg-background p-5">
-                    <div className="text-xs font-semibold tracking-normal text-amber-700">{item.label}</div>
+                  <div key={item.label} className="rounded-lg border bg-background p-5">
+                    <div className="text-xs font-medium tracking-normal text-amber-700">{item.label}</div>
                     <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.detail}</p>
                   </div>
                 ))}
@@ -410,9 +410,9 @@ export function ShopDetailTabs(props: Props) {
           ) : null}
 
           {props.priceOverview && normalizedPriceBuckets.length > 1 ? (
-            <div className="rounded-2xl border bg-background p-5">
+            <div className="rounded-lg border bg-background p-5">
               <div className="text-xs text-muted-foreground">Google 平均每人</div>
-              <div className="mt-2 text-3xl font-semibold">{props.priceOverview}</div>
+              <div className="mt-2 text-2xl font-medium">{props.priceOverview}</div>
               {props.priceReportCount ? (
                 <div className="mt-1 text-sm text-muted-foreground">{props.priceReportCount} 人回報</div>
               ) : null}
@@ -442,7 +442,7 @@ export function ShopDetailTabs(props: Props) {
 
           {(props.address || props.phone || props.businessHours || props.nearbyParking?.length) && (
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold">基本資訊</h3>
+              <h3 className="text-lg font-medium">基本資訊</h3>
               <div className="rounded-lg border bg-background divide-y">
                 {props.address ? (
                   <a
@@ -496,7 +496,7 @@ export function ShopDetailTabs(props: Props) {
                                 <div className="flex shrink-0 items-center gap-2 md:flex-col md:items-end">
                                   <div className="rounded-md bg-primary/10 px-2.5 py-1.5 text-right text-primary">
                                     <div className="text-[10px] font-medium">汽車位</div>
-                                    <div className="text-xs font-semibold">{formatParkingSpaces(lot)}</div>
+                                    <div className="text-xs font-medium">{formatParkingSpaces(lot)}</div>
                                   </div>
                                   <a
                                     href={lot.navigationUrl}
@@ -541,13 +541,13 @@ export function ShopDetailTabs(props: Props) {
 
           {props.similarShops.length > 0 ? (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">跟這家店相似的餐廳</h3>
+              <h3 className="text-lg font-medium">跟這家店相似的餐廳</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {props.similarShops.map((candidate) => (
                   <Link
                     key={candidate.shopId}
                     href={`/shops/${candidate.shopId}`}
-                    className="overflow-hidden rounded-2xl border bg-background hover:border-primary/30 hover:bg-primary/[0.03] transition-colors"
+                    className="overflow-hidden rounded-lg border bg-background transition-colors hover:border-primary/30 hover:bg-primary/[0.03]"
                   >
                     <div className="aspect-[16/9] overflow-hidden bg-muted/20">
                       {candidate.photoUrl ? (
@@ -587,12 +587,12 @@ export function ShopDetailTabs(props: Props) {
       {activeTab === "gallery" ? (
         <div className="space-y-8 pt-6">
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">菜單</h3>
+            <h3 className="text-lg font-medium">菜單</h3>
             <a
               href={menuHref}
               target="_blank"
               rel="noreferrer"
-              className="relative block aspect-[16/7] overflow-hidden rounded-2xl border bg-muted/30"
+              className="relative block aspect-[16/7] overflow-hidden rounded-lg border bg-muted/30"
             >
               {firstPhoto ? (
                 <img
@@ -603,23 +603,23 @@ export function ShopDetailTabs(props: Props) {
               ) : null}
               <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-black/15" />
               <div className="absolute inset-x-0 bottom-0 px-5 py-6 text-white">
-                <div className="text-xl font-semibold">去 Google Maps 看菜單</div>
+                <div className="text-lg font-medium">去 Google Maps 看菜單</div>
                 <p className="mt-2 text-sm text-white/80">直接開店家頁，若 Google 有收錄菜單、照片或最新營業資訊，會比一般搜尋結果更準。</p>
               </div>
             </a>
           </div>
 
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">餐廳照片</h3>
+              <h3 className="text-lg font-medium">餐廳照片</h3>
               {firstPhoto ? (
               <div className="space-y-4">
-                <div className="aspect-[16/9] overflow-hidden rounded-2xl border bg-muted/20">
+                <div className="aspect-[16/9] overflow-hidden rounded-lg border bg-muted/20">
                   <img src={firstPhoto} alt={props.photoFallbackLabel} className="h-full w-full object-cover" />
                 </div>
                 {restPhotos.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     {restPhotos.map((url, index) => (
-                      <div key={`${url}-${index}`} className="aspect-[4/3] overflow-hidden rounded-2xl border bg-muted/20">
+                      <div key={`${url}-${index}`} className="aspect-[4/3] overflow-hidden rounded-lg border bg-muted/20">
                         <img src={url} alt={`${props.photoFallbackLabel}-${index + 2}`} className="h-full w-full object-cover" />
                       </div>
                     ))}
@@ -648,8 +648,8 @@ export function ShopDetailTabs(props: Props) {
             />
           ) : props.featureHighlights.length > 0 ? (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">餐廳特色</h3>
-              <div className="overflow-hidden rounded-2xl border">
+              <h3 className="text-lg font-medium">餐廳特色</h3>
+              <div className="overflow-hidden rounded-lg border">
                 <table className="w-full text-sm">
                   <thead className="bg-stone-100 text-left">
                     <tr>
@@ -671,7 +671,7 @@ export function ShopDetailTabs(props: Props) {
           ) : null}
 
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Google 顧客評論</h3>
+            <h3 className="text-lg font-medium">Google 顧客評論</h3>
             {props.selectedReviews.length > 0 ? (
               <>
                 <p className="text-sm text-muted-foreground">
