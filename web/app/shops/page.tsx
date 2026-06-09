@@ -9,7 +9,7 @@ import { getStyleByTypeId } from "@/lib/categoryStyle";
 import { isLegacySeedShop } from "@/lib/legacySeedShops";
 import { proxyImageUrl } from "@/lib/photoProxy";
 import { getBestShopCardPhoto, getShopDataQualityScore, getShopOverview } from "@/lib/shopPhotoManifest";
-import { MapPin, Search, X } from "lucide-react";
+import { ListFilter, MapPin, Search, Sparkles, Star, X } from "lucide-react";
 
 // AI search via Next.js rewrite proxy /api/ai/* → http://localhost:8000/api/ai/*
 const CLIENT_AI_API = "";
@@ -74,6 +74,11 @@ const SCORE_OPTIONS = [
 const PAGE_SIZE_OPTIONS = [12, 24, 48, "all"] as const;
 type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 const SEARCH_FETCH_SIZE = 2000;
+
+function getScoreLabel(value: number | null) {
+  if (value == null) return "不限";
+  return `${(value / 10).toFixed(1)}+`;
+}
 
 function getDisplaySpend(shop: Shop) {
   const overview = getShopOverview(shop.id);
@@ -156,7 +161,7 @@ function ShopsPageContent() {
       });
       setCategorySlugToId(next);
     });
-    javaApi.shopSearch({ size: 100 }).then((r) => {
+    javaApi.shopSearch({ size: SEARCH_FETCH_SIZE }).then((r) => {
       if (r?.success) allShopsRef.current = hideLegacySeedShops(r.data.records ?? []);
     });
   }, []);
@@ -309,6 +314,21 @@ function ShopsPageContent() {
     return c;
   }, [searchMode, debouncedQ, selectedTypes, selectedDistricts, selectedMrt, minScore]);
 
+  const typeNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    (options?.types ?? []).forEach((type) => map.set(type.id, type.name));
+    return map;
+  }, [options]);
+
+  const selectedTypeOptions = useMemo(
+    () =>
+      [...selectedTypes].map((id) => ({
+        id,
+        name: typeNameById.get(id) ?? `分類 ${id}`,
+      })),
+    [selectedTypes, typeNameById],
+  );
+
   const clearAll = () => {
     setQ("");
     setSelectedTypes(new Set());
@@ -356,64 +376,127 @@ function ShopsPageContent() {
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
       {/* Header */}
-      <div className="mb-4">
-        <h1 className="text-2xl md:text-3xl font-bold">探索店家</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {options?.totalShops ?? "—"} 家台北中高價餐廳、含 AI 評論摘要
-        </p>
-      </div>
+      <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-normal">探索餐廳</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {options?.totalShops ?? "—"} 家台北中高價餐廳，整合分類、捷運、評分與 AI 摘要
+          </p>
+        </div>
 
-      {/* Mode toggle */}
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={switchToText}
-          className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-            searchMode === "text"
-              ? "bg-foreground text-background border-foreground"
-              : "bg-background hover:bg-muted"
-          }`}
-        >
-          🔍 字串搜尋
-        </button>
-        <button
-          onClick={switchToAi}
-          className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-            searchMode === "ai"
-              ? "bg-primary text-primary-foreground border-primary"
-              : "bg-background hover:bg-muted"
-          }`}
-        >
-          ✨ AI 語意搜尋
-        </button>
+        <div className="inline-flex w-full rounded-lg border bg-background p-1 md:w-auto">
+          <button
+            onClick={switchToText}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors md:flex-none ${
+              searchMode === "text"
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            <Search className="h-4 w-4" />
+            一般搜尋
+          </button>
+          <button
+            onClick={switchToAi}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors md:flex-none ${
+              searchMode === "ai"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            <Sparkles className="h-4 w-4" />
+            AI 語意
+          </button>
+        </div>
       </div>
 
       {/* Search bar */}
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={
             searchMode === "ai"
-              ? "用自然語言描述、例如「適合約會的鐵板燒」"
-              : "搜尋店名、地址、區域..."
+              ? "用自然語言描述，例如「適合約會的鐵板燒」"
+              : "搜尋店名、地址、區域或捷運站"
           }
-          className={`w-full pl-10 pr-10 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 bg-background ${
+          className={`w-full rounded-lg border bg-background py-2.5 pl-10 pr-10 text-sm focus:outline-none focus:ring-2 ${
             searchMode === "ai"
-              ? "focus:ring-primary border-primary/40"
+              ? "border-primary/40 focus:ring-primary"
               : "focus:ring-primary"
           }`}
         />
         {q && (
           <button
             onClick={() => setQ("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2"
+            aria-label="清除搜尋"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 hover:bg-muted"
           >
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
         )}
       </div>
+
+      {searchMode === "text" && activeFilterCount > 0 ? (
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+          {debouncedQ ? (
+            <button
+              onClick={() => setQ("")}
+              className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-3 py-1 text-xs text-foreground"
+            >
+              搜尋：{debouncedQ}
+              <X className="h-3 w-3" />
+            </button>
+          ) : null}
+          {selectedTypeOptions.map((type) => (
+            <button
+              key={type.id}
+              onClick={() => toggle(selectedTypes, setSelectedTypes, type.id)}
+              className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-3 py-1 text-xs text-foreground"
+            >
+              {type.name}
+              <X className="h-3 w-3" />
+            </button>
+          ))}
+          {[...selectedDistricts].map((district) => (
+            <button
+              key={district}
+              onClick={() => toggle(selectedDistricts, setSelectedDistricts, district)}
+              className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-3 py-1 text-xs text-foreground"
+            >
+              {district}
+              <X className="h-3 w-3" />
+            </button>
+          ))}
+          {[...selectedMrt].map((station) => (
+            <button
+              key={station}
+              onClick={() => toggle(selectedMrt, setSelectedMrt, station)}
+              className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-3 py-1 text-xs text-foreground"
+            >
+              捷運{station}
+              <X className="h-3 w-3" />
+            </button>
+          ))}
+          {minScore ? (
+            <button
+              onClick={() => setMinScore(null)}
+              className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-3 py-1 text-xs text-foreground"
+            >
+              評分 {getScoreLabel(minScore)}
+              <X className="h-3 w-3" />
+            </button>
+          ) : null}
+          <button
+            onClick={clearAll}
+            className="inline-flex items-center gap-1 rounded-full border border-primary/40 px-3 py-1 text-xs text-primary hover:bg-primary/5"
+          >
+            清除全部
+          </button>
+        </div>
+      ) : null}
 
       {searchMode === "ai" && (
         <div className="mb-6">
@@ -446,33 +529,40 @@ function ShopsPageContent() {
             searchMode === "ai" ? "opacity-40 pointer-events-none select-none" : ""
           }`}
         >
-          {activeFilterCount > 0 && (
-            <button
-              onClick={clearAll}
-              className="w-full text-xs text-primary border border-primary rounded-lg px-3 py-2 hover:bg-primary/5"
-            >
-              清除 {activeFilterCount} 個篩選
-            </button>
-          )}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <ListFilter className="h-4 w-4 text-muted-foreground" />
+              篩選條件
+            </div>
+            {activeFilterCount > 0 ? (
+              <button
+                onClick={clearAll}
+                className="text-xs text-primary hover:underline"
+              >
+                清除 {activeFilterCount}
+              </button>
+            ) : null}
+          </div>
 
           {/* 評分 */}
           <div>
-            <p className="text-sm font-medium mb-2">最低評分</p>
-            <div className="space-y-1">
+            <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+              <Star className="h-4 w-4 text-muted-foreground" />
+              最低評分
+            </p>
+            <div className="grid grid-cols-2 gap-2">
               {SCORE_OPTIONS.map((opt) => (
-                <label
+                <button
                   key={opt.label}
-                  className="flex items-center gap-2 cursor-pointer text-sm"
+                  onClick={() => setMinScore(opt.value)}
+                  className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                    minScore === opt.value
+                      ? "border-foreground bg-foreground text-background"
+                      : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
                 >
-                  <input
-                    type="radio"
-                    name="minScore"
-                    checked={minScore === opt.value}
-                    onChange={() => setMinScore(opt.value)}
-                    className="accent-primary"
-                  />
-                  <span>{opt.label}</span>
-                </label>
+                  {opt.label}
+                </button>
               ))}
             </div>
           </div>
@@ -480,25 +570,41 @@ function ShopsPageContent() {
           {/* 分類 */}
           {options && (
             <div>
-              <p className="text-sm font-medium mb-2">分類</p>
-              <div className="space-y-1 max-h-64 overflow-y-auto">
-                {options.types.map((t) => (
-                  <label
-                    key={t.id}
-                    className="flex items-center gap-2 cursor-pointer text-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedTypes.has(t.id)}
-                      onChange={() =>
-                        toggle(selectedTypes, setSelectedTypes, t.id)
-                      }
-                      className="accent-primary"
-                    />
-                    <span className="flex-1">{t.name}</span>
-                    <span className="text-xs text-muted-foreground">{t.count}</span>
-                  </label>
-                ))}
+              <p className="mb-2 text-sm font-medium">餐廳分類</p>
+              <div className="grid grid-cols-1 gap-2">
+                {options.types.map((t) => {
+                  const style = getStyleByTypeId(t.id);
+                  const Icon = style.icon;
+                  const active = selectedTypes.has(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => toggle(selectedTypes, setSelectedTypes, t.id)}
+                      aria-pressed={active}
+                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                        active
+                          ? "border-foreground bg-foreground text-background"
+                          : "bg-background text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
+                          active ? "bg-background/15" : "bg-muted"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" strokeWidth={1.75} />
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">{t.name}</span>
+                      <span
+                        className={`text-xs ${
+                          active ? "text-background/75" : "text-muted-foreground"
+                        }`}
+                      >
+                        {t.count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -506,24 +612,32 @@ function ShopsPageContent() {
           {/* 區域 */}
           {options && (
             <div>
-              <p className="text-sm font-medium mb-2">區域</p>
-              <div className="space-y-1">
+              <p className="mb-2 text-sm font-medium">區域</p>
+              <div className="space-y-1.5">
                 {options.districts.map((d) => (
-                  <label
+                  <button
                     key={d.name}
-                    className="flex items-center gap-2 cursor-pointer text-sm"
+                    onClick={() =>
+                      toggle(selectedDistricts, setSelectedDistricts, d.name)
+                    }
+                    aria-pressed={selectedDistricts.has(d.name)}
+                    className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                      selectedDistricts.has(d.name)
+                        ? "border-foreground bg-foreground text-background"
+                        : "bg-background hover:bg-muted"
+                    }`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedDistricts.has(d.name)}
-                      onChange={() =>
-                        toggle(selectedDistricts, setSelectedDistricts, d.name)
-                      }
-                      className="accent-primary"
-                    />
                     <span className="flex-1">{d.name}</span>
-                    <span className="text-xs text-muted-foreground">{d.count}</span>
-                  </label>
+                    <span
+                      className={`text-xs ${
+                        selectedDistricts.has(d.name)
+                          ? "text-background/75"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {d.count}
+                    </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -532,24 +646,32 @@ function ShopsPageContent() {
           {/* 捷運站 */}
           {options && (
             <div>
-              <p className="text-sm font-medium mb-2">捷運站</p>
-              <div className="space-y-1">
+              <p className="mb-2 text-sm font-medium">捷運站</p>
+              <div className="space-y-1.5">
                 {options.mrtStations.map((m) => (
-                  <label
+                  <button
                     key={m.name}
-                    className="flex items-center gap-2 cursor-pointer text-sm"
+                    onClick={() =>
+                      toggle(selectedMrt, setSelectedMrt, m.name)
+                    }
+                    aria-pressed={selectedMrt.has(m.name)}
+                    className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                      selectedMrt.has(m.name)
+                        ? "border-foreground bg-foreground text-background"
+                        : "bg-background hover:bg-muted"
+                    }`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedMrt.has(m.name)}
-                      onChange={() =>
-                        toggle(selectedMrt, setSelectedMrt, m.name)
-                      }
-                      className="accent-primary"
-                    />
                     <span className="flex-1">{m.name}</span>
-                    <span className="text-xs text-muted-foreground">{m.count}</span>
-                  </label>
+                    <span
+                      className={`text-xs ${
+                        selectedMrt.has(m.name)
+                          ? "text-background/75"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {m.count}
+                    </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -560,7 +682,7 @@ function ShopsPageContent() {
         <div>
           <div className="flex items-baseline justify-between mb-3">
             <p className="text-sm text-muted-foreground">
-              {isLoading ? "搜尋中..." : `共 ${visibleShops.length} 家`}
+              {isLoading ? "搜尋中..." : `目前顯示 ${visibleShops.length} 家`}
               {activeFilterCount > 0 && (
                 <span> · {activeFilterCount} 個篩選</span>
               )}
@@ -593,7 +715,7 @@ function ShopsPageContent() {
 
           {/* AI mode hint */}
           {searchMode === "ai" && debouncedQ && !aiLoading && (
-            <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+            <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
               <p className="text-xs text-primary">
                 AI 依語意排序：先找符合場景，再看價位、預約難度、Hot Seat 與招牌菜。
               </p>
@@ -615,9 +737,9 @@ function ShopsPageContent() {
             {pagedShops.map((shop) => {
               const style = getStyleByTypeId(shop.typeId);
               const Icon = style.icon;
-                const coverPhoto = proxyImageUrl(
-                  getBestShopCardPhoto(shop.id, getFallbackImage(shop)),
-                );
+              const coverPhoto = proxyImageUrl(
+                getBestShopCardPhoto(shop.id, getFallbackImage(shop)),
+              );
               const displaySpend = getDisplaySpend(shop);
               const topTags = (shop.aiAtmosphereTags ?? []).slice(0, 2);
               const topDish = shop.aiSignatureDishes?.[0];
@@ -627,7 +749,7 @@ function ShopsPageContent() {
                   href={`/shops/${shop.id}`}
                   className="block"
                 >
-                  <div className="border rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+                  <div className="overflow-hidden rounded-lg border transition-colors hover:border-foreground/30">
                     <div className={`relative aspect-[4/3] overflow-hidden bg-gradient-to-br ${style.gradient}`}>
                       {coverPhoto ? (
                         <>
@@ -648,7 +770,7 @@ function ShopsPageContent() {
                         </div>
                       )}
                     </div>
-                    <div className="p-3">
+                    <div className="p-3.5">
                       {searchMode === "ai" && shop.aiHotSeatCount ? (
                         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2">
                           <p className="text-[11px] font-medium text-amber-800">
@@ -661,11 +783,11 @@ function ShopsPageContent() {
                       ) : null}
 
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="font-medium text-sm leading-tight flex-1">
+                        <h3 className="flex-1 text-sm font-medium leading-tight">
                           {shop.name}
                         </h3>
                         {shop.score != null && (
-                          <span className="text-xs font-mono bg-foreground text-background px-1.5 py-0.5 rounded shrink-0">
+                          <span className="shrink-0 rounded bg-foreground px-1.5 py-0.5 font-mono text-xs text-background">
                             {(shop.score / 10).toFixed(1)}
                           </span>
                         )}
@@ -749,7 +871,7 @@ function ShopsPageContent() {
           </div>
 
           {!isLoading && visibleShops.length > 0 && pageSize !== "all" ? (
-            <div className="mt-6 flex items-center justify-between gap-3 rounded-xl border bg-background px-4 py-3 text-sm">
+            <div className="mt-6 flex items-center justify-between gap-3 rounded-lg border bg-background px-4 py-3 text-sm">
               <p className="text-muted-foreground">
                 第 {page} / {totalPages} 頁
               </p>
