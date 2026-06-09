@@ -174,10 +174,10 @@ def _line_context(lt: str = "", line_user_id: str = "") -> tuple[str, str]:
         # Newly generated cards still use lt, but old cards can self-upgrade after one click.
         return legacy_user_id, _line_token_for_user(legacy_user_id)
     return "", ""
-PREMIUM_HOTPOT_SUPPLEMENT_IDS = (10009,)
-LOW_DETAIL_SEED_SHOP_IDS = {
+PREMIUM_HOTPOT_SUPPLEMENT_IDS: tuple[int, ...] = ()
+LEGACY_SEED_SHOP_IDS = {
     10001, 10002, 10003, 10004, 10005,
-    10006, 10007, 10008, 10010,
+    10006, 10007, 10008, 10009, 10010,
     10011, 10012, 10013, 10014, 10015,
     10016, 10017, 10018, 10019, 10020,
     10021, 10022, 10023, 10024, 10025,
@@ -1074,31 +1074,24 @@ def _java_shop_to_search_hit(shop: dict, metadata: dict | None = None) -> dict:
     return payload
 
 
-def _is_low_detail_seed_hit(hit: dict) -> bool:
+def _is_legacy_seed_hit(hit: dict) -> bool:
     try:
         shop_id = int(hit.get("shop_id") or 0)
     except (TypeError, ValueError):
         return False
-    if shop_id not in LOW_DETAIL_SEED_SHOP_IDS:
-        return False
-    return not any(
-        [
-            str(hit.get("ai_summary") or "").strip(),
-            hit.get("signature_dishes"),
-            hit.get("atmosphere_tags"),
-        ]
-    )
+    return shop_id in LEGACY_SEED_SHOP_IDS
 
 
 def _prefer_rich_hits(hits: list[dict], top_k: int) -> list[dict]:
     if not hits:
         return hits
-    rich_hits = [hit for hit in hits if not _is_low_detail_seed_hit(hit)]
-    if len(rich_hits) >= min(top_k, 3):
-        skipped = [hit.get("name") for hit in hits if _is_low_detail_seed_hit(hit)]
-        if skipped:
-            logger.warning("search_low_detail_seed_filtered skipped=%s", skipped[:8])
-        return rich_hits
+    rich_hits = [hit for hit in hits if not _is_legacy_seed_hit(hit)]
+    skipped = [hit.get("name") for hit in hits if _is_legacy_seed_hit(hit)]
+    if skipped:
+        logger.warning("search_legacy_seed_filtered skipped=%s", skipped[:8])
+        return rich_hits[:top_k]
+    if rich_hits:
+        return rich_hits[:top_k]
     return hits
 
 

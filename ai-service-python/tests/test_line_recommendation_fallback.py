@@ -303,8 +303,9 @@ def test_specific_cuisine_constraints_for_thai_and_indian_queries():
     assert main._is_specific_cuisine_mismatch(japanese_curry, "indian")
 
 
-def test_prefer_rich_hits_filters_low_detail_seed_when_possible():
+def test_prefer_rich_hits_filters_legacy_seed_when_possible():
     hits = [
+        {"shop_id": 10009, "name": "橘色涮涮屋 信義館", "ai_summary": "高級火鍋。"},
         {"shop_id": 10014, "name": "劉山東小牛肉麵 中山店"},
         {"shop_id": 10123, "name": "海霸王 中山店", "ai_summary": "中式聚餐。"},
         {"shop_id": 10124, "name": "小品雅廚", "signature_dishes": ["家常菜"]},
@@ -314,6 +315,15 @@ def test_prefer_rich_hits_filters_low_detail_seed_when_possible():
     filtered = main._prefer_rich_hits(hits, top_k=3)
 
     assert [hit["shop_id"] for hit in filtered] == [10123, 10124, 10126]
+
+
+def test_prefer_rich_hits_returns_empty_when_only_legacy_seed_matches():
+    hits = [
+        {"shop_id": 10009, "name": "橘色涮涮屋 信義館", "ai_summary": "高級火鍋。"},
+        {"shop_id": 10014, "name": "劉山東小牛肉麵 中山店"},
+    ]
+
+    assert main._prefer_rich_hits(hits, top_k=3) == []
 
 
 @pytest.mark.anyio
