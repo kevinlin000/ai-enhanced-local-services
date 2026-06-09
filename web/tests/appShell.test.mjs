@@ -10,7 +10,8 @@ test("app shell keeps navigation chrome quiet and workspace-like", () => {
 
   assert.doesNotMatch(source, /\b(?:font-black|font-bold|rounded-2xl|rounded-3xl|shadow-sm|shadow-lg|shadow-xl|shadow-2xl)\b/);
   assert.doesNotMatch(source, /bg-\[#(?:f7f3ec|f6f1e8|e9ddbd)\]/);
-  assert.match(source, /bg-muted text-foreground/);
+  assert.match(source, /bb-premium-page/);
+  assert.match(source, /bb-shell-active/);
   assert.match(source, /text-3xl font-semibold tracking-normal/);
 });
 

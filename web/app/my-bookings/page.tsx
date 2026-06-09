@@ -329,11 +329,11 @@ export default function MyBookingsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
+    <main className="bb-premium-page min-h-screen px-4 py-8 text-foreground md:px-8">
       <section className="mx-auto max-w-5xl">
-        <div className="flex flex-col gap-5 border-b pb-6 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-5 border-b bb-accent-rule pb-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            <p className="bb-page-kicker">
               ByteBites Reservations
             </p>
             <h1 className="mt-3 text-3xl font-semibold tracking-normal md:text-4xl">我的訂位</h1>
@@ -341,14 +341,14 @@ export default function MyBookingsPage() {
               管理已保留、待付款、已付款與已取消的訂位。付款、取消與逾期都會同步更新店家的可訂容量。
             </p>
           </div>
-            <Link href="/ai">
-            <Button variant="outline" className="rounded-lg px-4">
-                回 AI 訂位
-              </Button>
-            </Link>
+          <Link href="/ai">
+            <Button variant="outline" className="rounded-lg border-[rgb(167_137_67_/_0.22)] bg-[rgb(255_253_248_/_0.72)] px-4">
+              回 AI 訂位
+            </Button>
+          </Link>
         </div>
 
-        <div className="mt-6 rounded-lg border bg-background p-5 md:p-6">
+        <div className="bb-premium-surface mt-6 rounded-lg p-5 md:p-6">
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-xl font-medium">訂位紀錄</h2>
@@ -380,7 +380,7 @@ export default function MyBookingsPage() {
               讀取訂位中...
             </div>
           ) : bookings.length === 0 ? (
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-5 py-10 text-center">
+            <div className="bb-empty-state rounded-lg px-5 py-10 text-center">
               <p className="text-lg font-medium">目前沒有訂位</p>
               <p className="mt-2 text-sm text-zinc-500">從 AI 搜尋或店家詳情建立訂位後，會出現在這裡。</p>
             </div>
@@ -397,7 +397,7 @@ export default function MyBookingsPage() {
                 return (
                   <article
                     key={booking.bookingCode}
-                    className="overflow-hidden rounded-lg border border-zinc-200 bg-[#fffdf8]"
+                    className="overflow-hidden rounded-lg border border-[rgb(222_216_203_/_0.82)] bg-[rgb(255_253_248_/_0.88)]"
                   >
                     <div className="flex flex-col gap-4 border-b border-zinc-200 bg-white px-5 py-4 md:flex-row md:items-center md:justify-between">
                       <div>

@@ -111,11 +111,11 @@ export default function NotificationsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
+    <main className="bb-premium-page min-h-screen px-4 py-8 text-foreground md:px-8">
       <section className="mx-auto max-w-5xl">
-        <div className="flex flex-col gap-5 border-b pb-6 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-5 border-b bb-accent-rule pb-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            <p className="bb-page-kicker">
               Availability Center
             </p>
             <h1 className="mt-3 text-3xl font-semibold tracking-normal md:text-4xl">空位釋出通知管理</h1>
@@ -123,14 +123,14 @@ export default function NotificationsPage() {
               額滿時段釋出座位時會主動提醒。你可以在這裡查看通知、前往訂位，或取消不再需要的追蹤。
             </p>
           </div>
-          <div className="w-fit rounded-lg border bg-muted/30 px-5 py-4">
+          <div className="bb-soft-surface w-fit rounded-lg px-5 py-4">
             <p className="text-sm text-muted-foreground">未讀通知</p>
             <p className="mt-1 font-mono text-2xl font-medium">{unreadCount}</p>
           </div>
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <section className="rounded-lg border bg-background p-5 md:p-6">
+          <section className="bb-premium-surface rounded-lg p-5 md:p-6">
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-xl font-medium">通知</h2>
@@ -167,7 +167,7 @@ export default function NotificationsPage() {
                 讀取通知中...
               </div>
             ) : items.length === 0 ? (
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-5 py-10 text-center">
+              <div className="bb-empty-state rounded-lg px-5 py-10 text-center">
                 <p className="text-lg font-medium">目前沒有通知</p>
                 <p className="mt-2 text-sm text-zinc-500">額滿時段釋出後會顯示在這裡。</p>
               </div>
@@ -179,7 +179,7 @@ export default function NotificationsPage() {
                     className={`rounded-lg border p-4 ${
                       item.status === "UNREAD"
                         ? "border-emerald-200 bg-emerald-50"
-                        : "border-zinc-200 bg-[#fffdf8]"
+                        : "border-[rgb(222_216_203_/_0.82)] bg-[rgb(255_253_248_/_0.88)]"
                     }`}
                   >
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -218,17 +218,17 @@ export default function NotificationsPage() {
             )}
           </section>
 
-          <section className="rounded-lg border bg-background p-5 md:p-6">
+          <section className="bb-premium-surface rounded-lg p-5 md:p-6">
             <h2 className="text-xl font-medium">追蹤中的空位</h2>
             <p className="mt-1 text-sm text-zinc-500">管理正在等待、已通知或已取消的時段。</p>
             <div className="mt-5 space-y-3">
               {watches.length === 0 ? (
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-500">
+                <div className="bb-empty-state rounded-lg px-4 py-8 text-center text-sm text-zinc-500">
                   尚未設定空位通知。
                 </div>
               ) : (
                 watches.map((watch) => (
-                  <article key={watch.id} className="rounded-lg border border-zinc-200 bg-[#fffdf8] p-4">
+                  <article key={watch.id} className="rounded-lg border border-[rgb(222_216_203_/_0.82)] bg-[rgb(255_253_248_/_0.88)] p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-medium">{watch.shopName}</p>

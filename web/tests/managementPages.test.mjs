@@ -35,3 +35,15 @@ test("management pages avoid standalone dark marketing heroes", () => {
 
   assert.deepEqual(offenders, []);
 });
+
+test("management pages use premium dining workspace tokens", () => {
+  const offenders = [];
+
+  for (const file of managementPages) {
+    const source = readFileSync(join(root, file), "utf8");
+    if (!source.includes("bb-premium-page")) offenders.push(`${file}: missing bb-premium-page`);
+    if (!source.includes("bb-page-kicker")) offenders.push(`${file}: missing bb-page-kicker`);
+  }
+
+  assert.deepEqual(offenders, []);
+});

@@ -78,8 +78,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   const shellClass = collapsed
-    ? "min-h-screen bg-background text-foreground md:grid md:grid-cols-[76px_minmax(0,1fr)]"
-    : "min-h-screen bg-background text-foreground md:grid md:grid-cols-[272px_minmax(0,1fr)]";
+    ? "bb-premium-page min-h-screen text-foreground md:grid md:grid-cols-[76px_minmax(0,1fr)]"
+    : "bb-premium-page min-h-screen text-foreground md:grid md:grid-cols-[272px_minmax(0,1fr)]";
 
   const displayName = mounted && isAuthLoading
     ? "驗證中"
@@ -90,9 +90,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={shellClass}>
-      <aside className="hidden border-r bg-muted/20 md:sticky md:top-0 md:flex md:h-screen md:flex-col">
+      <aside className="bb-shell-sidebar hidden border-r md:sticky md:top-0 md:flex md:h-screen md:flex-col">
         <div className={`flex h-20 items-center ${collapsed ? "justify-center px-2" : "px-6"}`}>
-          <Link href="/" className={`${collapsed ? "text-2xl" : "text-3xl"} font-semibold tracking-normal`}>
+          <Link href="/" className={`${collapsed ? "text-2xl" : "text-3xl"} font-semibold tracking-normal text-[var(--bb-ink)]`}>
             bb
           </Link>
         </div>
@@ -144,7 +144,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             const active = isActive(pathname, item.href);
             const className = `flex items-center rounded-lg py-2.5 text-[15px] font-medium transition ${
               active
-                ? "bg-muted text-foreground"
+                ? "bb-shell-active"
                 : item.disabled
                   ? "cursor-not-allowed text-zinc-400"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -214,7 +214,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-40 hidden h-16 items-center justify-between border-b bg-background/92 px-6 backdrop-blur md:flex">
+        <header className="sticky top-0 z-40 hidden h-16 items-center justify-between border-b bg-[rgb(255_253_248_/_0.88)] px-6 backdrop-blur md:flex">
           <button
             type="button"
             onClick={toggleCollapsed}
@@ -223,19 +223,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <Link href="/" className="text-3xl font-semibold tracking-normal">
+          <Link href="/" className="text-3xl font-semibold tracking-normal text-[var(--bb-ink)]">
             ByteBites
           </Link>
           <Link
             href="/ai"
-            className="flex w-[260px] items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            className="flex w-[260px] items-center gap-2 rounded-lg border border-[rgb(167_137_67_/_0.18)] bg-[rgb(255_253_248_/_0.72)] px-3 py-2 text-sm font-medium text-muted-foreground transition hover:border-[rgb(167_137_67_/_0.38)] hover:bg-[rgb(255_255_255_/_0.9)] hover:text-foreground"
           >
             <Search className="h-4 w-4" />
             找餐廳 問 ByteBites AI
           </Link>
         </header>
 
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background/90 px-4 backdrop-blur md:hidden">
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-[rgb(255_253_248_/_0.9)] px-4 backdrop-blur md:hidden">
           <Link href="/" className="text-2xl font-semibold tracking-normal">
             bb
           </Link>

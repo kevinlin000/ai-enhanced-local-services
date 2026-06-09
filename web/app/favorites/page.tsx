@@ -70,11 +70,11 @@ export default function FavoritesPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
+    <main className="bb-premium-page min-h-screen px-4 py-8 text-foreground md:px-8">
       <section className="mx-auto max-w-6xl">
-        <div className="flex flex-col gap-5 border-b pb-6 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-5 border-b bb-accent-rule pb-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            <p className="bb-page-kicker">
               Saved restaurants
             </p>
             <h1 className="mt-3 text-3xl font-semibold tracking-normal md:text-4xl">收藏餐廳</h1>
@@ -84,7 +84,7 @@ export default function FavoritesPage() {
           </div>
           <Link
             href="/shops"
-            className="inline-flex w-fit rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted"
+            className="inline-flex w-fit rounded-lg border border-[rgb(167_137_67_/_0.22)] bg-[rgb(255_253_248_/_0.72)] px-4 py-2 text-sm font-medium hover:bg-white"
           >
             繼續探索
           </Link>
@@ -115,7 +115,7 @@ export default function FavoritesPage() {
               {error}
             </div>
           ) : items.length === 0 ? (
-            <div className="rounded-lg border border-dashed bg-muted/20 p-10 text-center">
+            <div className="bb-empty-state rounded-lg p-10 text-center">
               <Heart className="mx-auto h-10 w-10 text-zinc-300" />
               <h2 className="mt-4 text-xl font-medium">還沒有收藏餐廳</h2>
               <p className="mt-2 text-sm text-zinc-500">
@@ -145,7 +145,7 @@ export default function FavoritesPage() {
                       return (
                         <article
                           key={shop.shopId}
-                          className="overflow-hidden rounded-lg border bg-background transition-colors hover:border-foreground/30"
+                          className="bb-premium-surface overflow-hidden rounded-lg transition-colors hover:border-[rgb(167_137_67_/_0.42)]"
                         >
                           <div className="grid md:grid-cols-[180px_1fr]">
                             <Link href={`/shops/${shop.shopId}`} className="block h-44 bg-zinc-100 md:h-full">

@@ -82,6 +82,15 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --bb-ivory: #f7f3ea;
+  --bb-paper: #fffdf8;
+  --bb-porcelain: #ffffff;
+  --bb-ink: #15130f;
+  --bb-muted-ink: #706d66;
+  --bb-line: #ded8cb;
+  --bb-gold: #a78943;
+  --bb-gold-soft: #eee4c8;
+  --bb-forest: #123326;
 }
 
 .dark {
@@ -152,5 +161,56 @@
 
   .font-semibold {
     font-weight: 550;
+  }
+
+  .bb-premium-page {
+    background:
+      radial-gradient(circle at 18% 8%, rgb(255 255 255 / 78%), transparent 34rem),
+      linear-gradient(180deg, var(--bb-paper) 0%, var(--bb-ivory) 100%);
+  }
+
+  .bb-shell-sidebar {
+    background:
+      linear-gradient(180deg, rgb(255 255 255 / 82%) 0%, rgb(247 243 234 / 88%) 100%),
+      var(--bb-ivory);
+  }
+
+  .bb-shell-active {
+    border: 1px solid rgb(167 137 67 / 18%);
+    background: linear-gradient(135deg, rgb(238 228 200 / 66%), rgb(255 253 248 / 78%));
+    color: var(--bb-ink);
+  }
+
+  .bb-premium-surface {
+    border: 1px solid rgb(222 216 203 / 82%);
+    background:
+      linear-gradient(180deg, rgb(255 255 255 / 92%), rgb(255 253 248 / 86%)),
+      var(--bb-paper);
+    box-shadow: 0 18px 52px rgb(34 28 18 / 0.055);
+  }
+
+  .bb-soft-surface {
+    border: 1px solid rgb(222 216 203 / 70%);
+    background: rgb(255 253 248 / 72%);
+  }
+
+  .bb-page-kicker {
+    color: var(--bb-gold);
+    font-family: var(--font-geist), var(--font-noto-tc), system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .bb-accent-rule {
+    border-color: rgb(167 137 67 / 22%);
+  }
+
+  .bb-empty-state {
+    border: 1px dashed rgb(167 137 67 / 30%);
+    background:
+      radial-gradient(circle at 50% 0%, rgb(238 228 200 / 35%), transparent 18rem),
+      rgb(255 253 248 / 76%);
   }
 }
