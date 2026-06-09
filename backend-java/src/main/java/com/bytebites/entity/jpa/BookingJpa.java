@@ -71,6 +71,17 @@ public class BookingJpa {
     @Column(name = "idempotency_key", unique = true, length = 120)
     private String idempotencyKey;
 
+    /** Whether this booking's user plans to drive to the restaurant. */
+    @Column(name = "driving_to_booking", nullable = false)
+    private Boolean drivingToBooking = false;
+
+    /** Opt-in reminder for nearby parking availability before arrival. */
+    @Column(name = "parking_reminder_enabled", nullable = false)
+    private Boolean parkingReminderEnabled = false;
+
+    @Column(name = "parking_reminder_sent_at")
+    private LocalDateTime parkingReminderSentAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

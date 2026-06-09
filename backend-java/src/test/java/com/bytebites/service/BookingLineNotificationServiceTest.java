@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -99,6 +100,52 @@ class BookingLineNotificationServiceTest {
                 org.mockito.ArgumentMatchers.anyMap(),
                 org.mockito.ArgumentMatchers.anyString()
         );
+    }
+
+    @Test
+    void parkingReminderPayloadContainsBookingAndNearbyLots() {
+        BookingJpa booking = booking(BookingHoldService.STATUS_CONFIRMED, null);
+        booking.setDrivingToBooking(true);
+        booking.setParkingReminderEnabled(true);
+        List<ParkingService.NearbyParkingLotView> lots = List.of(
+                new ParkingService.NearbyParkingLotView(
+                        "P001",
+                        "市府轉運站停車場",
+                        "信義",
+                        "台北市信義區忠孝東路",
+                        121.565,
+                        25.033,
+                        180,
+                        120,
+                        18,
+                        "小時計費",
+                        "24 小時",
+                        "2026-06-10 17:00:00",
+                        "https://www.google.com/maps/dir/?api=1&destination=25.033,121.565&travelmode=driving"
+                )
+        );
+        when(shopService.getById(SHOP_ID)).thenReturn(shop());
+        when(userJpaService.findLineNotificationUserId(USER_ID)).thenReturn(Optional.of(LINE_USER_ID));
+
+        service.pushParkingReminder(booking, lots);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> reminderCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(lineNotificationClient).pushParkingReminder(
+                org.mockito.ArgumentMatchers.eq(LINE_USER_ID),
+                reminderCaptor.capture()
+        );
+        assertThat(reminderCaptor.getValue())
+                .containsEntry("bookingCode", "BK-LINE-001")
+                .containsEntry("shopName", "橘色涮涮屋 信義館")
+                .containsEntry("parkingDataSource", "台北市停車場即時剩餘車位資料");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> parkingLots = (List<Map<String, Object>>) reminderCaptor.getValue().get("parkingLots");
+        assertThat(parkingLots).hasSize(1);
+        assertThat(parkingLots.get(0))
+                .containsEntry("name", "市府轉運站停車場")
+                .containsEntry("availableCar", 18)
+                .containsEntry("distanceMeters", 180);
     }
 
     private BookingJpa booking(int status, String paymentTransId) {

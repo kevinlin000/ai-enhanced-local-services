@@ -92,4 +92,36 @@ class LineNotificationClientTest {
 
         server.verify();
     }
+
+    @Test
+    void parkingReminderPostsPythonInternalWebhookPayload() throws Exception {
+        RestTemplate restTemplate = new RestTemplate();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        LineNotificationClient client = new LineNotificationClient(
+                restTemplate,
+                "http://localhost:8000/",
+                "sync-secret"
+        );
+        Map<String, Object> reminder = new LinkedHashMap<>();
+        reminder.put("bookingCode", "BK-PARK-001");
+        reminder.put("shopId", 10009L);
+        reminder.put("shopName", "橘色涮涮屋 信義館");
+        reminder.put("date", "2026-06-10");
+        reminder.put("time", "19:00");
+        reminder.put("parkingLots", java.util.List.of(Map.of("name", "市府轉運站停車場", "availableCar", 18)));
+
+        Map<String, Object> expectedPayload = new LinkedHashMap<>();
+        expectedPayload.put("lineUserId", "Udemo-sync");
+        expectedPayload.putAll(reminder);
+        expectedPayload.put("secret", "sync-secret");
+
+        server.expect(requestTo("http://localhost:8000/internal/line/parking-reminder"))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(content().json(objectMapper.writeValueAsString(expectedPayload)))
+                .andRespond(withSuccess("{\"ok\":true}", MediaType.APPLICATION_JSON));
+
+        client.pushParkingReminder(" Udemo-sync ", reminder);
+
+        server.verify();
+    }
 }

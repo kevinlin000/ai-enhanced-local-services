@@ -181,6 +181,9 @@ public class BookingController {
                 : BookingHoldService.STATUS_CONFIRMED);
         booking.setHoldExpiresAt(pol.isNeedsDeposit() ? bookingHoldService.newHoldExpiry() : null);
         booking.setIdempotencyKey(idempotencyKey);
+        boolean drivingToBooking = truthy(body.get("drivingToBooking"));
+        booking.setDrivingToBooking(drivingToBooking);
+        booking.setParkingReminderEnabled(drivingToBooking && truthy(body.getOrDefault("parkingReminderEnabled", true)));
 
         bookingRepo.saveAndFlush(booking);
         bookingLineNotificationService.pushBookingUpdated(booking, "reserved");
@@ -313,6 +316,36 @@ public class BookingController {
         return Result.ok(bookings);
     }
 
+    @PostMapping("/{bookingCode}/parking-preference")
+    public Result updateParkingPreference(
+            @PathVariable String bookingCode,
+            @RequestBody(required = false) Map<String, Object> body
+    ) {
+        Map<String, Object> requestBody = body != null ? body : Map.of();
+        if (bookingCode == null || bookingCode.isBlank()) return Result.fail("bookingCode 必填");
+
+        BookingJpa booking = bookingRepo.findByBookingCode(bookingCode).orElse(null);
+        if (booking == null) return Result.fail("訂位不存在");
+        if (!canAccessBooking(booking, requestBody)) return Result.fail("無權操作此訂位");
+        if (booking.getStatus() == BookingHoldService.STATUS_CANCELED
+                || booking.getStatus() == BookingHoldService.STATUS_EXPIRED) {
+            return Result.fail("此訂位已取消或逾期，無法設定停車提醒");
+        }
+
+        boolean drivingToBooking = truthy(requestBody.get("drivingToBooking"));
+        boolean reminderEnabled = drivingToBooking
+                && truthy(requestBody.getOrDefault("parkingReminderEnabled", true));
+        booking.setDrivingToBooking(drivingToBooking);
+        booking.setParkingReminderEnabled(reminderEnabled);
+        if (reminderEnabled) {
+            booking.setParkingReminderSentAt(null);
+        }
+        bookingRepo.save(booking);
+        var shop = shopService.getById(booking.getShopId());
+        String shopName = shop != null ? shop.getName() : null;
+        return Result.ok(bookingResponse(booking, shopName, false));
+    }
+
     @PostMapping("/{bookingCode}/cancel")
     public Result cancel(@PathVariable String bookingCode, @RequestBody(required = false) Map<String, Object> body) {
         Map<String, Object> requestBody = body != null ? body : Map.of();
@@ -386,6 +419,9 @@ public class BookingController {
         out.put("paymentTransId", booking.getPaymentTransId());
         out.put("holdExpiresAt", booking.getHoldExpiresAt() != null ? booking.getHoldExpiresAt().toString() : null);
         out.put("holdMinutes", BookingHoldService.HOLD_MINUTES);
+        out.put("drivingToBooking", Boolean.TRUE.equals(booking.getDrivingToBooking()));
+        out.put("parkingReminderEnabled", Boolean.TRUE.equals(booking.getParkingReminderEnabled()));
+        out.put("parkingReminderSentAt", booking.getParkingReminderSentAt() != null ? booking.getParkingReminderSentAt().toString() : null);
         out.put("createdAt", booking.getCreatedAt() != null ? booking.getCreatedAt().toString() : null);
         out.put("updatedAt", booking.getUpdatedAt() != null ? booking.getUpdatedAt().toString() : null);
         out.put("idempotentReplay", idempotentReplay);
@@ -419,6 +455,16 @@ public class BookingController {
 
     private Long resolveLineUserOwnerId(Map<String, Object> body) {
         return lineActionTokenService.resolveOwnerId(body).orElse(null);
+    }
+
+    private boolean truthy(Object value) {
+        if (value == null) return false;
+        if (value instanceof Boolean bool) return bool;
+        String text = value.toString().trim();
+        return text.equalsIgnoreCase("true")
+                || text.equalsIgnoreCase("yes")
+                || text.equals("1")
+                || text.equals("會開車");
     }
 
     private void ensureSlotInventory(Long shopId, LocalDate bookingDate, String time, String tableType) {

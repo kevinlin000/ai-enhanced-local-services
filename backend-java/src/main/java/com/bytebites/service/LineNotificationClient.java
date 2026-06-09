@@ -1,6 +1,7 @@
 package com.bytebites.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
@@ -16,6 +17,7 @@ public class LineNotificationClient {
     private final String aiServiceUrl;
     private final String internalSecret;
 
+    @Autowired
     public LineNotificationClient(
             @Value("${bytebites.ai-service-url:http://localhost:8000}") String aiServiceUrl,
             @Value("${bytebites.line-internal-secret:}") String internalSecret
@@ -87,6 +89,33 @@ public class LineNotificationClient {
         } catch (RestClientException ex) {
             log.warn("[LINE booking push] failed bookingCode={} phase={} lineUserId={}",
                     booking.get("bookingCode"), phase, userId, ex);
+        }
+    }
+
+    public void pushParkingReminder(String lineUserId, Map<String, Object> reminder) {
+        String userId = lineUserId == null ? "" : lineUserId.trim();
+        if (userId.isBlank() || "null".equals(userId) || reminder == null || reminder.isEmpty()) return;
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("lineUserId", userId);
+        payload.putAll(reminder);
+        if (!internalSecret.isBlank()) {
+            payload.put("secret", internalSecret);
+        }
+
+        try {
+            Map<?, ?> response = restTemplate.postForObject(
+                    aiServiceUrl.replaceAll("/+$", "") + "/internal/line/parking-reminder",
+                    payload,
+                    Map.class
+            );
+            if (response != null && Boolean.FALSE.equals(response.get("ok"))) {
+                log.warn("[LINE parking push] not ok bookingCode={} lineUserId={} response={}",
+                        reminder.get("bookingCode"), userId, response);
+            }
+        } catch (RestClientException ex) {
+            log.warn("[LINE parking push] failed bookingCode={} lineUserId={}",
+                    reminder.get("bookingCode"), userId, ex);
         }
     }
 }

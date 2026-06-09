@@ -3294,6 +3294,24 @@ async def internal_line_booking_updated(request: Request):
     return {"ok": bool(result.get("ok")), "line_result": result}
 
 
+@app.post("/internal/line/parking-reminder")
+async def internal_line_parking_reminder(request: Request):
+    payload = await request.json()
+    expected_secret = (settings.line_internal_webhook_secret or "").strip()
+    if expected_secret and str(payload.get("secret") or "") != expected_secret:
+        raise HTTPException(status_code=403, detail="Invalid internal secret")
+    line_user_id = str(payload.get("lineUserId") or "").strip()
+    if not line_user_id:
+        return {"ok": True, "skipped": True, "reason": "No LINE user id"}
+    result = await push_messages(
+        user_id=line_user_id,
+        messages=[_line_parking_reminder_flex_message(payload)],
+        channel_access_token=settings.line_channel_access_token,
+        enabled=settings.line_reply_enabled,
+    )
+    return {"ok": bool(result.get("ok")), "line_result": result}
+
+
 @app.get("/line/photo/{shop_id}")
 async def line_shop_photo(shop_id: int):
     async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
@@ -3696,6 +3714,36 @@ async def line_booking_status(shop_id: int, bookingCode: str, lt: str = "", line
     return HTMLResponse(_line_booking_result_page(shop_id, name, booking, line_user_id, line_token))
 
 
+@app.get("/line/book/{shop_id}/parking", response_class=HTMLResponse)
+async def line_booking_parking_preference(
+    shop_id: int,
+    bookingCode: str,
+    driving: bool = True,
+    lt: str = "",
+    lineUserId: str = "",
+):
+    line_user_id, line_token = _line_context(lt, lineUserId)
+    shop = await _fetch_java_shop(shop_id)
+    name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
+    result = await _update_line_parking_preference(bookingCode, line_user_id, line_token, driving)
+    if not result.get("success"):
+        message = str(result.get("errorMsg") or "目前無法更新停車提醒，請稍後再試。")
+        return HTMLResponse(
+            _line_html_page(
+                "停車提醒未更新",
+                message,
+                [
+                    ("查看訂位狀態", _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(bookingCode)}&lt={quote_plus(line_token)}")),
+                    ("返回店家資訊", _line_public_uri(f"/line/shop/{shop_id}")),
+                ],
+            ),
+            status_code=409,
+        )
+    booking = result.get("data") if isinstance(result.get("data"), dict) else {}
+    parking_lots = await _fetch_java_nearby_parking((shop or {}).get("x"), (shop or {}).get("y"), limit=3)
+    return HTMLResponse(_line_parking_preference_page(shop_id, name, booking, parking_lots, line_token, driving))
+
+
 @app.get("/line/book/{shop_id}/cancel", response_class=HTMLResponse)
 async def line_booking_cancel(shop_id: int, bookingCode: str, lt: str = "", lineUserId: str = ""):
     line_user_id, line_token = _line_context(lt, lineUserId)
@@ -3748,6 +3796,9 @@ def _line_booking_result_page(
     cancel_uri = _line_public_uri(
         f"/line/book/{shop_id}/cancel?bookingCode={quote_plus(booking_code_raw)}&lt={quote_plus(line_token)}"
     )
+    parking_uri = _line_public_uri(
+        f"/line/book/{shop_id}/parking?bookingCode={quote_plus(booking_code_raw)}&driving=true&lt={quote_plus(line_token)}"
+    )
     my_bookings_uri = _line_public_uri(f"/line/my-bookings?lt={quote_plus(line_token)}")
     title = "訂位保留成功" if status == "PENDING_PAYMENT" else "訂位完成"
     if status == "CANCELED":
@@ -3761,6 +3812,8 @@ def _line_booking_result_page(
         if status == "PENDING_PAYMENT" and needs_deposit else "",
         f'<a class="secondary" href="{status_uri}">查看訂位狀態</a>',
         f'<a class="secondary" href="{cancel_uri}">取消訂位</a>'
+        if status in {"PENDING_PAYMENT", "PAID", "CONFIRMED"} else "",
+        f'<a class="secondary" href="{parking_uri}">我會開車，提醒停車</a>'
         if status in {"PENDING_PAYMENT", "PAID", "CONFIRMED"} else "",
         f'<a class="secondary" href="{my_bookings_uri}">我的訂位</a>',
         f'<a class="secondary" href="{detail_uri}">查看店家資訊</a>',
@@ -3783,6 +3836,47 @@ def _line_booking_result_page(
       </main>
     """
     return _line_shell(f"{escaped_shop_name} {status_label}", body)
+
+
+def _line_parking_preference_page(
+    shop_id: int,
+    escaped_shop_name: str,
+    booking: dict,
+    parking_lots: list[dict],
+    line_token: str,
+    driving: bool,
+) -> str:
+    booking_code_raw = str(booking.get("bookingCode") or "")
+    booking_code = _html_escape(booking_code_raw)
+    booking_date = _html_escape(str(booking.get("date") or ""))
+    booking_time = _html_escape(str(booking.get("time") or ""))
+    status_uri = _line_public_uri(
+        f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code_raw)}&lt={quote_plus(line_token)}"
+    )
+    title = "已開啟停車提醒" if driving else "已關閉停車提醒"
+    note = (
+        "訂位當天接近用餐前，ByteBites 會推播附近停車場剩餘車位與導航。"
+        if driving
+        else "這筆訂位不會再收到停車提醒。"
+    )
+    body = f"""
+      <main>
+        <p class="eyebrow">ByteBites 停車提醒</p>
+        <h1>{title}</h1>
+        <section>
+          <h2>{escaped_shop_name}</h2>
+          <p>訂位編號：<strong>{booking_code}</strong></p>
+          <p>{booking_date} {booking_time}</p>
+          <p>{_html_escape(note)}</p>
+          <p>車位資訊來自台北市停車場即時剩餘車位資料，實際空位仍可能快速變動。</p>
+        </section>
+        {_line_parking_html(parking_lots)}
+        <div class="actions">
+          <a class="secondary" href="{status_uri}">查看訂位狀態</a>
+        </div>
+      </main>
+    """
+    return _line_shell(title, body)
 
 
 @app.get("/line/my-bookings", response_class=HTMLResponse)
@@ -5017,6 +5111,36 @@ async def _cancel_line_booking(booking_code: str, line_user_id: str, line_action
     return payload
 
 
+async def _update_line_parking_preference(
+    booking_code: str,
+    line_user_id: str,
+    line_action_token_value: str,
+    driving: bool = True,
+) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            response = await client.post(
+                f"{settings.java_backend_url}/api/booking/{quote_plus(booking_code)}/parking-preference",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "drivingToBooking": bool(driving),
+                    "parkingReminderEnabled": bool(driving),
+                    "lineUserId": line_user_id,
+                    "lineActionToken": line_action_token_value,
+                },
+            )
+    except Exception:
+        logger.exception("line_parking_preference_failed booking_code=%s", booking_code)
+        return {"success": False, "errorMsg": "後端停車提醒服務暫時無法連線，請稍後再試。"}
+    try:
+        payload = response.json()
+    except Exception:
+        return {"success": False, "errorMsg": "後端停車提醒服務回傳格式異常。"}
+    if response.status_code >= 400:
+        return {"success": False, "errorMsg": payload.get("errorMsg") or "停車提醒暫時無法更新。"}
+    return payload
+
+
 async def _fetch_line_bookings(line_user_id: str = "", line_action_token_value: str = "") -> list[dict]:
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
@@ -5148,6 +5272,9 @@ def _line_booking_flex_message(booking: dict, phase: str, line_user_id: str = ""
     status_uri = _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code)}{line_query}")
     pay_uri = _line_public_uri(f"/line/book/{shop_id}/pay?bookingCode={quote_plus(booking_code)}{line_query}")
     cancel_uri = _line_public_uri(f"/line/book/{shop_id}/cancel?bookingCode={quote_plus(booking_code)}{line_query}")
+    parking_uri = _line_public_uri(
+        f"/line/book/{shop_id}/parking?bookingCode={quote_plus(booking_code)}&driving=true{line_query}"
+    )
     rows = [
         ("店家", str(booking.get("shopName") or f"店家 {shop_id}")),
         ("日期時間", f"{booking.get('date') or '-'} {booking.get('time') or ''}".strip()),
@@ -5177,6 +5304,14 @@ def _line_booking_flex_message(booking: dict, phase: str, line_user_id: str = ""
         }
     )
     if status in {"PENDING_PAYMENT", "PAID", "CONFIRMED"}:
+        buttons.append(
+            {
+                "type": "button",
+                "style": "secondary",
+                "height": "sm",
+                "action": {"type": "uri", "label": "我會開車", "uri": parking_uri},
+            }
+        )
         buttons.append(
             {
                 "type": "button",
@@ -5254,6 +5389,105 @@ def _line_booking_deposit_text(booking: dict) -> str:
             return f"訂金 NT$ {amount} 已完成付款，訂位已成立。"
         return f"需訂金 NT$ {amount}。"
     return "免訂金，訂位建立後即成立。"
+
+
+def _line_parking_reminder_flex_message(payload: dict) -> dict:
+    shop_id = int(payload.get("shopId") or 0)
+    shop_name = str(payload.get("shopName") or f"店家 {shop_id}")
+    booking_code = str(payload.get("bookingCode") or "")
+    date = str(payload.get("date") or "")
+    time = str(payload.get("time") or "")
+    lots = payload.get("parkingLots") if isinstance(payload.get("parkingLots"), list) else []
+    line_user_id = str(payload.get("lineUserId") or "")
+    line_token = _line_token_for_user(line_user_id) if line_user_id else ""
+    status_uri = _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code)}&lt={quote_plus(line_token)}")
+    first_navigation = ""
+    lot_blocks = []
+    for lot in lots[:3]:
+        if not isinstance(lot, dict):
+            continue
+        name = str(lot.get("name") or "停車場")
+        distance = _line_parking_distance(lot.get("distanceMeters"))
+        spaces = _line_parking_spaces(lot)
+        updated_at = str(lot.get("updatedAt") or "").strip()
+        if not first_navigation:
+            first_navigation = str(lot.get("navigationUrl") or "").strip()
+        subtitle = " · ".join(part for part in [distance, spaces, f"更新 {updated_at}" if updated_at else ""] if part)
+        lot_blocks.append(
+            {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "xs",
+                "contents": [
+                    {"type": "text", "text": name, "size": "sm", "weight": "bold", "wrap": True},
+                    {"type": "text", "text": subtitle or "車位資料更新中", "size": "xs", "color": "#666666", "wrap": True},
+                ],
+            }
+        )
+    if not lot_blocks:
+        lot_blocks.append(
+            {
+                "type": "text",
+                "text": "目前抓不到附近停車場剩餘車位，建議提早出發並使用地圖查詢。",
+                "size": "sm",
+                "color": "#555555",
+                "wrap": True,
+            }
+        )
+    footer = []
+    if first_navigation:
+        footer.append(
+            {
+                "type": "button",
+                "style": "primary",
+                "height": "sm",
+                "action": {"type": "uri", "label": "導航到最近停車場", "uri": first_navigation},
+            }
+        )
+    footer.append(
+        {
+            "type": "button",
+            "style": "secondary",
+            "height": "sm",
+            "action": {"type": "uri", "label": "查看訂位", "uri": status_uri},
+        }
+    )
+    return {
+        "type": "flex",
+        "altText": f"{shop_name} 附近停車提醒",
+        "contents": {
+            "type": "bubble",
+            "size": "mega",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {"type": "text", "text": "BYTEBITES PARKING", "size": "xs", "color": "#16833a", "weight": "bold"},
+                    {"type": "text", "text": "出發前停車提醒", "size": "lg", "weight": "bold", "wrap": True},
+                    {"type": "text", "text": shop_name, "size": "md", "weight": "bold", "wrap": True},
+                    {"type": "text", "text": f"{date} {time} · 訂位編號 {booking_code}", "size": "xs", "color": "#666666", "wrap": True},
+                    {"type": "separator", "margin": "md"},
+                    {
+                        "type": "box",
+                        "layout": "vertical",
+                        "spacing": "md",
+                        "margin": "md",
+                        "contents": lot_blocks,
+                    },
+                    {
+                        "type": "text",
+                        "text": "車位來自台北市即時剩餘車位資料，可能快速變動，請以到場狀況為準。",
+                        "size": "xs",
+                        "color": "#777777",
+                        "wrap": True,
+                        "margin": "md",
+                    },
+                ],
+            },
+            "footer": {"type": "box", "layout": "vertical", "spacing": "sm", "contents": footer},
+        },
+    }
 
 
 def _line_booking_deposit_note(status: str, needs_deposit: bool, deposit_total, hold_expires_at: str) -> str:

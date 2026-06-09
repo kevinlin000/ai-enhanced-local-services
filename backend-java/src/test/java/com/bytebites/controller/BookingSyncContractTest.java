@@ -184,6 +184,38 @@ class BookingSyncContractTest {
                 .containsEntry("status", "CANCELED");
     }
 
+    @Test
+    void lineCanOptIntoDrivingParkingReminderForUpcomingBooking() {
+        BookingJpa booking = paidBooking("BK-SYNC-PARK");
+        booking.setDrivingToBooking(false);
+        booking.setParkingReminderEnabled(false);
+        booking.setParkingReminderSentAt(LocalDateTime.now().minusHours(1));
+        Map<String, Object> lineBody = Map.of(
+                "lineUserId", LINE_USER_ID,
+                "lineActionToken", "valid-token",
+                "drivingToBooking", true,
+                "parkingReminderEnabled", true
+        );
+        when(bookingRepo.findByBookingCode("BK-SYNC-PARK")).thenReturn(Optional.of(booking));
+        when(lineActionTokenService.resolveOwnerId(lineBody)).thenReturn(Optional.of(USER_ID));
+        when(shopService.getById(SHOP_ID)).thenReturn(shop());
+
+        Result result = controller.updateParkingPreference("BK-SYNC-PARK", lineBody);
+
+        assertThat(result.getSuccess()).isTrue();
+        assertThat(booking.getDrivingToBooking()).isTrue();
+        assertThat(booking.getParkingReminderEnabled()).isTrue();
+        assertThat(booking.getParkingReminderSentAt()).isNull();
+        verify(bookingRepo).save(booking);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) result.getData();
+        assertThat(data)
+                .containsEntry("bookingCode", "BK-SYNC-PARK")
+                .containsEntry("drivingToBooking", true)
+                .containsEntry("parkingReminderEnabled", true)
+                .containsEntry("parkingReminderSentAt", null);
+    }
+
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> resultList(Result result) {
         assertThat(result.getSuccess()).isTrue();

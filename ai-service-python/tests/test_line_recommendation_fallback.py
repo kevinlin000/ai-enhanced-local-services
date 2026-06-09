@@ -966,6 +966,11 @@ def test_line_booking_flex_pending_payment_has_pay_action(monkeypatch):
     assert "bookingCode=BK-ABC" in footer[0]["action"]["uri"]
     assert "lineUserId=" not in footer[0]["action"]["uri"]
     assert "lt=v1." in footer[0]["action"]["uri"]
+    labels = [button["action"]["label"] for button in footer]
+    assert "我會開車" in labels
+    parking_uri = next(button["action"]["uri"] for button in footer if button["action"]["label"] == "我會開車")
+    assert "/line/book/10009/parking?" in parking_uri
+    assert "driving=true" in parking_uri
 
 
 def test_line_booking_result_page_shows_paid_completion(monkeypatch):
@@ -1083,6 +1088,50 @@ async def test_internal_booking_updated_pushes_cancel_card(monkeypatch):
     assert response["ok"] is True
     assert pushed["user_id"] == "Uabc123"
     assert pushed["messages"][0]["altText"] == "訂位已取消"
+
+
+@pytest.mark.anyio
+async def test_internal_parking_reminder_pushes_line_card(monkeypatch):
+    pushed = {}
+
+    async def fake_push_messages(user_id, messages, channel_access_token, enabled):
+        pushed["user_id"] = user_id
+        pushed["messages"] = messages
+        return {"ok": True}
+
+    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    class FakeRequest:
+        async def json(self):
+            return {
+                "secret": "secret",
+                "lineUserId": "Uabc123",
+                "bookingCode": "BK-PARK",
+                "shopId": 10009,
+                "shopName": "橘色涮涮屋 信義館",
+                "date": "2026-06-10",
+                "time": "19:00",
+                "parkingLots": [
+                    {
+                        "name": "市府轉運站停車場",
+                        "distanceMeters": 180,
+                        "availableCar": 18,
+                        "totalCar": 120,
+                        "updatedAt": "2026-06-10 17:00:00",
+                        "navigationUrl": "https://www.google.com/maps/dir/?api=1&destination=25.033,121.565&travelmode=driving",
+                    }
+                ],
+            }
+
+    response = await main.internal_line_parking_reminder(FakeRequest())
+
+    assert response["ok"] is True
+    assert pushed["user_id"] == "Uabc123"
+    message = pushed["messages"][0]
+    assert message["altText"] == "橘色涮涮屋 信義館 附近停車提醒"
+    assert message["contents"]["footer"]["contents"][0]["action"]["label"] == "導航到最近停車場"
 
 
 @pytest.mark.anyio
