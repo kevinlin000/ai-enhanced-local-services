@@ -244,6 +244,7 @@ MANUAL_AUDIT_PRIMARY_OVERRIDES = (
     ("前鎮水產-海霸王 昆明店", 2001),
     ("士林串燒", 2003),
     ("CURA PIZZA", 2007),
+    ("知初植物系永續廚房", 2005),
     ("Last Order", 2007),
     ("陶膳日式料理", 2004),
     ("東京串燒酒場", 2003),
@@ -323,13 +324,12 @@ MANUAL_AUDIT_PRIMARY_OVERRIDES = (
     ("HI MATE", 2010),
     ("12:59早午餐", 2010),
     ("家吶子台式居酒屋", 2003),
-    ("花嶼輕食館", 2010),
+    ("花嶼輕食館", 2012),
     ("CHALET V", 2007),
     ("JODA CAFE", 2012),
     ("雞老闆", 2008),
     ("The Public House", 2007),
     ("九井自慢料理", 2004),
-    ("知初植物系永續廚房", 2005),
     ("HOW齊早午餐", 2010),
     ("有麵子蔬食料理", 2005),
     ("ChiaoDuo House", 2007),
@@ -397,6 +397,7 @@ MANUAL_AUDIT_PRIMARY_OVERRIDES = (
     ("好客食堂", 2008),
     ("Haooyun Station", 2010),
     ("好運站", 2010),
+    ("KiKi餐廳", 2008),
 )
 
 NAME_PRIMARY_OVERRIDES = MANUAL_AUDIT_PRIMARY_OVERRIDES + (
@@ -496,6 +497,11 @@ MANUAL_NO_KOREAN_TAG_OVERRIDES = (
     "小蔬同手作蔬食",
     "和牛涮台北忠孝東店",
     "金洹苑",
+    "燒肉眾精緻炭火燒肉",
+    "大樹先生的家",
+    "神來一爐燒肉",
+    "IKIGAI燒肉專門店",
+    "蘋果肉桂",
 )
 
 BUFFET_KEYWORDS = {"自助餐", "buffet", "百匯", "cafeteria"}

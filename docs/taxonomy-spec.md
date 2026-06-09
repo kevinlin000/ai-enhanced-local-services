@@ -1,6 +1,6 @@
 # Taxonomy Spec
 
-Status: active. V36 applies the fourth manual audit correction batch.
+Status: active. V37 completes the manual taxonomy audit and removes misleading Korean tags.
 
 Data baseline: 600 active shops in MySQL taxonomy audit on 2026-06-09.
 
@@ -25,9 +25,9 @@ Decision:
 | 2007 | 義法料理 | 78 | 義式、法式、西式餐酒館、鐵板套餐 |
 | 2008 | 中式料理 | 79 | 台菜、粵菜、港點、熱炒、小籠包、中式宴席 |
 | 2009 | 韓式料理 | 16 | 韓式烤肉、韓式鍋物、韓式正餐；保留 `#韓式` tag |
-| 2010 | 美式料理 | 50 | 美式、澳式、brunch 主體、漢堡、煙燻肉 |
+| 2010 | 美式料理 | 49 | 美式、澳式、brunch 主體、漢堡、煙燻肉 |
 | 2011 | 自助餐 | 8 | buffet / cafeteria / 吃到飽主體 |
-| 2012 | 咖啡/甜點 | 42 | 咖啡館、甜點店、下午茶 |
+| 2012 | 咖啡/甜點 | 43 | 咖啡館、甜點店、下午茶 |
 | 2013 | 異國料理 | 10 | 印度、泰式、中東、越南、墨西哥等；用 cuisine tags 區分細項 |
 
 ### 1.2 type_id Policy
@@ -58,6 +58,7 @@ Note:
 - V34 applies the second manual audit batch, including 品田牧場 -> 日式料理, 泰滾 / 神燈搓一下 -> 異國料理, and 果然匯 retaining 素食 with `#吃到飽`.
 - V35 applies the third manual audit batch, including 麥味登 -> 中式料理 + `#早午餐`, 大河牧場漢堡排洋食館 -> 日式料理, and 貓蕊 -> 咖啡/甜點.
 - V36 applies the fourth manual audit batch, including MAJI MAJI / mama says yes -> 異國料理, 吉豚屋 / 勝魂丼飯 / 雲の咖哩屋 / 晴天廚房 / 巧主廚的咖哩 -> 日式料理, and Mr. 雪腐 / 女巫店 / 三角冰 -> 咖啡/甜點.
+- V37 completes the manual audit, moving 花嶼輕食館 -> 咖啡/甜點 and removing misleading `#韓式` tags from non-Korean restaurants such as 燒肉眾, 大樹先生的家, 神來一爐, IKIGAI, and 蘋果肉桂.
 
 ## 2. Badge Rule
 

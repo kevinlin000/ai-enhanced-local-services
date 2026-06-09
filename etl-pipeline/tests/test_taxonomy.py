@@ -195,6 +195,30 @@ def test_fourth_manual_audit_overrides_defaulted_chinese_cases():
         assert result["primary_type_id"] == expected_type_id
 
 
+def test_final_manual_audit_overrides_and_removes_bad_korean_tags():
+    cases = [
+        ("花嶼輕食館Flower Island Brunch", "下午茶、咖啡、巴斯克蛋糕與甜點。", 2012, []),
+        ("知初植物系永續廚房（Last order time is 14:15 / 20:00）", "植物基蔬食、永續飲食與披薩。", 2005, []),
+        ("KiKi餐廳（ATT 4 FUN信義店）", "蒼蠅頭、老皮嫩肉與川味台式熱炒。", 2008, []),
+        ("燒肉眾精緻炭火燒肉 台北西門店", "日式燒肉、牛舌、泡菜小菜。", 2002, []),
+        ("大樹先生的家", "親子餐廳、義大利麵、燉飯與兒童烏龍麵。", 2007, ["義式"]),
+        ("神來一爐燒肉民生店", "日式炭火燒肉、牛舌、泡菜小菜。", 2002, []),
+        ("IKIGAI燒肉專門店-微風百貨店", "日式個人燒肉、味噌湯、泡菜湯品。", 2002, []),
+        ("蘋果肉桂 Café & Bistro", "咖啡、甜點、蘋果肉桂、義大利麵與韓式泡菜小菜。", 2012, ["義式"]),
+    ]
+    for name, summary, expected_type_id, expected_tags in cases:
+        result = classify_shop({
+            "display_name": name,
+            "primary_type": "restaurant",
+            "types": ["restaurant", "food"],
+            "ai_extracted": {"ai_summary": summary},
+        })
+        assert result["primary_type_id"] == expected_type_id
+        assert "韓式" not in result["tags"]
+        for tag in expected_tags:
+            assert tag in result["tags"]
+
+
 def test_classifier_fixture_10104_buffet_premium():
     shop = load_shops()[10104]
     result = classify_shop(shop)
