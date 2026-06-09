@@ -232,7 +232,7 @@ function AgentShopComparisonTable({ shops, rows }: { shops: AgentShop[]; rows?: 
 
   if (shops.length < 2) return null;
   return (
-    <section className="overflow-hidden rounded-2xl border border-black/10 bg-white/80 shadow-sm">
+    <section className="overflow-hidden rounded-xl border border-black/10 bg-white/90 shadow-sm">
       <div className="border-b border-black/10 px-4 py-3">
         <h3 className="text-sm font-black text-zinc-900">快速比較</h3>
       </div>
@@ -284,7 +284,7 @@ function AiProgressPanel({ message }: { message: Msg }) {
   if (!shouldShow) return null;
 
   return (
-    <div className="mb-2 max-w-xl rounded-2xl border border-black/10 bg-white/75 px-3 py-2.5 shadow-sm">
+    <div className="mb-2 max-w-xl rounded-xl border border-black/10 bg-white/85 px-3 py-2.5 shadow-sm">
       <div className="flex items-center gap-2 text-xs font-bold text-zinc-600">
         {message.done ? (
           <CheckCircle2 className="h-4 w-4 text-emerald-700" />
@@ -807,10 +807,10 @@ export default function AiPage() {
                   <AiProgressPanel message={m} />
                   {m.role === "user" || renderableText(m.content) ? (
                     <div
-                      className={`rounded-3xl px-4 py-3 text-base leading-7 ${
+                      className={`rounded-2xl px-4 py-3 text-base leading-7 ${
                         m.role === "user"
-                          ? "rounded-br-sm bg-[#5a5650] text-white shadow-sm"
-                          : "rounded-bl-sm bg-white/55 text-zinc-700 shadow-sm ring-1 ring-black/5"
+                          ? "rounded-br-sm bg-[#4f4a43] text-white shadow-sm"
+                          : "rounded-bl-sm bg-white/75 text-zinc-700 ring-1 ring-black/5"
                       }`}
                     >
                       {m.role === "user" ? (
@@ -833,7 +833,7 @@ export default function AiPage() {
                 {m.shops && m.shops.length > 0 ? (
                   <div className="mt-3 w-full space-y-3">
                     {m.scopeNote ? (
-                      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium leading-6 text-amber-950">
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium leading-6 text-amber-950">
                         {m.scopeNote}
                       </div>
                     ) : null}
@@ -852,7 +852,7 @@ export default function AiPage() {
 
         <div className="sticky bottom-0 z-40 bg-gradient-to-t from-[#f7f3ec] via-[#f7f3ec] to-transparent px-4 pb-4 pt-10">
           <div className="mx-auto max-w-5xl">
-            <div className="flex items-center gap-2 rounded-full bg-white px-4 py-3 shadow-2xl shadow-black/15 ring-1 ring-black/5">
+            <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-lg shadow-black/10 ring-1 ring-black/5">
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}

@@ -180,7 +180,7 @@ function RestaurantCard({
 
   return (
     <Link href={`/shops/${shop.id}`} className="group block h-full">
-      <article className="flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-[#ddd6c8] bg-[#fbf8f1] shadow-sm transition group-hover:-translate-y-0.5 group-hover:shadow-xl">
+      <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#ddd6c8] bg-[#fbf8f1] shadow-sm transition group-hover:-translate-y-0.5 group-hover:shadow-md">
         <div className="relative aspect-[4/3] overflow-hidden bg-[#e5ded0]">
           {photo ? (
             <img
@@ -197,7 +197,7 @@ function RestaurantCard({
           {tags.length ? (
             <div className="absolute left-3 top-3 flex gap-2">
               {tags.map((tag) => (
-                <span key={`${shop.id}-${tag}`} className="rounded-full bg-black/65 px-2.5 py-1 text-xs font-black text-white">
+                <span key={`${shop.id}-${tag}`} className="rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white">
                   {tag}
                 </span>
               ))}
@@ -205,14 +205,14 @@ function RestaurantCard({
           ) : null}
         </div>
         <div className="flex flex-1 flex-col p-5">
-          <h3 className={`${compact ? "text-xl" : "text-2xl"} line-clamp-2 font-black tracking-normal`}>
+          <h3 className={`${compact ? "text-xl" : "text-2xl"} line-clamp-2 font-semibold tracking-normal`}>
             {shop.name}
           </h3>
           <p className="mt-2 text-sm text-zinc-500">
             {style.label} · {shop.district ?? shop.area ?? item.station}
           </p>
           <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-500">
-            {rating ? <span className="font-black text-[#b59a58]">★ {rating}</span> : null}
+            {rating ? <span className="font-semibold text-[#b59a58]">★ {rating}</span> : null}
             {shop.comments ? <span>{shop.comments.toLocaleString()} 則評論</span> : null}
             {shop.mrtStation ? <span>{shop.mrtStation}</span> : null}
           </div>
@@ -221,7 +221,7 @@ function RestaurantCard({
           </p>
           <div className="mt-auto flex items-center justify-between border-t border-[#e2dacb] pt-4 text-sm">
             <span className="font-medium text-zinc-500">{spend}</span>
-            <span className="font-black text-[#191713]">查看時段</span>
+            <span className="font-semibold text-[#191713]">查看時段</span>
           </div>
         </div>
       </article>
@@ -390,7 +390,7 @@ export default async function Home({
           </div>
         </div>
       ) : null}
-      <section className="border-b border-[#ded7c9] px-6 py-14 md:px-12 md:py-20">
+      <section className="border-b border-[#ded7c9] px-6 py-12 md:px-12 md:py-16">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1fr] lg:items-center">
           <div>
             <p className="text-sm font-semibold tracking-normal text-[#b59a58]">獨家桌位，僅此一處</p>
@@ -403,7 +403,7 @@ export default async function Home({
             </p>
           </div>
 
-          <div className="rounded-[2rem] border border-[#d9d1c1] bg-[#eee8dc] p-7 md:p-9">
+          <div className="rounded-2xl border border-[#d9d1c1] bg-[#eee8dc] p-6 md:p-8">
             <div className="flex items-start gap-4">
               <Sparkles className="mt-1 h-8 w-8 fill-[#1c1914] text-[#1c1914]" />
               <div>
@@ -413,7 +413,7 @@ export default async function Home({
             </div>
             <Link
               href="/ai"
-              className="mt-8 flex items-center gap-3 rounded-2xl border border-[#d9d1c1] bg-[#faf7ef] px-5 py-5 text-left text-zinc-500 transition hover:bg-white"
+              className="mt-8 flex items-center gap-3 rounded-xl border border-[#d9d1c1] bg-[#faf7ef] px-5 py-4 text-left text-zinc-500 transition hover:bg-white"
             >
               <Search className="h-5 w-5" />
               <span className="flex-1 text-sm font-semibold md:text-base">找餐廳、查空位、直接訂位</span>
@@ -422,14 +422,14 @@ export default async function Home({
             <div className="mt-5 flex flex-wrap gap-3">
               {AI_PROMPTS.map((prompt) => (
                 <Link key={prompt} href={`/ai?q=${encodeURIComponent(prompt)}`}>
-                  <span className="inline-flex rounded-xl bg-[#e3d9c5] px-4 py-3 text-sm font-black text-zinc-600 transition hover:bg-[#d9c9ad]">
+                  <span className="inline-flex rounded-lg bg-[#e3d9c5] px-4 py-2.5 text-sm font-semibold text-zinc-600 transition hover:bg-[#d9c9ad]">
                     {prompt}
                   </span>
                 </Link>
               ))}
             </div>
             <div className="mt-8 border-t border-[#d9d1c1] pt-6">
-              <p className="font-mono text-4xl font-black">{totalShops || "—"}</p>
+              <p className="font-mono text-4xl font-semibold">{totalShops || "—"}</p>
               <p className="mt-1 text-sm font-medium text-zinc-500">間餐廳資料，持續擴充中</p>
             </div>
           </div>
