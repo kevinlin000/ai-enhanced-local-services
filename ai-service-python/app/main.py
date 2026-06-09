@@ -733,13 +733,16 @@ def _strip_specific_shop_keyword(text: str) -> str:
         r"(?:我要訂|我想訂|想訂|幫我訂|我要|我想要|選|改成|換成)([^，,。.!！?？\n]{2,32})",
         raw,
     )
-    normalized = re.sub(r"\s+", "", intent_match.group(1) if intent_match else raw)
-    normalized = normalized.strip("，,。.!！?？")
+    normalized = (intent_match.group(1) if intent_match else raw).strip("，,。.!！?？")
     normalized = re.sub(r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|下午|早午餐|下週[一二三四五六日天]?|週[一二三四五六日天])", "", normalized)
     normalized = re.sub(r"[0-2]?\d[:：點時](半|[0-5]?\d分?)?", "", normalized)
-    normalized = re.sub(r"[一二三四五六七八九十\d]+人", "", normalized)
+    normalized = re.sub(r"\s+[一二兩三四五六七八九十\d]{1,3}\s*人", "", normalized)
+    normalized = re.sub(r"\d{1,3}\s*人", "", normalized)
+    normalized = re.sub(r"^[一二兩三四五六七八九十]{1,3}\s*人", "", normalized)
+    normalized = re.sub(r"\s+", "", normalized)
     for phrase in (
         "幫我訂",
+        "預約",
         "幫我找",
         "幫我",
         "那我要",
@@ -3352,6 +3355,62 @@ async def _agent_exact_shop_from_query(query: str) -> ToolGuardResult | None:
     return ToolGuardResult(action="direct", direct_answer=answer, last_tool_result=search_result)
 
 
+async def _agent_exact_booking_from_query(query: str) -> ToolGuardResult | None:
+    if not _booking_intent(query) or _payment_intent(query):
+        return None
+
+    keyword = _specific_shop_keyword(query)
+    if not keyword:
+        return None
+
+    hits = await _semantic_hits(keyword, top_k=30)
+    selected_shops = _exact_shop_matches(keyword, hits)
+    if not selected_shops:
+        return None
+
+    selected_ids = [
+        int(sid)
+        for shop in selected_shops[:1]
+        if (sid := _shop_id(shop)) is not None
+    ]
+    if not selected_ids:
+        return None
+
+    search_result = await _build_agent_search_result(keyword, hits, selected_ids)
+    search_result["strict_recommended_only"] = True
+    shops = search_result.get("shops") if isinstance(search_result, dict) else []
+    selected = _shops_for_ids(shops, selected_ids)[0] if isinstance(shops, list) else selected_shops[0]
+    shop_id = selected_ids[0]
+    shop_name = str(selected.get("name") or keyword)
+
+    prefill = _line_booking_prefill_from_text(query)
+    missing = []
+    if not prefill.get("date"):
+        missing.append("日期")
+    if not prefill.get("time"):
+        missing.append("時間")
+    if not prefill.get("people"):
+        missing.append("人數")
+    if missing:
+        return ToolGuardResult(
+            action="direct",
+            direct_answer=f"我已鎖定「{shop_name}」，還缺{'、'.join(missing)}。請補齊後我再幫你送出訂位。",
+            last_tool_result=search_result,
+        )
+
+    return ToolGuardResult(
+        action="continue",
+        args={
+            "shop_id": shop_id,
+            "people": int(prefill["people"]),
+            "date": str(prefill["date"]),
+            "time": str(prefill["time"]),
+            "table_type": "normal",
+        },
+        last_tool_result=search_result,
+    )
+
+
 def _history_to_contents(history: list[dict], query: str) -> list:
     contents: list = []
     for turn in history:
@@ -3461,6 +3520,47 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
     contents = _history_to_contents(history, effective_query)
     state = AgentToolState(query=effective_query, session_id=session_id, history=history, contents=contents)
     final_answer = ""
+
+    if _explicit_same_day_booking_request(effective_query):
+        final_answer = _same_day_booking_policy_answer()
+        if session_id:
+            session_store.save_history(
+                session_id,
+                history + [
+                    {"role": "user", "content": query},
+                    {"role": "model", "content": final_answer},
+                ],
+            )
+        return final_answer, [], {}
+
+    exact_booking = await _agent_exact_booking_from_query(effective_query)
+    if exact_booking is not None:
+        state.latest_search_result = exact_booking.last_tool_result or {}
+        state.last_tool_result = exact_booking.last_tool_result or {}
+        if exact_booking.action == "direct":
+            final_answer = exact_booking.direct_answer or ""
+            if session_id:
+                recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {
+                            "role": "model",
+                            "content": final_answer,
+                            **({"recommendation": recommendation} if recommendation else {}),
+                        },
+                    ],
+                )
+            return final_answer, [], state.last_tool_result
+        guard = _before_tool_call(state, "create_booking", exact_booking.args)
+        if guard.action == "direct":
+            final_answer = guard.direct_answer or ""
+            state.final_transaction = guard.final_transaction
+            state.last_tool_result = guard.last_tool_result or state.last_tool_result
+        elif guard.action != "stop":
+            tool_result = await tool_create_booking(**guard.args)
+            _after_tool_call(state, "create_booking", tool_result)
 
     exact_shop = await _agent_exact_shop_from_query(effective_query)
     if exact_shop is not None:
@@ -3861,6 +3961,81 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
         yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
         yield done_payload
         return
+
+    exact_booking = await _agent_exact_booking_from_query(effective_query)
+    if exact_booking is not None:
+        tool_name = "semantic_shop_search"
+        state.tools_used.append(tool_name)
+        state.latest_search_result = exact_booking.last_tool_result or {}
+        state.last_tool_result = exact_booking.last_tool_result or {}
+        yield {
+            "type": "tool_execution_start",
+            "name": tool_name,
+            "args": {"query": _specific_shop_keyword(effective_query) or effective_query},
+            "session_id": session_id,
+        }
+        yield {
+            "type": "tool_execution_end",
+            "name": tool_name,
+            "result_summary": _tool_result_summary(state.last_tool_result),
+            "session_id": session_id,
+        }
+        yield {"type": "tool", "name": tool_name}
+
+        if exact_booking.action == "direct":
+            full_answer = exact_booking.direct_answer or ""
+            chunk_size = 18
+            for i in range(0, len(full_answer), chunk_size):
+                chunk = full_answer[i : i + chunk_size]
+                yield {"type": "message_update", "content": chunk}
+                yield {"type": "chunk", "content": chunk}
+            if session_id:
+                recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {
+                            "role": "model",
+                            "content": full_answer,
+                            **({"recommendation": recommendation} if recommendation else {}),
+                        },
+                    ],
+                )
+            done_payload = {
+                "type": "done",
+                "answer": full_answer,
+                **_agent_response_contract(state.last_tool_result),
+                "tools_used": state.tools_used,
+                "tool_result": state.last_tool_result,
+                "session_id": session_id,
+            }
+            yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+            yield done_payload
+            return
+
+        guard = _before_tool_call(state, "create_booking", exact_booking.args)
+        if guard.action == "direct":
+            direct_answer = guard.direct_answer
+            state.final_transaction = guard.final_transaction
+            state.last_tool_result = guard.last_tool_result or state.last_tool_result
+        elif guard.action != "stop":
+            tool_name = "create_booking"
+            yield {
+                "type": "tool_execution_start",
+                "name": tool_name,
+                "args": guard.args,
+                "session_id": session_id,
+            }
+            tool_result = await tool_create_booking(**guard.args)
+            _after_tool_call(state, tool_name, tool_result)
+            yield {
+                "type": "tool_execution_end",
+                "name": tool_name,
+                "result_summary": _tool_result_summary(tool_result),
+                "session_id": session_id,
+            }
+            yield {"type": "tool", "name": tool_name}
 
     exact_shop = await _agent_exact_shop_from_query(effective_query)
     if exact_shop is not None:
@@ -5646,18 +5821,20 @@ def _line_card_request_intent(text: str) -> bool:
 def _line_selection_token(text: str) -> str:
     if _line_booking_followup_intent(text):
         return ""
+    normalized = re.sub(r"\s+", "", str(text or "").strip().lower())
+    normalized = normalized.strip("，,。.!！?？")
+    if _booking_intent(normalized) or _payment_intent(normalized):
+        return ""
     specific = _specific_shop_keyword(text)
     if specific:
         return specific
     if _restaurant_need_clarification(text):
         return ""
-    normalized = re.sub(r"\s+", "", str(text or "").strip().lower())
-    normalized = normalized.strip("，,。.!！?？")
     if not normalized or len(normalized) > 12:
         return ""
     if _line_card_request_intent(normalized) or _line_more_recommendation_intent(normalized):
         return ""
-    if _line_should_force_recommendation_cards(normalized) or _booking_intent(normalized) or _payment_intent(normalized):
+    if _line_should_force_recommendation_cards(normalized):
         return ""
     return normalized
 
@@ -6180,6 +6357,63 @@ async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dic
     ]
 
 
+async def _build_line_exact_booking_request(user_text: str, user_id: str) -> list[dict] | None:
+    if not _booking_intent(user_text) or _payment_intent(user_text):
+        return None
+
+    keyword = _specific_shop_keyword(user_text)
+    if not keyword:
+        return None
+
+    try:
+        shops = await _semantic_hits(keyword, top_k=30)
+    except Exception:
+        logger.exception("line_exact_booking_search_failed user_id=%s query=%s", user_id, keyword)
+        return [build_text_message("我暫時無法確認這間店的訂位入口，請稍後再試一次。")]
+
+    selected_shops = _exact_shop_matches(keyword, shops)
+    if not selected_shops:
+        return None
+
+    shop_id = _shop_id(selected_shops[0])
+    if shop_id is None:
+        return None
+
+    shop_name = str(selected_shops[0].get("name") or keyword)
+    prefill = _line_booking_prefill_from_text(user_text)
+    booking_date = str(prefill.get("date") or (taipei_today() + timedelta(days=1)).isoformat())
+    booking_time = str(prefill.get("time") or "19:00")
+    people = prefill.get("people")
+    line_token = _line_token_for_user(user_id)
+    booking_uri = _line_public_uri(
+        f"/line/book/{shop_id}?date={quote_plus(booking_date)}&time={quote_plus(booking_time)}"
+        f"&people={quote_plus(str(people or 2))}&lt={quote_plus(line_token)}"
+    )
+    _save_line_recommendation_state(user_id, query=keyword, shown_shop_ids=[shop_id])
+
+    missing = []
+    if not prefill.get("date"):
+        missing.append("日期")
+    if not prefill.get("time"):
+        missing.append("時間")
+    if people is None:
+        missing.append("人數")
+    if missing:
+        return [
+            build_text_message(
+                f"我已鎖定「{shop_name}」，還缺{'、'.join(missing)}。"
+                f"你可以直接補齊，或先點這裡填表：{booking_uri}"
+            )
+        ]
+
+    return [
+        build_text_message(
+            f"我已鎖定「{shop_name}」，訂位表已帶入 {booking_date} {booking_time}、{people} 人。"
+            f"請點這裡確認並送出：{booking_uri}"
+        )
+    ]
+
+
 async def _build_line_reply_messages(event: dict) -> list[dict]:
     event_type = event.get("type")
     source = event.get("source") or {}
@@ -6236,6 +6470,10 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     named_selection_messages = await _build_line_named_selection_cards(user_text, user_id)
     if named_selection_messages is not None:
         return named_selection_messages
+
+    exact_booking_messages = await _build_line_exact_booking_request(user_text, user_id)
+    if exact_booking_messages is not None:
+        return exact_booking_messages
 
     booking_followup_messages = await _build_line_booking_followup(user_text, user_id)
     if booking_followup_messages is not None:

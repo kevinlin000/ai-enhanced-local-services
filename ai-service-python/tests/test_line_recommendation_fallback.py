@@ -423,6 +423,8 @@ def test_prefer_rich_hits_returns_empty_when_only_legacy_seed_matches():
 def test_specific_shop_keyword_ignores_vague_or_time_only_followups():
     assert main._specific_shop_keyword("那我要青田七六好了") == "青田七六"
     assert main._specific_shop_keyword("？你怎麼推薦這個？我要青田七六") == "青田七六"
+    assert main._specific_shop_keyword("我要訂青田七六明天晚上19點 4人") == "青田七六"
+    assert main._specific_shop_keyword("預約青田七六 4人") == "青田七六"
     assert main._specific_shop_keyword("明天 晚上") == ""
     assert main._specific_shop_keyword("推薦7人聚餐餐廳") == ""
     assert main._specific_shop_keyword("大安區，適合聊天") == ""
@@ -569,6 +571,111 @@ async def test_web_agent_stream_books_from_single_recommendation_followup(monkey
     assert captured["time"] == "19:00"
     assert done["transaction"]["booking_code"] == "BK-WEB-FOLLOWUP"
     assert saved["history"][-1]["transaction"]["booking_code"] == "BK-WEB-FOLLOWUP"
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_books_exact_shop_without_history(monkeypatch):
+    captured_search = {}
+    captured_booking = {}
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        captured_search["query"] = query
+        return [
+            {
+                "shop_id": 10222,
+                "name": "青田七六",
+                "district": "大安",
+                "category": "台菜",
+                "ai_summary": "老屋空間，適合聊天聚餐。",
+            },
+            {
+                "shop_id": 10223,
+                "name": "青靜綠",
+                "district": "文山",
+                "category": "素食",
+            },
+        ]
+
+    async def fake_create_booking(**kwargs):
+        captured_booking.update(kwargs)
+        return {
+            "success": True,
+            "shopId": kwargs["shop_id"],
+            "shopName": "青田七六",
+            "bookingCode": "BK-WEB-EXACT",
+            "people": kwargs["people"],
+            "date": kwargs["date"],
+            "time": kwargs["time"],
+            "tableType": kwargs["table_type"],
+            "needsDeposit": False,
+        }
+
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("exact shop booking should bypass model")
+
+    monkeypatch.setattr(main.session_store, "load_history", lambda session_id: [])
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "tool_create_booking", fake_create_booking)
+    monkeypatch.setattr(main, "generate", fail_generate)
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "我要訂青田七六明天晚上19點 4人",
+            "test-web-exact-booking",
+        )
+    ]
+
+    done = events[-1]
+    assert captured_search["query"] == "青田七六"
+    assert captured_booking["shop_id"] == 10222
+    assert captured_booking["people"] == 4
+    assert captured_booking["date"] == "2026-06-11"
+    assert captured_booking["time"] == "19:00"
+    assert done["tools_used"] == ["semantic_shop_search", "create_booking"]
+    assert done["transaction"]["booking_code"] == "BK-WEB-EXACT"
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_exact_shop_booking_asks_missing_fields(monkeypatch):
+    async def fake_semantic_hits(query: str, top_k: int):
+        return [
+            {
+                "shop_id": 10222,
+                "name": "青田七六",
+                "district": "大安",
+                "category": "台菜",
+                "ai_summary": "老屋空間，適合聊天聚餐。",
+            }
+        ]
+
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("missing exact booking fields should bypass model")
+
+    async def fail_create_booking(**kwargs):
+        raise AssertionError("missing exact booking fields should not create booking")
+
+    monkeypatch.setattr(main.session_store, "load_history", lambda session_id: [])
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
+    monkeypatch.setattr(main, "generate", fail_generate)
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "我要訂青田七六",
+            "test-web-exact-booking-missing",
+        )
+    ]
+
+    done = events[-1]
+    assert "青田七六" in done["answer"]
+    assert "還缺日期、時間、人數" in done["answer"]
+    assert done["tools_used"] == ["semantic_shop_search"]
+    assert [shop["shop_id"] for shop in done["shops"]] == [10222]
 
 
 @pytest.mark.anyio
@@ -1586,6 +1693,87 @@ async def test_line_booking_followup_uses_selected_single_shop(monkeypatch):
     assert "2026-06-11 19:00、4 人" in messages[0]["text"]
     assert "/line/book/10222?" in messages[0]["text"]
     assert "people=4" in messages[0]["text"]
+
+
+@pytest.mark.anyio
+async def test_line_exact_shop_booking_without_history(monkeypatch):
+    captured_search = {}
+    saved_state = {}
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        captured_search["query"] = query
+        return [
+            {
+                "shop_id": 10222,
+                "name": "青田七六",
+                "district": "大安",
+                "category": "台菜",
+                "ai_summary": "老屋空間，適合聊天聚餐。",
+            },
+            {
+                "shop_id": 10223,
+                "name": "青靜綠",
+                "district": "文山",
+                "category": "素食",
+            },
+        ]
+
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(
+        main,
+        "_save_line_recommendation_state",
+        lambda *args, **kwargs: saved_state.update({"args": args, "kwargs": kwargs}),
+    )
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "我要訂青田七六明天晚上19點 4人"},
+        }
+    )
+
+    assert captured_search["query"] == "青田七六"
+    assert "青田七六" in messages[0]["text"]
+    assert "2026-06-11 19:00、4 人" in messages[0]["text"]
+    assert "/line/book/10222?" in messages[0]["text"]
+    assert "people=4" in messages[0]["text"]
+    assert saved_state["kwargs"]["shown_shop_ids"] == [10222]
+
+
+@pytest.mark.anyio
+async def test_line_exact_shop_booking_asks_missing_fields(monkeypatch):
+    async def fake_semantic_hits(query: str, top_k: int):
+        return [
+            {
+                "shop_id": 10222,
+                "name": "青田七六",
+                "district": "大安",
+                "category": "台菜",
+                "ai_summary": "老屋空間，適合聊天聚餐。",
+            }
+        ]
+
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "我要訂青田七六"},
+        }
+    )
+
+    assert "青田七六" in messages[0]["text"]
+    assert "還缺日期、時間、人數" in messages[0]["text"]
+    assert "/line/book/10222?" in messages[0]["text"]
 
 
 @pytest.mark.anyio
