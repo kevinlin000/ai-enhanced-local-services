@@ -22,7 +22,8 @@ import { Input } from "@/components/ui/input";
 import { javaApi } from "@/lib/api";
 import { streamAgentResponse, type AgentTransaction } from "@/lib/agentStream";
 import { useAuth } from "@/lib/auth";
-import { AgentShopCard, type AgentShop } from "@/components/AgentShopCard";
+import { AgentShopCard } from "@/components/AgentShopCard";
+import type { AgentShop } from "@/lib/agentTypes";
 import { MarkdownMessage } from "@/components/MarkdownMessage";
 import {
   agentToolLabel,

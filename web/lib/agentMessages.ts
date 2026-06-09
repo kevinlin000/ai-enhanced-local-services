@@ -1,6 +1,6 @@
-import type { AgentShop } from "@/components/AgentShopCard";
-import { agentFinalPayloadFromEvent } from "@/lib/agentResponse";
-import type { AgentStreamEvent, AgentTransaction } from "@/lib/agentStream";
+import type { AgentShop } from "./agentTypes";
+import { agentFinalPayloadFromEvent } from "./agentResponse";
+import type { AgentStreamEvent, AgentTransaction } from "./agentStream";
 
 export type AgentToolStepStatus = "active" | "done";
 

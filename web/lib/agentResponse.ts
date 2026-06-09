@@ -1,4 +1,4 @@
-import type { AgentShop } from "@/components/AgentShopCard";
+import type { AgentShop } from "./agentTypes";
 import type { AgentStreamEvent, AgentTransaction } from "@/lib/agentStream";
 
 type AgentDecisionPayload = {

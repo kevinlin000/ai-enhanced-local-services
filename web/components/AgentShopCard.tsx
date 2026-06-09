@@ -5,23 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, MapPin, Star } from "lucide-react";
 import type { AbsaAspect } from "@/lib/api";
+import type { AgentShop } from "@/lib/agentTypes";
 import type { ShopReviewInsights } from "@/lib/reviewInsights";
 import { getBestShopCardPhoto } from "@/lib/shopPhotoManifest";
 import { proxyImageUrl } from "@/lib/photoProxy";
 
-export type AgentShop = {
-  shop_id: number;
-  name: string;
-  district?: string | null;
-  mrt_station?: string | null;
-  avg_price?: number | null;
-  price_per_person?: string | null;
-  booking_difficulty?: string | null;
-  atmosphere_tags?: string[] | null;
-  signature_dishes?: string[] | null;
-  ai_summary?: string | null;
-  hot_seat_vouchers?: { id: number; title: string }[] | null;
-};
+export type { AgentShop };
 
 // Positive-only framing for recommendation context
 const POSITIVE_HIGHLIGHTS: Record<string, string> = {

@@ -7,7 +7,7 @@ import { CheckCircle2, CircleDashed, Loader2, Send, Sparkles, X } from "lucide-r
 import { streamAgentResponse, type AgentTransaction } from "@/lib/agentStream";
 import { MarkdownMessage } from "@/components/MarkdownMessage";
 import { useAuth } from "@/lib/auth";
-import type { AgentShop } from "@/components/AgentShopCard";
+import type { AgentShop } from "@/lib/agentTypes";
 import {
   agentToolLabel,
   type AgentChatMessage,
