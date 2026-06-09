@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 
 from app.taxonomy import classify_shop
+from scripts.generate_taxonomy_audit import build_audit_rows
 
 
 RAW_DIR = ROOT / "data" / "raw"
@@ -194,3 +195,40 @@ def test_v20_craft_beer_bar_maps_to_izakaya():
         "ai_extracted": {"ai_summary": "暢飲、酒吧、精釀啤酒與下酒菜。"},
     })
     assert result["primary_type_id"] == 2003
+
+
+def test_taxonomy_audit_does_not_flag_high_impact_only_rows():
+    rows = build_audit_rows(
+        {
+            1: {
+                "shop_id": 1,
+                "display_name": "人氣台菜餐廳",
+                "current_type_id": 2008,
+                "comments": 5000,
+                "score": 48,
+                "db_tags": [],
+                "ai_extracted": {
+                    "ai_summary": "主打台菜、熱炒與家庭聚餐。",
+                    "signature_dishes": ["熱炒"],
+                    "atmosphere_tags": ["親子"],
+                },
+            },
+            2: {
+                "shop_id": 2,
+                "display_name": "韓式烤肉測試店",
+                "current_type_id": 2008,
+                "comments": 5000,
+                "score": 48,
+                "db_tags": ["韓式"],
+                "ai_extracted": {
+                    "ai_summary": "韓式烤肉與泡菜鍋。",
+                    "signature_dishes": ["烤肉"],
+                    "atmosphere_tags": [],
+                },
+            },
+        },
+        {2002: "日式燒肉", 2008: "中式料理"},
+    )
+
+    assert [row.shop_id for row in rows] == [2]
+    assert "korean_tag_review" in rows[0].flags
