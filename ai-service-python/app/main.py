@@ -3547,7 +3547,8 @@ async def _build_line_more_recommendations(user_text: str, user_id: str) -> list
         query=previous_query,
         shown_shop_ids=[*seen_ids, *selected_ids],
     )
-    remaining = await _hydrate_line_card_shops(remaining, selected_ids)
+    search_result = await _build_agent_search_result(previous_query, remaining, selected_ids)
+    remaining = search_result.get("shops", remaining)
     flex_or_bundle = build_line_flex_message(
         shops=remaining,
         recommended_shop_ids=selected_ids,
@@ -3586,7 +3587,8 @@ async def _build_line_cards_for_query(
     if not selected:
         return None
 
-    shops = await _hydrate_line_card_shops(shops, selected)
+    search_result = await _build_agent_search_result(query, shops, selected)
+    shops = search_result.get("shops", shops)
     selected_shops = _shops_for_ids(shops, selected)
     _save_line_recommendation_state(user_id, query=save_query or query, shown_shop_ids=selected)
     flex_or_bundle = build_line_flex_message(
@@ -3597,7 +3599,9 @@ async def _build_line_cards_for_query(
         line_user_id=user_id,
     )
     messages = flex_or_bundle.get("messages") if flex_or_bundle.get("type") == "_bundle" else [flex_or_bundle]
-    intro = _line_scope_expansion_intro(query, selected_shops)
+    intro = _line_scope_expansion_intro_from_note(search_result.get("scope_note"))
+    if not intro:
+        intro = _line_scope_expansion_intro(query, selected_shops)
     if intro and messages and messages[0].get("type") == "text":
         messages[0]["text"] = intro
     return messages or None
@@ -3610,10 +3614,6 @@ def _shops_for_ids(shops: list[dict], selected_ids: list[int]) -> list[dict]:
         if (shop_id := _shop_id(shop)) is not None
     }
     return [by_id[shop_id] for shop_id in selected_ids if shop_id in by_id]
-
-
-async def _hydrate_line_card_shops(shops: list[dict], selected_ids: list[int]) -> list[dict]:
-    return await _hydrate_agent_search_shops(shops, selected_ids)
 
 
 async def _build_agent_search_result(
@@ -3731,6 +3731,10 @@ def _search_scope_note(query: str, selected_shops: list[dict]) -> str | None:
 
 def _line_scope_expansion_intro(query: str, selected_shops: list[dict]) -> str | None:
     note = _search_scope_note(query, selected_shops)
+    return _line_scope_expansion_intro_from_note(note)
+
+
+def _line_scope_expansion_intro_from_note(note: str | None) -> str | None:
     if not note:
         return None
     return (
@@ -3811,7 +3815,8 @@ async def _build_line_named_selection_cards(user_text: str, user_id: str) -> lis
         query=previous_query,
         shown_shop_ids=[*state.get("shown_shop_ids", []), *selected_ids],
     )
-    shops = await _hydrate_line_card_shops(shops, selected_ids)
+    search_result = await _build_agent_search_result(previous_query, shops, selected_ids)
+    shops = search_result.get("shops", shops)
     flex_or_bundle = build_line_flex_message(
         shops=shops,
         recommended_shop_ids=selected_ids,
@@ -4088,7 +4093,8 @@ async def _build_line_contextual_followup(user_text: str, user_id: str) -> list[
         query=adjusted_query,
         shown_shop_ids=[*seen_ids, *selected_ids],
     )
-    shops = await _hydrate_line_card_shops(shops, selected_ids)
+    search_result = await _build_agent_search_result(adjusted_query, shops, selected_ids)
+    shops = search_result.get("shops", shops)
     flex_or_bundle = build_line_flex_message(
         shops=shops,
         recommended_shop_ids=selected_ids,
@@ -4125,7 +4131,8 @@ async def _build_line_agent_recommendation_messages(
                 if (sid := _shop_id(shop)) is not None
             ]
         )
-        shops = await _hydrate_line_card_shops(shops, shown_ids)
+        search_result = await _build_agent_search_result(user_text, shops, shown_ids)
+        shops = search_result.get("shops", shops)
         flex_or_bundle = build_line_flex_message(
             shops=shops,
             recommended_shop_ids=recommended_ids if isinstance(recommended_ids, list) else None,
@@ -4140,7 +4147,9 @@ async def _build_line_agent_recommendation_messages(
         _save_line_recommendation_state(user_id, query=user_text, shown_shop_ids=shown_ids)
         if messages:
             selected_shops = _shops_for_ids(shops, shown_ids)
-            intro = _line_scope_expansion_intro(user_text, selected_shops)
+            intro = _line_scope_expansion_intro_from_note(search_result.get("scope_note"))
+            if not intro:
+                intro = _line_scope_expansion_intro(user_text, selected_shops)
             if intro and messages[0].get("type") == "text":
                 messages[0]["text"] = intro
             return messages

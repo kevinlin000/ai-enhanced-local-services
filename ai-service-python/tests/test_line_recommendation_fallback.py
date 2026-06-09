@@ -315,6 +315,61 @@ async def test_line_cards_hydrate_selected_shop_metadata(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_line_cards_use_shared_agent_search_result(monkeypatch):
+    captured = {}
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        return [
+            {
+                "shop_id": 10680,
+                "name": "TakeOut Burger&Cafe 民權店",
+                "district": "中山",
+                "category": "美式料理",
+            },
+            {
+                "shop_id": 10201,
+                "name": "Juicy Bun Burger 政大店",
+                "district": "文山",
+                "category": "美式料理",
+            },
+            {
+                "shop_id": 10746,
+                "name": "Lin’s Burger 台北信義店",
+                "district": "信義",
+                "category": "美式料理",
+            },
+        ]
+
+    async def fake_build_agent_search_result(query: str, shops: list[dict], recommended_shop_ids=None):
+        captured["query"] = query
+        captured["shop_ids"] = [shop["shop_id"] for shop in shops]
+        captured["recommended_shop_ids"] = recommended_shop_ids
+        enriched = [dict(shop) for shop in shops]
+        enriched[0]["ai_summary"] = "共用 search builder 補上的漢堡亮點。"
+        enriched[0]["signature_dishes"] = ["牛肉漢堡", "薯條"]
+        return {
+            "shops": enriched,
+            "scope_note": "中山區符合條件較少，我先擴大到台北漢堡店，整理 3 間符合需求的餐廳。",
+        }
+
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "_build_agent_search_result", fake_build_agent_search_result)
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_cards_for_query("推薦中山區高級漢堡店", "test-user")
+    payload = json.dumps(messages, ensure_ascii=False)
+
+    assert captured == {
+        "query": "推薦中山區高級漢堡店",
+        "shop_ids": [10680, 10201, 10746],
+        "recommended_shop_ids": [10680, 10201, 10746],
+    }
+    assert messages[0]["text"].startswith("中山區符合條件較少，我先擴大到台北漢堡店")
+    assert "共用 search builder 補上的漢堡亮點" in payload
+
+
+@pytest.mark.anyio
 async def test_line_burger_reply_explains_expanded_scope(monkeypatch):
     async def fail_run_agent_turn(query: str, session_id: str):
         raise AssertionError("clear line recommendation should not wait for agent text")
