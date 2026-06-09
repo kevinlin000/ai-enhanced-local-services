@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Clock3, ExternalLink, MapPinned, PhoneCall } from "lucide-react";
+import { Car, Clock3, ExternalLink, MapPinned, Navigation, PhoneCall } from "lucide-react";
 import { AbsaSection } from "@/components/AbsaSection";
-import type { ShopAbsa, AbsaAspect } from "@/lib/api";
+import type { ShopAbsa, AbsaAspect, NearbyParkingLot } from "@/lib/api";
 
 type SimilarShopCard = {
   shopId: number;
@@ -63,6 +63,7 @@ type Props = {
   photoFallbackLabel: string;
   similarShops: SimilarShopCard[];
   mapQuery: string;
+  nearbyParking?: NearbyParkingLot[];
   lastUpdated?: string | null;
 };
 
@@ -83,6 +84,24 @@ function getPriceTone(value?: string) {
   if (upper <= 400) return { label: "平均價格偏低", bar: "bg-emerald-500", chip: "bg-emerald-50 text-emerald-700" };
   if (upper <= 1200) return { label: "平均價格中等", bar: "bg-amber-400", chip: "bg-amber-50 text-amber-700" };
   return { label: "平均價格偏高", bar: "bg-rose-500", chip: "bg-rose-50 text-rose-700" };
+}
+
+function formatParkingDistance(distanceMeters: number) {
+  if (distanceMeters >= 1000) return `${(distanceMeters / 1000).toFixed(1)} km`;
+  return `${Math.max(1, Math.round(distanceMeters))} m`;
+}
+
+function formatParkingSpaces(lot: NearbyParkingLot) {
+  if (typeof lot.availableCar === "number" && typeof lot.totalCar === "number") {
+    return `剩 ${lot.availableCar} / ${lot.totalCar} 格`;
+  }
+  if (typeof lot.availableCar === "number") {
+    return `剩 ${lot.availableCar} 格`;
+  }
+  if (typeof lot.totalCar === "number") {
+    return `共 ${lot.totalCar} 格`;
+  }
+  return "車位資料更新中";
 }
 
 function highlightText(text: string, terms: string[]) {
@@ -421,7 +440,7 @@ export function ShopDetailTabs(props: Props) {
             </div>
           ) : null}
 
-          {(props.address || props.phone || props.businessHours) && (
+          {(props.address || props.phone || props.businessHours || props.nearbyParking?.length) && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">基本資訊</h3>
               <div className="rounded-2xl border overflow-hidden">
@@ -464,6 +483,52 @@ export function ShopDetailTabs(props: Props) {
                       {props.businessHours.map((line) => (
                         <div key={line}>{line}</div>
                       ))}
+                    </div>
+                  </div>
+                ) : null}
+                {props.nearbyParking?.length ? (
+                  <div id="parking" className="px-4 py-4">
+                    <div className="flex items-start gap-3">
+                      <Car className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium">附近停車場</div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          依店家座標排序，車位以台北市公開即時資料為準。
+                        </p>
+                        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                          {props.nearbyParking.slice(0, 4).map((lot) => (
+                            <div key={lot.id} className="rounded-xl border bg-muted/20 p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="truncate text-sm font-medium">{lot.name}</div>
+                                  <div className="mt-1 text-xs text-muted-foreground">
+                                    {[lot.area, formatParkingDistance(lot.distanceMeters)].filter(Boolean).join(" · ")}
+                                  </div>
+                                </div>
+                                <div className="shrink-0 rounded-lg bg-primary/10 px-2.5 py-1.5 text-right text-primary">
+                                  <div className="text-[10px] font-medium">汽車位</div>
+                                  <div className="text-xs font-semibold">{formatParkingSpaces(lot)}</div>
+                                </div>
+                              </div>
+                              {lot.address ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{lot.address}</p> : null}
+                              <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                                {lot.payText ? <p>收費：{lot.payText}</p> : null}
+                                {lot.serviceTime ? <p>服務：{lot.serviceTime}</p> : null}
+                                {lot.updatedAt ? <p>更新：{lot.updatedAt}</p> : null}
+                              </div>
+                              <a
+                                href={lot.navigationUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border bg-background px-3 py-2 text-xs font-medium hover:bg-muted"
+                              >
+                                <Navigation className="h-3.5 w-3.5" />
+                                導航到停車場
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ) : null}

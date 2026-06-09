@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Car, DollarSign, MapPin, MessageSquare, Navigation, Star } from "lucide-react";
+import { ArrowLeft, DollarSign, MapPin, MessageSquare, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookingButton } from "@/components/BookingButton";
 import { FavoriteShopButton } from "@/components/FavoriteShopButton";
@@ -217,24 +217,6 @@ function isUsableAiIntro(text?: string | null) {
 function formatUpdatedAt(value?: string | null) {
   if (!value) return null;
   return value.slice(0, 16).replace("T", " ");
-}
-
-function formatParkingDistance(distanceMeters: number) {
-  if (distanceMeters >= 1000) return `${(distanceMeters / 1000).toFixed(1)} km`;
-  return `${Math.max(1, Math.round(distanceMeters))} m`;
-}
-
-function formatParkingSpaces(lot: NearbyParkingLot) {
-  if (typeof lot.availableCar === "number" && typeof lot.totalCar === "number") {
-    return `剩 ${lot.availableCar} / ${lot.totalCar} 格`;
-  }
-  if (typeof lot.availableCar === "number") {
-    return `剩 ${lot.availableCar} 格`;
-  }
-  if (typeof lot.totalCar === "number") {
-    return `共 ${lot.totalCar} 格`;
-  }
-  return "車位資料更新中";
 }
 
 function trimReviewSentence(text?: string | null, limit = 84) {
@@ -843,68 +825,6 @@ export default async function ShopDetailPage({
         </div>
       </section>
 
-      {shop.x && shop.y ? (
-        <section id="parking" className="max-w-4xl mx-auto px-4 md:px-8 mt-6">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Car className="h-4 w-4 text-primary" />
-                附近停車場
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">依店家座標排序，車位以台北市公開即時資料為準。</p>
-            </div>
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${shop.name} ${shop.address ?? ""}`)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="hidden sm:inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-medium hover:bg-muted"
-            >
-              <MapPin className="h-3.5 w-3.5" />
-              開啟地圖
-            </a>
-          </div>
-          {nearbyParking.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {nearbyParking.map((lot) => (
-                <div key={lot.id} className="rounded-xl border p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="font-medium leading-snug">{lot.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {[lot.area, formatParkingDistance(lot.distanceMeters)].filter(Boolean).join(" · ")}
-                      </p>
-                    </div>
-                    <div className="shrink-0 rounded-lg bg-primary/10 px-3 py-2 text-right text-primary">
-                      <div className="text-[11px] font-medium">汽車位</div>
-                      <div className="text-sm font-semibold">{formatParkingSpaces(lot)}</div>
-                    </div>
-                  </div>
-                  {lot.address ? <p className="text-sm text-muted-foreground mt-3">{lot.address}</p> : null}
-                  <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                    {lot.payText ? <p>收費：{lot.payText}</p> : null}
-                    {lot.serviceTime ? <p>服務：{lot.serviceTime}</p> : null}
-                    {lot.updatedAt ? <p>更新：{lot.updatedAt}</p> : null}
-                  </div>
-                  <a
-                    href={lot.navigationUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted"
-                  >
-                    <Navigation className="h-4 w-4" />
-                    導航到停車場
-                  </a>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-xl border p-4 text-sm text-muted-foreground">
-              目前查不到附近停車場即時資料，仍可先開啟地圖確認現場停車資訊。
-            </div>
-          )}
-        </section>
-      ) : null}
-
       {(hotSeatOffers.length > 0 || merchantOffers.length > 0) && (
         <section id="offers" className="max-w-4xl mx-auto px-4 md:px-8 mt-6 space-y-6">
           <div className="rounded-2xl border bg-muted/20 p-5 md:p-6">
@@ -1049,6 +969,7 @@ export default async function ShopDetailPage({
         photoFallbackLabel={shop.name}
         similarShops={similarShops}
         mapQuery={`${shop.name} ${shop.address ?? ""}`}
+        nearbyParking={shop.x && shop.y ? nearbyParking : []}
         lastUpdated={lastUpdated}
       />
 
