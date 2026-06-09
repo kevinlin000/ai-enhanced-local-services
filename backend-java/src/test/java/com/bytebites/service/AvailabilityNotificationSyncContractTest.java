@@ -135,6 +135,50 @@ class AvailabilityNotificationSyncContractTest {
                 .containsEntry("lineUserId", LINE_USER_ID);
     }
 
+    @Test
+    void lineCreatedWatchIsVisibleWhenWebMyWatchesRefreshesSameOwner() {
+        Map<String, Object> lineWatch = new LinkedHashMap<>();
+        lineWatch.put("id", WATCH_ID);
+        lineWatch.put("userId", USER_ID);
+        lineWatch.put("shopId", SHOP_ID);
+        lineWatch.put("shopName", "橘色涮涮屋 信義館");
+        lineWatch.put("date", BOOKING_DATE);
+        lineWatch.put("time", "19:00");
+        lineWatch.put("tableType", "normal");
+        lineWatch.put("people", 2);
+        lineWatch.put("status", "ACTIVE");
+        lineWatch.put("lineUserId", LINE_USER_ID);
+        when(lineActionTokenService.resolveOwnerId(LINE_USER_ID, "valid-token", null)).thenReturn(Optional.of(USER_ID));
+        when(jdbcTemplate.queryForMap(contains("GREATEST(capacity - booked_count"), eq(SHOP_ID), eq(BOOKING_DATE), eq("19:00"), eq("normal")))
+                .thenReturn(Map.of("capacity", 8, "bookedCount", 8, "remaining", 0));
+        when(jdbcTemplate.queryForMap(contains("FROM tb_availability_watch"), eq(USER_ID), eq(SHOP_ID), eq(BOOKING_DATE), eq("19:00"), eq("normal"), eq(2)))
+                .thenReturn(lineWatch);
+
+        Result created = service.createWatch(SHOP_ID, BOOKING_DATE, "19:00", "normal", 2, LINE_USER_ID, "valid-token");
+
+        assertThat(created.getSuccess()).isTrue();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> createdData = (Map<String, Object>) created.getData();
+        assertThat(createdData)
+                .containsEntry("id", WATCH_ID)
+                .containsEntry("lineUserId", LINE_USER_ID)
+                .containsEntry("status", "ACTIVE");
+
+        UserHolder.saveUser(webUser());
+        when(jdbcTemplate.queryForList(contains("FROM tb_availability_watch"), eq(USER_ID))).thenReturn(List.of(lineWatch));
+
+        Result watches = service.myWatches();
+
+        assertThat(watches.getSuccess()).isTrue();
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> items = (List<Map<String, Object>>) watches.getData();
+        assertThat(items).hasSize(1);
+        assertThat(items.get(0))
+                .containsEntry("id", WATCH_ID)
+                .containsEntry("lineUserId", LINE_USER_ID)
+                .containsEntry("status", "ACTIVE");
+    }
+
     private UserDTO webUser() {
         UserDTO user = new UserDTO();
         user.setId(USER_ID);
