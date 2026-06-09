@@ -845,6 +845,71 @@ async def test_web_agent_stream_forces_cards_when_model_skips_search(monkeypatch
 
 
 @pytest.mark.anyio
+async def test_web_agent_stream_exact_shop_correction_bypasses_model(monkeypatch):
+    captured = {}
+    saved = {}
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        captured["query"] = query
+        return [
+            {
+                "shop_id": 10222,
+                "name": "青田七六",
+                "district": "大安",
+                "mrt_station": "東門",
+                "category": "台菜",
+                "ai_summary": "老屋空間，適合聊天與聚餐。",
+                "atmosphere_tags": ["聊天", "聚餐"],
+            },
+            {
+                "shop_id": 10223,
+                "name": "青靜綠",
+                "district": "文山",
+                "category": "素食",
+                "ai_summary": "山區蔬食餐廳。",
+            },
+        ]
+
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("exact shop correction should bypass model")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {"role": "user", "content": "大安區適合聊天"},
+            {
+                "role": "model",
+                "content": "我整理了幾間。",
+                "recommendation": {
+                    "query": "大安區適合聊天",
+                    "shops": [{"shop_id": 10101, "name": "大安聊天餐館"}],
+                },
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "generate", fail_generate)
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "不是這個，我要青田七六",
+            "test-web-exact-correction",
+        )
+    ]
+
+    done = events[-1]
+    assert captured["query"] == "青田七六"
+    assert done["tools_used"] == ["semantic_shop_search"]
+    assert done["recommended_shop_ids"] == [10222]
+    assert [shop["shop_id"] for shop in done["shops"]] == [10222]
+    assert "青田七六" in done["answer"]
+    assert saved["history"][-1]["recommendation"]["shops"][0]["shop_id"] == 10222
+
+
+@pytest.mark.anyio
 async def test_tool_semantic_search_returns_hydrated_shops_and_scope_note(monkeypatch):
     async def fake_semantic_hits(query: str, top_k: int):
         return [

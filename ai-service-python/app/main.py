@@ -2563,6 +2563,8 @@ def _selected_agent_response_shops(tool_result: dict) -> list[dict]:
     ]
     if selected_ids:
         selected = _shops_for_ids(shops, selected_ids)
+        if tool_result.get("strict_recommended_only"):
+            return selected
         selected_id_set = {_shop_id(shop) for shop in selected}
         selected.extend(shop for shop in shops if _shop_id(shop) not in selected_id_set)
         return selected[: min(3, len(shops))]
@@ -2670,6 +2672,29 @@ def _recommended_shop_from_text(query: str, shops: list[dict]) -> dict | None:
         if normalized_keyword in name or name in normalized_keyword:
             return shop
     return None
+
+
+def _exact_shop_matches(query: str, shops: list[dict]) -> list[dict]:
+    keyword = _specific_shop_keyword(query)
+    normalized_keyword = _normalized_name(keyword)
+    if not normalized_keyword:
+        return []
+
+    matches = []
+    for shop in _dedupe_shops_by_brand(shops):
+        normalized_name = _normalized_name(str(shop.get("name") or ""))
+        if not normalized_name:
+            continue
+        if normalized_keyword in normalized_name or normalized_name in normalized_keyword:
+            matches.append(shop)
+
+    return sorted(
+        matches,
+        key=lambda shop: (
+            _normalized_name(str(shop.get("name") or "")) != normalized_keyword,
+            not _normalized_name(str(shop.get("name") or "")).startswith(normalized_keyword),
+        ),
+    )
 
 
 def _recommendation_advice_intent(query: str) -> bool:
@@ -3281,6 +3306,52 @@ class ToolGuardResult:
     last_tool_result: dict | None = None
 
 
+async def _agent_exact_shop_from_query(query: str) -> ToolGuardResult | None:
+    if _booking_intent(query) or _payment_intent(query):
+        return None
+
+    keyword = _specific_shop_keyword(query)
+    if not keyword:
+        return None
+
+    hits = await _semantic_hits(keyword, top_k=30)
+    selected_shops = _exact_shop_matches(keyword, hits)
+    if not selected_shops:
+        return None
+
+    selected_ids = [
+        int(sid)
+        for shop in selected_shops[:1]
+        if (sid := _shop_id(shop)) is not None
+    ]
+    if not selected_ids:
+        return None
+
+    search_result = await _build_agent_search_result(keyword, hits, selected_ids)
+    search_result["strict_recommended_only"] = True
+    shops = search_result.get("shops") if isinstance(search_result, dict) else []
+    selected = _shops_for_ids(shops, selected_ids)[0] if isinstance(shops, list) else selected_shops[0]
+    name = str(selected.get("name") or keyword)
+    answer = (
+        f"我已改以「{name}」為準，不沿用前一輪推薦。"
+        f"{_shop_advice_text(selected)}。"
+        "如果要訂位，請直接回覆日期、時間與人數。"
+    )
+    rejected_ids = [
+        int(sid)
+        for shop in hits
+        if (sid := _shop_id(shop)) is not None and int(sid) not in selected_ids
+    ][:8]
+    search_result["agent_decision"] = _decision_payload(
+        AgentRecommendationDecision(
+            recommended_shop_ids=selected_ids,
+            narrative=answer,
+            rejected_shop_ids=rejected_ids,
+        )
+    )
+    return ToolGuardResult(action="direct", direct_answer=answer, last_tool_result=search_result)
+
+
 def _history_to_contents(history: list[dict], query: str) -> list:
     contents: list = []
     for turn in history:
@@ -3390,6 +3461,26 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
     contents = _history_to_contents(history, effective_query)
     state = AgentToolState(query=effective_query, session_id=session_id, history=history, contents=contents)
     final_answer = ""
+
+    exact_shop = await _agent_exact_shop_from_query(effective_query)
+    if exact_shop is not None:
+        final_answer = exact_shop.direct_answer or ""
+        state.tools_used.append("semantic_shop_search")
+        state.last_tool_result = exact_shop.last_tool_result or {}
+        if session_id:
+            recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
+            session_store.save_history(
+                session_id,
+                history + [
+                    {"role": "user", "content": query},
+                    {
+                        "role": "model",
+                        "content": final_answer,
+                        **({"recommendation": recommendation} if recommendation else {}),
+                    },
+                ],
+            )
+        return final_answer, state.tools_used, state.last_tool_result
 
     recommendation_advice = _agent_recommendation_advice_from_history(effective_query, history)
     if recommendation_advice is not None:
@@ -3765,6 +3856,55 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             "transaction": None,
             "tools_used": [],
             "tool_result": {},
+            "session_id": session_id,
+        }
+        yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+        yield done_payload
+        return
+
+    exact_shop = await _agent_exact_shop_from_query(effective_query)
+    if exact_shop is not None:
+        tool_name = "semantic_shop_search"
+        state.tools_used.append(tool_name)
+        state.last_tool_result = exact_shop.last_tool_result or {}
+        yield {
+            "type": "tool_execution_start",
+            "name": tool_name,
+            "args": {"query": _specific_shop_keyword(effective_query) or effective_query},
+            "session_id": session_id,
+        }
+        yield {
+            "type": "tool_execution_end",
+            "name": tool_name,
+            "result_summary": _tool_result_summary(state.last_tool_result),
+            "session_id": session_id,
+        }
+        yield {"type": "tool", "name": tool_name}
+        full_answer = exact_shop.direct_answer or ""
+        chunk_size = 18
+        for i in range(0, len(full_answer), chunk_size):
+            chunk = full_answer[i : i + chunk_size]
+            yield {"type": "message_update", "content": chunk}
+            yield {"type": "chunk", "content": chunk}
+        if session_id:
+            recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
+            session_store.save_history(
+                session_id,
+                history + [
+                    {"role": "user", "content": query},
+                    {
+                        "role": "model",
+                        "content": full_answer,
+                        **({"recommendation": recommendation} if recommendation else {}),
+                    },
+                ],
+            )
+        done_payload = {
+            "type": "done",
+            "answer": full_answer,
+            **_agent_response_contract(state.last_tool_result),
+            "tools_used": state.tools_used,
+            "tool_result": state.last_tool_result,
             "session_id": session_id,
         }
         yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
@@ -5206,12 +5346,7 @@ async def _build_line_cards_for_query(
     if selected_ids:
         selected = [int(shop_id) for shop_id in selected_ids if str(shop_id).isdigit()]
     else:
-        exact_keyword = _specific_shop_keyword(query)
-        exact_matches = [
-            shop
-            for shop in deduped
-            if exact_keyword and _normalized_name(exact_keyword) in _normalized_name(str(shop.get("name") or ""))
-        ]
+        exact_matches = _exact_shop_matches(query, deduped)
         selection_pool = exact_matches[:1] if exact_matches else deduped[:3]
         selected = [
             int(sid)
