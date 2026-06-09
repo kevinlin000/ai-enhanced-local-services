@@ -114,12 +114,12 @@ export default function NotificationsPage() {
     <main className="min-h-screen bg-[#f4f0e7] px-4 py-8 text-[#171512] md:px-8">
       <section className="mx-auto max-w-5xl">
         <div className="rounded-[2rem] bg-[#0f3324] p-8 text-white shadow-2xl shadow-emerald-950/20 md:p-10">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.38em] text-emerald-200">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-normal text-emerald-200">
             Availability Center
           </p>
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="text-4xl font-black tracking-tight md:text-5xl">空位通知管理</h1>
+              <h1 className="text-4xl font-black tracking-normal md:text-5xl">空位通知管理</h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-emerald-50/80 md:text-base">
                 額滿時段釋出座位時會主動提醒。你可以在這裡查看通知、前往訂位，或取消不再需要的追蹤。
               </p>

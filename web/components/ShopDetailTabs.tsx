@@ -125,7 +125,7 @@ function starRating(rating: number) {
   const full = Math.round(rating);
   const filled = Math.max(0, Math.min(5, full));
   return (
-    <span className="text-sm tracking-tight">
+    <span className="text-sm tracking-normal">
       {"★".repeat(filled).split("").map((_, i) => (
         <span key={`f${i}`} className="text-amber-500">★</span>
       ))}
@@ -194,7 +194,7 @@ function ReviewCard({ review }: { review: ReviewSnippet }) {
 
       {/* body with subtle left border */}
       <div className="border-l-2 border-amber-300/40 pl-4">
-        <p className="whitespace-pre-line leading-loose tracking-wide text-gray-700 text-sm">
+        <p className="whitespace-pre-line leading-loose tracking-normal text-gray-700 text-sm">
           {bodyContent}
         </p>
       </div>
@@ -270,7 +270,7 @@ function DataGapCallout({
 }) {
   return (
     <div className="rounded-2xl border bg-stone-50 p-6">
-      <div className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">Data pending</div>
+      <div className="text-xs font-mono uppercase tracking-normal text-muted-foreground">Data pending</div>
       <div className="mt-2 text-xl font-semibold">{title}</div>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">{body}</p>
       {actionHref && actionLabel ? (
@@ -401,7 +401,7 @@ export function ShopDetailTabs(props: Props) {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {props.featureHighlights.map((item) => (
                   <div key={item.label} className="rounded-2xl border bg-background p-5">
-                    <div className="text-xs font-semibold tracking-wide text-amber-700">{item.label}</div>
+                    <div className="text-xs font-semibold tracking-normal text-amber-700">{item.label}</div>
                     <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.detail}</p>
                   </div>
                 ))}

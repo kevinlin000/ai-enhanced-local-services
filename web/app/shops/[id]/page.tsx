@@ -775,7 +775,7 @@ export default async function ShopDetailPage({
                   </span>
                 ) : null}
               </div>
-              <h1 className={`text-2xl md:text-4xl font-bold tracking-tight ${coverPhoto ? "text-white" : ""}`}>{shop.name}</h1>
+              <h1 className={`text-2xl md:text-4xl font-bold tracking-normal ${coverPhoto ? "text-white" : ""}`}>{shop.name}</h1>
               {shop.address ? (
                 <p className={`text-sm mt-2 ${coverPhoto ? "text-white/85" : "text-foreground/70"}`}>{shop.address}</p>
               ) : null}

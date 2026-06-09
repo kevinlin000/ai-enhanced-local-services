@@ -750,10 +750,10 @@ export default function AiPage() {
         >
             {messages.length === 0 ? (
               <div className="mx-auto mt-16 max-w-3xl text-center md:mt-24">
-                <p className="text-xs font-black tracking-[0.32em] text-[#b59a57]">
+                <p className="text-xs font-black tracking-normal text-[#b59a57]">
                   AI DINING CONCIERGE
                 </p>
-                <h1 className="mt-4 text-5xl font-black leading-tight tracking-tight md:text-7xl">
+                <h1 className="mt-4 text-5xl font-black leading-tight tracking-normal md:text-7xl">
                   今晚想去哪？
                 </h1>
                 <p className="mx-auto mt-4 max-w-xl text-base leading-8 text-zinc-500">

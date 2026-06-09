@@ -92,7 +92,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className={shellClass}>
       <aside className="hidden border-r border-black/10 bg-[#f7f3ec] md:sticky md:top-0 md:flex md:h-screen md:flex-col">
         <div className={`flex h-24 items-center ${collapsed ? "justify-center px-2" : "px-8"}`}>
-          <Link href="/" className={`${collapsed ? "text-3xl" : "text-4xl"} font-black tracking-[-0.08em]`}>
+          <Link href="/" className={`${collapsed ? "text-3xl" : "text-4xl"} font-black tracking-normal`}>
             bb
           </Link>
         </div>
@@ -113,7 +113,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             {!collapsed ? (
               <div className="min-w-0">
-                <p className="truncate text-lg font-black tracking-[-0.03em]">{displayName}</p>
+                <p className="truncate text-lg font-black tracking-normal">{displayName}</p>
                 <p className="mt-0.5 text-xs font-medium text-zinc-500">
                   {mounted && isAuthLoading ? "正在確認 LINE 登入" : mounted && isLoggedIn ? "LINE 已登入" : "未登入"}
                 </p>
@@ -223,7 +223,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <Link href="/" className="text-4xl font-black tracking-[-0.06em]">
+          <Link href="/" className="text-4xl font-black tracking-normal">
             ByteBites
           </Link>
           <Link
@@ -236,7 +236,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-black/10 bg-[#f7f3ec]/90 px-4 backdrop-blur md:hidden">
-          <Link href="/" className="text-2xl font-black tracking-[-0.08em]">
+          <Link href="/" className="text-2xl font-black tracking-normal">
             bb
           </Link>
           <div className="flex items-center gap-2">

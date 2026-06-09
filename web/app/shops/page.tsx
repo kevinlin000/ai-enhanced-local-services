@@ -418,7 +418,7 @@ function ShopsPageContent() {
       {searchMode === "ai" && (
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-xs font-medium tracking-wide text-primary">
+            <p className="text-xs font-medium tracking-normal text-primary">
               AI 快速情境
             </p>
             <p className="text-[11px] text-muted-foreground">

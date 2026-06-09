@@ -115,8 +115,8 @@ function SectionHeader({
   return (
     <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div>
-        <p className="text-xs font-black tracking-[0.18em] text-[#b59a58]">{kicker}</p>
-        <h2 className="mt-2 text-4xl font-black tracking-[-0.06em] text-[#191713] md:text-5xl">{title}</h2>
+        <p className="text-xs font-black tracking-normal text-[#b59a58]">{kicker}</p>
+        <h2 className="mt-2 text-4xl font-black tracking-normal text-[#191713] md:text-5xl">{title}</h2>
         {description ? <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-500 md:text-base">{description}</p> : null}
       </div>
       {href && cta ? (
@@ -205,7 +205,7 @@ function RestaurantCard({
           ) : null}
         </div>
         <div className="flex flex-1 flex-col p-5">
-          <h3 className={`${compact ? "text-xl" : "text-2xl"} line-clamp-2 font-black tracking-[-0.04em]`}>
+          <h3 className={`${compact ? "text-xl" : "text-2xl"} line-clamp-2 font-black tracking-normal`}>
             {shop.name}
           </h3>
           <p className="mt-2 text-sm text-zinc-500">
@@ -287,8 +287,8 @@ function MrtPopularSection({
               <div key={row.name}>
                 <div className="mb-4 flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-black tracking-[0.14em] text-[#b59a58]">MRT</p>
-                    <h3 className="text-3xl font-black tracking-[-0.04em]">{row.name}</h3>
+                    <p className="text-xs font-black tracking-normal text-[#b59a58]">MRT</p>
+                    <h3 className="text-3xl font-black tracking-normal">{row.name}</h3>
                   </div>
                   <Link
                     href={`/shops?mrt=${encodeURIComponent(row.name)}`}
@@ -393,8 +393,8 @@ export default async function Home({
       <section className="border-b border-[#ded7c9] px-6 py-14 md:px-12 md:py-20">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1fr] lg:items-center">
           <div>
-            <p className="text-sm font-black tracking-[0.16em] text-[#b59a58]">獨家桌位，僅此一處</p>
-            <h1 className="mt-5 text-6xl font-black leading-[0.92] tracking-[-0.08em] md:text-8xl">
+            <p className="text-sm font-black tracking-normal text-[#b59a58]">獨家桌位，僅此一處</p>
+            <h1 className="mt-5 text-6xl font-black leading-[0.92] tracking-normal md:text-8xl">
               餐飲體驗
               <span className="block text-[#b59a58]">臻於極致</span>
             </h1>
@@ -407,7 +407,7 @@ export default async function Home({
             <div className="flex items-start gap-4">
               <Sparkles className="mt-1 h-8 w-8 fill-[#1c1914] text-[#1c1914]" />
               <div>
-                <h2 className="text-3xl font-black tracking-[-0.05em] md:text-4xl">今晚想去哪？</h2>
+                <h2 className="text-3xl font-black tracking-normal md:text-4xl">今晚想去哪？</h2>
                 <p className="mt-2 text-zinc-600">用自然語言找最適合的一間</p>
               </div>
             </div>

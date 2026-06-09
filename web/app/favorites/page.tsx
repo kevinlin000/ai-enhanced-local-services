@@ -73,12 +73,12 @@ export default function FavoritesPage() {
     <main className="min-h-screen bg-[#f6f1e8] px-4 py-8 md:px-8">
       <section className="mx-auto max-w-6xl overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-2xl shadow-black/10">
         <div className="border-b bg-[#123326] px-6 py-8 text-white md:px-10 md:py-10">
-          <p className="text-xs font-black uppercase tracking-[0.32em] text-emerald-200">
+          <p className="text-xs font-black uppercase tracking-normal text-emerald-200">
             Saved restaurants
           </p>
           <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="text-4xl font-black tracking-tight md:text-6xl">收藏餐廳</h1>
+              <h1 className="text-4xl font-black tracking-normal md:text-6xl">收藏餐廳</h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-white/70">
                 把想吃、想訂、想等空位的餐廳集中管理。之後回訪時可以快速查看詳情、訂位或建立空位提醒。
               </p>

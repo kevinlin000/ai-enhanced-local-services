@@ -4,12 +4,12 @@ import type { Components } from "react-markdown";
 
 const components: Components = {
   h1: ({ children }) => (
-    <h1 className="mb-3 mt-4 text-3xl font-black leading-tight tracking-tight text-zinc-950">
+    <h1 className="mb-3 mt-4 text-3xl font-black leading-tight tracking-normal text-zinc-950">
       {children}
     </h1>
   ),
   h2: ({ children }) => (
-    <h2 className="mb-3 mt-5 text-2xl font-black leading-tight tracking-tight text-zinc-950">
+    <h2 className="mb-3 mt-5 text-2xl font-black leading-tight tracking-normal text-zinc-950">
       {children}
     </h2>
   ),

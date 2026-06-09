@@ -332,12 +332,12 @@ export default function MyBookingsPage() {
     <main className="min-h-screen bg-[#f4f0e7] px-4 py-8 text-[#171512] md:px-8">
       <section className="mx-auto max-w-5xl">
         <div className="rounded-[2rem] bg-[#0f3324] p-8 text-white shadow-2xl shadow-emerald-950/20 md:p-10">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.38em] text-emerald-200">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-normal text-emerald-200">
             ByteBites Reservations
           </p>
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="max-w-2xl text-4xl font-black leading-tight tracking-tight md:text-5xl">
+              <h1 className="max-w-2xl text-4xl font-black leading-tight tracking-normal md:text-5xl">
                 我的訂位
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-emerald-50/80 md:text-base">
@@ -415,21 +415,21 @@ export default function MyBookingsPage() {
 
                     <div className="grid gap-4 px-5 py-5 md:grid-cols-4">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">時間</p>
+                        <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">時間</p>
                         <p className="mt-1 text-lg font-bold">{formatDateTime(booking)}</p>
                       </div>
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">人數</p>
+                        <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">人數</p>
                         <p className="mt-1 text-lg font-bold">{booking.people} 人</p>
                       </div>
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">訂金</p>
+                        <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">訂金</p>
                         <p className="mt-1 text-lg font-bold">
                           {booking.needsDeposit ? `NT$ ${booking.depositTotal}` : "免訂金"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">交易編號</p>
+                        <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">交易編號</p>
                         <p className="mt-1 truncate font-mono text-sm font-bold">
                           {booking.paymentTransId ?? "-"}
                         </p>
@@ -633,7 +633,7 @@ export default function MyBookingsPage() {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/35 px-4 pb-4 pt-12 backdrop-blur-sm sm:items-center sm:py-6">
           <section className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-[1.5rem] border border-black/10 bg-white shadow-2xl">
             <div className="border-b border-zinc-200 bg-[#fffdf8] px-6 py-5">
-              <p className="text-sm font-bold uppercase tracking-[0.22em] text-red-600">Cancel reservation</p>
+              <p className="text-sm font-bold uppercase tracking-normal text-red-600">Cancel reservation</p>
               <h2 className="mt-2 text-2xl font-black">確認取消訂位？</h2>
               <p className="mt-2 text-sm leading-6 text-zinc-500">
                 取消後此訂位會標記為已取消，店家時段容量會立即釋放。此 demo 不處理退款流程。
@@ -646,15 +646,15 @@ export default function MyBookingsPage() {
                 <p className="mt-1 font-mono text-sm text-zinc-500">{cancelBooking.bookingCode}</p>
                 <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">時間</p>
+                    <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">時間</p>
                     <p className="mt-1 font-bold">{formatDateTime(cancelBooking)}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">人數</p>
+                    <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">人數</p>
                     <p className="mt-1 font-bold">{cancelBooking.people} 人</p>
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">狀態</p>
+                    <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">狀態</p>
                     <p className="mt-1 font-bold">{statusCopy[cancelBooking.status].label}</p>
                   </div>
                 </div>

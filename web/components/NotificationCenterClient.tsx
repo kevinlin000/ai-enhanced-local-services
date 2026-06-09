@@ -91,7 +91,7 @@ export function NotificationCenterClient() {
       {toast ? (
         <div className="fixed right-5 top-32 z-[70] w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-2xl shadow-black/20">
           <div className="bg-[#0f3324] px-4 py-3 text-white">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-200">
+            <p className="text-xs font-semibold uppercase tracking-normal text-emerald-200">
               有空位了
             </p>
             <p className="mt-1 text-lg font-black">{toast.title}</p>

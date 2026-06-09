@@ -120,7 +120,7 @@ function AspectCard({ aspect }: { aspect: AbsaAspect }) {
             <div className="px-5 pb-5 space-y-5 border-t">
               {posCount > 0 && (
                 <div className="pt-4">
-                  <div className="text-xs font-semibold text-green-700 mb-3 uppercase tracking-wide">
+                  <div className="text-xs font-semibold text-green-700 mb-3 uppercase tracking-normal">
                     正面根據 ({posCount})
                   </div>
                   <EvidenceList items={aspect.positive_evidence!} polarity="positive" />
@@ -128,7 +128,7 @@ function AspectCard({ aspect }: { aspect: AbsaAspect }) {
               )}
               {negCount > 0 && (
                 <div className={posCount > 0 ? "pt-2 border-t" : "pt-4"}>
-                  <div className="text-xs font-semibold text-red-600 mb-3 uppercase tracking-wide">
+                  <div className="text-xs font-semibold text-red-600 mb-3 uppercase tracking-normal">
                     負面根據 ({negCount})
                   </div>
                   <EvidenceList items={aspect.negative_evidence!} polarity="negative" />

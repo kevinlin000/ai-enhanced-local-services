@@ -160,10 +160,10 @@ export default function MerchantPage() {
         <header className="overflow-hidden rounded-[32px] border border-emerald-900/10 bg-[#092d21] text-white shadow-2xl">
           <div className="grid gap-8 p-8 lg:grid-cols-[1.1fr_0.9fr] lg:p-10">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-200">
+              <p className="text-sm font-semibold uppercase tracking-normal text-emerald-200">
                 ByteBites Merchant Console
               </p>
-              <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight lg:text-6xl">
+              <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-normal lg:text-6xl">
                 管理店家真實可訂容量，而不是假裝有位。
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-emerald-50/85">
@@ -215,7 +215,7 @@ export default function MerchantPage() {
                 >
                   <p className="font-black">{shop.name}</p>
                   <p className="mt-1 text-sm text-stone-500">{shop.district ?? "未標示行政區"}</p>
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-normal text-emerald-700">
                     {shop.role}
                   </p>
                 </button>
