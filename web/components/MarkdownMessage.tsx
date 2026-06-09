@@ -4,17 +4,17 @@ import type { Components } from "react-markdown";
 
 const components: Components = {
   h1: ({ children }) => (
-    <h1 className="mb-3 mt-4 text-3xl font-black leading-tight tracking-normal text-zinc-950">
+    <h1 className="mb-3 mt-4 text-3xl font-semibold leading-tight tracking-normal text-zinc-950">
       {children}
     </h1>
   ),
   h2: ({ children }) => (
-    <h2 className="mb-3 mt-5 text-2xl font-black leading-tight tracking-normal text-zinc-950">
+    <h2 className="mb-3 mt-5 text-2xl font-semibold leading-tight tracking-normal text-zinc-950">
       {children}
     </h2>
   ),
   h3: ({ children }) => (
-    <h3 className="mb-2 mt-4 text-lg font-black leading-snug text-zinc-950">
+    <h3 className="mb-2 mt-4 text-lg font-semibold leading-snug text-zinc-950">
       {children}
     </h3>
   ),
@@ -29,7 +29,7 @@ const components: Components = {
     <thead className="bg-[#ebe5da] text-left text-zinc-950">{children}</thead>
   ),
   th: ({ children }) => (
-    <th className="whitespace-nowrap border-b border-[#ded8cc] px-4 py-3 font-black">
+    <th className="whitespace-nowrap border-b border-[#ded8cc] px-4 py-3 font-semibold">
       {children}
     </th>
   ),
@@ -42,7 +42,7 @@ const components: Components = {
   ul: ({ children }) => <ul className="my-3 max-w-3xl list-disc space-y-1 pl-6">{children}</ul>,
   ol: ({ children }) => <ol className="my-3 max-w-3xl list-decimal space-y-1 pl-6">{children}</ol>,
   li: ({ children }) => <li className="pl-1 leading-8">{children}</li>,
-  strong: ({ children }) => <strong className="font-extrabold text-zinc-950">{children}</strong>,
+  strong: ({ children }) => <strong className="font-semibold text-zinc-950">{children}</strong>,
   blockquote: ({ children }) => (
     <blockquote className="my-4 max-w-3xl rounded-3xl border border-[#e3dac8] bg-[#f3ecdd] px-5 py-4 text-zinc-700">
       {children}

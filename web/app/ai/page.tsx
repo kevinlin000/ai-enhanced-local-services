@@ -753,10 +753,10 @@ export default function AiPage() {
         >
             {messages.length === 0 ? (
               <div className="mx-auto mt-16 max-w-3xl text-center md:mt-24">
-                <p className="text-xs font-black tracking-normal text-[#b59a57]">
+                <p className="text-xs font-semibold tracking-normal text-[#b59a57]">
                   AI DINING CONCIERGE
                 </p>
-                <h1 className="mt-4 text-5xl font-black leading-tight tracking-normal md:text-7xl">
+                <h1 className="mt-4 text-5xl font-semibold leading-[1.05] tracking-normal md:text-7xl">
                   今晚想去哪？
                 </h1>
                 <p className="mx-auto mt-4 max-w-xl text-base leading-8 text-zinc-500">
@@ -767,7 +767,7 @@ export default function AiPage() {
                     <button
                       type="button"
                       onClick={login}
-                      className="rounded-full bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
+                      className="rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
                     >
                       用 LINE 登入後開始
                     </button>
@@ -864,7 +864,7 @@ export default function AiPage() {
               <Button
                 onClick={() => handleRun(query)}
                 disabled={loading || isAuthLoading || !query.trim() || (mounted && !isLoggedIn)}
-                className="h-11 rounded-full bg-[#171512] px-5 font-black text-white hover:bg-black"
+                className="h-11 rounded-full bg-[#171512] px-5 font-semibold text-white hover:bg-black"
               >
                 {loading ? "搜尋中" : "送出"}
               </Button>

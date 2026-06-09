@@ -30,3 +30,12 @@ test("UI typography keeps letter spacing at the default rhythm", () => {
 
   assert.deepEqual(offenders, []);
 });
+
+test("UI typography caps heavy weights for a lighter product feel", () => {
+  const globals = readFileSync(join(root, "app/globals.css"), "utf8");
+
+  assert.match(globals, /\.font-black\s*{\s*font-weight:\s*700;/);
+  assert.match(globals, /\.font-extrabold\s*{\s*font-weight:\s*650;/);
+  assert.match(globals, /\.font-bold\s*{\s*font-weight:\s*600;/);
+  assert.match(globals, /\.font-semibold\s*{\s*font-weight:\s*550;/);
+});

@@ -126,11 +126,31 @@
     @apply bg-background text-foreground;
     font-family: var(--font-noto-tc), var(--font-geist), system-ui, sans-serif;
     font-feature-settings: "tnum";
+    font-weight: 400;
+    text-rendering: optimizeLegibility;
   }
   html {
     @apply font-sans;
   }
   .font-mono {
     font-family: var(--font-geist-mono), monospace;
+  }
+}
+
+@layer utilities {
+  .font-black {
+    font-weight: 700;
+  }
+
+  .font-extrabold {
+    font-weight: 650;
+  }
+
+  .font-bold {
+    font-weight: 600;
+  }
+
+  .font-semibold {
+    font-weight: 550;
   }
 }

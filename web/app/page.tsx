@@ -393,8 +393,8 @@ export default async function Home({
       <section className="border-b border-[#ded7c9] px-6 py-14 md:px-12 md:py-20">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1fr] lg:items-center">
           <div>
-            <p className="text-sm font-black tracking-normal text-[#b59a58]">獨家桌位，僅此一處</p>
-            <h1 className="mt-5 text-6xl font-black leading-[0.92] tracking-normal md:text-8xl">
+            <p className="text-sm font-semibold tracking-normal text-[#b59a58]">獨家桌位，僅此一處</p>
+            <h1 className="mt-5 text-5xl font-semibold leading-[1.02] tracking-normal md:text-7xl">
               餐飲體驗
               <span className="block text-[#b59a58]">臻於極致</span>
             </h1>
@@ -407,7 +407,7 @@ export default async function Home({
             <div className="flex items-start gap-4">
               <Sparkles className="mt-1 h-8 w-8 fill-[#1c1914] text-[#1c1914]" />
               <div>
-                <h2 className="text-3xl font-black tracking-normal md:text-4xl">今晚想去哪？</h2>
+                <h2 className="text-3xl font-semibold tracking-normal md:text-4xl">今晚想去哪？</h2>
                 <p className="mt-2 text-zinc-600">用自然語言找最適合的一間</p>
               </div>
             </div>
@@ -416,7 +416,7 @@ export default async function Home({
               className="mt-8 flex items-center gap-3 rounded-2xl border border-[#d9d1c1] bg-[#faf7ef] px-5 py-5 text-left text-zinc-500 transition hover:bg-white"
             >
               <Search className="h-5 w-5" />
-              <span className="flex-1 text-sm font-black md:text-base">找餐廳、查空位、直接訂位</span>
+              <span className="flex-1 text-sm font-semibold md:text-base">找餐廳、查空位、直接訂位</span>
               <Bot className="h-5 w-5 text-[#b59a58]" />
             </Link>
             <div className="mt-5 flex flex-wrap gap-3">
