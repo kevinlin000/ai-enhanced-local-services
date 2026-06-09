@@ -329,33 +329,29 @@ export default function MyBookingsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f4f0e7] px-4 py-8 text-[#171512] md:px-8">
+    <main className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
       <section className="mx-auto max-w-5xl">
-        <div className="rounded-[2rem] bg-[#0f3324] p-8 text-white shadow-2xl shadow-emerald-950/20 md:p-10">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-normal text-emerald-200">
-            ByteBites Reservations
-          </p>
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="max-w-2xl text-4xl font-black leading-tight tracking-normal md:text-5xl">
-                我的訂位
-              </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-emerald-50/80 md:text-base">
-                管理已保留、待付款、已付款與已取消的訂位。付款、取消與逾期都會同步更新店家的可訂容量。
-              </p>
-            </div>
+        <div className="flex flex-col gap-5 border-b pb-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+              ByteBites Reservations
+            </p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-normal md:text-4xl">我的訂位</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
+              管理已保留、待付款、已付款與已取消的訂位。付款、取消與逾期都會同步更新店家的可訂容量。
+            </p>
+          </div>
             <Link href="/ai">
-              <Button className="rounded-full bg-white px-6 text-[#0f3324] hover:bg-emerald-50">
+            <Button variant="outline" className="rounded-lg px-4">
                 回 AI 訂位
               </Button>
             </Link>
-          </div>
         </div>
 
-        <div className="mt-6 rounded-[1.5rem] border border-black/10 bg-white p-5 shadow-xl shadow-black/5 md:p-6">
+        <div className="mt-6 rounded-lg border bg-background p-5 md:p-6">
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-2xl font-black">訂位紀錄</h2>
+              <h2 className="text-xl font-medium">訂位紀錄</h2>
               <p className="mt-1 text-sm text-zinc-500">付款完成後訂位成立；取消或逾期會釋放店家容量。</p>
             </div>
             <Button variant="outline" onClick={loadBookings} disabled={loading || isAuthLoading || (mounted && !isLoggedIn)}>
@@ -364,8 +360,8 @@ export default function MyBookingsPage() {
           </div>
 
           {mounted && !isAuthLoading && !isLoggedIn ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-10 text-center">
-              <p className="text-lg font-black text-amber-950">請先用 LINE 登入</p>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-5 py-10 text-center">
+              <p className="text-lg font-medium text-amber-950">請先用 LINE 登入</p>
               <p className="mt-2 text-sm leading-6 text-amber-800">
                 訂位紀錄會綁定 LINE 帳號；登入後才能查看、付款與取消。
               </p>
@@ -374,18 +370,18 @@ export default function MyBookingsPage() {
               </Button>
             </div>
           ) : error ? (
-            <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
               {error}
             </div>
           ) : null}
 
           {mounted && !isAuthLoading && !isLoggedIn ? null : loading ? (
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-5 py-10 text-center text-zinc-500">
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-5 py-10 text-center text-zinc-500">
               讀取訂位中...
             </div>
           ) : bookings.length === 0 ? (
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-5 py-10 text-center">
-              <p className="text-lg font-bold">目前沒有訂位</p>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-5 py-10 text-center">
+              <p className="text-lg font-medium">目前沒有訂位</p>
               <p className="mt-2 text-sm text-zinc-500">從 AI 搜尋或店家詳情建立訂位後，會出現在這裡。</p>
             </div>
           ) : (
@@ -401,36 +397,36 @@ export default function MyBookingsPage() {
                 return (
                   <article
                     key={booking.bookingCode}
-                    className="overflow-hidden rounded-[1.25rem] border border-zinc-200 bg-[#fffdf8] shadow-sm"
+                    className="overflow-hidden rounded-lg border border-zinc-200 bg-[#fffdf8]"
                   >
                     <div className="flex flex-col gap-4 border-b border-zinc-200 bg-white px-5 py-4 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <p className="text-xl font-black">{booking.shopName}</p>
+                        <p className="text-lg font-medium">{booking.shopName}</p>
                         <p className="mt-1 font-mono text-sm text-zinc-500">{booking.bookingCode}</p>
                       </div>
-                      <span className={`w-fit rounded-full border px-4 py-1.5 text-sm font-black ${status.tone}`}>
+                      <span className={`w-fit rounded-full border px-4 py-1.5 text-sm font-medium ${status.tone}`}>
                         {status.label}
                       </span>
                     </div>
 
                     <div className="grid gap-4 px-5 py-5 md:grid-cols-4">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">時間</p>
-                        <p className="mt-1 text-lg font-bold">{formatDateTime(booking)}</p>
+                        <p className="text-xs font-medium uppercase tracking-normal text-zinc-400">時間</p>
+                        <p className="mt-1 text-base font-medium">{formatDateTime(booking)}</p>
                       </div>
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">人數</p>
-                        <p className="mt-1 text-lg font-bold">{booking.people} 人</p>
+                        <p className="text-xs font-medium uppercase tracking-normal text-zinc-400">人數</p>
+                        <p className="mt-1 text-base font-medium">{booking.people} 人</p>
                       </div>
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">訂金</p>
-                        <p className="mt-1 text-lg font-bold">
+                        <p className="text-xs font-medium uppercase tracking-normal text-zinc-400">訂金</p>
+                        <p className="mt-1 text-base font-medium">
                           {booking.needsDeposit ? `NT$ ${booking.depositTotal}` : "免訂金"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">交易編號</p>
-                        <p className="mt-1 truncate font-mono text-sm font-bold">
+                        <p className="text-xs font-medium uppercase tracking-normal text-zinc-400">交易編號</p>
+                        <p className="mt-1 truncate font-mono text-sm font-medium">
                           {booking.paymentTransId ?? "-"}
                         </p>
                       </div>
@@ -474,32 +470,32 @@ export default function MyBookingsPage() {
 
       {paymentBooking ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/35 px-4 pb-4 pt-12 backdrop-blur-sm sm:items-center sm:py-6">
-          <section className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-[1.5rem] border border-black/10 bg-white shadow-2xl">
+          <section className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-lg border border-black/10 bg-white">
             <div className="border-b border-zinc-200 bg-[#fffdf8] px-6 py-5">
               <button
                 type="button"
                 onClick={closePayment}
-                className="mb-4 text-sm font-semibold text-zinc-500 hover:text-zinc-900"
+                className="mb-4 text-sm font-medium text-zinc-500 hover:text-zinc-900"
               >
                 返回訂位
               </button>
-              <p className="text-2xl font-black">確認訂金付款</p>
+              <p className="text-xl font-medium">確認訂金付款</p>
               <p className="mt-2 text-sm text-zinc-500">
                 {paymentBooking.shopName} · {formatDateTime(paymentBooking)} · {paymentBooking.people} 人
               </p>
               {paymentBooking.holdExpiresAt ? (
-                <p className="mt-3 w-fit rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-900">
+                <p className="mt-3 w-fit rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-900">
                   座位保留倒數 {formatHoldCountdown(paymentBooking.holdExpiresAt, nowMs)}
                 </p>
               ) : null}
-              <p className="mt-4 text-3xl font-black text-[#0b8a5b]">
+              <p className="mt-4 text-2xl font-medium text-[#0b8a5b]">
                 NT$ {paymentBooking.depositTotal}
               </p>
             </div>
 
             <div className="space-y-5 px-6 py-5">
               <div>
-                <p className="mb-3 text-sm font-black">選擇付款方式</p>
+                <p className="mb-3 text-sm font-medium">選擇付款方式</p>
                 <div className="grid gap-2">
                   {paymentMethods.map((method) => {
                     const active = paymentMethod === method.id;
@@ -511,18 +507,18 @@ export default function MyBookingsPage() {
                           setPaymentMethod(method.id);
                           setPaymentError("");
                         }}
-                        className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
+                        className={`flex items-center justify-between rounded-lg border px-4 py-3 text-left transition ${
                           active
                             ? "border-[#0b8a5b] bg-emerald-50"
                             : "border-zinc-200 bg-white hover:border-zinc-300"
                         }`}
                       >
                         <span>
-                          <span className="block font-black">{method.label}</span>
+                          <span className="block font-medium">{method.label}</span>
                           <span className="mt-0.5 block text-xs text-zinc-500">{method.helper}</span>
                         </span>
                         <span
-                          className={`rounded-full px-3 py-1 text-xs font-bold ${
+                          className={`rounded-full px-3 py-1 text-xs font-medium ${
                             method.id === "credit_card"
                               ? "bg-emerald-100 text-emerald-800"
                               : "bg-zinc-100 text-zinc-500"
@@ -537,21 +533,21 @@ export default function MyBookingsPage() {
               </div>
 
               {paymentMethod === "credit_card" ? (
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
                   <div className="mb-3 flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm font-black">TapPay Sandbox 信用卡</p>
+                      <p className="text-sm font-medium">TapPay Sandbox 信用卡</p>
                       <p className="mt-1 text-xs leading-5 text-zinc-500">
                         測試卡 4242 4242 4242 4242 / 任意未來日期 / CCV 123
                       </p>
                     </div>
-                    <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-emerald-700">
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-emerald-700">
                       取得 prime
                     </span>
                   </div>
                   <div className="grid gap-3">
                     <div>
-                      <label className="text-sm font-semibold">卡號</label>
+                      <label className="text-sm font-medium">卡號</label>
                       <div
                         id="my-bookings-tappay-number"
                         className="mt-1 h-11 rounded-xl border border-zinc-200 bg-white px-3 py-2"
@@ -559,14 +555,14 @@ export default function MyBookingsPage() {
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div>
-                        <label className="text-sm font-semibold">有效期限</label>
+                        <label className="text-sm font-medium">有效期限</label>
                         <div
                           id="my-bookings-tappay-expiry"
                           className="mt-1 h-11 rounded-xl border border-zinc-200 bg-white px-3 py-2"
                         />
                       </div>
                       <div>
-                        <label className="text-sm font-semibold">CCV</label>
+                        <label className="text-sm font-medium">CCV</label>
                         <div
                           id="my-bookings-tappay-ccv"
                           className="mt-1 h-11 rounded-xl border border-zinc-200 bg-white px-3 py-2"
@@ -579,14 +575,14 @@ export default function MyBookingsPage() {
                   </p>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                   {paymentMethods.find((method) => method.id === paymentMethod)?.label} 目前為 demo 授權流程；production 需串接第三方錢包 redirect / SDK confirmation。
                 </div>
               )}
 
               {paymentError ? (
-                <div className="space-y-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  <p className="font-semibold">{paymentError}</p>
+                <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <p className="font-medium">{paymentError}</p>
                   {allowDemoFallback ? (
                     <div className="rounded-xl border border-red-200 bg-white/75 p-3 text-xs leading-5 text-red-800">
                       <p>
@@ -631,36 +627,36 @@ export default function MyBookingsPage() {
 
       {cancelBooking ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/35 px-4 pb-4 pt-12 backdrop-blur-sm sm:items-center sm:py-6">
-          <section className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-[1.5rem] border border-black/10 bg-white shadow-2xl">
+          <section className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-lg border border-black/10 bg-white">
             <div className="border-b border-zinc-200 bg-[#fffdf8] px-6 py-5">
-              <p className="text-sm font-bold uppercase tracking-normal text-red-600">Cancel reservation</p>
-              <h2 className="mt-2 text-2xl font-black">確認取消訂位？</h2>
+              <p className="text-sm font-medium uppercase tracking-normal text-red-600">Cancel reservation</p>
+              <h2 className="mt-2 text-xl font-medium">確認取消訂位？</h2>
               <p className="mt-2 text-sm leading-6 text-zinc-500">
                 取消後此訂位會標記為已取消，店家時段容量會立即釋放。此 demo 不處理退款流程。
               </p>
             </div>
 
             <div className="space-y-4 px-6 py-5">
-              <div className="rounded-2xl border border-zinc-200 bg-[#fffdf8] p-4">
-                <p className="text-lg font-black">{cancelBooking.shopName}</p>
+              <div className="rounded-lg border border-zinc-200 bg-[#fffdf8] p-4">
+                <p className="text-lg font-medium">{cancelBooking.shopName}</p>
                 <p className="mt-1 font-mono text-sm text-zinc-500">{cancelBooking.bookingCode}</p>
                 <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">時間</p>
-                    <p className="mt-1 font-bold">{formatDateTime(cancelBooking)}</p>
+                    <p className="text-xs font-medium uppercase tracking-normal text-zinc-400">時間</p>
+                    <p className="mt-1 font-medium">{formatDateTime(cancelBooking)}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">人數</p>
-                    <p className="mt-1 font-bold">{cancelBooking.people} 人</p>
+                    <p className="text-xs font-medium uppercase tracking-normal text-zinc-400">人數</p>
+                    <p className="mt-1 font-medium">{cancelBooking.people} 人</p>
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-normal text-zinc-400">狀態</p>
-                    <p className="mt-1 font-bold">{statusCopy[cancelBooking.status].label}</p>
+                    <p className="text-xs font-medium uppercase tracking-normal text-zinc-400">狀態</p>
+                    <p className="mt-1 font-medium">{statusCopy[cancelBooking.status].label}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
                 若這是已付款訂位，目前僅示範取消與容量釋放；正式產品需再接退款/取消政策。
               </div>
             </div>

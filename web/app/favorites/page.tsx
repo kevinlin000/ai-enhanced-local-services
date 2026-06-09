@@ -70,62 +70,60 @@ export default function FavoritesPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f6f1e8] px-4 py-8 md:px-8">
-      <section className="mx-auto max-w-6xl overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-2xl shadow-black/10">
-        <div className="border-b bg-[#123326] px-6 py-8 text-white md:px-10 md:py-10">
-          <p className="text-xs font-black uppercase tracking-normal text-emerald-200">
-            Saved restaurants
-          </p>
-          <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-4xl font-black tracking-normal md:text-6xl">收藏餐廳</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-white/70">
-                把想吃、想訂、想等空位的餐廳集中管理。之後回訪時可以快速查看詳情、訂位或建立空位提醒。
-              </p>
-            </div>
-            <Link
-              href="/shops"
-              className="inline-flex rounded-full border border-white/25 px-5 py-3 text-sm font-black text-white hover:bg-white/10"
-            >
-              繼續探索
-            </Link>
+    <main className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
+      <section className="mx-auto max-w-6xl">
+        <div className="flex flex-col gap-5 border-b pb-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+              Saved restaurants
+            </p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-normal md:text-4xl">收藏餐廳</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
+              把想吃、想訂、想等空位的餐廳集中管理。之後回訪時可以快速查看詳情、訂位或建立空位提醒。
+            </p>
           </div>
+          <Link
+            href="/shops"
+            className="inline-flex w-fit rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted"
+          >
+            繼續探索
+          </Link>
         </div>
 
-        <div className="p-5 md:p-8">
+        <div className="py-6">
           {mounted && !isAuthLoading && !isLoggedIn ? (
-            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-10 text-center">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-10 text-center">
               <Heart className="mx-auto h-10 w-10 text-amber-700" />
-              <h2 className="mt-4 text-2xl font-black text-amber-950">請先用 LINE 登入</h2>
+              <h2 className="mt-4 text-xl font-medium text-amber-950">請先用 LINE 登入</h2>
               <p className="mt-2 text-sm leading-6 text-amber-800">
                 收藏餐廳會綁定 LINE 帳號；登入後才能同步收藏、訂位與通知。
               </p>
               <button
                 type="button"
                 onClick={login}
-                className="mt-6 inline-flex rounded-full bg-emerald-700 px-5 py-3 text-sm font-black text-white hover:bg-emerald-800"
+                className="mt-6 inline-flex rounded-lg bg-emerald-700 px-5 py-3 text-sm font-medium text-white hover:bg-emerald-800"
               >
                 用 LINE 登入
               </button>
             </div>
           ) : loading ? (
-            <div className="rounded-2xl border border-dashed p-10 text-center text-zinc-500">
+            <div className="rounded-lg border border-dashed p-10 text-center text-zinc-500">
               讀取收藏中...
             </div>
           ) : error ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-red-700">
               {error}
             </div>
           ) : items.length === 0 ? (
-            <div className="rounded-3xl border border-dashed bg-[#fbfaf7] p-10 text-center">
+            <div className="rounded-lg border border-dashed bg-muted/20 p-10 text-center">
               <Heart className="mx-auto h-10 w-10 text-zinc-300" />
-              <h2 className="mt-4 text-2xl font-black">還沒有收藏餐廳</h2>
+              <h2 className="mt-4 text-xl font-medium">還沒有收藏餐廳</h2>
               <p className="mt-2 text-sm text-zinc-500">
                 到店家詳情頁點「收藏餐廳」，之後就能在這裡快速回訪與訂位。
               </p>
               <Link
                 href="/shops"
-                className="mt-6 inline-flex rounded-full bg-emerald-700 px-5 py-3 text-sm font-black text-white hover:bg-emerald-800"
+                className="mt-6 inline-flex rounded-lg bg-emerald-700 px-5 py-3 text-sm font-medium text-white hover:bg-emerald-800"
               >
                 去探索餐廳
               </Link>
@@ -135,8 +133,8 @@ export default function FavoritesPage() {
               {Object.entries(grouped).map(([district, shops]) => (
                 <section key={district}>
                   <div className="mb-3 flex items-center justify-between">
-                    <h2 className="text-lg font-black">{district}</h2>
-                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-500">
+                    <h2 className="text-lg font-medium">{district}</h2>
+                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-500">
                       {shops.length} 間
                     </span>
                   </div>
@@ -147,7 +145,7 @@ export default function FavoritesPage() {
                       return (
                         <article
                           key={shop.shopId}
-                          className="overflow-hidden rounded-3xl border bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                          className="overflow-hidden rounded-lg border bg-background transition-colors hover:border-foreground/30"
                         >
                           <div className="grid md:grid-cols-[180px_1fr]">
                             <Link href={`/shops/${shop.shopId}`} className="block h-44 bg-zinc-100 md:h-full">
@@ -159,20 +157,20 @@ export default function FavoritesPage() {
                                 />
                               ) : (
                                 <div className={`flex h-full items-center justify-center bg-gradient-to-br ${style.gradient}`}>
-                                  <span className="text-sm font-black text-zinc-500">{style.label}</span>
+                                  <span className="text-sm font-medium text-zinc-500">{style.label}</span>
                                 </div>
                               )}
                             </Link>
                             <div className="flex flex-col gap-4 p-5">
                               <div>
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                  <Link href={`/shops/${shop.shopId}`} className="text-xl font-black hover:text-emerald-700">
+                                  <Link href={`/shops/${shop.shopId}`} className="text-lg font-medium hover:text-emerald-700">
                                     {shop.name}
                                   </Link>
                                   <button
                                     type="button"
                                     onClick={() => remove(shop.shopId)}
-                                    className="rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-xs font-black text-rose-700 hover:bg-rose-100"
+                                    className="rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100"
                                   >
                                     取消收藏
                                   </button>
@@ -190,24 +188,24 @@ export default function FavoritesPage() {
                               <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
                                 <div>
                                   <p className="text-xs text-zinc-400">評分</p>
-                                  <p className="font-black">
+                                  <p className="font-medium">
                                     <Star className="mr-1 inline h-3.5 w-3.5 text-amber-500" />
                                     {shop.score ? (shop.score / 10).toFixed(1) : "-"}
                                   </p>
                                 </div>
                                 <div>
                                   <p className="text-xs text-zinc-400">消費</p>
-                                  <p className="font-black">{formatSpend(shop)}</p>
+                                  <p className="font-medium">{formatSpend(shop)}</p>
                                 </div>
                                 <div>
                                   <p className="text-xs text-zinc-400">評論</p>
-                                  <p className="font-black">{shop.comments?.toLocaleString() ?? "-"}</p>
+                                  <p className="font-medium">{shop.comments?.toLocaleString() ?? "-"}</p>
                                 </div>
                               </div>
                               <div className="mt-auto flex gap-2">
                                 <Link
                                   href={`/shops/${shop.shopId}`}
-                                  className="flex-1 rounded-full bg-emerald-700 px-4 py-2 text-center text-sm font-black text-white hover:bg-emerald-800"
+                                  className="flex-1 rounded-lg bg-emerald-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-emerald-800"
                                 >
                                   查看 / 訂位
                                 </Link>
