@@ -1183,7 +1183,102 @@ async def test_internal_parking_reminder_pushes_line_card(monkeypatch):
     assert pushed["user_id"] == "Uabc123"
     message = pushed["messages"][0]
     assert message["altText"] == "橘色涮涮屋 信義館 附近停車提醒"
-    assert message["contents"]["footer"]["contents"][0]["action"]["label"] == "導航到最近停車場"
+    assert message["contents"]["footer"]["contents"][0]["action"]["label"] == "保留最近車位"
+    assert "/line/book/10009/parking-reserve?" in message["contents"]["footer"]["contents"][0]["action"]["uri"]
+    assert message["contents"]["footer"]["contents"][1]["action"]["label"] == "導航到最近停車場"
+
+
+def test_mock_parking_reservation_reduces_displayed_spaces():
+    main._PARKING_RESERVATIONS.clear()
+    booking = {
+        "bookingCode": "BK-PARK",
+        "date": "2026-06-10",
+        "time": "19:00",
+        "shopName": "橘色涮涮屋 信義館",
+    }
+    shop = {"id": 10009, "name": "橘色涮涮屋 信義館"}
+    lot = {
+        "id": "lot-1",
+        "name": "市府轉運站停車場",
+        "area": "信義",
+        "distanceMeters": 180,
+        "availableCar": 18,
+        "totalCar": 120,
+    }
+
+    reservation = main._mock_parking_reservation(booking, shop, lot)
+    html = main._line_parking_html([lot], booking_code="BK-PARK")
+
+    assert reservation["lotName"] == "市府轉運站停車場"
+    assert reservation["floor"].startswith("B")
+    assert "區" in reservation["zone"]
+    assert "-" in reservation["stall"]
+    assert "剩 17 / 120 格" in html
+    assert "保留車格" in html
+
+
+@pytest.mark.anyio
+async def test_line_parking_reserve_success_pushes_confirmation(monkeypatch):
+    main._PARKING_RESERVATIONS.clear()
+    pushed = {}
+
+    async def fake_push_messages(user_id, messages, channel_access_token, enabled):
+        pushed["user_id"] = user_id
+        pushed["messages"] = messages
+        return {"ok": True}
+
+    async def fake_fetch_shop(shop_id: int):
+        return {
+            "id": shop_id,
+            "name": "橘色涮涮屋 信義館",
+            "x": 121.565,
+            "y": 25.033,
+        }
+
+    async def fake_fetch_booking(booking_code: str, line_user_id: str, line_token: str):
+        return {
+            "bookingCode": booking_code,
+            "shopName": "橘色涮涮屋 信義館",
+            "date": "2026-06-10",
+            "time": "19:00",
+        }
+
+    async def fake_fetch_parking(lng, lat, limit=3):
+        return [
+            {
+                "id": "lot-1",
+                "name": "市府轉運站停車場",
+                "area": "信義",
+                "address": "台北市信義區忠孝東路五段",
+                "distanceMeters": 180,
+                "availableCar": 18,
+                "totalCar": 120,
+                "navigationUrl": "https://www.google.com/maps/dir/?api=1&destination=25.033,121.565&travelmode=driving",
+            }
+        ]
+
+    monkeypatch.setattr(main, "_line_context", lambda lt="", line_user_id="": ("Uabc123", "token"))
+    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_shop)
+    monkeypatch.setattr(main, "_fetch_line_booking", fake_fetch_booking)
+    monkeypatch.setattr(main, "_fetch_java_nearby_parking", fake_fetch_parking)
+    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+
+    response = await main.line_booking_parking_reserve(
+        10009,
+        "BK-PARK",
+        lot=0,
+        confirm=True,
+        lt="token",
+    )
+    html = response.body.decode("utf-8")
+
+    assert "已保留車位" in html
+    assert "市府轉運站停車場" in html
+    assert "剩 17 / 120 格" in html
+    assert pushed["user_id"] == "Uabc123"
+    message = pushed["messages"][0]
+    assert message["altText"].startswith("市府轉運站停車場 已保留車位")
+    assert "已保留車位" in message["contents"]["body"]["contents"][1]["text"]
 
 
 @pytest.mark.anyio

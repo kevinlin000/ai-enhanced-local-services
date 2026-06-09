@@ -80,6 +80,7 @@ LINE_LOCATION_TTL_SECONDS = 1800
 LINE_ACTION_TOKEN_TTL_SECONDS = 60 * 60 * 24
 _LINE_MEDIA_CACHE: dict | None = None
 _LINE_PROFILE_CACHE: dict[str, str] = {}
+_PARKING_RESERVATIONS: dict[str, dict] = {}
 _LINE_MEDIA_ALIASES: dict[int, int] = {
     10009: 10550,
 }
@@ -3881,6 +3882,72 @@ async def line_booking_parking_preference(
     return HTMLResponse(_line_parking_preference_page(shop_id, name, booking, parking_lots, line_token, driving))
 
 
+@app.get("/line/book/{shop_id}/parking-reserve", response_class=HTMLResponse)
+async def line_booking_parking_reserve(
+    shop_id: int,
+    bookingCode: str,
+    lot: int = 0,
+    confirm: bool = False,
+    lt: str = "",
+    lineUserId: str = "",
+):
+    line_user_id, line_token = _line_context(lt, lineUserId)
+    shop = await _fetch_java_shop(shop_id)
+    name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
+    booking = await _fetch_line_booking(bookingCode, line_user_id, line_token)
+    if not booking:
+        return HTMLResponse(
+            _line_html_page(
+                "找不到訂位",
+                "目前查不到這筆訂位，請確認訂位編號是否正確。",
+                [("返回店家資訊", _line_public_uri(f"/line/shop/{shop_id}"))],
+            ),
+            status_code=404,
+        )
+
+    parking_lots = await _fetch_java_nearby_parking((shop or {}).get("x"), (shop or {}).get("y"), limit=3)
+    if not parking_lots:
+        return HTMLResponse(
+            _line_html_page(
+                "暫無可保留車位",
+                "目前附近停車場資料更新中，建議先使用導航前往鄰近停車場。",
+                [
+                    ("查看訂位狀態", _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(bookingCode)}&lt={quote_plus(line_token)}")),
+                    ("返回店家資訊", _line_public_uri(f"/line/shop/{shop_id}")),
+                ],
+            ),
+            status_code=409,
+        )
+
+    lot_index = max(0, min(int(lot or 0), len(parking_lots) - 1))
+    selected_lot = parking_lots[lot_index]
+    if confirm:
+        reservation = _mock_parking_reservation(booking, shop or {}, selected_lot)
+        if line_user_id:
+            await _push_line_parking_reservation(line_user_id, reservation)
+        return HTMLResponse(
+            _line_parking_reservation_success_page(
+                shop_id,
+                name,
+                booking,
+                selected_lot,
+                reservation,
+                line_token,
+            )
+        )
+
+    return HTMLResponse(
+        _line_parking_reservation_confirm_page(
+            shop_id,
+            name,
+            booking,
+            parking_lots,
+            lot_index,
+            line_token,
+        )
+    )
+
+
 @app.get("/line/book/{shop_id}/cancel", response_class=HTMLResponse)
 async def line_booking_cancel(shop_id: int, bookingCode: str, lt: str = "", lineUserId: str = ""):
     line_user_id, line_token = _line_context(lt, lineUserId)
@@ -4007,13 +4074,88 @@ def _line_parking_preference_page(
           <p>{_html_escape(note)}</p>
           <p>車位資訊來自台北市停車場即時剩餘車位資料，實際空位仍可能快速變動。</p>
         </section>
-        {_line_parking_html(parking_lots)}
+        {_line_parking_html(parking_lots, shop_id=shop_id, booking_code=booking_code_raw, line_token=line_token, reserve=True)}
         <div class="actions">
           <a class="secondary" href="{status_uri}">查看訂位狀態</a>
         </div>
       </main>
     """
     return _line_shell(title, body)
+
+
+def _line_parking_reservation_confirm_page(
+    shop_id: int,
+    escaped_shop_name: str,
+    booking: dict,
+    parking_lots: list[dict],
+    lot_index: int,
+    line_token: str,
+) -> str:
+    booking_code_raw = str(booking.get("bookingCode") or "")
+    selected_lot = parking_lots[lot_index]
+    confirm_uri = _line_public_uri(
+        f"/line/book/{shop_id}/parking-reserve?bookingCode={quote_plus(booking_code_raw)}&lot={lot_index}&confirm=true&lt={quote_plus(line_token)}"
+    )
+    status_uri = _line_public_uri(
+        f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code_raw)}&lt={quote_plus(line_token)}"
+    )
+    body = f"""
+      <main>
+        <p class="eyebrow">ByteBites Parking Hold</p>
+        <h1>保留附近車位</h1>
+        <section>
+          <h2>{escaped_shop_name}</h2>
+          <p>我會先幫你保留一個展示車位，抵達前可用這張卡快速確認停車場、樓層、區域與車格。</p>
+          <p>此功能目前為 ByteBites 展示保留流程，未向停車場業者送出正式交易。</p>
+        </section>
+        {_line_parking_html([selected_lot], shop_id=shop_id, booking_code=booking_code_raw, line_token=line_token, reserve=False)}
+        <div class="actions">
+          <a class="primary" href="{confirm_uri}">確認保留車位</a>
+          <a class="secondary" href="{status_uri}">先查看訂位</a>
+        </div>
+      </main>
+    """
+    return _line_shell("確認保留車位", body)
+
+
+def _line_parking_reservation_success_page(
+    shop_id: int,
+    escaped_shop_name: str,
+    booking: dict,
+    lot: dict,
+    reservation: dict,
+    line_token: str,
+) -> str:
+    booking_code_raw = str(booking.get("bookingCode") or "")
+    status_uri = _line_public_uri(
+        f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code_raw)}&lt={quote_plus(line_token)}"
+    )
+    navigation_url = _html_escape(str(lot.get("navigationUrl") or ""))
+    navigation_html = f'<a class="secondary" href="{navigation_url}">導航到停車場</a>' if navigation_url else ""
+    lot_name = _html_escape(str(reservation.get("lotName") or "停車場"))
+    floor = _html_escape(str(reservation.get("floor") or ""))
+    zone = _html_escape(str(reservation.get("zone") or ""))
+    stall = _html_escape(str(reservation.get("stall") or ""))
+    hold_until = _html_escape(str(reservation.get("holdUntil") or ""))
+    body = f"""
+      <main>
+        <p class="eyebrow">ByteBites Parking Hold</p>
+        <h1>已保留車位</h1>
+        <section>
+          <h2>{lot_name}</h2>
+          <p>餐廳：<strong>{escaped_shop_name}</strong></p>
+          <p>車格：<strong>{floor} · {zone} · {stall}</strong></p>
+          <p>保留至：<strong>{hold_until}</strong></p>
+          <p>抵達後請依現場停車場指示入場；此為 ByteBites 展示保留，不會向停車場業者收費。</p>
+        </section>
+        {_line_parking_html([_parking_lot_after_reservation(lot, reservation)], reserve=False)}
+        <div class="actions">
+          {navigation_html}
+          <a class="secondary" href="{status_uri}">查看訂位狀態</a>
+        </div>
+      </main>
+    """
+    return _line_shell("已保留車位", body)
 
 
 @app.get("/line/my-bookings", response_class=HTMLResponse)
@@ -5539,8 +5681,9 @@ def _line_parking_reminder_flex_message(payload: dict) -> dict:
     line_token = _line_token_for_user(line_user_id) if line_user_id else ""
     status_uri = _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code)}&lt={quote_plus(line_token)}")
     first_navigation = ""
+    reserve_uri = ""
     lot_blocks = []
-    for lot in lots[:3]:
+    for index, lot in enumerate(lots[:3]):
         if not isinstance(lot, dict):
             continue
         name = str(lot.get("name") or "停車場")
@@ -5549,6 +5692,10 @@ def _line_parking_reminder_flex_message(payload: dict) -> dict:
         updated_at = str(lot.get("updatedAt") or "").strip()
         if not first_navigation:
             first_navigation = str(lot.get("navigationUrl") or "").strip()
+        if not reserve_uri:
+            reserve_uri = _line_public_uri(
+                f"/line/book/{shop_id}/parking-reserve?bookingCode={quote_plus(booking_code)}&lot={index}&lt={quote_plus(line_token)}"
+            )
         subtitle = " · ".join(part for part in [distance, spaces, f"更新 {updated_at}" if updated_at else ""] if part)
         lot_blocks.append(
             {
@@ -5572,11 +5719,20 @@ def _line_parking_reminder_flex_message(payload: dict) -> dict:
             }
         )
     footer = []
-    if first_navigation:
+    if reserve_uri:
         footer.append(
             {
                 "type": "button",
                 "style": "primary",
+                "height": "sm",
+                "action": {"type": "uri", "label": "保留最近車位", "uri": reserve_uri},
+            }
+        )
+    if first_navigation:
+        footer.append(
+            {
+                "type": "button",
+                "style": "secondary",
                 "height": "sm",
                 "action": {"type": "uri", "label": "導航到最近停車場", "uri": first_navigation},
             }
@@ -5624,6 +5780,62 @@ def _line_parking_reminder_flex_message(payload: dict) -> dict:
             },
             "footer": {"type": "box", "layout": "vertical", "spacing": "sm", "contents": footer},
         },
+    }
+
+
+def _line_parking_reservation_flex_message(reservation: dict) -> dict:
+    lot_name = str(reservation.get("lotName") or "停車場")
+    shop_name = str(reservation.get("shopName") or "餐廳")
+    floor = str(reservation.get("floor") or "")
+    zone = str(reservation.get("zone") or "")
+    stall = str(reservation.get("stall") or "")
+    hold_until = str(reservation.get("holdUntil") or "入場前 15 分鐘")
+    booking_code = str(reservation.get("bookingCode") or "")
+    navigation_url = str(reservation.get("navigationUrl") or "").strip()
+    body_contents = [
+        {"type": "text", "text": "BYTEBITES PARKING", "size": "xs", "color": "#16833a", "weight": "bold"},
+        {"type": "text", "text": "已保留車位", "size": "lg", "weight": "bold", "wrap": True},
+        {"type": "text", "text": lot_name, "size": "md", "weight": "bold", "wrap": True},
+        {"type": "text", "text": f"{floor} · {zone} · {stall}", "size": "xl", "weight": "bold", "color": "#171512", "wrap": True},
+        {"type": "separator", "margin": "md"},
+        {"type": "text", "text": f"餐廳：{shop_name}", "size": "sm", "wrap": True, "margin": "md"},
+        {"type": "text", "text": f"訂位編號：{booking_code}", "size": "xs", "color": "#666666", "wrap": True},
+        {"type": "text", "text": f"保留至：{hold_until}", "size": "sm", "weight": "bold", "wrap": True},
+        {
+            "type": "text",
+            "text": "抵達後請依現場停車場指示入場。此為 ByteBites 展示保留流程，不會向停車場業者送出正式交易。",
+            "size": "xs",
+            "color": "#777777",
+            "wrap": True,
+            "margin": "md",
+        },
+    ]
+    footer = []
+    if navigation_url:
+        footer.append(
+            {
+                "type": "button",
+                "style": "primary",
+                "height": "sm",
+                "action": {"type": "uri", "label": "導航到停車場", "uri": navigation_url},
+            }
+        )
+    contents = {
+        "type": "bubble",
+        "size": "mega",
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "spacing": "sm",
+            "contents": body_contents,
+        },
+    }
+    if footer:
+        contents["footer"] = {"type": "box", "layout": "vertical", "spacing": "sm", "contents": footer}
+    return {
+        "type": "flex",
+        "altText": f"{lot_name} 已保留車位 {floor} {zone} {stall}",
+        "contents": contents,
     }
 
 
@@ -5955,32 +6167,131 @@ def _line_hours_html(hours: list[str]) -> str:
     return '<div class="hours">' + "".join(f"<p>{item}</p>" for item in clean[:7]) + "</div>"
 
 
-def _line_parking_html(lots: list[dict]) -> str:
+def _parking_reservation_key(booking_code: str, lot: dict) -> str:
+    lot_identity = str(lot.get("id") or lot.get("name") or lot.get("address") or "parking").strip()
+    return f"{booking_code}:{lot_identity}"
+
+
+def _mock_parking_reservation(booking: dict, shop: dict, lot: dict) -> dict:
+    booking_code = str(booking.get("bookingCode") or "")
+    key = _parking_reservation_key(booking_code, lot)
+    if key in _PARKING_RESERVATIONS:
+        return _PARKING_RESERVATIONS[key]
+
+    seed = hashlib.sha256(
+        "|".join(
+            [
+                booking_code,
+                str((shop or {}).get("id") or (shop or {}).get("shopId") or ""),
+                str(lot.get("id") or lot.get("name") or ""),
+            ]
+        ).encode("utf-8")
+    ).hexdigest()
+    zones = ("A 區", "B 區", "C 區", "D 區")
+    floors = ("B1", "B2", "B3", "B4")
+    zone = zones[int(seed[0:2], 16) % len(zones)]
+    floor = floors[int(seed[2:4], 16) % len(floors)]
+    stall_number = int(seed[4:8], 16) % 48 + 1
+    booking_date = str(booking.get("date") or "")
+    booking_time = str(booking.get("time") or "")
+    hold_until = _parking_hold_until_label(booking_date, booking_time)
+    reservation = {
+        "bookingCode": booking_code,
+        "shopId": (shop or {}).get("id") or (shop or {}).get("shopId"),
+        "shopName": (shop or {}).get("name") or booking.get("shopName") or "",
+        "lotName": lot.get("name") or "停車場",
+        "lotAddress": lot.get("address") or "",
+        "floor": floor,
+        "zone": zone,
+        "stall": f"{zone[0]}-{stall_number:02d}",
+        "holdUntil": hold_until,
+        "navigationUrl": lot.get("navigationUrl") or "",
+        "reservedAt": datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds"),
+    }
+    _PARKING_RESERVATIONS[key] = reservation
+    return reservation
+
+
+def _parking_hold_until_label(booking_date: str, booking_time: str) -> str:
+    try:
+        reservation_at = datetime.fromisoformat(f"{booking_date}T{booking_time}")
+    except ValueError:
+        return "入場前 15 分鐘"
+    hold_until = reservation_at - timedelta(minutes=15)
+    return hold_until.strftime("%m/%d %H:%M")
+
+
+def _parking_lot_after_reservation(lot: dict, reservation: dict | None = None) -> dict:
+    adjusted = dict(lot)
+    available = adjusted.get("availableCar")
+    if isinstance(available, int):
+        adjusted["availableCar"] = max(0, available - 1)
+    if reservation:
+        adjusted["reservedFloor"] = reservation.get("floor")
+        adjusted["reservedZone"] = reservation.get("zone")
+        adjusted["reservedStall"] = reservation.get("stall")
+    return adjusted
+
+
+async def _push_line_parking_reservation(line_user_id: str, reservation: dict) -> None:
+    result = await push_messages(
+        user_id=line_user_id,
+        messages=[_line_parking_reservation_flex_message(reservation)],
+        channel_access_token=settings.line_channel_access_token,
+        enabled=settings.line_reply_enabled,
+    )
+    if not result.get("ok"):
+        logger.warning("line_parking_reservation_push_failed user_id=%s result=%s", line_user_id[:8], result)
+
+
+def _line_parking_html(
+    lots: list[dict],
+    shop_id: int | None = None,
+    booking_code: str = "",
+    line_token: str = "",
+    reserve: bool = False,
+) -> str:
     if not lots:
         return ""
     cards: list[str] = []
-    for lot in lots[:3]:
-        name = _html_escape(str(lot.get("name") or "停車場"))
-        area = _html_escape(str(lot.get("area") or ""))
-        address = _html_escape(str(lot.get("address") or ""))
-        distance = _line_parking_distance(lot.get("distanceMeters"))
-        spaces = _line_parking_spaces(lot)
-        pay_text = _html_escape(str(lot.get("payText") or ""))
-        service_time = _html_escape(str(lot.get("serviceTime") or ""))
-        navigation_url = _html_escape(str(lot.get("navigationUrl") or ""))
+    for index, lot in enumerate(lots[:3]):
+        reservation = _PARKING_RESERVATIONS.get(_parking_reservation_key(booking_code, lot)) if booking_code else None
+        display_lot = _parking_lot_after_reservation(lot, reservation) if reservation else lot
+        name = _html_escape(str(display_lot.get("name") or "停車場"))
+        area = _html_escape(str(display_lot.get("area") or ""))
+        address = _html_escape(str(display_lot.get("address") or ""))
+        distance = _line_parking_distance(display_lot.get("distanceMeters"))
+        spaces = _line_parking_spaces(display_lot)
+        pay_text = _html_escape(str(display_lot.get("payText") or ""))
+        service_time = _html_escape(str(display_lot.get("serviceTime") or ""))
+        navigation_url = _html_escape(str(display_lot.get("navigationUrl") or ""))
         details = " · ".join(part for part in [area, distance, spaces] if part)
         address_html = f"<p>{address}</p>" if address else ""
         pay_html = f"<p>收費：{pay_text}</p>" if pay_text else ""
         service_html = f"<p>服務：{service_time}</p>" if service_time else ""
         navigation_html = f'<a href="{navigation_url}">導航到停車場</a>' if navigation_url else ""
+        reserve_html = ""
+        if reserve and shop_id and booking_code:
+            reserve_url = _line_public_uri(
+                f"/line/book/{shop_id}/parking-reserve?bookingCode={quote_plus(booking_code)}&lot={index}&lt={quote_plus(line_token)}"
+            )
+            reserve_html = f'<a class="parking-reserve" href="{reserve_url}">保留車位</a>'
+        reserved_detail = " · ".join(
+            str(display_lot.get(key) or "")
+            for key in ("reservedFloor", "reservedZone", "reservedStall")
+            if str(display_lot.get(key) or "").strip()
+        )
+        reserved_html = f"<p><strong>保留車格：{_html_escape(reserved_detail)}</strong></p>" if reserved_detail else ""
         cards.append(
             f"""
             <div class="parking-card">
               <strong>{name}</strong>
               <p>{_html_escape(details)}</p>
+              {reserved_html}
               {address_html}
               {pay_html}
               {service_html}
+              {reserve_html}
               {navigation_html}
             </div>
             """
@@ -6124,7 +6435,8 @@ def _line_shell(title: str, body: str) -> str:
     .parking-list {{ display:grid; gap:10px; margin-top:12px; }}
     .parking-card {{ padding:12px; border:1px solid rgba(0,0,0,.08); border-radius:8px; background:#fff; }}
     .parking-card p {{ margin:6px 0 0; color:#514d47; font-size:14px; }}
-    .parking-card a {{ display:inline-flex; margin-top:10px; }}
+    .parking-card a {{ display:inline-flex; margin-top:10px; margin-right:10px; }}
+    .parking-card .parking-reserve {{ align-items:center; justify-content:center; min-height:36px; border-radius:8px; background:#16833a; color:#fff; padding:0 12px; }}
     .hours p {{ margin:4px 0; }}
     .status-list p {{ margin:6px 0; }}
     .booking-form {{ display:grid; gap:14px; margin-top:12px; }}
