@@ -443,18 +443,7 @@ export function ShopDetailTabs(props: Props) {
           {(props.address || props.phone || props.businessHours || props.nearbyParking?.length) && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">基本資訊</h3>
-              <div className="rounded-2xl border overflow-hidden">
-                <iframe
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(props.mapQuery)}&z=16&output=embed`}
-                  width="100%"
-                  height="280"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              </div>
-
-              <div className="rounded-2xl border bg-background divide-y">
+              <div className="rounded-lg border bg-background divide-y">
                 {props.address ? (
                   <a
                     href={mapsHref}
@@ -465,15 +454,6 @@ export function ShopDetailTabs(props: Props) {
                     <MapPinned className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                     <span className="flex-1 underline-offset-2 hover:underline">{props.address}</span>
                     <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                  </a>
-                ) : null}
-                {props.phone && telHref ? (
-                  <a
-                    href={telHref}
-                    className="flex items-start gap-3 px-4 py-4 text-sm hover:bg-muted/40"
-                  >
-                    <PhoneCall className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="underline-offset-2 hover:underline">{props.phone}</span>
                   </a>
                 ) : null}
                 {props.businessHours?.length ? (
@@ -491,40 +471,44 @@ export function ShopDetailTabs(props: Props) {
                     <div className="flex items-start gap-3">
                       <Car className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium">附近停車場</div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          依店家座標排序，車位以台北市公開即時資料為準。
-                        </p>
-                        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:justify-between">
+                          <div className="text-sm font-medium">附近停車場</div>
+                          <p className="text-xs text-muted-foreground">
+                            依距離排序，車位以台北市公開即時資料為準
+                          </p>
+                        </div>
+                        <div className="mt-3 divide-y rounded-lg border">
                           {props.nearbyParking.slice(0, 4).map((lot) => (
-                            <div key={lot.id} className="rounded-xl border bg-muted/20 p-3">
-                              <div className="flex items-start justify-between gap-3">
+                            <div key={lot.id} className="p-3">
+                              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                 <div className="min-w-0">
                                   <div className="truncate text-sm font-medium">{lot.name}</div>
                                   <div className="mt-1 text-xs text-muted-foreground">
                                     {[lot.area, formatParkingDistance(lot.distanceMeters)].filter(Boolean).join(" · ")}
                                   </div>
+                                  {lot.address ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{lot.address}</p> : null}
+                                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                    {lot.payText ? <span>收費：{lot.payText}</span> : null}
+                                    {lot.serviceTime ? <span>服務：{lot.serviceTime}</span> : null}
+                                    {lot.updatedAt ? <span>更新：{lot.updatedAt}</span> : null}
+                                  </div>
                                 </div>
-                                <div className="shrink-0 rounded-lg bg-primary/10 px-2.5 py-1.5 text-right text-primary">
-                                  <div className="text-[10px] font-medium">汽車位</div>
-                                  <div className="text-xs font-semibold">{formatParkingSpaces(lot)}</div>
+                                <div className="flex shrink-0 items-center gap-2 md:flex-col md:items-end">
+                                  <div className="rounded-md bg-primary/10 px-2.5 py-1.5 text-right text-primary">
+                                    <div className="text-[10px] font-medium">汽車位</div>
+                                    <div className="text-xs font-semibold">{formatParkingSpaces(lot)}</div>
+                                  </div>
+                                  <a
+                                    href={lot.navigationUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center justify-center gap-1.5 rounded-md border bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
+                                  >
+                                    <Navigation className="h-3.5 w-3.5" />
+                                    導航
+                                  </a>
                                 </div>
                               </div>
-                              {lot.address ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{lot.address}</p> : null}
-                              <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                                {lot.payText ? <p>收費：{lot.payText}</p> : null}
-                                {lot.serviceTime ? <p>服務：{lot.serviceTime}</p> : null}
-                                {lot.updatedAt ? <p>更新：{lot.updatedAt}</p> : null}
-                              </div>
-                              <a
-                                href={lot.navigationUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border bg-background px-3 py-2 text-xs font-medium hover:bg-muted"
-                              >
-                                <Navigation className="h-3.5 w-3.5" />
-                                導航到停車場
-                              </a>
                             </div>
                           ))}
                         </div>
@@ -532,6 +516,25 @@ export function ShopDetailTabs(props: Props) {
                     </div>
                   </div>
                 ) : null}
+                {props.phone && telHref ? (
+                  <a
+                    href={telHref}
+                    className="flex items-start gap-3 px-4 py-4 text-sm hover:bg-muted/40"
+                  >
+                    <PhoneCall className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="underline-offset-2 hover:underline">{props.phone}</span>
+                  </a>
+                ) : null}
+                <div className="overflow-hidden">
+                  <iframe
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(props.mapQuery)}&z=16&output=embed`}
+                    width="100%"
+                    height="260"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
               </div>
             </div>
           )}
