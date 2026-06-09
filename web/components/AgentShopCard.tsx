@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, MapPin, Star } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, DollarSign, Flame, MapPin, Star, Utensils } from "lucide-react";
 import type { AbsaAspect } from "@/lib/api";
 import type { AgentShop } from "@/lib/agentTypes";
 import type { ShopReviewInsights } from "@/lib/reviewInsights";
@@ -152,10 +152,11 @@ function PositiveHighlights({ shopId }: { shopId: number }) {
   if (!highlights.length) return null;
 
   return (
-    <div className="mt-3 border-t pt-3 flex flex-wrap gap-x-4 gap-y-1">
+    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-[rgb(222_216_203_/_0.72)] pt-3">
       {highlights.map((h) => (
-        <span key={h} className="text-xs text-green-700 font-medium">
-          ✨ {h}
+        <span key={h} className="inline-flex items-center gap-1 text-xs font-medium text-[var(--bb-gold)]">
+          <Star className="h-3 w-3" />
+          {h}
         </span>
       ))}
     </div>
@@ -176,16 +177,17 @@ export function AgentShopCard({ shop, rank }: Props) {
   const hasHotSeat = (shop.hot_seat_vouchers?.length ?? 0) > 0;
 
   return (
-    <div data-testid="agent-shop-card" className="overflow-hidden rounded-2xl border bg-background shadow-sm">
+    <div data-testid="agent-shop-card" className="bb-premium-surface overflow-hidden rounded-lg">
       {/* Header row: rank + name + hot seat badge */}
       <div className="flex items-center gap-2 border-b px-4 py-2.5">
-        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--bb-gold)] text-[10px] font-medium text-white">
           {rank}
         </span>
-        <span className="min-w-0 flex-1 truncate font-semibold">{shop.name}</span>
+        <span className="min-w-0 flex-1 truncate font-medium text-[var(--bb-ink)]">{shop.name}</span>
         {hasHotSeat && (
-          <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
-            🔥 Hot Seat 可搶
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+            <Flame className="h-3 w-3" />
+            Hot Seat 可搶
           </span>
         )}
       </div>
@@ -196,16 +198,21 @@ export function AgentShopCard({ shop, rank }: Props) {
         <div className="flex flex-col gap-3 p-4 md:col-span-1">
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg bg-muted">
             {photoUrl ? (
-              <Image
-                src={photoUrl}
-                alt={shop.name}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 25vw"
-                unoptimized
-              />
+              <>
+                <Image
+                  src={photoUrl}
+                  alt={shop.name}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 25vw"
+                  unoptimized
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+              </>
             ) : (
-              <div className="flex h-full items-center justify-center text-4xl">🍽️</div>
+              <div className="flex h-full items-center justify-center">
+                <Utensils className="h-8 w-8 text-muted-foreground" />
+              </div>
             )}
           </div>
 
@@ -219,12 +226,22 @@ export function AgentShopCard({ shop, rank }: Props) {
                 </span>
               </div>
             )}
-            {shop.price_per_person && <div>💰 {shop.price_per_person}</div>}
-            {shop.booking_difficulty && <div>📅 {shop.booking_difficulty}</div>}
+            {shop.price_per_person && (
+              <div className="flex items-center gap-1">
+                <DollarSign className="h-3 w-3 shrink-0" />
+                {shop.price_per_person}
+              </div>
+            )}
+            {shop.booking_difficulty && (
+              <div className="flex items-center gap-1">
+                <CalendarDays className="h-3 w-3 shrink-0" />
+                {shop.booking_difficulty}
+              </div>
+            )}
           </div>
 
           <Link href={`/shops/${shop.shop_id}`} className="mt-auto block">
-            <span className="block w-full rounded-lg bg-primary px-3 py-1.5 text-center text-xs font-medium text-primary-foreground transition hover:bg-primary/90">
+            <span className="block w-full rounded-lg bg-[var(--bb-forest)] px-3 py-1.5 text-center text-xs font-medium text-white transition hover:bg-emerald-900">
               查看詳情 / 訂位
             </span>
           </Link>

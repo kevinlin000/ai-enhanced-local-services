@@ -747,9 +747,9 @@ function ShopsPageContent() {
                 <Link
                   key={shop.id}
                   href={`/shops/${shop.id}`}
-                  className="block"
+                  className="group block"
                 >
-                  <div className="overflow-hidden rounded-lg border transition-colors hover:border-foreground/30">
+                  <div className="bb-premium-surface overflow-hidden rounded-lg transition-colors group-hover:border-[rgb(167_137_67_/_0.42)]">
                     <div className={`relative aspect-[4/3] overflow-hidden bg-gradient-to-br ${style.gradient}`}>
                       {coverPhoto ? (
                         <>
@@ -759,7 +759,7 @@ function ShopsPageContent() {
                             className="h-full w-full object-cover"
                             loading="lazy"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
                         </>
                       ) : (
                         <div className="flex h-full items-center justify-center">
@@ -769,6 +769,14 @@ function ShopsPageContent() {
                           />
                         </div>
                       )}
+                      <div className="absolute left-3 top-3 rounded-full bg-[rgb(255_253_248_/_0.88)] px-2.5 py-1 text-[11px] font-medium text-[var(--bb-ink)] backdrop-blur">
+                        {style.label}
+                      </div>
+                      {shop.score != null ? (
+                        <div className="absolute bottom-3 right-3 rounded-full bg-[rgb(21_19_15_/_0.82)] px-2.5 py-1 font-mono text-xs text-white backdrop-blur">
+                          {(shop.score / 10).toFixed(1)}
+                        </div>
+                      ) : null}
                     </div>
                     <div className="p-3.5">
                       {searchMode === "ai" && shop.aiHotSeatCount ? (
@@ -782,17 +790,12 @@ function ShopsPageContent() {
                         </div>
                       ) : null}
 
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="flex-1 text-sm font-medium leading-tight">
+                      <div className="mb-1 flex items-start justify-between gap-2">
+                        <h3 className="flex-1 text-[15px] font-medium leading-tight text-[var(--bb-ink)]">
                           {shop.name}
                         </h3>
-                        {shop.score != null && (
-                          <span className="shrink-0 rounded bg-foreground px-1.5 py-0.5 font-mono text-xs text-background">
-                            {(shop.score / 10).toFixed(1)}
-                          </span>
-                        )}
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                         {shop.district && (
                           <span className="flex items-center gap-0.5">
                             <MapPin className="h-3 w-3" />
@@ -805,15 +808,15 @@ function ShopsPageContent() {
                         )}
                       </div>
 
+                      {displaySpend ? (
+                        <div className="mt-2 text-xs font-medium text-[var(--bb-gold)]">
+                          {displaySpend}
+                        </div>
+                      ) : null}
+
                       {searchMode === "ai" && renderAiReason(shop) ? (
                         <p className="mt-2 text-[11px] font-medium text-foreground/80">
                           {renderAiReason(shop)}
-                        </p>
-                      ) : null}
-
-                      {searchMode === "ai" && displaySpend ? (
-                        <p className="mt-2 text-[11px] font-medium text-foreground/80">
-                          {displaySpend}
                         </p>
                       ) : null}
 
@@ -863,6 +866,10 @@ function ShopsPageContent() {
                           ) : null}
                         </>
                       )}
+
+                      <div className="mt-4 border-t border-[rgb(222_216_203_/_0.72)] pt-3 text-xs font-medium text-muted-foreground transition-colors group-hover:text-[var(--bb-gold)]">
+                        查看詳情 / 訂位
+                      </div>
                     </div>
                   </div>
                 </Link>

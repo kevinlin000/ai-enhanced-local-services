@@ -148,18 +148,29 @@ export default function FavoritesPage() {
                           className="bb-premium-surface overflow-hidden rounded-lg transition-colors hover:border-[rgb(167_137_67_/_0.42)]"
                         >
                           <div className="grid md:grid-cols-[180px_1fr]">
-                            <Link href={`/shops/${shop.shopId}`} className="block h-44 bg-zinc-100 md:h-full">
+                            <Link href={`/shops/${shop.shopId}`} className="relative block h-44 overflow-hidden bg-zinc-100 md:h-full">
                               {photo ? (
-                                <img
-                                  src={photo}
-                                  alt={shop.name}
-                                  className="h-full w-full object-cover"
-                                />
+                                <>
+                                  <img
+                                    src={photo}
+                                    alt={shop.name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+                                </>
                               ) : (
                                 <div className={`flex h-full items-center justify-center bg-gradient-to-br ${style.gradient}`}>
                                   <span className="text-sm font-medium text-zinc-500">{style.label}</span>
                                 </div>
                               )}
+                              <span className="absolute left-3 top-3 rounded-full bg-[rgb(255_253_248_/_0.88)] px-2.5 py-1 text-[11px] font-medium text-[var(--bb-ink)] backdrop-blur">
+                                {style.label}
+                              </span>
+                              {shop.score ? (
+                                <span className="absolute bottom-3 right-3 rounded-full bg-[rgb(21_19_15_/_0.82)] px-2.5 py-1 font-mono text-xs text-white backdrop-blur">
+                                  {(shop.score / 10).toFixed(1)}
+                                </span>
+                              ) : null}
                             </Link>
                             <div className="flex flex-col gap-4 p-5">
                               <div>
@@ -176,9 +187,8 @@ export default function FavoritesPage() {
                                   </button>
                                 </div>
                                 <div className="mt-2 flex flex-wrap gap-2 text-xs text-zinc-500">
-                                  <span className="rounded-full bg-zinc-100 px-2 py-1">{style.label}</span>
                                   {shop.mrtStation ? (
-                                    <span className="rounded-full bg-zinc-100 px-2 py-1">
+                                    <span className="rounded-full bg-[rgb(238_228_200_/_0.62)] px-2 py-1">
                                       <MapPin className="mr-1 inline h-3 w-3" />
                                       {shop.mrtStation}
                                     </span>
@@ -205,7 +215,7 @@ export default function FavoritesPage() {
                               <div className="mt-auto flex gap-2">
                                 <Link
                                   href={`/shops/${shop.shopId}`}
-                                  className="flex-1 rounded-lg bg-emerald-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-emerald-800"
+                                  className="flex-1 rounded-lg bg-[var(--bb-forest)] px-4 py-2 text-center text-sm font-medium text-white hover:bg-emerald-900"
                                 >
                                   查看 / 訂位
                                 </Link>
