@@ -409,6 +409,9 @@ def test_specific_shop_keyword_ignores_vague_or_time_only_followups():
     assert main._specific_shop_keyword("大安區，適合聊天") == ""
     assert main._restaurant_need_clarification("推薦7人聚餐餐廳")
     assert not main._restaurant_need_clarification("推薦7人聚餐餐廳，大安區，適合聊天")
+    assert main._selection_index_from_text("第一間") == 0
+    assert main._selection_index_from_text("訂第二家明天晚上") == 1
+    assert main._selection_index_from_text("第3個 4人") == 2
 
 
 @pytest.mark.anyio
@@ -547,6 +550,64 @@ async def test_web_agent_stream_books_from_single_recommendation_followup(monkey
     assert captured["time"] == "19:00"
     assert done["transaction"]["booking_code"] == "BK-WEB-FOLLOWUP"
     assert saved["history"][-1]["transaction"]["booking_code"] == "BK-WEB-FOLLOWUP"
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_books_ordinal_recommendation_followup(monkeypatch):
+    captured = {}
+
+    async def fake_create_booking(**kwargs):
+        captured.update(kwargs)
+        return {
+            "success": True,
+            "shopId": kwargs["shop_id"],
+            "shopName": "太田日式燒肉",
+            "bookingCode": "BK-WEB-SECOND",
+            "people": kwargs["people"],
+            "date": kwargs["date"],
+            "time": kwargs["time"],
+            "tableType": kwargs["table_type"],
+            "needsDeposit": False,
+        }
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {"role": "user", "content": "中山區適合聚餐"},
+            {
+                "role": "model",
+                "content": "我整理了三間。",
+                "recommendation": {
+                    "query": "中山區適合聚餐",
+                    "shops": [
+                        {"shop_id": 10101, "name": "藝奇"},
+                        {"shop_id": 10102, "name": "太田日式燒肉"},
+                        {"shop_id": 10103, "name": "七転八起"},
+                    ],
+                },
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "tool_create_booking", fake_create_booking)
+    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("ordinal booking should bypass model")))
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "訂第二間明天晚上 4人",
+            "test-web-booking-second",
+        )
+    ]
+
+    done = events[-1]
+    assert captured["shop_id"] == 10102
+    assert captured["people"] == 4
+    assert captured["date"] == "2026-06-11"
+    assert captured["time"] == "19:00"
+    assert done["transaction"]["booking_code"] == "BK-WEB-SECOND"
 
 
 @pytest.mark.anyio
@@ -1138,6 +1199,50 @@ async def test_line_short_name_selects_previous_recommendation(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_line_ordinal_selects_previous_recommendation(monkeypatch):
+    captured = {}
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        captured["query"] = query
+        return [
+            {
+                "shop_id": 10009,
+                "name": "橘色涮涮屋 信義館",
+                "district": "信義區",
+                "ai_summary": "精緻涮涮屋路線。",
+            },
+            {
+                "shop_id": 10115,
+                "name": "辛殿麻辣鍋｜信義店",
+                "district": "信義區",
+                "ai_summary": "麻辣鍋吃到飽。",
+            },
+        ]
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009, 10115]},
+    )
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "第二間"},
+        }
+    )
+
+    assert captured["query"] == "信義區高級火鍋"
+    bubbles = messages[1]["contents"]["contents"]
+    assert len(bubbles) == 1
+    assert bubbles[0]["body"]["contents"][1]["text"] == "辛殿麻辣鍋｜信義店"
+
+
+@pytest.mark.anyio
 async def test_line_specific_shop_name_returns_only_that_shop(monkeypatch):
     captured = {}
 
@@ -1206,6 +1311,35 @@ async def test_line_booking_followup_uses_selected_single_shop(monkeypatch):
     assert "青田七六" in messages[0]["text"]
     assert "2026-06-11 19:00、4 人" in messages[0]["text"]
     assert "/line/book/10222?" in messages[0]["text"]
+    assert "people=4" in messages[0]["text"]
+
+
+@pytest.mark.anyio
+async def test_line_booking_followup_uses_ordinal_shop(monkeypatch):
+    async def fake_fetch_java_shop(shop_id: int):
+        return {"id": shop_id, "name": "辛殿麻辣鍋｜信義店"}
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009, 10115]},
+    )
+    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
+    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "訂第二間明天晚上 4人"},
+        }
+    )
+
+    assert "辛殿麻辣鍋｜信義店" in messages[0]["text"]
+    assert "2026-06-11 19:00、4 人" in messages[0]["text"]
+    assert "/line/book/10115?" in messages[0]["text"]
     assert "people=4" in messages[0]["text"]
 
 

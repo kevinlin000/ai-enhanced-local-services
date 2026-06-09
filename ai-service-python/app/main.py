@@ -2624,8 +2624,43 @@ def _latest_recommendation_context(history: list[dict]) -> dict:
     return {}
 
 
+def _selection_index_from_text(text: str) -> int | None:
+    normalized = re.sub(r"\s+", "", str(text or ""))
+    ordinal_match = re.search(r"第([一二兩三四五六七八九十\d]{1,3})(間|家|個|張|名|項)?", normalized)
+    if ordinal_match:
+        value = _zh_number_to_int(ordinal_match.group(1))
+        return value - 1 if value and value > 0 else None
+    prefix_match = re.search(r"(選|訂|要|看)([一二兩三四五六七八九十\d]{1,3})(間|家|個|張|名|項)", normalized)
+    if prefix_match:
+        value = _zh_number_to_int(prefix_match.group(2))
+        return value - 1 if value and value > 0 else None
+    simple_map = {"第一間": 0, "第一家": 0, "第一個": 0, "第二間": 1, "第二家": 1, "第二個": 1, "第三間": 2, "第三家": 2, "第三個": 2}
+    for phrase, index in simple_map.items():
+        if phrase in normalized:
+            return index
+    return None
+
+
+def _recommended_shop_from_text(query: str, shops: list[dict]) -> dict | None:
+    if not shops:
+        return None
+    index = _selection_index_from_text(query)
+    if index is not None:
+        return shops[index] if 0 <= index < len(shops) else None
+
+    keyword = _specific_shop_keyword(query)
+    normalized_keyword = _normalized_name(keyword)
+    if not normalized_keyword:
+        return None
+    for shop in shops:
+        name = _normalized_name(str(shop.get("name") or ""))
+        if normalized_keyword in name or name in normalized_keyword:
+            return shop
+    return None
+
+
 def _agent_booking_followup_from_history(query: str, history: list[dict]) -> ToolGuardResult | None:
-    if _booking_intent(query) or _payment_intent(query):
+    if _payment_intent(query):
         return None
     prefill = _line_booking_prefill_from_text(query)
     if not (prefill.get("date") or prefill.get("time") or prefill.get("people")):
@@ -2635,18 +2670,18 @@ def _agent_booking_followup_from_history(query: str, history: list[dict]) -> Too
     shops = recommendation.get("shops") if isinstance(recommendation, dict) else []
     if not isinstance(shops, list) or not shops:
         return None
-    if len(shops) > 1:
+    selected_shop = shops[0] if len(shops) == 1 else _recommended_shop_from_text(query, shops)
+    if selected_shop is None:
         return ToolGuardResult(
             action="direct",
             direct_answer="我收到日期/人數了。請先回覆要訂哪一間店名，避免幫你訂錯餐廳。",
         )
 
-    shop = shops[0]
     try:
-        shop_id = int(shop.get("shop_id"))
+        shop_id = int(selected_shop.get("shop_id"))
     except (TypeError, ValueError):
         return None
-    shop_name = str(shop.get("name") or f"店家 {shop_id}")
+    shop_name = str(selected_shop.get("name") or f"店家 {shop_id}")
     missing = []
     if not prefill.get("date"):
         missing.append("日期")
@@ -5067,8 +5102,21 @@ async def _build_line_named_selection_cards(user_text: str, user_id: str) -> lis
         return None
     state = _load_line_recommendation_state(user_id)
     previous_query = str(state.get("query") or "").strip()
+    shown_ids = [
+        int(shop_id)
+        for shop_id in state.get("shown_shop_ids", [])
+        if str(shop_id).isdigit()
+    ]
     if not previous_query:
         return await _build_line_cards_for_query(normalized, user_id, selected_ids=None, save_query=normalized)
+    ordinal_index = _selection_index_from_text(user_text)
+    if ordinal_index is not None and 0 <= ordinal_index < len(shown_ids):
+        return await _build_line_cards_for_query(
+            previous_query,
+            user_id,
+            selected_ids=[shown_ids[ordinal_index]],
+            save_query=previous_query,
+        )
     try:
         shops = await _semantic_hits(previous_query, top_k=30)
     except Exception:
@@ -5615,6 +5663,9 @@ async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dic
     ]
     if not shown_ids:
         return None
+    ordinal_index = _selection_index_from_text(user_text)
+    if len(shown_ids) > 1 and ordinal_index is not None and 0 <= ordinal_index < len(shown_ids):
+        shown_ids = [shown_ids[ordinal_index]]
     if len(shown_ids) > 1:
         return [build_text_message("我收到日期/時間了。請先回覆要訂哪一間店名，避免幫你訂錯餐廳。")]
 
