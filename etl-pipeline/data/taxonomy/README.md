@@ -25,3 +25,26 @@ From the repository root, also run:
 ```bash
 python3 etl-pipeline/scripts/generate_taxonomy_audit.py
 ```
+
+## Applying Pasted Audit Text
+
+Save the reviewed lines to a text file, for example `/tmp/taxonomy-audit.txt`,
+then preview the changes:
+
+```bash
+uv run python scripts/apply_manual_taxonomy_audit.py --input /tmp/taxonomy-audit.txt
+```
+
+Write changes only after reviewing the summary:
+
+```bash
+uv run python scripts/apply_manual_taxonomy_audit.py --input /tmp/taxonomy-audit.txt --write
+```
+
+The parser supports common review formats such as:
+
+```text
+花嶼輕食館Flower Island Brunch：改為 咖啡/甜點
+知初植物系永續廚房 維持 素食
+燒肉眾精緻炭火燒肉 台北西門店：維持 日式燒肉（並移除「韓式」tag）
+```
