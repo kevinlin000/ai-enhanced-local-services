@@ -1,6 +1,6 @@
 import type { AgentShop } from "./agentTypes";
 import { agentFinalPayloadFromEvent } from "./agentResponse";
-import type { AgentStreamEvent, AgentTransaction } from "./agentStream";
+import type { AgentComparisonRow, AgentStreamEvent, AgentTransaction } from "./agentStream";
 
 export type AgentToolStepStatus = "active" | "done";
 
@@ -24,6 +24,7 @@ export type AgentChatMessage = {
   shops?: AgentShop[];
   transaction?: AgentTransaction;
   scopeNote?: string;
+  comparisonRows?: AgentComparisonRow[];
   hits?: {
     shop_id: number;
     name: string;
@@ -159,6 +160,7 @@ export function applyAgentStreamEventToMessage(
         hasShops: (shops?.length ?? 0) > 0,
         transaction: finalPayload.transaction ?? message.transaction,
         scopeNote: finalPayload.scopeNote ?? message.scopeNote,
+        comparisonRows: finalPayload.comparisonRows ?? message.comparisonRows,
         finalEventHandled: true,
         done: true,
       };

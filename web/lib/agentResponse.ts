@@ -1,14 +1,16 @@
 import type { AgentShop } from "./agentTypes";
-import type { AgentStreamEvent, AgentTransaction } from "@/lib/agentStream";
+import type { AgentComparisonRow, AgentStreamEvent, AgentTransaction } from "@/lib/agentStream";
 
 type AgentDecisionPayload = {
-  recommended_shop_ids?: number[];
+  recommended_shop_ids?: Array<number | string>;
 };
 
 type AgentToolResult = {
+  recommended_shop_ids?: Array<number | string>;
   shops?: AgentShop[];
   scope_note?: string | null;
   transaction?: AgentTransaction | null;
+  comparison_rows?: AgentComparisonRow[] | null;
   agent_decision?: AgentDecisionPayload;
 };
 
@@ -17,6 +19,7 @@ export type AgentFinalPayload = {
   recommendedShopIds?: number[];
   transaction?: AgentTransaction;
   scopeNote?: string;
+  comparisonRows?: AgentComparisonRow[];
 };
 
 export function shopId(shop: AgentShop): number {
@@ -43,15 +46,17 @@ export function normalizeAgentShop(shop: AgentShop): AgentShop | null {
 
 export function selectRecommendedShops(
   shops: AgentShop[] | undefined,
-  recommendedShopIds: number[] | undefined,
+  recommendedShopIds: Array<number | string> | undefined,
 ): AgentShop[] | undefined {
   const normalized = shops
     ?.map(normalizeAgentShop)
     .filter((shop): shop is AgentShop => Boolean(shop));
   if (!normalized || normalized.length === 0) return undefined;
   if (!recommendedShopIds?.length) return normalized.slice(0, 3);
+  const normalizedRecommendedIds = normalizeRecommendedShopIds(recommendedShopIds);
+  if (!normalizedRecommendedIds?.length) return normalized.slice(0, 3);
   const byId = new Map(normalized.map((shop) => [shopId(shop), shop]));
-  const selected = recommendedShopIds
+  const selected = normalizedRecommendedIds
     .map((id) => byId.get(Number(id)))
     .filter((shop): shop is AgentShop => Boolean(shop));
   if (selected.length === 0) return normalized.slice(0, 3);
@@ -63,6 +68,13 @@ export function selectRecommendedShops(
   return filled.slice(0, Math.min(3, normalized.length));
 }
 
+function normalizeRecommendedShopIds(ids: Array<number | string> | undefined): number[] | undefined {
+  const normalized = ids
+    ?.map((id) => Number(id))
+    .filter((id) => Number.isFinite(id));
+  return normalized && normalized.length > 0 ? normalized : undefined;
+}
+
 function toolResultFromEvent(event: AgentStreamEvent): AgentToolResult | undefined {
   if (!("tool_result" in event) || !event.tool_result || typeof event.tool_result !== "object") {
     return undefined;
@@ -70,12 +82,18 @@ function toolResultFromEvent(event: AgentStreamEvent): AgentToolResult | undefin
   return event.tool_result as AgentToolResult;
 }
 
+function shopsFromEvent(event: AgentStreamEvent): AgentShop[] | undefined {
+  if (!("shops" in event) || !Array.isArray(event.shops)) return undefined;
+  return event.shops as AgentShop[];
+}
+
 export function agentFinalPayloadFromEvent(event: AgentStreamEvent): AgentFinalPayload {
   const toolResult = toolResultFromEvent(event);
   const recommendedShopIds =
     ("recommended_shop_ids" in event ? event.recommended_shop_ids : undefined) ??
-    toolResult?.agent_decision?.recommended_shop_ids;
-  const shops = selectRecommendedShops(toolResult?.shops, recommendedShopIds);
+    toolResult?.agent_decision?.recommended_shop_ids ??
+    toolResult?.recommended_shop_ids;
+  const shops = selectRecommendedShops(shopsFromEvent(event) ?? toolResult?.shops, recommendedShopIds);
   const transaction =
     ("transaction" in event ? event.transaction ?? undefined : undefined) ??
     toolResult?.transaction ??
@@ -84,11 +102,16 @@ export function agentFinalPayloadFromEvent(event: AgentStreamEvent): AgentFinalP
     ("scope_note" in event ? event.scope_note ?? undefined : undefined) ??
     toolResult?.scope_note ??
     undefined;
+  const comparisonRows =
+    ("comparison_rows" in event ? event.comparison_rows ?? undefined : undefined) ??
+    toolResult?.comparison_rows ??
+    undefined;
 
   return {
     shops,
-    recommendedShopIds,
+    recommendedShopIds: normalizeRecommendedShopIds(recommendedShopIds),
     transaction,
     scopeNote,
+    comparisonRows,
   };
 }

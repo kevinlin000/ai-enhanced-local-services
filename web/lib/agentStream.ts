@@ -19,6 +19,15 @@ export type AgentTransaction = {
   error?: string | null;
 };
 
+export type AgentComparisonRow = {
+  shop_id?: number | string | null;
+  name?: string | null;
+  feature_highlight?: string | null;
+  best_for?: string | null;
+  booking_status?: string | null;
+  meta?: string | null;
+};
+
 export type AgentStreamEvent =
   | { type: "agent_start"; session_id?: string }
   | { type: "turn_start"; query: string; session_id?: string }
@@ -28,12 +37,14 @@ export type AgentStreamEvent =
   | {
       type: "agent_end";
       answer: string;
-      recommended_shop_ids?: number[];
+      recommended_shop_ids?: Array<number | string>;
       narrative?: string;
       rejected_shop_ids?: number[];
       rejection_summary?: string | null;
       scope_note?: string | null;
       transaction?: AgentTransaction | null;
+      shops?: unknown;
+      comparison_rows?: AgentComparisonRow[] | null;
       tools_used?: string[];
       tool_result?: unknown;
       session_id?: string;
@@ -45,12 +56,14 @@ export type AgentStreamEvent =
   | {
       type: "done";
       answer: string;
-      recommended_shop_ids?: number[];
+      recommended_shop_ids?: Array<number | string>;
       narrative?: string;
       rejected_shop_ids?: number[];
       rejection_summary?: string | null;
       scope_note?: string | null;
       transaction?: AgentTransaction | null;
+      shops?: unknown;
+      comparison_rows?: AgentComparisonRow[] | null;
       tools_used?: string[];
       tool_result?: unknown;
       session_id?: string;
