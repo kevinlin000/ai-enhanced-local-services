@@ -1,30 +1,32 @@
 # Taxonomy Spec
 
-Status: approved. Schema/code rollout starts from dedicated migrations and backfill.
+Status: active. V32 promotes Korean from tag-only to a primary category.
 
-Data baseline: 103 active shops merged from `etl-pipeline/data/raw/places_extracted_*.json` on 2026-05-28.
+Data baseline: 600 active shops in MySQL taxonomy audit on 2026-06-09.
 
 ## 1. Main Categories
 
 Decision:
-- Use 10 main categories only.
+- Use 11 main categories.
 - `高級` leaves main taxonomy and becomes badge.
-- `牛排` and `韓式` stay as tags for now, not main categories.
+- `牛排` stays as a tag.
+- `韓式料理` is a primary category for clearly Korean restaurants; `#韓式` remains as compatibility / mixed-format tag.
 
 ### 1.1 Category Table
 
 | type_id | 主分類 | 店家數 | 說明 |
 | --- | --- | ---: | --- |
 | 2001 | 火鍋 | 20 | 火鍋、涮涮鍋、壽喜燒、鍋物吃到飽 |
-| 2002 | 日式燒肉 | 6 | 日式燒肉為主；韓式烤肉暫掛 `#韓式` |
+| 2002 | 日式燒肉 | 54 | 日式燒肉為主 |
 | 2003 | 居酒屋 | 3 | 日式酒場、小酌串燒 |
-| 2004 | 日式料理 | 3 | 拉麵、鰻魚飯、純日料正餐 |
-| 2005 | 素食 | 4 | 蔬食、vegan、素食百匯 |
-| 2007 | 義法料理 | 8 | 義式、法式、西式餐酒館、鐵板套餐 |
-| 2008 | 中式料理 | 37 | 台菜、粵菜、港點、熱炒、小籠包、中式宴席 |
-| 2010 | 美式料理 | 10 | 美式、澳式、brunch 主體、漢堡、煙燻肉 |
-| 2011 | 自助餐 | 5 | buffet / cafeteria / 吃到飽主體 |
-| 2012 | 咖啡/甜點 | 7 | 咖啡館、甜點店、下午茶 |
+| 2004 | 日式料理 | 73 | 拉麵、鰻魚飯、純日料正餐 |
+| 2005 | 素食 | 26 | 蔬食、vegan、素食百匯 |
+| 2007 | 義法料理 | 70 | 義式、法式、西式餐酒館、鐵板套餐 |
+| 2008 | 中式料理 | 117 | 台菜、粵菜、港點、熱炒、小籠包、中式宴席 |
+| 2009 | 韓式料理 | 16 | 韓式烤肉、韓式鍋物、韓式正餐；保留 `#韓式` tag |
+| 2010 | 美式料理 | 59 | 美式、澳式、brunch 主體、漢堡、煙燻肉 |
+| 2011 | 自助餐 | 7 | buffet / cafeteria / 吃到飽主體 |
+| 2012 | 咖啡/甜點 | 32 | 咖啡館、甜點店、下午茶 |
 
 ### 1.2 type_id Policy
 
@@ -35,6 +37,7 @@ Keep:
 - `2004` 日式料理
 - `2007` 義法料理
 - `2008` 中式料理
+- `2009` 韓式料理
 - `2010` 美式料理
 
 Repurpose:
@@ -44,11 +47,10 @@ Repurpose:
 
 Retire from main taxonomy:
 - `2006` 牛排館
-- `2009` 韓式料理
 
 Note:
-- `2006` and `2009` stay reserved. Do not delete immediately in migration plan.
-- If `#牛排` or `#韓式` later promoted, can reuse same ids.
+- `2006` stays reserved. Do not delete immediately in migration plan.
+- `2009` was promoted back to primary category in V32.
 
 ## 2. Badge Rule
 
@@ -194,7 +196,7 @@ Old `高級餐廳` mental bucket is split back into cuisine categories:
 Required callouts:
 - `10104 饗饗`: `高級餐廳 -> 自助餐 + [高級]`
 - `10159 西堤`: `高級餐廳 -> 義法料理 + #牛排`
-- `10190 弘大一號出口`: `韓式料理主類取消 -> 日式燒肉 + #韓式`
+- `10190 弘大一號出口`: `日式燒肉 + #韓式 -> 韓式料理 + #韓式`
 
 ### 4.2 Full 103-Shop Remap
 
@@ -324,11 +326,12 @@ Recommended implementation:
 
 ### Step 1. Base category by `primary_type`
 
-Map Google `primary_type` to only 10 main categories.
+Map Google `primary_type` to only 11 main categories.
 
 Examples:
 - `hot_pot_restaurant` -> `2001`
-- `yakiniku_restaurant` / `korean_barbecue_restaurant` -> `2002`
+- `yakiniku_restaurant` -> `2002`
+- `korean_barbecue_restaurant` / `korean_restaurant` -> `2009`
 - `japanese_izakaya_restaurant` -> `2003`
 - `ramen_restaurant` / `japanese_restaurant` -> `2004`
 - `vegetarian_restaurant` / `vegan_restaurant` -> `2005`

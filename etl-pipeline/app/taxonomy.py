@@ -8,7 +8,8 @@ PRIMARY_TYPE_MAP = {
     "soup_restaurant": 2001,
     "sukiyaki_restaurant": 2001,
     "barbecue_restaurant": 2010,
-    "korean_barbecue_restaurant": 2002,
+    "korean_barbecue_restaurant": 2009,
+    "korean_restaurant": 2009,
     "yakiniku_restaurant": 2002,
     "mongolian_barbecue_restaurant": 2001,
     "yakitori_restaurant": 2003,
@@ -82,8 +83,8 @@ NAME_PRIMARY_OVERRIDES = (
     ("肉執事", 2002),
     ("燒肉Smile", 2002),
     ("肉次方", 2002),
-    ("弘大一號出口", 2002),
-    ("梨谷韓式鐵板烤肉", 2002),
+    ("弘大一號出口", 2009),
+    ("梨谷韓式鐵板烤肉", 2009),
     ("一番地", 2001),
     ("竹村居酒屋", 2003),
     ("古記雞.私房菜.居酒屋", 2003),
@@ -169,6 +170,10 @@ EUROPEAN_KEYWORDS = {
     "pizzeria", "trattoria", "西班牙", "spanish", "義大利麵",
 }
 JAPANESE_KEYWORDS = {"壽司", "生魚片", "拉麵", "天婦羅", "懷石", "沾麵", "烏龍麵"}
+KOREAN_PRIMARY_KEYWORDS = {
+    "韓式", "韓國", "韓廚", "韓式烤肉", "韓式料理", "韓式豬腳", "泡菜鍋", "石鍋拌飯", "部隊鍋",
+    "금하동", "친구", "弘大", "東大門", "新村", "bornga", "uncle-k",
+}
 CHINESE_KEYWORDS = {"台菜", "滬菜", "粵菜", "港點", "熱炒", "台式", "川菜", "客家", "小籠包", "麵食", "鵝肉"}
 STEAK_TAG_KEYWORDS = {"牛排", "steak"}
 KOREAN_TAG_KEYWORDS = {"韓式", "韓國", "泡菜", "弘大"}
@@ -242,6 +247,8 @@ def _apply_keyword_correction(text: str, current_type_id: int) -> int:
         return 2001
     if _contains_any(text, VEGETARIAN_KEYWORDS):
         return 2005
+    if _contains_any(text, KOREAN_PRIMARY_KEYWORDS):
+        return 2009
     if _contains_any(text, YAKINIKU_KEYWORDS):
         return 2002
     if _contains_any(text, IZAKAYA_KEYWORDS) and current_type_id not in {2007, 2010}:

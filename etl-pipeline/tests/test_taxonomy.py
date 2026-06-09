@@ -25,11 +25,11 @@ APPROVED_PRIMARY_TYPE_IDS = {
     10147: 2008, 10148: 2008, 10149: 2007, 10150: 2012, 10151: 2012, 10152: 2001,
     10153: 2008, 10154: 2008, 10155: 2008, 10156: 2001, 10157: 2008, 10158: 2010,
     10159: 2007, 10160: 2008, 10161: 2008, 10162: 2001, 10163: 2011, 10164: 2008,
-    10165: 2002, 10166: 2001, 10167: 2008, 10168: 2001, 10169: 2005, 10170: 2005,
+    10165: 2009, 10166: 2001, 10167: 2008, 10168: 2001, 10169: 2005, 10170: 2005,
     10171: 2002, 10172: 2001, 10173: 2002, 10174: 2012, 10175: 2002, 10176: 2011,
     10177: 2001, 10178: 2008, 10179: 2001, 10180: 2010, 10181: 2010, 10182: 2001,
     10183: 2007, 10184: 2008, 10185: 2001, 10186: 2001, 10187: 2012, 10188: 2001,
-    10189: 2008, 10190: 2002, 10191: 2008, 10192: 2003, 10193: 2007, 10194: 2012,
+    10189: 2008, 10190: 2009, 10191: 2008, 10192: 2003, 10193: 2007, 10194: 2012,
     10195: 2010, 10196: 2007, 10197: 2001, 10198: 2008, 10199: 2003, 10200: 2004,
     10201: 2010,
 }
@@ -85,7 +85,18 @@ def test_classifier_fixture_10183_bistro():
 def test_classifier_fixture_10190_korean_yakiniku():
     shop = load_shops()[10190]
     result = classify_shop(shop)
-    assert result["primary_type_id"] == 2002
+    assert result["primary_type_id"] == 2009
+    assert "韓式" in result["tags"]
+
+
+def test_classifier_korean_restaurant_maps_to_korean_primary_category():
+    result = classify_shop({
+        "display_name": "新村站著吃烤肉",
+        "primary_type": "korean_barbecue_restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "韓式烤肉、泡菜鍋與石鍋拌飯。"},
+    })
+    assert result["primary_type_id"] == 2009
     assert "韓式" in result["tags"]
 
 
@@ -227,7 +238,7 @@ def test_taxonomy_audit_does_not_flag_high_impact_only_rows():
                 },
             },
         },
-        {2002: "日式燒肉", 2008: "中式料理"},
+        {2002: "日式燒肉", 2008: "中式料理", 2009: "韓式料理"},
     )
 
     assert [row.shop_id for row in rows] == [2]

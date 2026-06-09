@@ -3749,6 +3749,8 @@ def _category_label_for_constraints(constraints: dict) -> str:
         return "中式餐廳"
     if "american" in categories:
         return "美式餐廳"
+    if "korean" in categories:
+        return "韓式餐廳"
     return "餐廳"
 
 

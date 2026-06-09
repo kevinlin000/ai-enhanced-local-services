@@ -40,6 +40,7 @@ CATEGORY_REASON = {
     2005: ("素食", taxonomy.VEGETARIAN_KEYWORDS),
     2007: ("義法料理", taxonomy.EUROPEAN_KEYWORDS),
     2008: ("中式料理", taxonomy.CHINESE_KEYWORDS),
+    2009: ("韓式料理", taxonomy.KOREAN_PRIMARY_KEYWORDS),
     2010: ("美式料理", taxonomy.BRUNCH_KEYWORDS | taxonomy.STEAK_TAG_KEYWORDS),
     2011: ("自助餐", taxonomy.BUFFET_KEYWORDS),
     2012: ("咖啡/甜點", taxonomy.CAFE_KEYWORDS),
@@ -274,7 +275,10 @@ def build_audit_rows(shops: dict[int, dict], category_names: dict[int, str]) -> 
             if base_type_id != assigned_type_id:
                 flags.append("classifier_changed_base_type")
 
+        has_korean_primary_match = any(item[0] == 2009 for item in matches)
         conflict_matches = [item for item in matches if item[0] != assigned_type_id]
+        if assigned_type_id == 2009 and has_korean_primary_match:
+            conflict_matches = []
         if conflict_matches:
             flags.append("keyword_conflict")
             evidence_parts.extend(
@@ -284,7 +288,7 @@ def build_audit_rows(shops: dict[int, dict], category_names: dict[int, str]) -> 
         if assigned_type_id == 2008 and not keyword_hits(text, taxonomy.CHINESE_KEYWORDS):
             flags.append("defaulted_to_chinese")
 
-        if "韓式" in tags or keyword_hits(text, taxonomy.KOREAN_TAG_KEYWORDS):
+        if assigned_type_id != 2009 and ("韓式" in tags or keyword_hits(text, taxonomy.KOREAN_TAG_KEYWORDS)):
             flags.append("korean_tag_review")
             evidence_parts.append("韓式 tag")
 
@@ -389,9 +393,9 @@ def write_markdown(rows: list[AuditRow], shops: dict[int, dict], category_names:
         "",
         "## Recommendation",
         "",
-        "- Keep `日式料理` as a Japanese-only primary category for now.",
-        "- Keep Korean as the `韓式` tag unless the reviewed Korean-tagged shop count becomes large enough to justify a dedicated primary category.",
-        "- Do not rename `日式料理` to `日韓料理`: Korean intent crosses yakiniku, hotpot, bistro, and general restaurants, so a tag preserves clearer retrieval semantics.",
+        "- Keep `日式料理` as a Japanese-only primary category.",
+        "- Use `韓式料理` as a dedicated primary category for clearly Korean restaurants.",
+        "- Keep the `韓式` tag for compatibility and mixed-format restaurants, but do not use `日韓料理` as a combined category.",
         "- Review high-priority rows first, then add classifier overrides or DB migrations for confirmed fixes.",
         "",
         f"## Top {min(limit, len(rows))} Review Rows",

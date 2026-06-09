@@ -9,17 +9,17 @@
     { "type_id": 2008, "slug": "chinese",    "name": "中式料理", "sort": 1 },
     { "type_id": 2001, "slug": "hotpot",     "name": "火鍋",     "sort": 2 },
     { "type_id": 2010, "slug": "american",   "name": "美式料理", "sort": 3 },
-    { "type_id": 2007, "slug": "euro",       "name": "義法料理", "sort": 4 },
-    { "type_id": 2012, "slug": "cafe",       "name": "咖啡/甜點", "sort": 5 },
-    { "type_id": 2002, "slug": "yakiniku",   "name": "日式燒肉", "sort": 6 },
-    { "type_id": 2011, "slug": "buffet",     "name": "自助餐",   "sort": 7 },
-    { "type_id": 2005, "slug": "vegetarian", "name": "素食",     "sort": 8 },
-    { "type_id": 2003, "slug": "izakaya",    "name": "居酒屋",   "sort": 9 },
-    { "type_id": 2004, "slug": "japanese",   "name": "日式料理", "sort": 10 }
+    { "type_id": 2009, "slug": "korean",     "name": "韓式料理", "sort": 4 },
+    { "type_id": 2007, "slug": "euro",       "name": "義法料理", "sort": 5 },
+    { "type_id": 2012, "slug": "cafe",       "name": "咖啡/甜點", "sort": 6 },
+    { "type_id": 2002, "slug": "yakiniku",   "name": "日式燒肉", "sort": 7 },
+    { "type_id": 2011, "slug": "buffet",     "name": "自助餐",   "sort": 8 },
+    { "type_id": 2005, "slug": "vegetarian", "name": "素食",     "sort": 9 },
+    { "type_id": 2003, "slug": "izakaya",    "name": "居酒屋",   "sort": 10 },
+    { "type_id": 2004, "slug": "japanese",   "name": "日式料理", "sort": 11 }
   ],
   "reserved_type_ids": [
-    { "type_id": 2006, "name": "牛排館",   "status": "reserved", "reason": "retired to #牛排 tag; reusable if promoted" },
-    { "type_id": 2009, "name": "韓式料理", "status": "reserved", "reason": "retired to #韓式 tag; reusable if promoted" }
+    { "type_id": 2006, "name": "牛排館",   "status": "reserved", "reason": "retired to #牛排 tag; reusable if promoted" }
   ],
   "badges": [
     { "code": "高級", "slug": "premium", "name": "高級", "sort": 1, "home_entry": true }
