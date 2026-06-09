@@ -109,6 +109,59 @@ async function mockAgentRecommendation(page: Page) {
   });
 }
 
+async function mockPendingPaymentTransaction(page: Page) {
+  await page.route("**/api/ai/agent/stream", async (route) => {
+    const holdExpiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    const transaction = {
+      kind: "booking",
+      success: true,
+      status: "PENDING_PAYMENT",
+      shop_id: 9101,
+      shop_name: "測試火鍋店",
+      booking_code: "BK-E2E-PAY-001",
+      people: 2,
+      date: "2026-06-10",
+      time: "19:00",
+      table_type: "一般座位",
+      needs_deposit: true,
+      deposit_total: 600,
+      hold_expires_at: holdExpiresAt,
+      hold_minutes: 10,
+    };
+    const events = [
+      { type: "agent_start", session_id: "e2e-payment-session" },
+      { type: "message_update", content: "已建立訂位，等待訂金付款。" },
+      {
+        type: "agent_end",
+        answer: "已建立訂位，付款後才會完成保留。",
+        transaction,
+        tool_result: { transaction },
+        tools_used: ["create_booking"],
+        session_id: "e2e-payment-session",
+      },
+    ];
+    await route.fulfill({
+      contentType: "text/event-stream; charset=utf-8",
+      body: events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(""),
+    });
+  });
+  await page.route("**/api/java/api/booking/pay-test", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        success: true,
+        data: {
+          bookingCode: "BK-E2E-PAY-001",
+          rec_trade_id: "E2E-TRADE-PAID",
+          amount: 600,
+          status: "PAID",
+          note: "Demo paid",
+        },
+      }),
+    });
+  });
+}
+
 test("AI page blocks chat when user is not logged in", async ({ page }) => {
   await page.goto("/ai");
 
@@ -136,4 +189,28 @@ test("AI page renders mocked recommendation cards and comparison table", async (
   await expect(page.getByRole("heading", { name: "快速比較" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "特色亮點" })).toBeVisible();
   await expect(page.getByText("done duplicate should not overwrite agent_end")).toHaveCount(0);
+});
+
+test("AI page updates pending payment transaction after demo payment succeeds", async ({ page }) => {
+  await mockAuthenticatedUser(page);
+  await mockPendingPaymentTransaction(page);
+
+  await page.goto("/ai");
+
+  const input = page.getByPlaceholder("找餐廳 問 ByteBites AI");
+  await expect(input).toBeEnabled();
+  await input.fill("幫我訂測試火鍋店明天晚上 7 點 2 人");
+  await page.getByRole("button", { name: "送出" }).click();
+
+  await expect(page.getByText("訂位待付款")).toBeVisible();
+  await expect(page.getByText("BK-E2E-PAY-001")).toBeVisible();
+  await expect(page.getByText("狀態：待付款")).toBeVisible();
+
+  await page.getByRole("button", { name: /確認以信用卡 Demo支付 NT\$ 600/ }).click();
+
+  await expect(page.getByText("訂位確認")).toBeVisible();
+  await expect(page.getByText("PAID", { exact: true })).toBeVisible();
+  await expect(page.getByText("狀態：已付款")).toBeVisible();
+  await expect(page.getByText("交易編號：E2E-TRADE-PAID")).toBeVisible();
+  await expect(page.getByText("信用卡 Demo 付款完成：Demo paid")).toBeVisible();
 });
