@@ -8,36 +8,13 @@ import { streamAgentResponse, type AgentTransaction } from "@/lib/agentStream";
 import { MarkdownMessage } from "@/components/MarkdownMessage";
 import { useAuth } from "@/lib/auth";
 import type { AgentShop } from "@/components/AgentShopCard";
-import { agentFinalPayloadFromEvent } from "@/lib/agentResponse";
+import {
+  agentToolLabel,
+  type AgentChatMessage,
+  updateLastAiMessage,
+} from "@/lib/agentMessages";
 
-type Hit = {
-  shop_id: number;
-  name: string;
-  district: string;
-};
-
-type Msg = {
-  role: "user" | "ai";
-  content: string;
-  hits?: Hit[];
-  tools_used?: string[];
-  tool_steps?: ToolStep[];
-  status_label?: string;
-  stream_mode?: "legacy" | "lifecycle";
-  final_event_handled?: boolean;
-  query?: string;
-  done?: boolean;
-  hasShops?: boolean;
-  shops?: AgentShop[];
-  transaction?: AgentTransaction;
-  scopeNote?: string;
-};
-
-type ToolStep = {
-  name: string;
-  label: string;
-  status: "active" | "done";
-};
+type Msg = AgentChatMessage;
 
 const TOOL_LABELS: Record<string, string> = {
   search_shops_by_mrt: "搜尋捷運附近",
@@ -48,27 +25,7 @@ const TOOL_LABELS: Record<string, string> = {
 };
 
 function toolLabel(name: string): string {
-  return TOOL_LABELS[name] ?? name.replace(/_/g, " ");
-}
-
-function upsertToolStep(
-  steps: ToolStep[] | undefined,
-  name: string,
-  status: ToolStep["status"],
-): ToolStep[] {
-  const next = [...(steps ?? [])];
-  const existingIndex = next.findIndex((step) => step.name === name);
-  const item = { name, label: toolLabel(name), status };
-  if (existingIndex >= 0) {
-    next[existingIndex] = item;
-  } else {
-    next.push(item);
-  }
-  return next;
-}
-
-function uniqueTools(tools: string[] | undefined, name: string): string[] {
-  return [...new Set([...(tools ?? []), name])];
+  return agentToolLabel(name, TOOL_LABELS);
 }
 
 function formatShopMeta(shop: AgentShop): string {
@@ -182,137 +139,24 @@ export function AiConcierge() {
     setMessages((prev) => [
       ...prev,
       { role: "user", content: msg },
-      { role: "ai", content: "", tools_used: [], query: msg },
+      { role: "ai", content: "", toolsUsed: [], query: msg },
     ]);
     setLoading(true);
     try {
       await streamAgentResponse(
         { query: msg, session_id: sessionId },
         (event) => {
-          if (event.type === "agent_start") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = {
-                ...last,
-                status_label: "準備處理需求",
-                stream_mode: "lifecycle",
-              };
-              return next;
-            });
-          } else if (event.type === "turn_start") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = {
-                ...last,
-                status_label: "正在理解需求",
-                stream_mode: "lifecycle",
-              };
-              return next;
-            });
-          } else if (event.type === "tool_execution_start") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = {
-                ...last,
-                status_label: `處理中：${toolLabel(event.name)}`,
-                stream_mode: "lifecycle",
-                tool_steps: upsertToolStep(last.tool_steps, event.name, "active"),
-                tools_used: uniqueTools(last.tools_used, event.name),
-              };
-              return next;
-            });
-          } else if (event.type === "tool_execution_end") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = {
-                ...last,
-                status_label: "資料已取得",
-                stream_mode: "lifecycle",
-                tool_steps: upsertToolStep(last.tool_steps, event.name, "done"),
-                tools_used: uniqueTools(last.tools_used, event.name),
-              };
-              return next;
-            });
-          } else if (event.type === "message_update") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = {
-                ...last,
-                content: `${last.content}${event.content}`,
-                status_label: "正在撰寫回覆",
-                stream_mode: "lifecycle",
-              };
-              return next;
-            });
-          } else if (event.type === "chunk") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              if (last.stream_mode === "lifecycle") return prev;
-              next[next.length - 1] = { ...last, content: `${last.content}${event.content}` };
-              return next;
-            });
-          } else if (event.type === "tool") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              if (last.stream_mode === "lifecycle") return prev;
-              const tools = uniqueTools(last.tools_used, event.name);
-              next[next.length - 1] = {
-                ...last,
-                tools_used: tools,
-                tool_steps: upsertToolStep(last.tool_steps, event.name, "done"),
-              };
-              return next;
-            });
-          } else if (event.type === "agent_end" || event.type === "done") {
-            const finalPayload = agentFinalPayloadFromEvent(event);
-            const hasShops = (finalPayload.shops?.length ?? 0) > 0;
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              if (event.type === "done" && last.final_event_handled) return prev;
-              next[next.length - 1] = {
-                ...last,
-                content: event.answer || last.content,
-                status_label: "已完成",
-                tools_used: event.tools_used ?? last.tools_used,
-                done: true,
-                hasShops,
-                shops: finalPayload.shops ?? last.shops,
-                transaction: finalPayload.transaction ?? last.transaction,
-                scopeNote: finalPayload.scopeNote ?? last.scopeNote,
-                final_event_handled: true,
-              };
-              return next;
-            });
-          } else if (event.type === "agent_error" || event.type === "error") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = {
-                ...last,
-                content: event.message || "錯誤、再試一次",
-                status_label: "處理失敗",
-                done: true,
-              };
-              return next;
-            });
-          }
+          setMessages((prev) =>
+            updateLastAiMessage(prev, event, {
+              toolLabels: TOOL_LABELS,
+              statusLabels: {
+                turn_start: "正在理解需求",
+                tool_execution_start: "處理中",
+                tool_execution_end: "資料已取得",
+              },
+              errorMessage: "錯誤、再試一次",
+            }),
+          );
         },
       );
     } catch {
@@ -416,7 +260,7 @@ export function AiConcierge() {
                 }
               >
                 <div className="max-w-[85%]">
-                  {m.role === "ai" && (!m.done || (m.tool_steps?.length ?? 0) > 0) ? (
+                  {m.role === "ai" && (!m.done || (m.toolSteps?.length ?? 0) > 0) ? (
                     <div className="mb-1.5 rounded-xl border bg-background px-3 py-2 shadow-sm">
                       <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
                         {m.done ? (
@@ -424,11 +268,11 @@ export function AiConcierge() {
                         ) : (
                           <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
                         )}
-                        {m.status_label ?? "正在處理"}
+                        {m.statusLabel ?? "正在處理"}
                       </div>
-                      {(m.tool_steps?.length ?? 0) > 0 ? (
+                      {(m.toolSteps?.length ?? 0) > 0 ? (
                         <div className="mt-2 flex flex-wrap gap-1">
-                          {m.tool_steps?.map((step) => (
+                          {m.toolSteps?.map((step) => (
                             <span
                               key={step.name}
                               className={`inline-flex h-6 items-center gap-1 rounded-full px-2 text-[10px] font-semibold ${
@@ -476,7 +320,7 @@ export function AiConcierge() {
                       </div>
                     )}
 
-                    {m.role === "ai" && m.done && m.hasShops && m.query && (
+                    {m.role === "ai" && m.done && (m.shops?.length ?? 0) > 0 && m.query && (
                       <div className="mt-3 space-y-2 border-t border-foreground/10 pt-2.5">
                         {m.scopeNote ? (
                           <div className="rounded-xl bg-amber-50 px-3 py-2 text-left text-[11px] leading-5 text-amber-950">
@@ -501,9 +345,9 @@ export function AiConcierge() {
                     ) : null}
                   </div>
 
-                  {m.tools_used && m.tools_used.length > 0 && (
+                  {m.toolsUsed && m.toolsUsed.length > 0 && (
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {m.tools_used.map((t, idx) => (
+                      {m.toolsUsed.map((t, idx) => (
                         <span
                           key={idx}
                           className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"

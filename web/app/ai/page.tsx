@@ -24,31 +24,15 @@ import { streamAgentResponse, type AgentTransaction } from "@/lib/agentStream";
 import { useAuth } from "@/lib/auth";
 import { AgentShopCard, type AgentShop } from "@/components/AgentShopCard";
 import { MarkdownMessage } from "@/components/MarkdownMessage";
-import { agentFinalPayloadFromEvent } from "@/lib/agentResponse";
+import {
+  agentToolLabel,
+  type AgentChatMessage,
+  updateLastAiMessage,
+} from "@/lib/agentMessages";
 
 const AI_API = "";
 
-interface Msg {
-  role: "user" | "ai";
-  content: string;
-  toolsUsed?: string[];
-  toolSteps?: ToolStep[];
-  statusLabel?: string;
-  streamMode?: "legacy" | "lifecycle";
-  finalEventHandled?: boolean;
-  done?: boolean;
-  shops?: AgentShop[];
-  transaction?: AgentTransaction;
-  scopeNote?: string;
-}
-
-type ToolStepStatus = "active" | "done";
-
-type ToolStep = {
-  name: string;
-  label: string;
-  status: ToolStepStatus;
-};
+type Msg = AgentChatMessage;
 
 type TableReviewInsights = {
   selectedReviews?: {
@@ -93,27 +77,7 @@ const STATUS_LABELS = {
 } as const;
 
 function toolLabel(name: string): string {
-  return TOOL_LABELS[name] ?? name.replace(/_/g, " ");
-}
-
-function upsertToolStep(
-  steps: ToolStep[] | undefined,
-  name: string,
-  status: ToolStepStatus,
-): ToolStep[] {
-  const next = [...(steps ?? [])];
-  const existingIndex = next.findIndex((step) => step.name === name);
-  const item = { name, label: toolLabel(name), status };
-  if (existingIndex >= 0) {
-    next[existingIndex] = item;
-  } else {
-    next.push(item);
-  }
-  return next;
-}
-
-function uniqueTools(tools: string[] | undefined, name: string): string[] {
-  return [...new Set([...(tools ?? []), name])];
+  return agentToolLabel(name, TOOL_LABELS);
 }
 
 function renderableText(value: string): string {
@@ -742,128 +706,13 @@ export default function AiPage() {
       await streamAgentResponse(
         { query: userMsg, session_id: activeSessionId },
         (event) => {
-          if (event.type === "agent_start") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = {
-                ...last,
-                statusLabel: STATUS_LABELS.agent_start,
-                streamMode: "lifecycle",
-              };
-              return next;
-            });
-          } else if (event.type === "turn_start") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = {
-                ...last,
-                statusLabel: STATUS_LABELS.turn_start,
-                streamMode: "lifecycle",
-              };
-              return next;
-            });
-          } else if (event.type === "tool_execution_start") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = {
-                ...last,
-                statusLabel: `${STATUS_LABELS.tool_execution_start}：${toolLabel(event.name)}`,
-                streamMode: "lifecycle",
-                toolSteps: upsertToolStep(last.toolSteps, event.name, "active"),
-                toolsUsed: uniqueTools(last.toolsUsed, event.name),
-              };
-              return next;
-            });
-          } else if (event.type === "tool_execution_end") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = {
-                ...last,
-                statusLabel: STATUS_LABELS.tool_execution_end,
-                streamMode: "lifecycle",
-                toolSteps: upsertToolStep(last.toolSteps, event.name, "done"),
-                toolsUsed: uniqueTools(last.toolsUsed, event.name),
-              };
-              return next;
-            });
-          } else if (event.type === "message_update") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = {
-                ...last,
-                content: `${last.content}${event.content}`,
-                statusLabel: STATUS_LABELS.message_update,
-                streamMode: "lifecycle",
-              };
-              return next;
-            });
-          } else if (event.type === "chunk") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              if (last.streamMode === "lifecycle") return prev;
-              next[next.length - 1] = { ...last, content: `${last.content}${event.content}` };
-              return next;
-            });
-          } else if (event.type === "tool") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              if (last.streamMode === "lifecycle") return prev;
-              const tools = uniqueTools(last.toolsUsed, event.name);
-              next[next.length - 1] = {
-                ...last,
-                toolsUsed: tools,
-                toolSteps: upsertToolStep(last.toolSteps, event.name, "done"),
-              };
-              return next;
-            });
-          } else if (event.type === "agent_end" || event.type === "done") {
-            const finalPayload = agentFinalPayloadFromEvent(event);
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              if (event.type === "done" && last.finalEventHandled) return prev;
-              next[next.length - 1] = {
-                ...last,
-                content: event.answer || last.content,
-                statusLabel: STATUS_LABELS.agent_end,
-                toolsUsed: event.tools_used ?? last.toolsUsed,
-                shops: finalPayload.shops ?? last.shops,
-                transaction: finalPayload.transaction ?? last.transaction,
-                scopeNote: finalPayload.scopeNote ?? last.scopeNote,
-                finalEventHandled: true,
-                done: true,
-              };
-              return next;
-            });
-          } else if (event.type === "agent_error" || event.type === "error") {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "ai") return prev;
-              next[next.length - 1] = {
-                ...last,
-                content: event.message || "出錯了，再試一次",
-                statusLabel: STATUS_LABELS.agent_error,
-                done: true,
-              };
-              return next;
-            });
-          }
+          setMessages((prev) =>
+            updateLastAiMessage(prev, event, {
+              toolLabels: TOOL_LABELS,
+              statusLabels: STATUS_LABELS,
+              errorMessage: "出錯了，再試一次",
+            }),
+          );
         },
       );
     } catch {
