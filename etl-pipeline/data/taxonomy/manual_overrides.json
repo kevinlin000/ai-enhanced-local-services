@@ -1,0 +1,1748 @@
+{
+  "meta": {
+    "version": 1,
+    "description": "Manual taxonomy audit overrides. Keep reviewer decisions here so ETL classification can be replayed without one-off SQL edits.",
+    "priority": "These primary_type overrides are applied before legacy name rules and keyword correction."
+  },
+  "primary_type_overrides": [
+    {
+      "match": "青青食尚花園會館",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "溫咖哩 Wen Curry",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "瀧厚炙燒熟成牛排 台北.北車店",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "沾美西餐廳",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "SALT&STONE",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "樂野食",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "北投文物館",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "秦味館",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "孫立人將軍官邸",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "大嗑西式餐館",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "莎諾西餐",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "士林放感情餐酒館",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "泰和樓",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "頁小館",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "築本屋公館店",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "泰市場",
+      "type_id": 2011,
+      "source": "manual_audit"
+    },
+    {
+      "match": "漢來上海湯包",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Moni咖哩",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "KOBE SWEETS CAFE",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "蘭亭燒肉",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "茶茶王國",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "波 WAVE",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "夏綠沁私房義大利麵燉飯",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "東京廚房",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "詹咖李",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Tierra Casa",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "TankQ",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "燒肉中山",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "樂軒松阪亭",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "大樹先生的家",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "發肉燒肉餐酒忠孝二店",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "大河牧場 漢堡排專売",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "大叔食事",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "ONE GOOD烤肉飯",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "小尚品精制鍋物",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "蘋果肉桂",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "小蔬同手作蔬食",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "和牛涮台北忠孝東店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "狗一下居食酒堂-忠孝店",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "豐 FOOD",
+      "type_id": 2011,
+      "source": "manual_audit"
+    },
+    {
+      "match": "尬鍋",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "和牛涮 台北羅斯福店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "金洹苑",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "林美如",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "山上走走 日式燒肉",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "西堤牛排台北羅斯福店",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "solo pasta",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "麵屋 千雲",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "大阪燒肉 燒魂",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "艾朋牛排餐酒館",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "老井極上燒肉",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Meat Up",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "藝奇",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "新馬辣經典麻辣鍋",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "大村武串燒居酒屋",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "歐買尬日式海鮮串燒 市民一店",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "熊一頂級燒肉",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "夏慕尼",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "旭集",
+      "type_id": 2011,
+      "source": "manual_audit"
+    },
+    {
+      "match": "小倉庫食研所",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "GYUU NIKU",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "一蘭",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "饗食天堂",
+      "type_id": 2011,
+      "source": "manual_audit"
+    },
+    {
+      "match": "燒肉神保町",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "赤富士日式燒肉鍋物",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "TakeOut Burger&Cafe 忠孝新生店",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "老倉庫",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "錢都日式涮涮鍋 台北延平店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "好食多涮涮鍋",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "辛殿麻辣鍋",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "陶板屋",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "HOOTERS",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "狗一下居食酒屋-西門店",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "WOW Bistro",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "下港吔羊肉",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "亞瑟蘭印度餐廳",
+      "type_id": 2013,
+      "source": "manual_audit"
+    },
+    {
+      "match": "亞瑟蘭印度料理",
+      "type_id": 2013,
+      "source": "manual_audit"
+    },
+    {
+      "match": "馬友友印度廚房",
+      "type_id": 2013,
+      "source": "manual_audit"
+    },
+    {
+      "match": "莎瓦迪卡海鮮.泰",
+      "type_id": 2013,
+      "source": "manual_audit"
+    },
+    {
+      "match": "初泰Pikul",
+      "type_id": 2013,
+      "source": "manual_audit"
+    },
+    {
+      "match": "塔吉摩洛哥料理",
+      "type_id": 2013,
+      "source": "manual_audit"
+    },
+    {
+      "match": "非常泰",
+      "type_id": 2013,
+      "source": "manual_audit"
+    },
+    {
+      "match": "肉次方 燒肉放題 台北峨眉店",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "島語 台北漢來店",
+      "type_id": 2011,
+      "source": "manual_audit"
+    },
+    {
+      "match": "泰滾 Rolling Thai",
+      "type_id": 2013,
+      "source": "manual_audit"
+    },
+    {
+      "match": "初樂燒肉",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "洋城義大利餐廳-東森廣場北車店",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "悠悠龍貓咖啡",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "火燒鳥日式居酒屋",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "發肉燒肉餐酒敦北一店",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "大河屋 燒肉丼 串燒-微風北車店",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "唐宮蒙古烤肉酸菜白肉餐廳",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "胖肚肚燒肉 大安店",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "小紅莓石頭火鍋城",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "蔦燒日式居酒屋-石牌店",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "布納咖啡館 內湖館",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Woolloomooloo",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Second Floor 貳樓敦南店",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "紅翻天生猛海鮮",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "NAGOYA 道地日式蛋包飯",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "WOWFFIZI",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "石二鍋 台北捷運後山埤店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "神燈搓一下",
+      "type_id": 2013,
+      "source": "manual_audit"
+    },
+    {
+      "match": "瀧厚炙燒熟成牛排 台北.南港店",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "忠孝｜燒肉政宗",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "築間幸福鍋物 台北內湖店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "樂子the Diner 瑞安店",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "深夜裡的法國手工甜點",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "GumGum Beer & Wings",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "錢都日式涮涮鍋 台北師大店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "布納咖啡館 信義館",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "蝸牛義大利餐廳 天母店",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "酒米食堂",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "樂軒和牛專門店",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "小紐約披薩 中山店",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "一番地壽喜燒 古亭店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "詩篇咖啡餐廳",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "林居sushi日本料理",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "At.First早寓",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "蔦燒日式居酒屋-北投店",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Remember Me_記得我",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "老朋友小酌熱炒",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "渣男 Taiwan Bistro 信義一渣",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "蔬軾",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "gonnaEAT 內湖店",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "肉你好燒肉-合江總舖",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "火人串燒",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "渣男Taiwan Bistro古亭四渣",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "川邸鍋物 劍潭店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "M One Cafe A11",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "品司和食",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "蔦燒日式居酒屋-士林店",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Bogart's Smokehouse Taipei",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "紅屋牛排館民生店",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "i99 COFFEE 景美店",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "荖子鍋Plus",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "TakeOut Burger&Cafe 民權店",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "PRESERVE 遠東GARDEN CITY",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "蔣老爹愛吃鍋 市民店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "明水然・樂-遠百信義店",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "渣男TaiwanBistro 木柵二渣",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "三燔北投",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "阿薄郎薄皮餃子",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "野草居食屋",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "肉執事台北松山門市",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "— LAX 慵懶 — 貓空",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "A Beach 101&Pizza",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "燒鳩",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "哞屋Mon wo",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "墨竹亭 燃麵本家",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "品田牧場 台北松山車站店",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "花漾夯夯鍋",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "呼嚕小酒館 Purrson Bistro",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "青杉燒肉",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "果然匯 台北天母店",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "三柒燒肉專門店",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Second Floor 貳樓微風南山店",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "加分100%浜中特選昆布鍋物-八德店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "葉公館滬菜",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "小小麥 信義新光A11",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "波赫士領地精品咖啡館 明水店",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "overthink 餐飲小吃部",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "辣椒多一點麻辣鍋物養生鍋",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Chill嗨嗨酒場",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "小小樹食 敦南店",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "日本橋浜町食事处",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "BaganHood",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "茱莉金牛排餐酒館",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "前鎮水產-海霸王 昆明店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "士林串燒",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "CURA PIZZA",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "知初植物系永續廚房",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Last Order",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "陶膳日式料理",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "東京串燒酒場",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "潮肉壽喜燒-永吉店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Fa Burger",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "PRESERVE LaLaport",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Extension 1 by 橘色",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "無口小廚",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "這一小鍋 台北北護店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "草根早午餐",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "燒究食寓",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Takeout Burger&Cafe 延吉店",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "PEPPINO",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "德朗火鍋",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Eatfoodie udon",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "AN58西班牙創意料理",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "鹿境早午餐",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Creative Pasta",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "根來阿財鐵板燒",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "捌千代居酒屋",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "嚐居",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "爍場居酒屋",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "好吧",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "GumGum Not Only Beer & Wings",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "子女居酒屋",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "七転八起",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "東京家庭義大利麵",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "極簡鍋物",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Niconico Yakiniku",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "謀魚蝦也蠔",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "八和和牛燒肉專門店-安和本店",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "試試工作室",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "HANNA Pasta",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Agusto奧古斯托",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "大河屋 燒肉丼 串燒-中信南港店",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "樂氣串燒居酒屋",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "孫太太嚴選超市火鍋",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Lazy Pasta 慵懶義式廚房文山萬芳店",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Plants",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "朝鑫壽司",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "嗯哼咖啡食堂",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "加分昆布鍋物-食べ放題-新生店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "鍋董日式涮涮鍋劍潭旗艦店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "肉你好燒肉-延吉店",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "豆町村燒肉",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "The Slice Shop",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "源本家燒肉火鍋",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "大河屋 燒肉丼 串燒-微風南京店",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "CHIT CHAT Cafe 南京店",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "AW Cafe Wine Bistro",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "深深 永康制作所",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "無尽蔵居酒屋",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Monday蔬食料理",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "麥味登 文山饗食大亨店",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "GiraPizza",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "原蔬生活",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "鳥居町日料居酒屋",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "曹料理",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "全養知",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "RKZ Caf",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "蘇草salvia",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "酒桃Sake momo",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "穗月朝食",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "麻凡麻辣火鍋",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "老菘田居酒屋",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "豐橋火鍋",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "PAI CAFÉ & BRUNCH",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "大河牧場 漢堡排洋食館",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "波赫士領地精品咖啡館 提拉米蘇 千層蛋糕 BorgesPlace昌吉店",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "貓蕊",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "男子漢拉麵食堂",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "BRUN不然-信義店",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "蔣家莊 溫體牛肉火鍋",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "凱撒披薩",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Caesar's pizza",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "蔬食百匯",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "HI MATE",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "12:59早午餐",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "家吶子台式居酒屋",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "花嶼輕食館",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "CHALET V",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "JODA CAFE",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "雞老闆",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "The Public House",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "九井自慢料理",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "HOW齊早午餐",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "有麵子蔬食料理",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "ChiaoDuo House",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "熊賀酒場",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Boulevard Cafe",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Takeout burger & cafe 內湖店",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "動物園滷餐小酒館",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "BearJunkies",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "星嫵蔬創意料理",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "大安站那邊",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Pizza/Pizza3",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "三重奏加蚋",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "徙巷小餐酒",
+      "type_id": 2007,
+      "source": "manual_audit"
+    },
+    {
+      "match": "鐵 F.f Teppanyaki",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "喜多肉和牛燒肉居酒屋",
+      "type_id": 2002,
+      "source": "manual_audit"
+    },
+    {
+      "match": "B&B STEAK",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "常不輕",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "掌門精釀啤酒",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "The Shed",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "三亞米",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "一番地 內湖宏匯店",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "八方悅鍋物",
+      "type_id": 2001,
+      "source": "manual_audit"
+    },
+    {
+      "match": "旭穗蔬食",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "初衷鮨",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "糧田",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "南洋蔬食小棧",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "好啤氣 Temper",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "貳號基地Cafe",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "一肚子火",
+      "type_id": 2003,
+      "source": "manual_audit"
+    },
+    {
+      "match": "青靜緣",
+      "type_id": 2005,
+      "source": "manual_audit"
+    },
+    {
+      "match": "雙月食品社 濟南店",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "雙月食品社 八德店",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "雙月食品社 北投店",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "MAJI MAJI",
+      "type_id": 2013,
+      "source": "manual_audit"
+    },
+    {
+      "match": "吉豚屋",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "刁民-酸菜魚 西門中華店",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "刁民-酸菜魚 信義店",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "黃龍莊",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "榮榮園",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Mr. 雪腐",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "女巫店",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "刁民-酸菜魚 信義松仁店",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "三角冰",
+      "type_id": 2012,
+      "source": "manual_audit"
+    },
+    {
+      "match": "貓空清泉山莊",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "勝魂丼飯",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "湘八老",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "雲の咖哩屋",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "春水堂 中正店",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "貓空 山中茶",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "隱世餐酒館",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "磚窯古早料理",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "晴天廚房",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "竣師父牛肉麵",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "玖加酒華川餐館",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "CHILL啾點心",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "樂天羊肉",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "mama says yes",
+      "type_id": 2013,
+      "source": "manual_audit"
+    },
+    {
+      "match": "大安米粉湯",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "澎派海鮮餐廳",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "巧主廚的咖哩",
+      "type_id": 2004,
+      "source": "manual_audit"
+    },
+    {
+      "match": "飲飽食醉",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "桃花源記牛肉麵",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "小肚子私房料理",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "道品牛肉麵",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "好客食堂",
+      "type_id": 2008,
+      "source": "manual_audit"
+    },
+    {
+      "match": "Haooyun Station",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "好運站",
+      "type_id": 2010,
+      "source": "manual_audit"
+    },
+    {
+      "match": "KiKi餐廳",
+      "type_id": 2008,
+      "source": "manual_audit"
+    }
+  ],
+  "suppress_tags": [
+    {
+      "match": "TankQ",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "燒肉中山",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "樂軒松阪亭",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "發肉燒肉餐酒忠孝二店",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "大河牧場 漢堡排專売",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "大叔食事",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "ONE GOOD烤肉飯",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "小尚品精制鍋物",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "小蔬同手作蔬食",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "和牛涮台北忠孝東店",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "金洹苑",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "燒肉眾精緻炭火燒肉",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "大樹先生的家",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "神來一爐燒肉",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "IKIGAI燒肉專門店",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    },
+    {
+      "match": "蘋果肉桂",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
+    }
+  ]
+}

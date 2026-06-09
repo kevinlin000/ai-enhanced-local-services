@@ -12,6 +12,8 @@ from scripts.generate_taxonomy_audit import build_audit_rows
 
 
 RAW_DIR = ROOT / "data" / "raw"
+MANUAL_OVERRIDES_PATH = ROOT / "data" / "taxonomy" / "manual_overrides.json"
+SHARED_TAXONOMY_PATH = ROOT.parent / "shared" / "taxonomy.json"
 
 APPROVED_PRIMARY_TYPE_IDS = {
     10099: 2004, 10100: 2004, 10101: 2008, 10102: 2001, 10103: 2011, 10104: 2011,
@@ -44,6 +46,49 @@ def load_shops() -> dict[int, dict]:
             if shop_id:
                 shops[shop_id] = shop
     return shops
+
+
+def load_manual_overrides() -> dict:
+    return json.loads(MANUAL_OVERRIDES_PATH.read_text(encoding="utf-8"))
+
+
+def canonical_type_ids() -> set[int]:
+    payload = json.loads(SHARED_TAXONOMY_PATH.read_text(encoding="utf-8"))
+    return {int(item["type_id"]) for item in payload["categories"]}
+
+
+def test_manual_override_fixture_schema_and_type_ids():
+    payload = load_manual_overrides()
+    assert payload["meta"]["version"] == 1
+
+    valid_type_ids = canonical_type_ids()
+    primary_rows = payload["primary_type_overrides"]
+    suppress_rows = payload["suppress_tags"]
+
+    assert primary_rows
+    assert suppress_rows
+    assert len({row["match"] for row in primary_rows}) == len(primary_rows)
+    assert len({row["match"] for row in suppress_rows}) == len(suppress_rows)
+
+    for row in primary_rows:
+        assert row["source"] == "manual_audit"
+        assert row["match"].strip()
+        assert row["type_id"] in valid_type_ids
+
+    for row in suppress_rows:
+        assert row["source"] == "manual_audit"
+        assert row["match"].strip()
+        assert row["tags"] == ["韓式"]
+
+
+def test_manual_audit_overrides_are_loaded_before_legacy_name_rules():
+    result = classify_shop({
+        "display_name": "品田牧場 台北松山車站店",
+        "primary_type": "restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "日式豬排、套餐與定食。"},
+    })
+    assert result["primary_type_id"] == 2004
 
 
 def test_classifier_matches_approved_primary_type_ids():
