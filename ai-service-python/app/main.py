@@ -291,6 +291,73 @@ TAIWANESE_CUISINE_BLOCK_HINTS = {
 }
 BUSINESS_DINING_HINTS = {"商務", "請客", "正式", "包廂", "宴席", "聚餐", "老字號", "高級", "精緻"}
 CLOSED_SHOP_HINTS = {"暫停營業", "停業", "歇業", "永久停業", "設備整修", "結束營業"}
+SPECIFIC_CUISINE_RULES = {
+    "korean": {
+        "query": {"韓式", "韓國料理", "韓國菜", "韓式料理", "韓式烤肉"},
+        "strong": {
+            "韓式",
+            "韓國",
+            "韓廚",
+            "韓式烤肉",
+            "韓國烤肉",
+            "韓式燒肉",
+            "泡菜鍋",
+            "豆腐鍋",
+            "部隊鍋",
+            "豬肉湯飯",
+            "韓式豬腳",
+            "bornga",
+            "홍대",
+            "감자탕",
+            "돼지국밥",
+            "韓大佬",
+            "弘大",
+            "新村",
+            "東大門",
+        },
+        "summary": {"韓式料理", "韓國料理", "韓式烤肉", "韓國烤肉", "韓式燒肉", "道地韓食", "韓式氛圍"},
+        "block": {"日式燒肉", "yakiniku", "和牛燒肉", "居酒屋"},
+    },
+    "thai": {
+        "query": {"泰式", "泰國料理", "泰國菜", "泰式料理"},
+        "strong": {
+            "泰式",
+            "泰國",
+            "thai",
+            "莎瓦迪卡",
+            "非常泰",
+            "泰市場",
+            "泰滾",
+            "rolling thai",
+            "pikul",
+            "月亮蝦餅",
+            "打拋",
+            "冬蔭",
+            "綠咖哩",
+        },
+        "summary": {"泰式料理", "泰國料理", "泰式火鍋", "泰國夜市", "南洋泰式"},
+        "block": set(),
+    },
+    "indian": {
+        "query": {"印度", "印度料理", "印度菜", "清真印度"},
+        "strong": {
+            "印度",
+            "indian",
+            "halal",
+            "清真",
+            "naan",
+            "masala",
+            "tandoori",
+            "咖哩餃",
+            "馬友友",
+            "亞瑟蘭",
+            "asrah",
+            "三個傻瓜",
+        },
+        "summary": {"印度料理", "印度主廚", "印度廚房", "印度蔬食", "道地印度", "主打印度"},
+        "block": {"日式咖哩", "日式", "雲の咖哩", "詹咖李", "moni咖哩"},
+    },
+}
 
 
 def _canonical_category_slug(slug: str | None) -> str:
@@ -473,6 +540,11 @@ def _extract_query_constraints(query: str) -> dict:
     wants_luxury = any(keyword in query_lower for keyword in LUXURY_HINTS)
     wants_burger = any(keyword in query_lower for keyword in BURGER_QUERY_HINTS)
     wants_taiwanese_cuisine = any(keyword.lower() in query_lower for keyword in TAIWANESE_CUISINE_QUERY_HINTS)
+    specific_cuisines = [
+        cuisine
+        for cuisine, rule in SPECIFIC_CUISINE_RULES.items()
+        if any(keyword.lower() in query_lower for keyword in rule["query"])
+    ]
 
     has_primary_food_category = any(category != "fine-dining" for category in categories)
     if wants_luxury and has_primary_food_category:
@@ -489,6 +561,7 @@ def _extract_query_constraints(query: str) -> dict:
         "wants_luxury": wants_luxury,
         "wants_burger": wants_burger,
         "wants_taiwanese_cuisine": wants_taiwanese_cuisine,
+        "specific_cuisines": specific_cuisines,
     }
 
 
@@ -658,6 +731,46 @@ def _is_inactive_search_hit(payload: dict) -> bool:
     return any(keyword in text for keyword in CLOSED_SHOP_HINTS)
 
 
+def _matches_specific_cuisine(payload: dict, cuisine: str) -> bool:
+    rule = SPECIFIC_CUISINE_RULES.get(cuisine)
+    if not rule:
+        return False
+    primary_text = " ".join(
+        str(part)
+        for part in (
+            payload.get("name", ""),
+            payload.get("category", ""),
+        )
+        if part
+    ).lower()
+    summary_text = str(payload.get("ai_summary") or "").lower()
+    if any(keyword.lower() in primary_text for keyword in rule["strong"]):
+        return True
+    return any(keyword.lower() in summary_text for keyword in rule.get("summary", set()))
+
+
+def _is_specific_cuisine_mismatch(payload: dict, cuisine: str) -> bool:
+    rule = SPECIFIC_CUISINE_RULES.get(cuisine)
+    if not rule:
+        return False
+    if _matches_specific_cuisine(payload, cuisine):
+        return False
+    text = _payload_text(payload)
+    return any(keyword.lower() in text for keyword in rule["block"])
+
+
+def _specific_cuisine_sort_key(cuisine: str, hit: dict) -> tuple[int, int, int, int, float, float]:
+    avg_price = int(hit.get("avg_price") or 0)
+    return (
+        1 if _matches_specific_cuisine(hit, cuisine) else 0,
+        0 if _is_specific_cuisine_mismatch(hit, cuisine) else 1,
+        1 if _semantic_category_slug(hit) in {cuisine, "international", "vegetarian", "yakiniku"} else 0,
+        float(hit.get("rerank_score") or hit.get("score") or 0.0),
+        avg_price,
+        _normalized_rating(hit.get("rating")),
+    )
+
+
 def _taiwanese_cuisine_sort_key(constraints: dict, hit: dict) -> tuple[int, int, int, int, int, int, float, float]:
     tags = set(hit.get("atmosphere_tags") or [])
     text = _payload_text(hit)
@@ -798,6 +911,12 @@ def _metadata_bonus(query: str, payload: dict) -> float:
             bonus += 0.18
         if _is_taiwanese_cuisine_mismatch(payload):
             bonus -= 0.75
+
+    for cuisine in constraints.get("specific_cuisines", []):
+        if _matches_specific_cuisine(payload, cuisine):
+            bonus += 0.42
+        elif _is_specific_cuisine_mismatch(payload, cuisine):
+            bonus -= 0.65
 
     for canonical, keywords in INTENT_HINTS.items():
         if any(keyword in query_lower for keyword in keywords):
@@ -1325,37 +1444,62 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
                 [hit.get("name") for hit in raw_hits[:8]],
             )
             return raw_hits[:top_k]
-        authoritative_category = [
-            hit for hit in raw_hits
-            if _authoritative_category_slug(hit) in constraints["categories"]
-        ]
-        legacy_semantic_category = [
-            hit for hit in raw_hits
-            if not _authoritative_category_slug(hit)
-            and _semantic_category_slug(hit) in constraints["categories"]
-        ]
-        text_category = [
-            hit for hit in raw_hits
-            if not _authoritative_category_slug(hit)
-            if any(
-                keyword.lower() in _payload_text(hit)
-                for requested in constraints["categories"]
-                for keyword in CATEGORY_FALLBACK_KEYWORDS.get(requested, set())
+        specific_cuisine_hits = []
+        for cuisine in constraints.get("specific_cuisines", []):
+            specific_cuisine_hits.extend(
+                hit for hit in raw_hits
+                if _matches_specific_cuisine(hit, cuisine)
             )
-        ]
-        # Prefer authoritative taxonomy. Text fallback only exists for legacy
-        # payloads that do not yet carry category_slug.
-        strict_category = authoritative_category or legacy_semantic_category or text_category
-        raw_hits = strict_category
-        logger.warning(
-            "search_strict_category_filter query=%r categories=%s authoritative=%s legacy=%s text=%s strict=%s",
-            query,
-            constraints["categories"],
-            [hit.get("name") for hit in authoritative_category[:8]],
-            [hit.get("name") for hit in legacy_semantic_category[:8]],
-            [hit.get("name") for hit in text_category[:8]],
-            [hit.get("name") for hit in strict_category[:8]],
-        )
+        if specific_cuisine_hits:
+            seen_specific_ids = set()
+            unique_specific_hits = []
+            for hit in specific_cuisine_hits:
+                shop_id = hit.get("shop_id")
+                if shop_id in seen_specific_ids:
+                    continue
+                seen_specific_ids.add(shop_id)
+                unique_specific_hits.append(hit)
+            raw_hits = unique_specific_hits
+            for cuisine in constraints.get("specific_cuisines", []):
+                raw_hits.sort(key=lambda hit: _specific_cuisine_sort_key(cuisine, hit), reverse=True)
+            logger.warning(
+                "search_specific_cuisine_filter query=%r cuisines=%s strict=%s",
+                query,
+                constraints.get("specific_cuisines", []),
+                [hit.get("name") for hit in raw_hits[:8]],
+            )
+        else:
+            authoritative_category = [
+                hit for hit in raw_hits
+                if _authoritative_category_slug(hit) in constraints["categories"]
+            ]
+            legacy_semantic_category = [
+                hit for hit in raw_hits
+                if not _authoritative_category_slug(hit)
+                and _semantic_category_slug(hit) in constraints["categories"]
+            ]
+            text_category = [
+                hit for hit in raw_hits
+                if not _authoritative_category_slug(hit)
+                if any(
+                    keyword.lower() in _payload_text(hit)
+                    for requested in constraints["categories"]
+                    for keyword in CATEGORY_FALLBACK_KEYWORDS.get(requested, set())
+                )
+            ]
+            # Prefer authoritative taxonomy. Text fallback only exists for legacy
+            # payloads that do not yet carry category_slug.
+            strict_category = authoritative_category or legacy_semantic_category or text_category
+            raw_hits = strict_category
+            logger.warning(
+                "search_strict_category_filter query=%r categories=%s authoritative=%s legacy=%s text=%s strict=%s",
+                query,
+                constraints["categories"],
+                [hit.get("name") for hit in authoritative_category[:8]],
+                [hit.get("name") for hit in legacy_semantic_category[:8]],
+                [hit.get("name") for hit in text_category[:8]],
+                [hit.get("name") for hit in strict_category[:8]],
+            )
 
     if constraints.get("wants_taiwanese_cuisine"):
         clean_taiwanese_pool = [

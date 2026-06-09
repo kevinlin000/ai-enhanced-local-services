@@ -234,6 +234,75 @@ def test_inactive_search_hit_detects_closed_restaurants():
     assert not main._is_inactive_search_hit({"name": "欣葉台菜創始店", "is_active": True})
 
 
+def test_specific_cuisine_constraints_keep_misclassified_real_matches():
+    korean_constraints = main._extract_query_constraints("韓式料理")
+    assert korean_constraints["categories"] == ["korean"]
+    assert korean_constraints["specific_cuisines"] == ["korean"]
+
+    korean_bbq = {
+        "name": "本家BORNGA韓式燒肉 敦南店",
+        "category_slug": "yakiniku",
+        "category": "日式燒肉",
+        "ai_summary": "韓國烤肉與韓式小菜。",
+        "rerank_score": 0.2,
+    }
+    japanese_yakiniku = {
+        "name": "發肉燒肉餐酒忠孝二店",
+        "category_slug": "yakiniku",
+        "category": "日式燒肉",
+        "ai_summary": "日式和牛燒肉，附韓式泡菜小菜。",
+        "rerank_score": 0.9,
+    }
+
+    assert main._matches_specific_cuisine(korean_bbq, "korean")
+    assert not main._is_specific_cuisine_mismatch(korean_bbq, "korean")
+    assert not main._matches_specific_cuisine(japanese_yakiniku, "korean")
+    assert main._is_specific_cuisine_mismatch(japanese_yakiniku, "korean")
+    assert (
+        main._specific_cuisine_sort_key("korean", korean_bbq)
+        > main._specific_cuisine_sort_key("korean", japanese_yakiniku)
+    )
+
+
+def test_specific_cuisine_constraints_for_thai_and_indian_queries():
+    thai_constraints = main._extract_query_constraints("泰式料理")
+    indian_constraints = main._extract_query_constraints("印度料理")
+    assert thai_constraints["categories"] == ["international"]
+    assert thai_constraints["specific_cuisines"] == ["thai"]
+    assert indian_constraints["categories"] == ["international"]
+    assert indian_constraints["specific_cuisines"] == ["indian"]
+
+    thai = {
+        "name": "非常泰 - 南港中信店",
+        "category_slug": "chinese",
+        "ai_summary": "泰式料理，招牌月亮蝦餅與打拋豬。",
+        "rerank_score": 0.1,
+    }
+    unrelated_international = {
+        "name": "BaganHood 蔬食餐酒館",
+        "category_slug": "vegetarian",
+        "ai_summary": "異國蔬食餐酒館，提供泰式茶飲。",
+        "rerank_score": 0.9,
+    }
+    indian = {
+        "name": "亞瑟蘭印度餐廳(士林店)Asrah Indian Cuisines 清真認證Halal",
+        "category_slug": "chinese",
+        "ai_summary": "印度料理與清真餐點。",
+        "rerank_score": 0.1,
+    }
+    japanese_curry = {
+        "name": "Moni咖哩",
+        "category_slug": "japanese",
+        "ai_summary": "日式咖哩飯，帶有印度風味香料。",
+        "rerank_score": 0.9,
+    }
+
+    assert main._matches_specific_cuisine(thai, "thai")
+    assert not main._matches_specific_cuisine(unrelated_international, "thai")
+    assert main._matches_specific_cuisine(indian, "indian")
+    assert main._is_specific_cuisine_mismatch(japanese_curry, "indian")
+
+
 def test_prefer_rich_hits_filters_low_detail_seed_when_possible():
     hits = [
         {"shop_id": 10014, "name": "劉山東小牛肉麵 中山店"},
