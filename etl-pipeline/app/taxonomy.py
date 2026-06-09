@@ -30,7 +30,11 @@ PRIMARY_TYPE_MAP = {
     "bistro": 2007,
     "gastropub": 2007,
     "mediterranean_restaurant": 2007,
-    "middle_eastern_restaurant": 2008,
+    "middle_eastern_restaurant": 2013,
+    "indian_restaurant": 2013,
+    "thai_restaurant": 2013,
+    "vietnamese_restaurant": 2013,
+    "mexican_restaurant": 2013,
     "chinese_restaurant": 2008,
     "taiwanese_restaurant": 2008,
     "cantonese_restaurant": 2008,
@@ -38,8 +42,6 @@ PRIMARY_TYPE_MAP = {
     "dumpling_restaurant": 2008,
     "chinese_noodle_restaurant": 2008,
     "seafood_restaurant": 2008,
-    "vietnamese_restaurant": 2008,
-    "thai_restaurant": 2008,
     "asian_restaurant": 2008,
     "cafeteria": 2011,
     "buffet_restaurant": 2011,
@@ -70,7 +72,92 @@ AMBIGUOUS_PRIMARY_TYPE_VALUES = FALLBACK_PRIMARY_TYPE_VALUES | {
     "seafood_restaurant",
 }
 
-NAME_PRIMARY_OVERRIDES = (
+MANUAL_AUDIT_PRIMARY_OVERRIDES = (
+    ("青青食尚花園會館", 2007),
+    ("溫咖哩 Wen Curry", 2004),
+    ("瀧厚炙燒熟成牛排 台北.北車店", 2010),
+    ("沾美西餐廳", 2007),
+    ("SALT&STONE", 2007),
+    ("樂野食", 2007),
+    ("北投文物館", 2004),
+    ("秦味館", 2008),
+    ("孫立人將軍官邸", 2008),
+    ("大嗑西式餐館", 2007),
+    ("莎諾西餐", 2007),
+    ("士林放感情餐酒館", 2007),
+    ("泰和樓", 2008),
+    ("頁小館", 2007),
+    ("築本屋公館店", 2004),
+    ("泰市場", 2011),
+    ("漢來上海湯包", 2008),
+    ("Moni咖哩", 2004),
+    ("KOBE SWEETS CAFE", 2012),
+    ("蘭亭燒肉", 2002),
+    ("茶茶王國", 2012),
+    ("波 WAVE", 2007),
+    ("夏綠沁私房義大利麵燉飯", 2007),
+    ("東京廚房", 2004),
+    ("詹咖李", 2004),
+    ("Tierra Casa", 2007),
+    ("TankQ", 2010),
+    ("燒肉中山", 2002),
+    ("樂軒松阪亭", 2002),
+    ("大樹先生的家", 2007),
+    ("發肉燒肉餐酒忠孝二店", 2002),
+    ("大河牧場 漢堡排專売", 2004),
+    ("大叔食事", 2004),
+    ("ONE GOOD烤肉飯", 2004),
+    ("小尚品精制鍋物", 2001),
+    ("蘋果肉桂", 2012),
+    ("小蔬同手作蔬食", 2005),
+    ("和牛涮台北忠孝東店", 2001),
+    ("狗一下居食酒堂-忠孝店", 2003),
+    ("豐 FOOD", 2011),
+    ("尬鍋", 2001),
+    ("和牛涮 台北羅斯福店", 2001),
+    ("金洹苑", 2002),
+    ("林美如", 2008),
+    ("山上走走 日式燒肉", 2002),
+    ("西堤牛排台北羅斯福店", 2007),
+    ("solo pasta", 2007),
+    ("麵屋 千雲", 2004),
+    ("大阪燒肉 燒魂", 2002),
+    ("艾朋牛排餐酒館", 2007),
+    ("老井極上燒肉", 2002),
+    ("Meat Up", 2010),
+    ("藝奇", 2004),
+    ("新馬辣經典麻辣鍋", 2001),
+    ("大村武串燒居酒屋", 2003),
+    ("歐買尬日式海鮮串燒 市民一店", 2004),
+    ("熊一頂級燒肉", 2002),
+    ("夏慕尼", 2007),
+    ("旭集", 2011),
+    ("小倉庫食研所", 2010),
+    ("GYUU NIKU", 2004),
+    ("一蘭", 2004),
+    ("饗食天堂", 2011),
+    ("燒肉神保町", 2002),
+    ("赤富士日式燒肉鍋物", 2002),
+    ("TakeOut Burger&Cafe 忠孝新生店", 2010),
+    ("老倉庫", 2010),
+    ("錢都日式涮涮鍋 台北延平店", 2001),
+    ("好食多涮涮鍋", 2001),
+    ("辛殿麻辣鍋", 2001),
+    ("陶板屋", 2004),
+    ("HOOTERS", 2010),
+    ("狗一下居食酒屋-西門店", 2003),
+    ("WOW Bistro", 2007),
+    ("下港吔羊肉", 2001),
+    ("亞瑟蘭印度餐廳", 2013),
+    ("亞瑟蘭印度料理", 2013),
+    ("馬友友印度廚房", 2013),
+    ("莎瓦迪卡海鮮.泰", 2013),
+    ("初泰Pikul", 2013),
+    ("塔吉摩洛哥料理", 2013),
+    ("非常泰", 2013),
+)
+
+NAME_PRIMARY_OVERRIDES = MANUAL_AUDIT_PRIMARY_OVERRIDES + (
     ("鼎泰豐", 2008),
     ("一蘭", 2004),
     ("旭集", 2011),
@@ -155,6 +242,20 @@ NAME_PRIMARY_OVERRIDES = (
     ("來吧台北", 2003),
 )
 
+MANUAL_NO_KOREAN_TAG_OVERRIDES = (
+    "TankQ",
+    "燒肉中山",
+    "樂軒松阪亭",
+    "發肉燒肉餐酒忠孝二店",
+    "大河牧場 漢堡排專売",
+    "大叔食事",
+    "ONE GOOD烤肉飯",
+    "小尚品精制鍋物",
+    "小蔬同手作蔬食",
+    "和牛涮台北忠孝東店",
+    "金洹苑",
+)
+
 BUFFET_KEYWORDS = {"自助餐", "buffet", "百匯", "cafeteria"}
 HOTPOT_KEYWORDS = {
     "火鍋", "鍋物", "麻辣鍋", "酸菜白肉鍋", "酸菜白肉", "羊肉爐", "涮涮", "涮涮鍋",
@@ -174,9 +275,19 @@ KOREAN_PRIMARY_KEYWORDS = {
     "韓式", "韓國", "韓廚", "韓式烤肉", "韓式料理", "韓式豬腳", "泡菜鍋", "石鍋拌飯", "部隊鍋",
     "금하동", "친구", "弘大", "東大門", "新村", "bornga", "uncle-k",
 }
+INTERNATIONAL_KEYWORDS = {
+    "印度料理", "indian", "asrah", "清真", "halal", "印度烤餅", "窯烤雞塊", "瑪莎拉",
+    "泰式料理", "泰國菜", "thai", "打拋", "月亮蝦餅", "綠咖哩",
+    "越南料理", "越南河粉", "vietnamese", "pho",
+    "中東料理", "middle eastern", "以色列", "鷹嘴豆泥", "hummus", "摩洛哥", "moroccan",
+    "墨西哥料理", "mexican",
+}
 CHINESE_KEYWORDS = {"台菜", "滬菜", "粵菜", "港點", "熱炒", "台式", "川菜", "客家", "小籠包", "麵食", "鵝肉"}
 STEAK_TAG_KEYWORDS = {"牛排", "steak"}
 KOREAN_TAG_KEYWORDS = {"韓式", "韓國", "泡菜", "弘大"}
+INDIAN_TAG_KEYWORDS = {"印度", "indian", "asrah", "瑪莎拉", "清真", "halal"}
+THAI_TAG_KEYWORDS = {"泰式", "泰國", "thai", "打拋", "月亮蝦餅", "綠咖哩"}
+MIDDLE_EASTERN_TAG_KEYWORDS = {"中東", "以色列", "鷹嘴豆泥", "hummus", "摩洛哥", "moroccan"}
 FRENCH_TAG_KEYWORDS = {"法式", "french"}
 ITALIAN_TAG_KEYWORDS = {"義式", "義大利", "italian", "pasta"}
 BISTRO_TAG_KEYWORDS = {"餐酒館", "bistro", "pub", "小酒館"}
@@ -249,6 +360,8 @@ def _apply_keyword_correction(text: str, current_type_id: int) -> int:
         return 2005
     if _contains_any(text, KOREAN_PRIMARY_KEYWORDS):
         return 2009
+    if _contains_any(text, INTERNATIONAL_KEYWORDS):
+        return 2013
     if _contains_any(text, YAKINIKU_KEYWORDS):
         return 2002
     if _contains_any(text, IZAKAYA_KEYWORDS) and current_type_id not in {2007, 2010}:
@@ -277,6 +390,7 @@ def _extract_tags(shop: dict, text: str) -> list[str]:
     ai = shop.get("ai_extracted", {}) or {}
     atmosphere_tags = [str(tag) for tag in (ai.get("atmosphere_tags") or [])]
     name = str(shop.get("display_name", ""))
+    suppress_korean_tag = any(keyword.lower() in text for keyword in MANUAL_NO_KOREAN_TAG_OVERRIDES)
 
     if primary_type == "brunch_restaurant" or _contains_any(text, {"brunch"}):
         _append_tag(tags, "Brunch")
@@ -284,8 +398,16 @@ def _extract_tags(shop: dict, text: str) -> list[str]:
         _append_tag(tags, "早午餐")
     if _contains_any(text, STEAK_TAG_KEYWORDS):
         _append_tag(tags, "牛排")
-    if primary_type in {"korean_restaurant", "korean_barbecue_restaurant"} or _contains_any(text, KOREAN_TAG_KEYWORDS):
+    if not suppress_korean_tag and (
+        primary_type in {"korean_restaurant", "korean_barbecue_restaurant"} or _contains_any(text, KOREAN_TAG_KEYWORDS)
+    ):
         _append_tag(tags, "韓式")
+    if primary_type == "indian_restaurant" or _contains_any(text, INDIAN_TAG_KEYWORDS):
+        _append_tag(tags, "印度")
+    if primary_type == "thai_restaurant" or _contains_any(text, THAI_TAG_KEYWORDS):
+        _append_tag(tags, "泰式")
+    if primary_type == "middle_eastern_restaurant" or _contains_any(text, MIDDLE_EASTERN_TAG_KEYWORDS):
+        _append_tag(tags, "中東")
     if _contains_any(text, FRENCH_TAG_KEYWORDS):
         _append_tag(tags, "法式")
     if primary_type == "italian_restaurant" or _contains_any(text, ITALIAN_TAG_KEYWORDS):

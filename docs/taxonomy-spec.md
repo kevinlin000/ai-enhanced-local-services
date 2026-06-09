@@ -1,32 +1,34 @@
 # Taxonomy Spec
 
-Status: active. V32 promotes Korean from tag-only to a primary category.
+Status: active. V33 applies manual audit corrections and adds `異國料理`.
 
 Data baseline: 600 active shops in MySQL taxonomy audit on 2026-06-09.
 
 ## 1. Main Categories
 
 Decision:
-- Use 11 main categories.
+- Use 12 main categories.
 - `高級` leaves main taxonomy and becomes badge.
 - `牛排` stays as a tag.
 - `韓式料理` is a primary category for clearly Korean restaurants; `#韓式` remains as compatibility / mixed-format tag.
+- `異國料理` is a primary category for Indian, Thai, Middle Eastern, Vietnamese, Mexican, and similar non-core cuisine groups.
 
 ### 1.1 Category Table
 
 | type_id | 主分類 | 店家數 | 說明 |
 | --- | --- | ---: | --- |
-| 2001 | 火鍋 | 20 | 火鍋、涮涮鍋、壽喜燒、鍋物吃到飽 |
-| 2002 | 日式燒肉 | 54 | 日式燒肉為主 |
-| 2003 | 居酒屋 | 3 | 日式酒場、小酌串燒 |
-| 2004 | 日式料理 | 73 | 拉麵、鰻魚飯、純日料正餐 |
+| 2001 | 火鍋 | 88 | 火鍋、涮涮鍋、壽喜燒、鍋物吃到飽 |
+| 2002 | 日式燒肉 | 58 | 日式燒肉為主 |
+| 2003 | 居酒屋 | 59 | 日式酒場、小酌串燒 |
+| 2004 | 日式料理 | 79 | 拉麵、鰻魚飯、純日料正餐 |
 | 2005 | 素食 | 26 | 蔬食、vegan、素食百匯 |
-| 2007 | 義法料理 | 70 | 義式、法式、西式餐酒館、鐵板套餐 |
-| 2008 | 中式料理 | 117 | 台菜、粵菜、港點、熱炒、小籠包、中式宴席 |
+| 2007 | 義法料理 | 82 | 義式、法式、西式餐酒館、鐵板套餐 |
+| 2008 | 中式料理 | 89 | 台菜、粵菜、港點、熱炒、小籠包、中式宴席 |
 | 2009 | 韓式料理 | 16 | 韓式烤肉、韓式鍋物、韓式正餐；保留 `#韓式` tag |
-| 2010 | 美式料理 | 59 | 美式、澳式、brunch 主體、漢堡、煙燻肉 |
-| 2011 | 自助餐 | 7 | buffet / cafeteria / 吃到飽主體 |
-| 2012 | 咖啡/甜點 | 32 | 咖啡館、甜點店、下午茶 |
+| 2010 | 美式料理 | 55 | 美式、澳式、brunch 主體、漢堡、煙燻肉 |
+| 2011 | 自助餐 | 8 | buffet / cafeteria / 吃到飽主體 |
+| 2012 | 咖啡/甜點 | 34 | 咖啡館、甜點店、下午茶 |
+| 2013 | 異國料理 | 6 | 印度、泰式、中東、越南、墨西哥等；用 cuisine tags 區分細項 |
 
 ### 1.2 type_id Policy
 
@@ -39,6 +41,7 @@ Keep:
 - `2008` 中式料理
 - `2009` 韓式料理
 - `2010` 美式料理
+- `2013` 異國料理
 
 Repurpose:
 - `2005`: `無菜單料理` -> `素食`
@@ -51,6 +54,7 @@ Retire from main taxonomy:
 Note:
 - `2006` stays reserved. Do not delete immediately in migration plan.
 - `2009` was promoted back to primary category in V32.
+- `2013` was added in V33 instead of reusing `2006`, so the retired steak id remains semantically clean.
 
 ## 2. Badge Rule
 
@@ -326,12 +330,13 @@ Recommended implementation:
 
 ### Step 1. Base category by `primary_type`
 
-Map Google `primary_type` to only 11 main categories.
+Map Google `primary_type` to only 12 main categories.
 
 Examples:
 - `hot_pot_restaurant` -> `2001`
 - `yakiniku_restaurant` -> `2002`
 - `korean_barbecue_restaurant` / `korean_restaurant` -> `2009`
+- `indian_restaurant` / `thai_restaurant` / `vietnamese_restaurant` / `middle_eastern_restaurant` / `mexican_restaurant` -> `2013`
 - `japanese_izakaya_restaurant` -> `2003`
 - `ramen_restaurant` / `japanese_restaurant` -> `2004`
 - `vegetarian_restaurant` / `vegan_restaurant` -> `2005`

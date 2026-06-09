@@ -712,6 +712,7 @@ def _category_label(category: str) -> str:
         "euro": "義法料理",
         "chinese": "中式餐廳",
         "korean": "韓式餐廳",
+        "international": "異國料理",
         "vegetarian": "蔬食餐廳",
         "fine-dining": "高級餐廳",
         "cafe": "咖啡甜點",

@@ -1,84 +1,7 @@
 priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comments,score,flags,suggestion,evidence
-75,10338,青青食尚花園會館,db_current,2008,中式料理,約會、景觀,14126,4.7,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉; 咖啡/甜點:下午茶
-75,10342,溫咖哩 Wen Curry,db_current,2008,中式料理,牛排、約會,11048,4.7,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 美式料理 (2010)；命中：牛排,美式料理:牛排
-75,10731,瀧厚炙燒熟成牛排 台北.北車店,db_current,2008,中式料理,牛排、親子,6491,4.6,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 美式料理 (2010)；命中：牛排,美式料理:牛排
-75,10514,沾美西餐廳,db_current,2008,中式料理,牛排、吃到飽、約會,6030,4.5,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 美式料理 (2010)；命中：牛排,美式料理:牛排; 自助餐:buffet、自助餐; 咖啡/甜點:蛋糕
-75,10735,SALT&STONE 台北101餐廳,db_current,2008,中式料理,約會,5120,4.6,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 義法料理 (2007)；命中：披薩、燉飯,義法料理:披薩、燉飯
-75,10431,樂野食,db_current,2008,中式料理,約會、親子,4585,4.6,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 義法料理 (2007)；命中：燉飯,義法料理:燉飯
-75,10520,北投文物館,db_current,2008,中式料理,約會,4051,4.5,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：下午茶,咖啡/甜點:下午茶
-75,10436,秦味館 Qin Wei Guan,db_current,2008,中式料理,,3956,4.6,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
-75,10148,孫立人將軍官邸（陸軍聯誼廳）,db_current,2008,中式料理,包廂、商務,3645,4.3,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
-75,10740,大嗑西式餐館,db_current,2008,中式料理,牛排、法式、約會,3005,4.6,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 義法料理 (2007)；命中：法式、燉飯,義法料理:法式、燉飯; 美式料理:牛排
-75,10530,莎諾西餐,db_current,2008,中式料理,約會、親子,2625,4.5,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
-75,10291,士林放感情餐酒館 士林區餐廳 台北餐酒館 酒吧 活動派對 生日包場 企業包場,db_current,2008,中式料理,餐酒館、約會,2515,4.8,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 居酒屋 (2003)；命中：酒吧,居酒屋:酒吧
-75,10147,泰和樓,db_current,2008,中式料理,親子,2332,4.3,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 火鍋 (2001)；命中：酸菜白肉鍋、酸菜白肉,火鍋:酸菜白肉鍋、酸菜白肉; 咖啡/甜點:甜點
-75,10457,頁小館,db_current,2008,中式料理,約會,2288,4.6,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 義法料理 (2007)；命中：燉飯,義法料理:燉飯
-75,10377,築本屋公館店,db_current,2008,中式料理,,2228,4.7,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：烤肉,日式燒肉:烤肉
-75,10461,泰市場 大直英迪格店,db_current,2008,中式料理,約會,2045,4.6,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 義法料理 (2007)；命中：披薩,義法料理:披薩; 咖啡/甜點:甜點
-75,10597,漢來上海湯包 台北LaLaport南港店,db_current,2008,中式料理,親子,1992,4.9,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
-75,10299,Moni咖哩,db_current,2008,中式料理,約會,1946,4.8,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 美式料理 (2010)；命中：漢堡,美式料理:漢堡
-75,10751,KOBE SWEETS CAFE 神戶果実 微風南山,db_current,2008,中式料理,商務,1836,4.6,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：cafe、下午茶、蛋糕、甜點,咖啡/甜點:cafe、下午茶、蛋糕、甜點
-75,10752,蘭亭燒肉,db_current,2008,中式料理,約會、親子,1810,4.6,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉
-75,10759,茶茶王國[士林店]-Matcha Prince茶茶王国のおうじちゃま,db_current,2008,中式料理,,1467,4.6,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕,咖啡/甜點:蛋糕
-75,10480,波 WAVE 鷹嘴豆泥屋 Hummus House,db_current,2008,中式料理,約會,1221,4.6,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：牛舌,日式燒肉:牛舌
-75,10490,亞瑟蘭印度餐廳(士林店)Asrah Indian Cuisines 清真認證Halal,db_current,2008,中式料理,親子,1023,4.6,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
-75,10654,夏綠沁私房義大利麵燉飯,db_current,2008,中式料理,義式,891,4.8,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、燉飯,義法料理:義大利麵、義大利、燉飯
-75,10329,東京廚房,db_current,2008,中式料理,親子,791,4.8,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 美式料理 (2010)；命中：漢堡,美式料理:漢堡
-75,10717,詹咖李,db_current,2008,中式料理,義式,514,4.7,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 義法料理 (2007)；命中：義式,義法料理:義式
-75,10503,Tierra Casa Restaurant-台北內湖西餐廳 在地食材創意料理 價格訂位推薦 義式法式料理 2026人氣必吃美食 精品茶葉咖啡 聚餐親子餐廳 PTT Dcard,db_current,2008,中式料理,法式、義式、親子,449,4.6,keyword_conflict;defaulted_to_chinese;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、法式、燉飯、義式,義法料理:義大利麵、義大利、法式、燉飯、義式; 咖啡/甜點:咖啡
-57,10347,TankQ cafe&Bar忠孝敦化店,db_current,2010,美式料理,韓式、義式、親子,6548,4.7,keyword_conflict;korean_tag_review;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利,義法料理:義大利麵、義大利; 韓式料理:韓式; 咖啡/甜點:cafe; 韓式 tag
-57,10671,燒肉中山｜台北信義,db_current,2002,日式燒肉,韓式、約會,5128,4.7,keyword_conflict;korean_tag_review;high_impact,檢查是否應改為 日式料理 (2004)；命中：壽司,日式料理:壽司; 韓式料理:韓式; 韓式 tag
-57,10622,樂軒松阪亭,db_current,2002,日式燒肉,牛排、韓式、約會、商務,4003,4.8,keyword_conflict;korean_tag_review;high_impact,檢查是否應改為 火鍋 (2001)；命中：壽喜燒,火鍋:壽喜燒; 韓式料理:韓式; 美式料理:牛排; 韓式 tag
-57,10158,大樹先生的家,db_current,2010,美式料理,親子,3700,4.2,keyword_conflict;korean_tag_review;high_impact,檢查是否應改為 日式料理 (2004)；命中：烏龍麵,日式料理:烏龍麵; 義法料理:義大利麵、義大利、燉飯; 韓式料理:韓式; 韓式 tag
-57,10588,發肉燒肉餐酒忠孝二店,db_current,2002,日式燒肉,韓式、約會,3693,4.9,keyword_conflict;korean_tag_review;high_impact,檢查是否應改為 日式料理 (2004)；命中：烏龍麵,日式料理:烏龍麵; 韓式料理:韓式; 韓式 tag
-57,10625,大河牧場 漢堡排專売-南港環球店,db_current,2010,美式料理,韓式,3280,4.8,keyword_conflict;korean_tag_review;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉; 咖啡/甜點:甜點; 韓式 tag
-57,10559,大叔食事unclefoodday,db_current,2010,美式料理,韓式,1633,4.5,keyword_conflict;korean_tag_review;high_impact,檢查是否應改為 韓式料理 (2009)；命中：韓式,韓式料理:韓式; 韓式 tag
-57,10646,ONE GOOD烤肉飯(大安店）,db_current,2004,日式料理,韓式,1310,4.8,keyword_conflict;korean_tag_review;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：烤肉,日式燒肉:烤肉; 韓式料理:韓式; 韓式 tag
-57,10402,小尚品精制鍋物 師大分部店,db_current,2001,火鍋,韓式,1153,4.7,keyword_conflict;korean_tag_review;high_impact,檢查是否應改為 韓式料理 (2009)；命中：泡菜鍋,韓式料理:泡菜鍋; 韓式 tag
-57,10485,蘋果肉桂 Café & Bistro,db_current,2012,咖啡/甜點,早午餐、韓式、義式、餐酒館、約會,1124,4.6,keyword_conflict;korean_tag_review;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利,義法料理:義大利麵、義大利; 韓式料理:韓式; 美式料理:早午餐; 韓式 tag
-57,10726,小蔬同手作蔬食,db_current,2005,素食,韓式,212,4.7,keyword_conflict;korean_tag_review;high_impact,檢查是否應改為 韓式料理 (2009)；命中：部隊鍋、韓式,韓式料理:部隊鍋、韓式; 韓式 tag
-45,10245,和牛涮台北忠孝東店,db_current,2001,火鍋,,31348,4.8,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：壽司,日式料理:壽司
-45,10615,狗一下居食酒堂-忠孝店,db_current,2003,居酒屋,吃到飽,28614,4.8,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：牛舌,日式燒肉:牛舌; 日式料理:生魚片、壽司
-45,10508,豐 FOOD 海陸百匯,db_current,2011,自助餐,吃到飽、親子,25873,4.5,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：暢飲、啤酒,居酒屋:暢飲、啤酒; 日式料理:生魚片; 義法料理:披薩
-45,10247,尬鍋 台式潮鍋 台北西門店,db_current,2001,火鍋,,25518,4.8,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：台式,中式料理:台式
-45,10175,肉次方 燒肉放題 台北峨眉店,db_current,2002,日式燒肉,吃到飽、約會,22564,4.8,keyword_conflict;high_impact,檢查是否應改為 韓式料理 (2009)；命中：石鍋拌飯,韓式料理:石鍋拌飯
-45,10152,和牛涮 台北羅斯福店,db_current,2001,火鍋,吃到飽、親子,20598,4.9,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：壽司,日式料理:壽司; 自助餐:自助餐; 咖啡/甜點:甜點
-45,10616,金洹苑 KIN KAN EN-日式燒肉火鍋吃到飽 台北日本和牛海鮮吃到飽人氣推薦,db_current,2002,日式燒肉,牛排、吃到飽、約會,18745,4.8,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：鍋底、火鍋,火鍋:鍋底、火鍋; 美式料理:牛排
-45,10206,林美如 海鮮 熱炒 燒烤 酒場,db_current,2008,中式料理,親子,15909,4.9,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：酒場,居酒屋:酒場
-45,10252,山上走走 日式燒肉台北華山店,db_current,2004,日式料理,約會,14345,4.8,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉; 美式料理:漢堡
+45,10175,肉次方 燒肉放題 台北峨眉店,db_current,2002,日式燒肉,泰式、吃到飽、約會,22564,4.8,keyword_conflict;high_impact,檢查是否應改為 韓式料理 (2009)；命中：石鍋拌飯,韓式料理:石鍋拌飯
 45,10176,島語 台北漢來店,db_current,2011,自助餐,牛排、吃到飽、約會、商務,14085,4.8,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：壽司,日式料理:壽司; 美式料理:牛排; 咖啡/甜點:甜點
-45,10159,西堤牛排台北羅斯福店,db_current,2007,義法料理,牛排,13986,4.8,keyword_conflict;high_impact,檢查是否應改為 素食 (2005)；命中：素食,素食:素食; 美式料理:牛排; 咖啡/甜點:甜點
-45,10509,solo pasta,db_current,2007,義法料理,義式、約會,13000,4.5,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
-45,10419,麵屋 千雲 林森店,db_current,2004,日式料理,,12661,4.6,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉
-45,10578,大阪燒肉 燒魂Yakikon林森本店,db_current,2002,日式燒肉,,12555,4.9,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：酒場,居酒屋:酒場
-45,10341,艾朋牛排餐酒館,db_current,2007,義法料理,牛排、義式、餐酒館、約會,12380,4.7,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：牛排,美式料理:牛排
-45,10107,老井極上燒肉 台北信義店,db_current,2002,日式燒肉,約會,11533,4.9,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：壽司,日式料理:壽司
-45,10510,Meat Up 覓晌 台北西門店,db_current,2010,美式料理,約會,10660,4.5,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕、甜點,咖啡/甜點:蛋糕、甜點
-45,10668,藝奇,db_current,2004,日式料理,牛排、約會,10015,4.7,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：牛排,美式料理:牛排
-45,10420,新馬辣經典麻辣鍋-公館店,db_current,2001,火鍋,親子,9732,4.6,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：暢飲、啤酒,居酒屋:暢飲、啤酒
-45,10254,大村武串燒居酒屋-西門店（本店）,db_current,2003,居酒屋,約會,9155,4.8,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉
-45,10617,歐買尬日式海鮮串燒 市民一店,db_current,2010,美式料理,吃到飽、約會、親子,8994,4.8,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：居酒屋、串燒,居酒屋:居酒屋、串燒; 日式料理:生魚片
-45,10669,熊一頂級燒肉-西門二店,db_current,2004,日式料理,約會,8963,4.7,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉、烤肉,日式燒肉:燒肉、烤肉; 居酒屋:啤酒
-45,10125,夏慕尼新香榭鐵板燒 台北中山北店,db_current,2007,義法料理,鐵板燒,8537,4.5,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：牛排,美式料理:牛排; 咖啡/甜點:甜點
-45,10103,旭集 和食集錦 信義店,db_current,2011,自助餐,商務、親子,8211,4.1,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：生魚片、天婦羅,日式料理:生魚片、天婦羅
-45,10180,小倉庫食研所,db_current,2010,美式料理,Brunch,7938,4.7,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利,義法料理:義大利麵、義大利
-45,10423,GYUU NIKU ステーキ專門店,db_current,2004,日式料理,牛排,7637,4.6,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：牛舌,日式燒肉:牛舌; 美式料理:牛排
-45,10100,一蘭 台灣台北別館,db_current,2004,日式料理,,7605,4.2,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉
-45,10106,饗食天堂 台北信義店,db_current,2011,自助餐,親子,7198,4.2,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：生魚片,日式料理:生魚片; 中式料理:熱炒、港點
-45,10730,燒肉神保町信義館,db_current,2010,美式料理,牛排,6773,4.6,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉
-45,10149,夏慕尼新香榭鐵板燒 台北南昌店,db_current,2007,義法料理,鐵板燒,6741,4.5,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕、甜點,咖啡/甜點:蛋糕、甜點
-45,10214,赤富士日式燒肉鍋物-西門店-萬華/西門町人氣燒肉|熱門燒肉|必吃燒肉|推薦燒肉|聚餐推薦|燒肉餐廳|燒肉吃到飽|在地推薦餐廳,db_current,2002,日式燒肉,吃到飽、親子,6552,4.9,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：火鍋、鍋物,火鍋:火鍋、鍋物
-45,10618,TakeOut Burger&Cafe 忠孝新生店（last order 21:40),db_current,2010,美式料理,,6458,4.8,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：cafe,咖啡/甜點:cafe
-45,10426,老倉庫,db_current,2010,美式料理,義式,6438,4.6,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：暢飲,居酒屋:暢飲; 義法料理:義大利麵、義大利
-45,10348,錢都日式涮涮鍋 台北延平店,db_current,2001,火鍋,親子,6373,4.7,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：牛舌,日式燒肉:牛舌; 素食:蔬食
-45,10264,大村武串燒居酒屋-士林店,db_current,2003,居酒屋,約會,6167,4.8,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：壽喜燒,火鍋:壽喜燒
-45,10428,好食多涮涮鍋 雙城店,db_current,2004,日式料理,,5984,4.6,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：涮涮鍋、鍋底、涮涮,火鍋:涮涮鍋、鍋底、涮涮
-45,10115,辛殿麻辣鍋｜信義店,db_current,2001,火鍋,吃到飽,5931,4.2,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：西班牙,義法料理:西班牙; 咖啡/甜點:甜點
-45,10429,陶板屋 台北復興北店,db_current,2004,日式料理,牛排、約會、親子,5916,4.6,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：串燒,居酒屋:串燒; 美式料理:漢堡、牛排
-45,10112,HOOTERS美式餐廳 信義店,db_current,2010,美式料理,義式、景觀,5878,4.7,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：酒吧、暢飲,居酒屋:酒吧、暢飲; 義法料理:義大利麵、義大利
-45,10732,狗一下居食酒屋-西門店,db_current,2003,居酒屋,,5825,4.6,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：生魚片、壽司,日式料理:生魚片、壽司
-45,10733,WOW Bistro旺.慢食餐酒館 -中山店,db_current,2007,義法料理,牛排、義式、餐酒館、約會,5604,4.6,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：麵食,中式料理:麵食; 美式料理:牛排; 咖啡/甜點:甜點
-45,10127,下港吔羊肉專賣店,db_current,2001,火鍋,,5596,4.3,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：熱炒,中式料理:熱炒
+45,10427,泰滾 Rolling Thai 泰式火鍋(南京店）,db_current,2001,火鍋,泰式、約會,6194,4.6,keyword_conflict;high_impact,檢查是否應改為 異國料理 (2013)；命中：thai,異國料理:thai
 45,10583,初樂燒肉,db_current,2002,日式燒肉,約會、親子,5587,4.9,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：漢堡,美式料理:漢堡
 45,10584,洋城義大利餐廳-東森廣場北車店,db_current,2007,義法料理,義式,5494,4.9,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
 45,10174,悠悠龍貓咖啡,db_current,2012,咖啡/甜點,義式、約會、親子,5466,4.9,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利,義法料理:義大利麵、義大利
@@ -86,18 +9,17 @@ priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comme
 45,10585,發肉燒肉餐酒敦北一店,db_current,2002,日式燒肉,約會,5195,4.9,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
 45,10670,大河屋 燒肉丼 串燒-微風北車店,db_current,2003,居酒屋,親子,5153,4.7,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉
 45,10128,唐宮蒙古烤肉酸菜白肉餐廳,db_current,2001,火鍋,親子,5133,3.8,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：烤肉,日式燒肉:烤肉; 中式料理:熱炒
-45,10620,胖肚肚燒肉 大安店,db_current,2010,美式料理,,5082,4.8,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉、牛舌、烤肉,日式燒肉:燒肉、牛舌、烤肉
+45,10620,胖肚肚燒肉 大安店,db_current,2010,美式料理,,5082,4.8,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：烤肉、燒肉、牛舌,日式燒肉:烤肉、燒肉、牛舌
 45,10162,小紅莓石頭火鍋城,db_current,2001,火鍋,親子,5063,4.2,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：台式,中式料理:台式
 45,10220,蔦燒日式居酒屋-石牌店,db_current,2003,居酒屋,,4981,4.9,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：牛舌,日式燒肉:牛舌
 45,10187,布納咖啡館 內湖館,db_current,2012,咖啡/甜點,義式、親子,4843,4.6,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利,義法料理:義大利麵、義大利
-45,10517,陶板屋 新北投光明店,db_current,2004,日式料理,牛排、親子,4801,4.5,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：牛排,美式料理:牛排
 45,10110,Woolloomooloo,db_current,2007,義法料理,景觀,4729,4.0,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：漢堡,美式料理:漢堡; 咖啡/甜點:甜點
 45,10136,Second Floor 貳樓敦南店,db_current,2010,美式料理,Brunch,4647,4.3,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：法式,義法料理:法式; 咖啡/甜點:咖啡
 45,10129,紅翻天生猛海鮮,db_current,2008,中式料理,,4530,4.1,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：下酒,居酒屋:下酒; 日式料理:生魚片
 45,10351,NAGOYA 道地日式蛋包飯（開放電話及私訊訂位）,db_current,2004,日式料理,,4468,4.7,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：漢堡,美式料理:漢堡
 45,10737,WOWFFIZI cafe&Bistro 烏菲茲餐酒館,db_current,2007,義法料理,餐酒館、約會,4450,4.6,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：cafe、蛋糕、甜點,咖啡/甜點:cafe、蛋糕、甜點
 45,10168,石二鍋 台北捷運後山埤店,db_current,2001,火鍋,,4409,4.0,keyword_conflict;high_impact,檢查是否應改為 素食 (2005)；命中：蔬食,素食:蔬食
-45,10519,神燈搓一下,db_current,2005,素食,,4355,4.5,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
+45,10519,神燈搓一下,db_current,2005,素食,印度、中東,4355,4.5,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
 45,10738,瀧厚炙燒熟成牛排 台北.南港店,db_current,2010,美式料理,牛排、法式、親子,4304,4.6,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：法式,義法料理:法式
 45,10621,忠孝｜燒肉政宗 YAKINIKU MASAMUNE,db_current,2002,日式燒肉,,4297,4.8,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：漢堡,美式料理:漢堡
 45,10188,築間幸福鍋物 台北內湖店,db_current,2001,火鍋,親子,4236,4.6,keyword_conflict;high_impact,檢查是否應改為 素食 (2005)；命中：蔬食,素食:蔬食; 義法料理:西班牙
@@ -108,7 +30,7 @@ priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comme
 45,10108,布納咖啡館 信義館,db_current,2012,咖啡/甜點,牛排、義式、約會、親子,3734,4.6,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：啤酒、精釀,居酒屋:啤酒、精釀; 義法料理:義大利麵、義大利、燉飯; 美式料理:牛排
 45,10358,蝸牛義大利餐廳 天母店,db_current,2007,義法料理,義式、親子,3720,4.7,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕,咖啡/甜點:蛋糕
 45,10226,酒米食堂chumi_canteen－北投店beitou,db_current,2004,日式料理,,3702,4.9,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：居酒屋、啤酒,居酒屋:居酒屋、啤酒
-45,10674,樂軒和牛專門店,db_current,2002,日式燒肉,約會、商務,3596,4.7,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：涮涮鍋、壽喜燒、涮涮,火鍋:涮涮鍋、壽喜燒、涮涮
+45,10674,樂軒和牛專門店,db_current,2002,日式燒肉,約會、商務,3596,4.7,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：壽喜燒、涮涮鍋、涮涮,火鍋:壽喜燒、涮涮鍋、涮涮
 45,10739,小紐約披薩 中山店 LNYPIZZA Little New York Pizzeria Zhongshan,db_current,2007,義法料理,,3575,4.6,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：酒吧,居酒屋:酒吧; 美式料理:美式
 45,10156,一番地壽喜燒 古亭店,db_current,2001,火鍋,吃到飽,3570,4.3,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
 45,10361,詩篇咖啡餐廳Psalms Cafe & Restaurant,db_current,2007,義法料理,義式,3425,4.7,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：cafe、下午茶、咖啡,咖啡/甜點:cafe、下午茶、咖啡
@@ -118,7 +40,7 @@ priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comme
 45,10523,Remember Me_記得我．café -深夜咖啡館 寵物友善,db_current,2012,咖啡/甜點,約會、親子,3256,4.5,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：燉飯,義法料理:燉飯
 45,10363,老朋友小酌熱炒,db_current,2008,中式料理,,3250,4.7,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：啤酒,居酒屋:啤酒; 義法料理:西班牙
 45,10365,渣男 Taiwan Bistro 信義一渣,db_current,2003,居酒屋,餐酒館,3161,4.7,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：烏龍麵,日式料理:烏龍麵; 中式料理:台式; 咖啡/甜點:咖啡
-45,10280,蔬軾,db_current,2005,素食,義式、親子,3143,4.8,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、披薩,義法料理:義大利麵、義大利、披薩
+45,10280,蔬軾,db_current,2005,素食,印度、義式、親子,3143,4.8,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、披薩,義法料理:義大利麵、義大利、披薩
 45,10524,gonnaEAT 內湖店,db_current,2007,義法料理,約會、商務、親子,3006,4.5,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕、咖啡,咖啡/甜點:蛋糕、咖啡
 45,10627,肉你好燒肉-合江總舖,db_current,2002,日式燒肉,,2992,4.8,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：居酒屋,居酒屋:居酒屋
 45,10591,火人串燒,db_current,2004,日式料理,,2966,4.9,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：串燒,居酒屋:串燒
@@ -129,25 +51,24 @@ priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comme
 45,10628,蔦燒日式居酒屋-士林店,db_current,2003,居酒屋,,2883,4.8,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：壽司,日式料理:壽司
 45,10181,Bogart's Smokehouse Taipei (美式木柴煙燻屋) OPEN til SOLDOUT,db_current,2010,美式料理,,2835,4.7,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：烤肉,日式燒肉:烤肉
 45,10528,紅屋牛排館民生店,db_current,2010,美式料理,牛排、商務,2821,4.5,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕、甜點,咖啡/甜點:蛋糕、甜點
-45,10369,i99 COFFEE 景美店,db_current,2012,咖啡/甜點,吃到飽,2785,4.7,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：火鍋、鍋物,火鍋:火鍋、鍋物; 居酒屋:暢飲
+45,10369,i99 COFFEE 景美店,db_current,2012,咖啡/甜點,吃到飽,2785,4.7,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：鍋物、火鍋,火鍋:鍋物、火鍋; 居酒屋:暢飲
 45,10529,荖子鍋Plus 家樂福內湖店,db_current,2001,火鍋,吃到飽,2734,4.5,keyword_conflict;high_impact,檢查是否應改為 自助餐 (2011)；命中：自助餐,自助餐:自助餐
-45,10445,夏慕尼新香榭鐵板燒 台北大直敬業店,db_current,2007,義法料理,牛排、鐵板燒、約會,2733,4.6,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：牛排,美式料理:牛排; 咖啡/甜點:甜點
 45,10680,TakeOut Burger&Cafe 民權店,db_current,2010,美式料理,,2725,4.7,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：cafe,咖啡/甜點:cafe
 45,10446,PRESERVE 遠東GARDEN CITY 大巨蛋店,db_current,2005,素食,義式、約會,2673,4.6,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利,義法料理:義大利麵、義大利
 45,10286,蔣老爹愛吃鍋 市民店｜台北東區｜麻辣火鍋,db_current,2001,火鍋,,2641,4.8,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：台式,中式料理:台式
 45,10681,明水然・樂-遠百信義店(遠百A13店),db_current,2004,日式料理,鐵板燒、約會,2598,4.7,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：漢堡,美式料理:漢堡
 45,10288,渣男TaiwanBistro 木柵二渣,db_current,2003,居酒屋,餐酒館、約會,2552,4.8,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：台式,中式料理:台式
-45,10231,三燔北投 Mihan Beitou,db_current,2004,日式料理,約會,2525,4.9,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：涮涮鍋、壽喜燒、涮涮、鍋物,火鍋:涮涮鍋、壽喜燒、涮涮、鍋物; 咖啡/甜點:甜點
+45,10231,三燔北投 Mihan Beitou,db_current,2004,日式料理,約會,2525,4.9,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：壽喜燒、涮涮鍋、鍋物、涮涮,火鍋:壽喜燒、涮涮鍋、鍋物、涮涮; 咖啡/甜點:甜點
 45,10449,阿薄郎薄皮餃子－公館店,db_current,2004,日式料理,餐酒館,2511,4.6,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：下酒、啤酒、串燒,居酒屋:下酒、啤酒、串燒; 中式料理:台式
 45,10531,野草居食屋,db_current,2003,居酒屋,約會,2504,4.5,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：牛舌,日式燒肉:牛舌
 45,10171,肉執事台北松山門市,db_current,2002,日式燒肉,,2498,4.5,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：台式,中式料理:台式
+45,10451,— LAX 慵懶 — 貓空 ｜,db_current,2007,義法料理,泰式、義式、約會、親子、景觀,2486,4.6,keyword_conflict;high_impact,檢查是否應改為 異國料理 (2013)；命中：月亮蝦餅,異國料理:月亮蝦餅
 45,10533,A Beach 101&Pizza,db_current,2007,義法料理,約會、親子,2471,4.5,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕、甜點,咖啡/甜點:蛋糕、甜點
-45,10630,燒鳩 刺身•串燒•夜食,db_current,2004,日式料理,,2454,4.8,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：暢飲、串燒,居酒屋:暢飲、串燒
+45,10630,燒鳩 刺身•串燒•夜食,db_current,2004,日式料理,,2454,4.8,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：串燒、暢飲,居酒屋:串燒、暢飲
 45,10631,哞屋Mon wo,db_current,2004,日式料理,,2450,4.8,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉; 美式料理:漢堡
 45,10453,墨竹亭 燃麵本家 台北六張犁店,db_current,2008,中式料理,,2400,4.6,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：壽喜燒,火鍋:壽喜燒; 日式燒肉:燒肉
 45,10455,品田牧場 台北松山車站店,db_current,2010,美式料理,親子,2375,4.6,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
 45,10182,花漾夯夯鍋-政大店 | 火鍋259起 | 木柵火鍋吃到飽|木柵宵夜,db_current,2001,火鍋,吃到飽,2334,4.7,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：麵食,中式料理:麵食
-45,10376,旭集 和食集錦 微風店,db_current,2011,自助餐,吃到飽、約會,2333,4.7,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：壽司,日式料理:壽司
 45,10183,呼嚕小酒館 Purrson Bistro,db_current,2007,義法料理,餐酒館,2327,4.7,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：漢堡,美式料理:漢堡
 45,10633,青杉燒肉,db_current,2002,日式燒肉,約會、商務,2261,4.8,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：燉飯,義法料理:燉飯
 45,10538,果然匯 台北天母店,db_current,2005,素食,親子,2245,4.5,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：披薩,義法料理:披薩; 咖啡/甜點:甜點
@@ -162,7 +83,7 @@ priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comme
 45,10572,Chill嗨嗨酒場 Bar,db_current,2004,日式料理,,2025,5.0,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：酒場、串燒,居酒屋:酒場、串燒
 45,10139,小小樹食 敦南店,db_current,2005,素食,義式,1972,4.2,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利,義法料理:義大利麵、義大利; 咖啡/甜點:蛋糕
 45,10749,日本橋浜町食事处 微風北車店,db_current,2004,日式料理,商務,1960,4.6,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：居酒屋,居酒屋:居酒屋
-45,10543,BaganHood 蔬食餐酒館,db_current,2005,素食,義式、餐酒館、約會,1949,4.5,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、披薩,義法料理:義大利麵、義大利、披薩
+45,10543,BaganHood 蔬食餐酒館,db_current,2005,素食,泰式、中東、義式、餐酒館、約會,1949,4.5,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、披薩,義法料理:義大利麵、義大利、披薩; 異國料理:墨西哥料理、鷹嘴豆泥
 45,10544,茱莉金牛排餐酒館,db_current,2010,美式料理,牛排、法式、餐酒館、約會,1924,4.5,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：法式,義法料理:法式
 45,10545,前鎮水產-海霸王 昆明店,db_current,2001,火鍋,,1893,4.5,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：生魚片,日式料理:生魚片
 45,10599,士林串燒,db_current,2004,日式料理,,1890,4.9,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：串燒,居酒屋:串燒
@@ -175,7 +96,7 @@ priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comme
 45,10464,PRESERVE LaLaport 南港店,db_current,2010,美式料理,早午餐、義式、約會、親子,1814,4.6,keyword_conflict;high_impact,檢查是否應改為 素食 (2005)；命中：蔬食,素食:蔬食; 義法料理:義大利麵、義大利
 45,10550,Extension 1 by 橘色,db_current,2004,日式料理,約會,1802,4.5,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：壽喜燒、鍋物,火鍋:壽喜燒、鍋物
 45,10465,無口小廚 Mukuchi Kitchen & Bar,db_current,2005,素食,,1800,4.6,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：拉麵,日式料理:拉麵
-45,10552,這一小鍋 台北北護店(最後收客20:00)【呷Bar店】,db_current,2001,火鍋,,1796,4.5,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：台式、麵食,中式料理:台式、麵食
+45,10552,這一小鍋 台北北護店(最後收客20:00)【呷Bar店】,db_current,2001,火鍋,,1796,4.5,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：麵食、台式,中式料理:麵食、台式
 45,10553,草根早午餐 TOUCH WOOD,db_current,2010,美式料理,早午餐、法式、餐酒館,1768,4.5,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：法式,義法料理:法式; 咖啡/甜點:咖啡
 45,10637,燒究食寓 萬華店 – 居酒屋｜宵夜｜串燒,db_current,2003,居酒屋,牛排、親子,1761,4.8,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：牛排,美式料理:牛排
 45,10638,Takeout Burger&Cafe 延吉店 （最後點餐21：30）/美式漢堡/寵物友善/大安區美食/貓咪餐廳,db_current,2010,美式料理,,1739,4.8,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：cafe,咖啡/甜點:cafe
@@ -185,33 +106,33 @@ priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comme
 45,10557,AN58西班牙創意料理,db_current,2007,義法料理,牛排、約會,1674,4.5,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：牛排,美式料理:牛排
 45,10692,鹿境早午餐 Arrival Brunch & Cafe - 早午餐推薦 ｜ 餐廳 ｜小巨蛋早午餐 ｜ 包場 ｜ 法式吐司 ｜ 漢堡｜咖喱 ｜小巨蛋早午餐｜台北早午餐推薦,db_current,2010,美式料理,Brunch、早午餐、法式、約會,1670,4.7,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：法式,義法料理:法式; 咖啡/甜點:cafe
 45,10468,Creative Pasta 創義麵 東湖店,db_current,2007,義法料理,義式、親子,1660,4.6,keyword_conflict;high_impact,檢查是否應改為 素食 (2005)；命中：素食,素食:素食
-45,10558,根來阿財鐵板燒,db_current,2004,日式料理,鐵板燒,1652,4.5,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：熱炒、台式,中式料理:熱炒、台式
+45,10558,根來阿財鐵板燒,db_current,2004,日式料理,鐵板燒,1652,4.5,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：台式、熱炒,中式料理:台式、熱炒
 45,10693,捌千代居酒屋 松山店,db_current,2003,居酒屋,,1648,4.7,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：烏龍麵,日式料理:烏龍麵
 45,10694,嚐居,db_current,2003,居酒屋,,1644,4.7,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：壽司,日式料理:壽司
-45,10757,爍場居酒屋復興店,db_current,2002,日式燒肉,,1640,4.6,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：居酒屋、下酒、暢飲、串燒,居酒屋:居酒屋、下酒、暢飲、串燒
+45,10757,爍場居酒屋復興店,db_current,2002,日式燒肉,,1640,4.6,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：居酒屋、下酒、串燒、暢飲,居酒屋:居酒屋、下酒、串燒、暢飲
 45,10303,好吧,db_current,2010,美式料理,早午餐、義式、親子,1630,4.8,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義式,義法料理:義式
 45,10560,GumGum Not Only Beer & Wings 雞翅啤酒吧-內科店,db_current,2003,居酒屋,義式、餐酒館、約會,1610,4.5,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、披薩、燉飯,義法料理:義大利麵、義大利、披薩、燉飯; 咖啡/甜點:蛋糕
-45,10390,子女居酒屋,db_current,2003,居酒屋,,1605,4.7,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：烏龍麵、天婦羅,日式料理:烏龍麵、天婦羅
+45,10390,子女居酒屋,db_current,2003,居酒屋,,1605,4.7,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：天婦羅、烏龍麵,日式料理:天婦羅、烏龍麵
 45,10640,七転八起-中山必吃串燒|人氣串燒|串燒專門店|串燒烤肉|熱門居酒屋|居酒屋推薦|喝酒聚餐推薦|隱藏居酒屋,db_current,2003,居酒屋,約會,1595,4.8,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：烤肉,日式燒肉:烤肉
 45,10641,東京家庭義大利麵 堺人餐飲 天母,db_current,2008,中式料理,義式、親子,1591,4.8,keyword_conflict;high_impact,檢查是否應改為 素食 (2005)；命中：素食,素食:素食; 義法料理:義大利麵、義大利
 45,10603,極簡鍋物｜萬華199和牛火鍋｜西門町火鍋推薦｜小龍蝦專賣店｜萬華美食,db_current,2001,火鍋,親子,1550,4.9,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉
 45,10758,Niconico Yakiniku 冠軍燒肉-西門,db_current,2002,日式燒肉,約會,1540,4.6,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：烏龍麵,日式料理:烏龍麵
 45,10307,謀魚蝦也蠔南港直營店,db_current,2001,火鍋,,1526,4.8,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：熱炒,中式料理:熱炒
 45,10643,八和和牛燒肉專門店-安和本店,db_current,2002,日式燒肉,約會,1513,4.8,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕,咖啡/甜點:蛋糕
-45,10695,試試工作室,db_current,2002,日式燒肉,義式、約會,1511,4.7,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、燉飯、義式,義法料理:義大利麵、義大利、燉飯、義式; 咖啡/甜點:蛋糕
+45,10695,試試工作室,db_current,2002,日式燒肉,義式、約會,1511,4.7,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、義式、燉飯,義法料理:義大利麵、義大利、義式、燉飯; 咖啡/甜點:蛋糕
 45,10562,HANNA Pasta Café パスタ カフェ,db_current,2007,義法料理,義式、約會,1507,4.5,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕,咖啡/甜點:蛋糕
 45,10696,Agusto奧古斯托 牛排龍蝦餐酒館 大安店｜新北美食義式餐廳 生日聚餐約會推薦,db_current,2007,義法料理,牛排、法式、義式、餐酒館、約會,1507,4.7,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：牛排,美式料理:牛排
 45,10697,大河屋 燒肉丼 串燒-中信南港店,db_current,2004,日式料理,,1505,4.7,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉; 居酒屋:串燒
 45,10698,樂氣串燒居酒屋,db_current,2003,居酒屋,義式,1471,4.7,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：烏龍麵,日式料理:烏龍麵; 義法料理:義式
 45,10391,孫太太嚴選超市火鍋台北民族店,db_current,2001,火鍋,親子,1451,4.7,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
 45,10473,Lazy Pasta 慵懶義式廚房文山萬芳店,db_current,2007,義法料理,義式、親子,1449,4.6,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：麵食,中式料理:麵食
-45,10564,Plants,db_current,2005,素食,,1446,4.5,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：燉飯,義法料理:燉飯
+45,10564,Plants,db_current,2005,素食,中東,1446,4.5,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：燉飯,義法料理:燉飯
 45,10474,朝鑫壽司（Asashi sushi),db_current,2004,日式料理,親子,1440,4.6,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：串燒,居酒屋:串燒
 45,10202,嗯哼咖啡食堂(Uh huh cafe),db_current,2012,咖啡/甜點,,1436,5.0,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：漢堡,美式料理:漢堡
 45,10393,加分昆布鍋物-食べ放題-新生店,db_current,2001,火鍋,吃到飽、親子,1433,4.7,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：麵食,中式料理:麵食
 45,10566,鍋董日式涮涮鍋劍潭旗艦店,db_current,2004,日式料理,親子,1429,4.5,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：涮涮鍋、涮涮,火鍋:涮涮鍋、涮涮
 45,10605,肉你好燒肉-延吉店,db_current,2002,日式燒肉,約會,1429,4.9,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：啤酒,居酒屋:啤酒
-45,10314,蔬軾．安和店,db_current,2005,素食,義式、約會、親子,1415,4.8,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：披薩、燉飯、義式,義法料理:披薩、燉飯、義式
+45,10314,蔬軾．安和店,db_current,2005,素食,義式、約會、親子,1415,4.8,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：披薩、義式、燉飯,義法料理:披薩、義式、燉飯
 45,10573,豆町村燒肉,db_current,2002,日式燒肉,牛排、約會,1415,5.0,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：牛排,美式料理:牛排
 45,10475,The Slice Shop 信義安和,db_current,2007,義法料理,,1393,4.6,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：美式,美式料理:美式
 45,10763,源本家燒肉火鍋,db_current,2002,日式燒肉,,1350,4.6,keyword_conflict;high_impact,檢查是否應改為 火鍋 (2001)；命中：火鍋,火鍋:火鍋
@@ -223,13 +144,14 @@ priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comme
 45,10647,Monday蔬食料理 錦州店,db_current,2005,素食,義式,1306,4.8,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、義式,義法料理:義大利麵、義大利、義式; 美式料理:漢堡
 45,10478,麥味登 文山饗食大亨店,db_current,2010,美式料理,,1300,4.6,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：咖啡,咖啡/甜點:咖啡
 45,10398,GiraPizza 旋轉披薩,db_current,2007,義法料理,義式、餐酒館,1290,4.7,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：咖啡,咖啡/甜點:咖啡
-45,10701,原蔬生活 élémentlifes……………..……...（僅接受一週內電話預約 We accept phone reservations up to one week in advance.）,db_current,2005,素食,義式、約會,1283,4.7,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、燉飯、義式,義法料理:義大利麵、義大利、燉飯、義式
+45,10701,原蔬生活 élémentlifes……………..……...（僅接受一週內電話預約 We accept phone reservations up to one week in advance.）,db_current,2005,素食,義式、約會,1283,4.7,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、義式、燉飯,義法料理:義大利麵、義大利、義式、燉飯; 異國料理:pho
 45,10702,鳥居町日料居酒屋（東湖店),db_current,2003,居酒屋,,1281,4.7,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：生魚片、壽司,日式料理:生魚片、壽司; 咖啡/甜點:蛋糕
 45,10399,曹料理,db_current,2004,日式料理,,1261,4.7,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：牛舌,日式燒肉:牛舌
-45,10318,全養知 異國蔬食 莊敬店,db_current,2005,素食,義式、約會,1246,4.8,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義式,義法料理:義式
+45,10318,全養知 異國蔬食 莊敬店,db_current,2005,素食,中東、義式、約會,1246,4.8,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義式,義法料理:義式; 異國料理:摩洛哥
 45,10768,RKZ Caf'e,db_current,2007,義法料理,牛排、約會,1229,4.6,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：牛排,美式料理:牛排
 45,10570,蘇草salvia,db_current,2012,咖啡/甜點,早午餐、義式,1225,4.5,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利,義法料理:義大利麵、義大利; 美式料理:早午餐
 45,10609,酒桃Sake momo,db_current,2003,居酒屋,義式、餐酒館,1200,4.9,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義式,義法料理:義式
+45,10571,穗月朝食（最後點餐為營業前30分鐘）,db_current,2010,美式料理,泰式,1198,4.5,keyword_conflict;high_impact,檢查是否應改為 異國料理 (2013)；命中：打拋,異國料理:打拋
 45,10481,中山區麻辣火鍋/麻辣火鍋推薦/滑嫩鴨血豆腐/麻凡麻辣火鍋/養生蔬果湯,db_current,2001,火鍋,法式、商務,1188,4.6,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：法式,義法料理:法式
 45,10703,老菘田居酒屋(串燒‧酒場) 南京店,db_current,2003,居酒屋,,1188,4.7,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉
 45,10482,豐橋火鍋,db_current,2001,火鍋,親子,1186,4.6,keyword_conflict;high_impact,檢查是否應改為 素食 (2005)；命中：蔬食,素食:蔬食
@@ -245,11 +167,11 @@ priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comme
 45,10195,HI MATE ！(供餐至15:30）,db_current,2010,美式料理,Brunch、早午餐,1066,4.5,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：咖啡,咖啡/甜點:咖啡
 45,10650,12:59早午餐Brunch.Pasta.Coffee.Dessert,db_current,2010,美式料理,Brunch、早午餐、義式、親子,1053,4.8,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：pasta,義法料理:pasta; 咖啡/甜點:coffee
 45,10488,家吶子台式居酒屋 Ka-la̍h-á,db_current,2003,居酒屋,,1047,4.6,keyword_conflict;high_impact,檢查是否應改為 日式燒肉 (2002)；命中：燒肉,日式燒肉:燒肉; 中式料理:台式
-45,10611,花嶼輕食館Flower Island Brunch-台北士林站輕食早午餐/下午茶/咖啡廳 異國料理/義大利麵/燉飯/創意料理 親子/寵物友善 聚餐/慶生/約會/網美 2026熱門訂位評價推薦 PTT Dcard threads,db_current,2010,美式料理,Brunch、早午餐、義式、約會、親子,1047,4.9,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、燉飯,義法料理:義大利麵、義大利、燉飯; 咖啡/甜點:下午茶、蛋糕、甜點、咖啡、拿鐵
+45,10611,花嶼輕食館Flower Island Brunch-台北士林站輕食早午餐/下午茶/咖啡廳 異國料理/義大利麵/燉飯/創意料理 親子/寵物友善 聚餐/慶生/約會/網美 2026熱門訂位評價推薦 PTT Dcard threads,db_current,2010,美式料理,Brunch、早午餐、義式、約會、親子,1047,4.9,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、燉飯,義法料理:義大利麵、義大利、燉飯; 咖啡/甜點:下午茶、蛋糕、拿鐵、咖啡、甜點
 45,10489,CHALET V,db_current,2007,義法料理,法式、約會、親子,1039,4.6,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：拿鐵,咖啡/甜點:拿鐵
 45,10612,JODA CAFE 松山八德店,db_current,2007,義法料理,義式,1022,4.9,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：麵食,中式料理:麵食; 咖啡/甜點:cafe
-45,10178,雞老闆 桶仔雞 士林店,db_current,2008,中式料理,,1019,4.8,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：居酒屋、暢飲、串燒,居酒屋:居酒屋、暢飲、串燒
-45,10138,The Public House,db_current,2007,義法料理,餐酒館,1010,4.5,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：下酒、酒吧,居酒屋:下酒、酒吧
+45,10178,雞老闆 桶仔雞 士林店,db_current,2008,中式料理,,1019,4.8,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：居酒屋、串燒、暢飲,居酒屋:居酒屋、串燒、暢飲
+45,10138,The Public House,db_current,2007,義法料理,餐酒館,1010,4.5,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：酒吧、下酒,居酒屋:酒吧、下酒
 45,10491,九井自慢料理,db_current,2001,火鍋,約會、商務,999,4.6,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：生魚片、壽司,日式料理:生魚片、壽司
 45,10709,知初植物系永續廚房（Last order time is 14:15 / 20:00）,db_current,2005,素食,,952,4.7,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：披薩,義法料理:披薩
 45,10710,HOW齊早午餐,db_current,2010,美式料理,早午餐、法式,952,4.7,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：法式,義法料理:法式
@@ -259,7 +181,7 @@ priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comme
 45,10493,Boulevard Cafe 林蔭美式餐酒食(供餐至20:00),db_current,2010,美式料理,義式,912,4.6,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：酒吧,居酒屋:酒吧; 義法料理:義大利麵、義大利、燉飯; 咖啡/甜點:cafe
 45,10407,Takeout burger & cafe 內湖店（最後點餐晚上9點，恕不接待10歲以下幼童內用）,db_current,2010,美式料理,,903,4.7,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：cafe,咖啡/甜點:cafe
 45,10613,動物園滷餐小酒館 Zoo Bistro 2.0,db_current,2007,義法料理,義式、餐酒館,892,4.9,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：下酒,居酒屋:下酒; 中式料理:台式; 美式料理:漢堡
-45,10656,BearJunkies熊飲（早午餐＆酒吧）,db_current,2010,美式料理,早午餐、法式,877,4.8,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：酒吧,居酒屋:酒吧; 義法料理:法式
+45,10656,BearJunkies熊飲（早午餐＆酒吧）,db_current,2010,美式料理,早午餐、泰式、法式,877,4.8,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：酒吧,居酒屋:酒吧; 義法料理:法式
 45,10657,星嫵蔬創意料理,db_current,2005,素食,,871,4.8,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：台式,中式料理:台式
 45,10143,大安站那邊 精緻熱炒,db_current,2008,中式料理,,840,4.2,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：啤酒,居酒屋:啤酒
 45,10410,Pizza/Pizza3/披薩/餐廳/披薩3次方/信義區/林口街/台北/精釀啤酒,db_current,2007,義法料理,義式,752,4.7,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：啤酒、精釀,居酒屋:啤酒、精釀
@@ -267,14 +189,14 @@ priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comme
 45,10196,徙巷小餐酒x徙巷早午餐,db_current,2007,義法料理,Brunch、餐酒館,689,4.5,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：下酒,居酒屋:下酒; 美式料理:早午餐
 45,10497,鐵 F.f Teppanyaki 鐵板燒（萬大店）,db_current,2004,日式料理,鐵板燒、約會,636,4.6,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：漢堡,美式料理:漢堡; 咖啡/甜點:甜點
 45,10715,喜多肉和牛燒肉居酒屋,db_current,2002,日式燒肉,約會,609,4.7,keyword_conflict;high_impact,檢查是否應改為 居酒屋 (2003)；命中：居酒屋,居酒屋:居酒屋
-45,10498,B&B STEAK 福德店,db_current,2010,美式料理,牛排,599,4.6,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：熱炒、台式,中式料理:熱炒、台式
+45,10498,B&B STEAK 福德店,db_current,2010,美式料理,牛排,599,4.6,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：台式、熱炒,中式料理:台式、熱炒
 45,10244,常不輕,db_current,2005,素食,親子,588,4.9,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：拿鐵,咖啡/甜點:拿鐵
 45,10499,掌門精釀啤酒 內湖店,db_current,2003,居酒屋,,569,4.6,keyword_conflict;high_impact,檢查是否應改為 義法料理 (2007)；命中：披薩,義法料理:披薩
 45,10716,The Shed,db_current,2012,咖啡/甜點,,562,4.7,keyword_conflict;high_impact,檢查是否應改為 美式料理 (2010)；命中：漢堡,美式料理:漢堡
-45,10334,三亞米（咖啡/早午餐/手作甜點）售完提早打烊，最後點菜16:30//週三公休,db_current,2010,美式料理,早午餐,505,4.8,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點、咖啡,咖啡/甜點:甜點、咖啡
+45,10334,三亞米（咖啡/早午餐/手作甜點）售完提早打烊，最後點菜16:30//週三公休,db_current,2010,美式料理,早午餐,505,4.8,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：咖啡、甜點,咖啡/甜點:咖啡、甜點
 45,10197,一番地 內湖宏匯店,db_current,2001,火鍋,親子,489,4.5,keyword_conflict;high_impact,檢查是否應改為 日式料理 (2004)；命中：烏龍麵,日式料理:烏龍麵
 45,10502,八方悅鍋物 內湖AIT店,db_current,2001,火鍋,親子,452,4.6,keyword_conflict;high_impact,檢查是否應改為 中式料理 (2008)；命中：麵食,中式料理:麵食
-45,10170,旭穗蔬食VEGANala,db_current,2005,素食,親子,409,4.5,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕、甜點,咖啡/甜點:蛋糕、甜點
+45,10170,旭穗蔬食VEGANala,db_current,2005,素食,中東、親子,409,4.5,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕、甜點,咖啡/甜點:蛋糕、甜點; 異國料理:鷹嘴豆泥
 45,10665,初衷鮨,db_current,2004,日式料理,約會,379,4.8,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：甜點,咖啡/甜點:甜點
 45,10721,糧田,db_current,2010,美式料理,,340,4.7,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕,咖啡/甜點:蛋糕
 45,10505,南洋蔬食小棧（營業時間以FB公告為主）,db_current,2005,素食,,284,4.6,keyword_conflict;high_impact,檢查是否應改為 咖啡/甜點 (2012)；命中：咖啡,咖啡/甜點:咖啡
@@ -285,29 +207,24 @@ priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comme
 40,10248,雙月食品社 濟南店,db_current,2008,中式料理,,24978,4.8,defaulted_to_chinese;high_impact,人工確認主分類,踏入雙月食品社濟南店，明亮且高效的用餐空間迎接每位食客。餐廳採取先取號碼牌、於店外自助點餐的流程，尖峰時刻常需排隊等候，運作節奏緊湊。餐點核心在於慢火熬製的鮮美湯品，招牌干貝燉雞湯頭清甜，雞肉質地彈牙，碗內佐以大量脆口高麗菜，誠意十足。主食類如愛恨椒芝麵，麻椒與濃郁芝麻香氣交織，麵條口感紮實。若偏好重口味，吻仔魚飯與滷肉飯的濃郁油蔥味表現突出，但需留意整體調味偏鹹，且現場未供應飲用水，建議前往時預先準備。用餐環境雖較為擁擠，但對於...
 40,10204,雙月食品社 八德店,db_current,2008,中式料理,,20933,4.9,defaulted_to_chinese;high_impact,人工確認主分類,踏入雙月食品社八德店，明亮整潔的空間映入眼簾，即使尖峰時刻人潮絡繹不絕，工作人員仍保持專業且迅速的服務節奏。這裡是以「湯品與拌麵」為核心的生活感餐廳，招牌的愛恨椒芝麵將花椒香氣與濃厚芝麻醬完美結合，麵條保留了紮實的咬勁，層次鮮明而不膩口。燉雞湯系列份量驚人，大塊雞肉燉煮至肉質Q彈，湯頭融合了枸杞與蔬菜鮮甜，入口回甘，是暖胃的最佳選擇。店內動線規劃採叫號入座與掃碼點餐，用餐步調緊湊，即便平日午間亦可能需預留排隊等待時間，是台北忙碌生...
 40,10208,雙月食品社 北投店,db_current,2008,中式料理,,11413,4.9,defaulted_to_chinese;high_impact,人工確認主分類,雙月食品社北投店坐落於溫泉公園對面，門面以瓦片屋簷與大面落地窗勾勒出洗鍊的中西合璧風格，內部則以白色基調搭配木質桌椅，營造明亮整潔的用餐氛圍。這裡的招牌雞湯以滿溢的配料為特色，干貝燉雞腿湯湯頭清甜，雞腿肉質軟嫩；愛恨椒芝麵將川味花椒與濃郁芝麻醬融合，口感層次鮮明。不過因位處熱門景點，店內座席間距較為緊湊，尖峰時段難免需要併桌，現場候位節奏較快，建議避開人潮前往。服務團隊展現了專業親切的態度，雖受限於空間格局較為侷促，仍適合在散步北...
-40,10211,莎瓦迪卡海鮮.泰,db_current,2008,中式料理,,7881,4.9,defaulted_to_chinese;high_impact,人工確認主分類,推開大門，迎面而來的是大氣的裝潢風格，空間設計營造出適合多人共享的餐飲氛圍。這裡的泰式料理在調味上各有千秋，像是加入葡萄與白木耳的酸辣海鮮，以獨特的清脆口感創造出意外驚喜；綠咖哩則呈現厚實的奶香與香茅氣息，搭配軟嫩牛肉顯得相當下飯。雖然部分桌次空間稍顯侷促，燈光表現也因座位而異，但廚房團隊對於打拋豬肉與蝦醬炒時蔬的火候掌控精準，保有肉質Q彈與蔬菜脆口度。建議點餐時留意部分特色大菜，如火山排骨湯辣度後勁強烈，若對辣味敏感，品嚐時需調...
 40,10130,MAJI MAJI集食行樂,db_current,2008,中式料理,親子,6513,4.2,defaulted_to_chinese;high_impact,人工確認主分類,坐落於圓山花博園區的 MAJI MAJI 集食行樂，保留了原始倉庫的挑高工業風架構，開放式空間將室內與戶外串聯，營造出宛如都會遊樂場般的自在氣氛。這裡採取複合式餐飲模式，適合三五好友各自選購心儀料理後，在公共長桌區域匯合，共享隨性而流動的聚餐節奏。餐點選擇囊括多國風味，例如充滿嚼勁且帶有濃郁麥香的大蒜烤餅，或是溫熱順口的番茄湯，都能在輕鬆環境中享用。入夜後，園區點燈後更顯熱鬧，音樂與人聲交織出活力十足的氛圍。建議避開週末巔峰時段，...
 40,10262,吉豚屋 石牌店,db_current,2008,中式料理,,6322,4.8,defaulted_to_chinese;high_impact,人工確認主分類,踏進這間位於石牌捷運站旁的日式豬排專賣店，映入眼簾的是簡約俐落的木質調空間。店內設有兩層樓用餐區，採自助式流程，從掃碼點餐、取餐到餐後回收餐具皆由顧客自行完成，整體步調快速且具效率。招牌炸豬排外皮呈現金黃酥脆的質地，一口咬下能感受到肉質軟嫩多汁的厚實感。除了主食，隨附的味噌湯用料相當大氣，不僅份量足，還能嚐到豬肉片與滿滿配料。口味上整體偏向濃郁鹹香，極其下飯。若擔心口味負擔，桌上的高麗菜搭配胡麻醬，或搭配清爽的柚香漬蘿蔔，都是平衡...
-40,10352,塔吉摩洛哥料理,db_current,2008,中式料理,約會、親子,4391,4.7,defaulted_to_chinese;high_impact,人工確認主分類,推開塔吉摩洛哥料理的大門，異國風情的陳設與精緻的特色盤飾，立刻構築出濃厚的北非空間感。餐桌上，透過高溫塔吉鍋燜煮的羊膝與牛腩，完整鎖住了食材的鮮甜，肉質呈現軟嫩綿密的質感，醬汁香料比例經過精細調校，既保有溫潤的香氣，又不失平易近人的適口性。用餐節奏由親切的服務引領，不時能見到老闆與顧客互動表演，讓整體氛圍充滿活力。若點選雙人套餐，建議將濃郁的塔吉鍋醬汁拌入帶有獨特顆粒感的北非小米或番紅花飯中，以米布丁與現泡薄荷茶收尾，是一場完整且...
 40,10189,刁民-酸菜魚 西門中華店,db_current,2008,中式料理,,4134,4.6,defaulted_to_chinese;high_impact,人工確認主分類,踏入西門町的刁民酸菜魚，強烈的工業風裝潢與活力十足的服務口號，構築出鮮明的用餐氛圍。招牌秘罈酸菜魚選用肉質滑嫩的烏鱧魚片，透過熱油激發出酸爽椒麻的香氣，湯頭濃郁且層次豐富；若口味偏重，還能免費添加龍骨高湯調整。除了主餐，現場提供的陳皮洛神花茶是解膩良伴，帶有焦糖香氣的奶茶亦是熱門選擇。店內空間寬敞，適合三五好友聚餐，但尖峰時刻與平假日的候位節奏明顯，建議預留充足時間。用餐過程中，若遇湯頭或魚肉處理有疑慮，可即時請服務人員協助。作為...
 40,10109,刁民-酸菜魚 信義店,db_current,2008,中式料理,,3560,4.5,defaulted_to_chinese;high_impact,人工確認主分類,走進這間位於信義區的熱門酸菜魚館，第一印象便是充滿潮流感的用餐氛圍與熱鬧節奏。招牌料理以湯頭酸、香、麻、辣的層次感著稱，魚肉質地滑嫩，配合吸飽湯汁的金針菇或富有彈性的蝦滑，更能展現酸菜湯底的開胃特質。這裡不僅是朋友聚會的人氣場所，也常被作為宵夜選擇。不過，由於店內人潮絡繹不絕，現場候位時間較長，且用餐時間設有限制，建議事前預留充足時段。用餐節奏偏向快步調，服務團隊雖在繁忙中維持基本運作，但建議顧客在入座時便一次點齊心儀配料，因餐後...
 40,10153,黃龍莊,db_current,2008,中式料理,,3552,4.1,defaulted_to_chinese;high_impact,人工確認主分類,隱身於牯嶺街的老字號黃龍莊，是許多在地人從小吃到大的中式餐館。入座後，店家隨即遞上熱騰騰的牛蒡茶暖胃，店內工作人員分工流暢，對於客人的需求回應相當親切。招牌的蘇式小湯包皮薄帶勁，內餡肉質鮮甜，搭配新鮮薑絲與沾醬，能展現出飽滿湯汁的層次。此外，鑊氣十足的炒飯也是必嚐亮點，粒粒分明的口感伴隨著蔥花蛋香。燉煮到骨肉分離的元盅雞湯，清爽卻帶有深厚的甘甜韻味。雖然部分餐點如餃類或是調味濃淡的感受因人而異，但在這用餐能感受到老派餐館的節奏感，...
 40,10135,榮榮園浙寧餐廳,db_current,2008,中式料理,商務,3460,4.1,defaulted_to_chinese;high_impact,人工確認主分類,榮榮園浙寧餐廳是老台北記憶中的江浙風味指標，廚房對於火候與調味的掌握，展現出醇厚且層次分明的特色。招牌的鐵板牛尾講究骨肉分離的細緻口感，肉質軟嫩且膠質豐富；砂鍋菜飯則能吃到鑊氣十足的酥脆鍋巴，搭配清甜滋補的砂鍋火朣扁尖土雞湯，完整體現江浙菜的濃郁與鮮香。餐廳服務由經驗老到的阿姨領軍，動作俐落且態度直率親切。空間配置雖保留了傳統中式圓桌，但桌距安排相對緊湊，且因整體環境開放，人多時難免顯得熱鬧喧騰，建議聚餐時若有私密對話需求，可預先...
 40,10441,Mr. 雪腐 公館店,db_current,2008,中式料理,,3297,4.6,defaulted_to_chinese;high_impact,人工確認主分類,走進Mr. 雪腐公館店，工業風格的裝潢為冷冽的冰品體驗增添了幾分性格，店內座位充裕，即使在人潮眾多的尖峰時刻，翻桌節奏依然流暢，無需久候便能入座。這裡的冰品選擇多元，其中「炭焙雪腐」展現出獨特的豆漿基底與炭燒香氣，底部藏著滑嫩豆花，風味層次鮮明且甜度適中；深受好評的焙茶冰則是茶香濃郁，搭配口感Q彈的珍珠，讓人印象深刻。雖然店內空間極具特色，但服務流程偶有不夠細膩之處，有時會感受到較為緊湊的控場壓力。整體而言，這裡是適合享受清爽冰品...
 40,10279,女巫店,db_current,2008,中式料理,,3231,4.8,defaulted_to_chinese;high_impact,人工確認主分類,推開女巫店的門，隨即感受到這處空間精巧而緊湊的場域氛圍。店內備有各式桌遊供人消磨時光，是午後窩著放空的去處。餐點表現中規中矩，香腸大奶麵質地濃郁順口，黃金豬排咖哩飯則帶有嚼勁十足的偏硬米芯。作為台北獨立音樂的重要據點，這裡的音響配置水準穩定，讓每一場駐唱演出都顯得立體。不過，這裏的場地空間有限，在熱門的演出活動期間，動線容易受限，且現場服務節奏較為直率，建議在預訂前確認演出時段與人流規劃，以避開繁忙擁擠的時段。
-40,10525,初泰Pikul｜信義象山門市,db_current,2008,中式料理,,3005,4.5,defaulted_to_chinese;high_impact,人工確認主分類,初泰Pikul信義象山店坐落於都會區邊緣，挑高的空間設計為用餐環境挹注了寬敞明亮的舒適感，動線規劃流暢，適合作為多人聚會的落腳處。餐廳主打風味鮮明的泰式料理，其中黑金蝦餅保留了細碎蝦殼的口感，外殼微脆且帶有飽滿香氣；瑪莎曼咖哩牛則以軟嫩肉質與濃郁醬汁呈現下飯的厚實感。不過需留意多數菜色調味偏向重鹹與強烈香料感，部分餐點如打拋豬肉，蒜味在比例上會顯得較為突出，建議喜愛濃郁重口味的饕客前往。外場服務在人員配置與彈性應對上存在一定程度的...
 40,10116,刁民-酸菜魚 信義松仁店,db_current,2008,中式料理,,2998,4.7,defaulted_to_chinese;high_impact,人工確認主分類,踏入信義松仁店，映入眼簾的是充滿年輕氣息的時髦裝潢，寬敞的地下用餐空間讓聚餐節奏顯得熱鬧。招牌酸菜魚湯頭帶有濃烈且厚實的酸鮮香氣，入口先酸後辣，花椒的麻感在味蕾上徐徐堆疊，魚肉片處理得滑嫩細緻。店內設置候位動線，入座後可自取洛神花與陳皮沖泡熱飲，適合兩人以上分食。雖然重口味湯頭相當下飯，但部分配料如炸魚皮與炸雞口感強烈，若偏好清爽口味建議斟酌點選。店內服務節奏快，用餐氛圍適合三五好友歡聚，建議避開尖峰時段，以免候位時間過長。
 40,10444,三角冰冰品專賣店,db_current,2008,中式料理,,2781,4.6,defaulted_to_chinese;high_impact,人工確認主分類,推開三角冰的門，常能感受店員熱忱的招呼，這間陪伴許多人從學生時期走到職場的冰品店，始終維持著舒心的用餐氛圍。這裡的冰品細緻，茶香類的冰磚醬濃郁且甜度適中，如招牌的鐵觀音豆花，茶香氣韻在口中顯得柔和；而層次豐富的雙拼奶奶冰，中心藏著軟糯紅豆，搭配香草奶酪更能提升整碗冰的質感。店內空間精巧，尖峰時段或許會顯得有些緊湊，用餐後需請您自行回收碗盤。儘管夏天偶有排隊人潮，那份手工熬煮的配料與充滿溫度的麵茶湯圓，總值得您在酒足飯飽後，留下一段...
 40,10535,貓空清泉山莊 景點餐廳,db_current,2008,中式料理,親子,2425,4.5,defaulted_to_chinese;high_impact,人工確認主分類,踏進貓空清泉山莊，露台座位提供了一覽台北盆地的絕佳視角，隨日光移轉，從白晝的蔥鬱景致到入夜後的101閃爍燈火，空間氛圍既放鬆又溫暖。餐廳核心圍繞著在地鐵觀音文化，那鍋人氣極高的鐵觀音茶葉蛤蜊雞湯，以茶葉入湯烹煮，湯色清香甘醇，且能隨時續添熱湯；另一道烏龍茶香炒飯則透過茶末層次，帶出獨特的咀嚼香氣。服務人員節奏從容且親切，入座後便會送上熱騰騰的鐵觀音茶，讓上山的賓客緩解寒意，儘管部分料理如桂竹筍口味較重，但透過食材新鮮原味與熱誠接待...
 40,10686,勝魂丼飯專門店（丼飯.咖哩）,db_current,2008,中式料理,,1879,4.7,defaulted_to_chinese;high_impact,人工確認主分類,推開勝魂丼飯專門店的大門，點餐機自助點餐的節奏顯得明快。店內提供味噌湯、飲品與毛豆等自助吧選項，讓用餐體驗更具彈性。這裡的烤物如雞腿排需靜候片刻，入口能嚐到炙燒香氣；炸物部分則強調外皮酥脆且不顯油膩，適合喜歡口感鮮明的朋友。若喜愛咖哩，店內風格偏向日式甜味，建議可利用桌上的七味粉增添層次。需要留意的是，店內用餐節奏會隨現場人手調配而有所起伏，若遇尖峰時段，建議預留稍長的候餐時間，享受這份簡樸且熱騰騰的丼飯與咖哩風味。
-40,10546,非常泰 - 南港中信店,db_current,2008,中式料理,商務,1847,4.5,defaulted_to_chinese;high_impact,人工確認主分類,走進「非常泰」南港中信店，首先感受到的是整潔明亮的空間，無論是平日午間或聚會時段，服務人員皆保持親切熱忱，頻繁地為賓客補水並整理桌面，展現出俐落且細膩的節奏。餐點風格偏向大眾化的溫潤口感，像是酸辣海鮮湯處理得較為柔和順口，即便不擅長吃辣的賓客也能輕易嘗試。招牌菜色如月亮蝦餅能嚐到紮實的蝦肉口感，而紅藜飯則在視覺與口感上增添了細緻的變化。若喜愛下飯料理，綠咖哩雞與清蒸魚是不錯的選擇，搭配藏有驚喜配料的摩摩渣渣，為餐期畫下句點。整體環...
 40,10134,湘八老,db_current,2008,中式料理,,1760,4.3,defaulted_to_chinese;high_impact,人工確認主分類,湘八老承襲湘菜講究火候的傳統，以鑊氣十足的炒菜見長。招牌的富貴雙方保留了酥脆與香甜平衡的口感，而藤椒炸蛋則以半熟蛋液結合獨特麻香，成為許多饕客的心頭好。餐廳空間採通透設計，但也因缺乏吸音配置，在客滿時容易產生明顯的環境噪音。用餐節奏方面，若遇尖峰時段，上菜速度可能會顯得較為緩慢，建議計畫前往的顧客預先保留寬裕的用餐時間，並優先挑選單點菜色，以確保能品嚐到最符合個人口味的精準風味。
 40,10602,雲の咖哩屋,db_current,2008,中式料理,,1720,4.9,defaulted_to_chinese;high_impact,人工確認主分類,漫步至小巨蛋附近，這間咖哩屋總以濃郁香氣迎接著過路食客。店內咖哩醬體呈現厚重的深焙質地，入口後辛辣餘韻在舌尖綻放，非常下飯。特別推薦裹上墨魚粉炸製的唐揚雞，外皮酥香、肉質軟嫩，與飽滿多汁的炸牡蠣一同搭配，組成風味豐富的海陸拼盤。若想轉換味蕾，店家自製的柚香蘿蔔清爽解膩，酸甜滋味讓接續的炸物口感更顯輕盈。儘管店內時常座無虛席，節奏緊湊卻不顯凌亂，無論是想獨自享受濃郁咖哩的辛香，或是與朋友聚餐分食，都能在店內層次分明的餐點中感受到老闆...
 40,10157,春水堂 中正店,db_current,2008,中式料理,,1636,3.8,defaulted_to_chinese;high_impact,人工確認主分類,隱身於國家音樂廳地下一樓的春水堂，以其沈穩簡約的裝潢風格，成為藝文愛好者觀演前後的用餐首選。餐廳採用數位點餐系統，顧客入座後需至櫃檯完成結帳，建議預留充足時間，以免因排隊或不熟悉系統而壓縮候場節奏。招牌珍珠奶茶保留了珍珠細膩黏糯的口感，茶湯比例調和，帶有穩定的溫潤香氣；功夫麵則提供彈性的韭菜客製化調整，適合講究細節的用餐者。雖然部分時段人潮洶湧，服務人員依然會主動協助動線引導。餐點品質穩定，牛肉麵湯頭濃郁，紅油抄手香氣飽滿。整體而...
 40,10561,貓空 山中茶-景觀餐廳,db_current,2008,中式料理,親子、景觀,1548,4.5,defaulted_to_chinese;high_impact,人工確認主分類,漫步在貓空纜車站周邊的階梯，拾級而上來到山中茶，這裡是俯瞰台北盆地與眺望 101 大樓的絕佳據點。餐廳空間開闊且氣氛沉穩，最適合在天氣晴朗時，與親友一同入座，感受山區特有的靜謐。餐桌上，將茶葉巧思融入料理的獨特風味是招牌亮點，例如鳳梨苦瓜雞湯帶著溫熱暖意，口感紮實的避風塘排骨則鹹香下飯，搭配茶油麵線或清爽的涼拌過貓，簡單卻能嘗到食材原味。店家服務節奏自在，時而端上的茶凍等小驚喜，讓人在貓空一日遊或登山後，能獲得一頓飽足且從容的用餐時光。
 40,10471,隱世餐酒館(台北永春店),db_current,2008,中式料理,餐酒館,1528,4.6,defaulted_to_chinese;high_impact,人工確認主分類,隱世餐酒館位於台北永春，走進地下室後，開闊的用餐場域與環繞的音樂氛圍隨即映入眼簾。空間設計以舞台為核心，若置身於舞台正後方，能近距離感受歌手演出的感染力。這裡的餐點選擇多樣，像帶有辣味的大火快炒蛤蜊麵，以及口感酥脆的冰梅雞皆為店內特色。調酒部分，以古代酒杯盛裝的蒼穹之源酒感厚實，御白則呈現清爽酸甜調性。晚間用餐節奏輕快明確，採取限時制清場，適合三五好友在現場音樂的陪襯下聚會小酌，享受視聽感官體驗。服務方面，現場設有專人引導，並提供...
 40,10167,磚窯古早料理南港創始店,db_current,2008,中式料理,親子,1520,4.4,defaulted_to_chinese;high_impact,人工確認主分類,推開磚窯古早料理南港創始店的木門，彷彿瞬間踏入民國五〇年代的時光隧道。店內陳列的大同寶寶牆與玻璃櫃裡的懷舊柑仔店小物，為餐敘營造出濃厚的復古情調。招牌炸豬腳外皮呈現酥脆質感，內裡肉質彈牙飽滿；芋頭米粉湯則散發溫潤香氣，是不少熟客心中的必點首選。這裡的空間配置跨越樓層，適合攜帶長輩或三五好友小聚，不過在尖峰時刻，出餐節奏偶有波動，建議訂位時預先確認座位需求與餐點預訂，以確保用餐體驗更為順暢。
-40,10308,馬友友印度廚房內湖店,db_current,2008,中式料理,,1489,4.8,defaulted_to_chinese;high_impact,人工確認主分類,走進馬友友印度廚房內湖店，暖色調的裝潢營造出異國風味濃厚的聚餐氛圍，店內甚至備有拍照小道具，能感受到經營者的巧思。餐桌上，香氣四溢的烤餅是不可錯過的靈魂，餅皮烤得酥脆且富嚼勁，沾裹濃稠適中的咖哩品嚐尤為對味；其中起司口味烤餅更因會牽絲的口感備受好評。這裡提供豐富的香料咖哩與燒烤料理，服務人員態度親切且積極。不過，部分肉類料理的熟度與口感掌握尚有進步空間，且餐點份量精緻，適合多人前往點選多款菜色共享。餐後的瑪莎拉奶茶帶著濃郁薑與肉桂...
 40,10699,晴天廚房,db_current,2008,中式料理,,1464,4.7,defaulted_to_chinese;high_impact,人工確認主分類,推開門走進晴天廚房，溫馨的木質調空間將都市喧囂隔絕在外。店內主打現做的日式咖哩與定食，特色咖哩融合蔬菜的溫潤與獨特香氣，搭配份量紮實的唐揚雞，每一口都能感受食材的溫度。除了咖哩，帶有馬告清香的豬排與奶油基底的現烤花魚也是人氣選擇，隨餐附贈的味噌湯醇厚帶甜，為餐點增色不少。二樓用餐區寬敞舒適，採線上點餐方式，讓點餐過程更加流暢。不過，由於空間回音稍大，建議用餐時放低音量，並留意用餐尖峰時段的節奏，提前訂位更能確保擁有從容的用餐時光。
 40,10565,竣師父牛肉麵-大安店,db_current,2008,中式料理,,1433,4.5,defaulted_to_chinese;high_impact,人工確認主分類,推開竣師父牛肉麵的大安店門扉，映入眼簾的是僅有18席的精緻空間。雖為排隊名店，店員仍能各司其職，維持著忙碌卻客氣的服務節奏。這裡提供三種麵條選項，其中刀削麵口感厚實，吸飽湯汁後風味尤佳。紅燒湯頭帶有獨特的花椒椒麻氣息，而紅燒蕃茄款則呈現酸大於辣的清爽層次。最受矚目的清燉湯頭揉合了類似雞湯的濃郁與蔬菜清甜，往往提前售罄。店內設有完善的醬料區，廁所空間更貼心備有漱口水與除臭噴霧，展現細緻入微的用餐關懷。不過，用餐尖峰期需預留充裕的候位...
 40,10396,玖加酒華川餐館,db_current,2008,中式料理,親子,1311,4.7,defaulted_to_chinese;high_impact,人工確認主分類,推開玖加酒華川餐館的大門，親切的招呼聲即刻消弭了初訪的生疏感。店內空間寬敞明亮，流動著熱絡的用餐節奏，無論是闔家歡聚還是三五好友小酌，這裡都能提供自在的互動氛圍。主廚對川味的掌握精準，招牌酸菜魚選用烏鱧魚片，魚肉滑嫩細緻，底蘊深厚的湯頭融合了四川闆娘親自監製的酸菜與辣椒，交織出層次分明的酸香麻韻。不僅口味獨特，師傅對於份量拿捏也十分慷慨，每一道端上桌的佳餚都讓人忍不住想迅速動筷。從外帶年菜到內用聚餐，這裡始終保持著穩定的出品水準，...
@@ -325,5 +242,7 @@ priority,shop_id,name,primary_type,assigned_type_id,assigned_category,tags,comme
 40,10667,Haooyun Station 好運站,db_current,2008,中式料理,親子,252,4.8,defaulted_to_chinese;high_impact,人工確認主分類,推開門走進 Haooyun Station，映入眼簾的是充滿活力的空間，陽光穿過窗戶灑落，讓室內拍攝顯得格外溫暖且具有生命力。這裡不僅是餐館，更是鄰里間放鬆的聚點，博美店狗「妹妹」會在店內自在穿梭，親人又穩定的個性總能融化客人的心。餐點設計融合了家常溫馨感與細緻手藝，像是以厚切酸種麵包為基底的餐盤，結合了吻仔魚的鮮甜與爽脆時蔬；而選用台灣黑豬肉的厚捲蛋餅，搭配紮實蔥油餅皮與蒜蓉醬油，層次感極佳。對於帶著毛小孩的客人，店主不僅備有親...
 30,10113,KiKi餐廳（ATT 4 FUN信義店）,db_current,2008,中式料理,親子、景觀,533,4.1,defaulted_to_chinese,人工確認主分類,坐落於 ATT 4 FUN 的 KiKi 餐廳，擁有開闊的落地窗景觀，能將信義區繁華盡收眼底。餐廳空間設計寬敞舒適，步入其中便能感受到明亮且現代的用餐環境，十分適合朋友與家人聚餐。這裡的出餐節奏明快，服務人員在忙碌中仍能維持補水頻率，整體用餐節奏流暢。招牌老皮嫩肉炸得外酥內軟，吸滿醬汁後的口感層次分明；而蒼蠅頭則帶有鮮明的韭菜香氣與脆口碎肉，相當下飯。雖然部分菜色調味因師傅手法或個人口味差異，偶有濃淡不一的反饋，但整體餐點精緻且份...
 22,10579,燒肉眾精緻炭火燒肉 台北西門店,db_current,2002,日式燒肉,韓式,11159,4.9,korean_tag_review;high_impact,保留分類，確認 tags 是否完整,韓式 tag
+22,10158,大樹先生的家,db_current,2007,義法料理,親子,3700,4.2,korean_tag_review;high_impact,檢查是否應改為 日式料理 (2004)；命中：烏龍麵,韓式 tag
 22,10382,神來一爐燒肉民生店,db_current,2002,日式燒肉,韓式,2018,4.7,korean_tag_review;high_impact,保留分類，確認 tags 是否完整,韓式 tag
 22,10648,IKIGAI燒肉專門店-微風百貨店,db_current,2002,日式燒肉,韓式、約會、親子,1281,4.8,korean_tag_review;high_impact,保留分類，確認 tags 是否完整,韓式 tag
+22,10485,蘋果肉桂 Café & Bistro,db_current,2012,咖啡/甜點,早午餐、韓式、義式、餐酒館、約會,1124,4.6,korean_tag_review;high_impact,檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利,韓式 tag

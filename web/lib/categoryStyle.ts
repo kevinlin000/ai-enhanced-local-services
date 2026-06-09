@@ -93,6 +93,12 @@ const MAP: Record<string, Style> = {
     accentBg: "bg-blue-50",
     label: "義法料理",
   },
+  international: {
+    icon: Utensils,
+    gradient: "from-teal-100 to-cyan-50",
+    accentBg: "bg-teal-50",
+    label: "異國料理",
+  },
   cafe: {
     icon: Coffee,
     gradient: "from-amber-100 to-stone-50",

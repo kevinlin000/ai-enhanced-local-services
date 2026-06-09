@@ -50,6 +50,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   european: "義法 / 西式",
   chinese: "中式料理",
   korean: "韓式料理",
+  international: "異國料理",
   brunch: "美式料理",
   "fine-dining": "高級餐廳",
   "cafe-premium": "甜點 / 咖啡",

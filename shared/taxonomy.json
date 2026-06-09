@@ -3,20 +3,21 @@
     "version": 1,
     "description": "Single source of truth for ByteBites taxonomy: categories / badges / tags. Both web (Next.js) and ai-service-python MUST read from this file. Do not hand-copy values into either codebase.",
     "source_of_truth": true,
-    "aligned_with": ["docs/taxonomy-spec.md", "db/migration/V15", "db/migration/V16"]
+    "aligned_with": ["docs/taxonomy-spec.md", "db/migration/V15", "db/migration/V16", "db/migration/V32", "db/migration/V33"]
   },
   "categories": [
     { "type_id": 2008, "slug": "chinese",    "name": "中式料理", "sort": 1 },
     { "type_id": 2001, "slug": "hotpot",     "name": "火鍋",     "sort": 2 },
     { "type_id": 2010, "slug": "american",   "name": "美式料理", "sort": 3 },
     { "type_id": 2009, "slug": "korean",     "name": "韓式料理", "sort": 4 },
-    { "type_id": 2007, "slug": "euro",       "name": "義法料理", "sort": 5 },
-    { "type_id": 2012, "slug": "cafe",       "name": "咖啡/甜點", "sort": 6 },
-    { "type_id": 2002, "slug": "yakiniku",   "name": "日式燒肉", "sort": 7 },
-    { "type_id": 2011, "slug": "buffet",     "name": "自助餐",   "sort": 8 },
-    { "type_id": 2005, "slug": "vegetarian", "name": "素食",     "sort": 9 },
-    { "type_id": 2003, "slug": "izakaya",    "name": "居酒屋",   "sort": 10 },
-    { "type_id": 2004, "slug": "japanese",   "name": "日式料理", "sort": 11 }
+    { "type_id": 2013, "slug": "international", "name": "異國料理", "sort": 5 },
+    { "type_id": 2007, "slug": "euro",       "name": "義法料理", "sort": 6 },
+    { "type_id": 2012, "slug": "cafe",       "name": "咖啡/甜點", "sort": 7 },
+    { "type_id": 2002, "slug": "yakiniku",   "name": "日式燒肉", "sort": 8 },
+    { "type_id": 2011, "slug": "buffet",     "name": "自助餐",   "sort": 9 },
+    { "type_id": 2005, "slug": "vegetarian", "name": "素食",     "sort": 10 },
+    { "type_id": 2003, "slug": "izakaya",    "name": "居酒屋",   "sort": 11 },
+    { "type_id": 2004, "slug": "japanese",   "name": "日式料理", "sort": 12 }
   ],
   "reserved_type_ids": [
     { "type_id": 2006, "name": "牛排館",   "status": "reserved", "reason": "retired to #牛排 tag; reusable if promoted" }
@@ -31,6 +32,9 @@
     { "code": "吃到飽",   "slug": "allyoucaneat",  "name": "吃到飽",  "group": "format" },
     { "code": "牛排",    "slug": "steak",         "name": "牛排",    "group": "cuisine" },
     { "code": "韓式",    "slug": "korean",        "name": "韓式",    "group": "cuisine" },
+    { "code": "印度",    "slug": "indian",        "name": "印度",    "group": "cuisine" },
+    { "code": "泰式",    "slug": "thai",          "name": "泰式",    "group": "cuisine" },
+    { "code": "中東",    "slug": "middle_eastern","name": "中東",    "group": "cuisine" },
     { "code": "法式",    "slug": "french",        "name": "法式",    "group": "cuisine" },
     { "code": "義式",    "slug": "italian",       "name": "義式",    "group": "cuisine" },
     { "code": "餐酒館",   "slug": "bistro",        "name": "餐酒館",  "group": "cuisine" },

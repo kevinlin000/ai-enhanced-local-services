@@ -23,7 +23,7 @@ APPROVED_PRIMARY_TYPE_IDS = {
     10135: 2008, 10136: 2010, 10137: 2001, 10138: 2007, 10139: 2005, 10140: 2010,
     10141: 2008, 10142: 2010, 10143: 2008, 10144: 2001, 10145: 2008, 10146: 2008,
     10147: 2008, 10148: 2008, 10149: 2007, 10150: 2012, 10151: 2012, 10152: 2001,
-    10153: 2008, 10154: 2008, 10155: 2008, 10156: 2001, 10157: 2008, 10158: 2010,
+    10153: 2008, 10154: 2008, 10155: 2008, 10156: 2001, 10157: 2008, 10158: 2007,
     10159: 2007, 10160: 2008, 10161: 2008, 10162: 2001, 10163: 2011, 10164: 2008,
     10165: 2009, 10166: 2001, 10167: 2008, 10168: 2001, 10169: 2005, 10170: 2005,
     10171: 2002, 10172: 2001, 10173: 2002, 10174: 2012, 10175: 2002, 10176: 2011,
@@ -98,6 +98,38 @@ def test_classifier_korean_restaurant_maps_to_korean_primary_category():
     })
     assert result["primary_type_id"] == 2009
     assert "韓式" in result["tags"]
+
+
+def test_classifier_indian_restaurant_maps_to_international_category():
+    result = classify_shop({
+        "display_name": "亞瑟蘭印度餐廳",
+        "primary_type": "indian_restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "印度料理、烤餅、瑪莎拉與清真餐點。"},
+    })
+    assert result["primary_type_id"] == 2013
+    assert "印度" in result["tags"]
+
+
+def test_manual_audit_override_beats_conflicting_keywords():
+    result = classify_shop({
+        "display_name": "溫咖哩 Wen Curry",
+        "primary_type": "restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "日式咖哩與牛排套餐。"},
+    })
+    assert result["primary_type_id"] == 2004
+
+
+def test_manual_no_korean_tag_override_suppresses_keyword_tag():
+    result = classify_shop({
+        "display_name": "TankQ cafe&Bar忠孝敦化店",
+        "primary_type": "restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "美式餐點、義大利麵與韓式炸雞風味小點。"},
+    })
+    assert result["primary_type_id"] == 2010
+    assert "韓式" not in result["tags"]
 
 
 def test_classifier_fixture_10104_buffet_premium():
@@ -238,8 +270,31 @@ def test_taxonomy_audit_does_not_flag_high_impact_only_rows():
                 },
             },
         },
-        {2002: "日式燒肉", 2008: "中式料理", 2009: "韓式料理"},
+        {2002: "日式燒肉", 2008: "中式料理", 2009: "韓式料理", 2013: "異國料理"},
     )
 
     assert [row.shop_id for row in rows] == [2]
     assert "korean_tag_review" in rows[0].flags
+
+
+def test_taxonomy_audit_suppresses_manually_verified_conflicts():
+    rows = build_audit_rows(
+        {
+            1: {
+                "shop_id": 1,
+                "display_name": "溫咖哩 Wen Curry",
+                "current_type_id": 2004,
+                "comments": 5000,
+                "score": 48,
+                "db_tags": [],
+                "ai_extracted": {
+                    "ai_summary": "日式咖哩與牛排套餐。",
+                    "signature_dishes": ["咖哩", "牛排"],
+                    "atmosphere_tags": ["約會"],
+                },
+            },
+        },
+        {2004: "日式料理", 2010: "美式料理"},
+    )
+
+    assert rows == []

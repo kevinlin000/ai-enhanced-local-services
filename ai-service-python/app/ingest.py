@@ -15,21 +15,16 @@ from qdrant_client.models import Distance, PointStruct, VectorParams
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.main import settings
+from app.taxonomy import get_slug_by_type_id
 
-TYPE_ID_TO_CATEGORY = {
-    2001: "hotpot",
-    2002: "yakiniku",
-    2003: "izakaya",
-    2004: "japanese",
-    2005: "omakase",
-    2006: "steakhouse",
-    2007: "european",
-    2008: "chinese",
-    2009: "korean",
-    2010: "brunch",
-    2011: "fine-dining",
-    2012: "cafe-premium",
-}
+
+def _category_slug_for_type(type_id: int | None) -> str | None:
+    if type_id is None:
+        return None
+    try:
+        return get_slug_by_type_id(int(type_id))
+    except (TypeError, ValueError):
+        return None
 
 
 def _parse_json_list(raw) -> list[str]:
@@ -99,7 +94,7 @@ async def fetch_all_shops() -> list[dict]:
 
         enriched = []
         for shop in deduped.values():
-            category_slug = TYPE_ID_TO_CATEGORY.get(shop.get("typeId"))
+            category_slug = _category_slug_for_type(shop.get("typeId"))
             try:
                 meta_resp = await client.get(f"{settings.java_backend_url}/api/shop/{shop['id']}/ai-metadata")
                 metadata = meta_resp.json().get("data") if meta_resp.status_code == 200 else None

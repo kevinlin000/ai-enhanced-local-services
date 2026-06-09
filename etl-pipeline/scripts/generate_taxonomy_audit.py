@@ -44,6 +44,7 @@ CATEGORY_REASON = {
     2010: ("美式料理", taxonomy.BRUNCH_KEYWORDS | taxonomy.STEAK_TAG_KEYWORDS),
     2011: ("自助餐", taxonomy.BUFFET_KEYWORDS),
     2012: ("咖啡/甜點", taxonomy.CAFE_KEYWORDS),
+    2013: ("異國料理", taxonomy.INTERNATIONAL_KEYWORDS),
 }
 
 HIGH_IMPACT_MIN_COMMENTS = 600
@@ -244,6 +245,17 @@ def suggestion_from_matches(assigned_type_id: int, matches: list[tuple[int, str,
     return f"檢查是否應改為 {name} ({type_id})；命中：{'、'.join(hits)}"
 
 
+def manual_audit_type_id(text: str) -> int | None:
+    for keyword, type_id in taxonomy.MANUAL_AUDIT_PRIMARY_OVERRIDES:
+        if keyword.lower() in text:
+            return type_id
+    return None
+
+
+def suppress_korean_tag_review(text: str) -> bool:
+    return any(keyword.lower() in text for keyword in taxonomy.MANUAL_NO_KOREAN_TAG_OVERRIDES)
+
+
 def build_audit_rows(shops: dict[int, dict], category_names: dict[int, str]) -> list[AuditRow]:
     rows: list[AuditRow] = []
     for shop_id, shop in sorted(shops.items()):
@@ -256,6 +268,8 @@ def build_audit_rows(shops: dict[int, dict], category_names: dict[int, str]) -> 
         text = taxonomy._build_text_blob(shop)
         primary_type = str(shop.get("primary_type") or "")
         matches = category_matches(text)
+        verified_type_id = manual_audit_type_id(text)
+        is_manually_verified = verified_type_id == assigned_type_id
         flags: list[str] = []
         evidence_parts: list[str] = []
 
@@ -277,6 +291,8 @@ def build_audit_rows(shops: dict[int, dict], category_names: dict[int, str]) -> 
 
         has_korean_primary_match = any(item[0] == 2009 for item in matches)
         conflict_matches = [item for item in matches if item[0] != assigned_type_id]
+        if is_manually_verified:
+            conflict_matches = []
         if assigned_type_id == 2009 and has_korean_primary_match:
             conflict_matches = []
         if conflict_matches:
@@ -285,10 +301,14 @@ def build_audit_rows(shops: dict[int, dict], category_names: dict[int, str]) -> 
                 f"{name}:{'、'.join(hits)}" for _, name, hits in conflict_matches[:3]
             )
 
-        if assigned_type_id == 2008 and not keyword_hits(text, taxonomy.CHINESE_KEYWORDS):
+        if assigned_type_id == 2008 and not is_manually_verified and not keyword_hits(text, taxonomy.CHINESE_KEYWORDS):
             flags.append("defaulted_to_chinese")
 
-        if assigned_type_id != 2009 and ("韓式" in tags or keyword_hits(text, taxonomy.KOREAN_TAG_KEYWORDS)):
+        if (
+            assigned_type_id != 2009
+            and not suppress_korean_tag_review(text)
+            and ("韓式" in tags or keyword_hits(text, taxonomy.KOREAN_TAG_KEYWORDS))
+        ):
             flags.append("korean_tag_review")
             evidence_parts.append("韓式 tag")
 
@@ -395,6 +415,7 @@ def write_markdown(rows: list[AuditRow], shops: dict[int, dict], category_names:
         "",
         "- Keep `日式料理` as a Japanese-only primary category.",
         "- Use `韓式料理` as a dedicated primary category for clearly Korean restaurants.",
+        "- Use `異國料理` for Indian, Thai, Middle Eastern, Vietnamese, Mexican, and similar cuisines instead of forcing them into `中式料理` or `義法料理`.",
         "- Keep the `韓式` tag for compatibility and mixed-format restaurants, but do not use `日韓料理` as a combined category.",
         "- Review high-priority rows first, then add classifier overrides or DB migrations for confirmed fixes.",
         "",

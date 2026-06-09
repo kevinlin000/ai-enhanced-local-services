@@ -212,6 +212,7 @@ CATEGORY_HINTS = {
     "euro": {"義式", "法式", "義法", "歐陸", "義大利麵", "pasta", "pizza", "披薩"},
     "chinese": {"中菜", "中式", "台菜", "熱炒", "烤鴨", "港式", "粵菜", "川菜", "滬菜", "港點", "小籠包", "湯包", "上海湯包", "牛肉麵", "鵝肉"},
     "korean": {"韓式", "韓國料理", "豆腐鍋"},
+    "international": {"異國料理", "印度料理", "泰式", "泰國菜", "越南料理", "中東料理", "墨西哥料理"},
     "vegetarian": {"素食", "蔬食", "全素", "蛋奶素", "vegan", "vegetarian"},
     "fine-dining": {"高級餐廳", "高檔餐廳", "fine dining", "精緻料理", "鐵板燒"},
     "cafe": {"咖啡", "咖啡廳", "下午茶", "甜點"},
@@ -227,6 +228,7 @@ CATEGORY_FALLBACK_KEYWORDS = {
     "euro": {"義大利麵", "燉飯", "牛小排燉飯", "法式", "歐陸", "pasta", "pizza", "披薩"},
     "chinese": {"台菜", "熱炒", "烤鴨", "粵菜", "川菜", "滬菜", "港點", "中菜", "小籠包", "湯包", "上海湯包", "牛肉麵", "鵝肉"},
     "korean": {"韓式", "豆腐鍋", "炸雞", "石鍋拌飯"},
+    "international": {"異國料理", "印度", "泰式", "泰國", "越南", "中東", "以色列", "墨西哥", "清真", "halal", "hummus"},
     "vegetarian": {"素食", "蔬食", "全素", "蛋奶素", "vegan", "vegetarian"},
     "fine-dining": {"fine dining", "高級餐廳", "高檔餐廳", "套餐", "品酒", "鐵板燒"},
     "cafe": {"咖啡", "拿鐵", "手沖", "甜點", "下午茶", "蛋糕"},
@@ -3751,6 +3753,8 @@ def _category_label_for_constraints(constraints: dict) -> str:
         return "美式餐廳"
     if "korean" in categories:
         return "韓式餐廳"
+    if "international" in categories:
+        return "異國料理餐廳"
     return "餐廳"
 
 
@@ -5253,6 +5257,7 @@ def _category_from_shop(shop: dict) -> str:
         "euro": "義法料理",
         "chinese": "中式料理",
         "korean": "韓式料理",
+        "international": "異國料理",
         "vegetarian": "蔬食",
         "cafe": "咖啡甜點",
     }.get(slug or "", "")
