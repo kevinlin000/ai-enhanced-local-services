@@ -371,9 +371,12 @@ def test_prefer_rich_hits_returns_empty_when_only_legacy_seed_matches():
 
 def test_specific_shop_keyword_ignores_vague_or_time_only_followups():
     assert main._specific_shop_keyword("那我要青田七六好了") == "青田七六"
+    assert main._specific_shop_keyword("？你怎麼推薦這個？我要青田七六") == "青田七六"
     assert main._specific_shop_keyword("明天 晚上") == ""
     assert main._specific_shop_keyword("推薦7人聚餐餐廳") == ""
     assert main._specific_shop_keyword("大安區，適合聊天") == ""
+    assert main._restaurant_need_clarification("推薦7人聚餐餐廳")
+    assert not main._restaurant_need_clarification("推薦7人聚餐餐廳，大安區，適合聊天")
 
 
 @pytest.mark.anyio
@@ -394,6 +397,68 @@ async def test_web_agent_stream_clarifies_vague_group_need(monkeypatch):
     done = events[-1]
     assert done["tools_used"] == []
     assert "收斂方向" in done["answer"]
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_merges_clarification_followup(monkeypatch):
+    captured = {}
+
+    class EmptyResponse:
+        text = "我先整理。"
+
+        class Candidate:
+            class Content:
+                parts = []
+
+            content = Content()
+
+        candidates = [Candidate()]
+
+    async def fake_tool_semantic_search(query: str):
+        captured["query"] = query
+        return {
+            "shops": [
+                {
+                    "shop_id": 10101,
+                    "name": "大安聊天餐館",
+                    "district": "大安",
+                    "ai_summary": "座位寬敞，適合多人聊天。",
+                }
+            ]
+        }
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {"role": "user", "content": "推薦7人聚餐餐廳"},
+            {"role": "model", "content": main._restaurant_clarification_text()},
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: EmptyResponse())
+    monkeypatch.setattr(main, "tool_semantic_search", fake_tool_semantic_search)
+    monkeypatch.setattr(
+        main,
+        "_build_agent_recommendation_decision",
+        lambda query, tool_result: main.AgentRecommendationDecision(
+            recommended_shop_ids=[10101],
+            narrative="我會優先看大安聊天餐館。",
+            rejected_shop_ids=[],
+        ),
+    )
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "大安區，適合聊天",
+            "test-clarify-followup",
+        )
+    ]
+
+    done = events[-1]
+    assert captured["query"] == "推薦7人聚餐餐廳，補充條件：大安區，適合聊天"
+    assert done["recommended_shop_ids"] == [10101]
 
 
 @pytest.mark.anyio
@@ -991,6 +1056,62 @@ async def test_line_specific_shop_name_returns_only_that_shop(monkeypatch):
     bubbles = messages[1]["contents"]["contents"]
     assert len(bubbles) == 1
     assert bubbles[0]["body"]["contents"][1]["text"] == "青田七六"
+
+
+@pytest.mark.anyio
+async def test_line_booking_followup_uses_selected_single_shop(monkeypatch):
+    async def fake_fetch_java_shop(shop_id: int):
+        return {"id": shop_id, "name": "青田七六"}
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "青田七六", "shown_shop_ids": [10222]},
+    )
+    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
+    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "明天晚上19點 4人"},
+        }
+    )
+
+    assert "青田七六" in messages[0]["text"]
+    assert "2026-06-11 19:00、4 人" in messages[0]["text"]
+    assert "/line/book/10222?" in messages[0]["text"]
+    assert "people=4" in messages[0]["text"]
+
+
+@pytest.mark.anyio
+async def test_line_booking_followup_asks_people_when_missing(monkeypatch):
+    async def fake_fetch_java_shop(shop_id: int):
+        return {"id": shop_id, "name": "青田七六"}
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "青田七六", "shown_shop_ids": [10222]},
+    )
+    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
+    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "明天晚上"},
+        }
+    )
+
+    assert "還缺人數" in messages[0]["text"]
+    assert "2026-06-11 19:00" in messages[0]["text"]
 
 
 @pytest.mark.anyio

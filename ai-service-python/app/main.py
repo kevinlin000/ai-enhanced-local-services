@@ -703,6 +703,12 @@ def _restaurant_need_clarification(query: str) -> bool:
     constraints = _extract_query_constraints(normalized)
     if constraints["categories"] or constraints.get("wants_burger") or constraints.get("specific_cuisines"):
         return False
+    has_location = bool(constraints["districts"] or constraints["stations"])
+    has_people = bool(re.search(r"[一二三四五六七八九十\d]+人", normalized))
+    has_datetime = bool(re.search(r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|早午餐|下午|[0-2]?\d[:：點時])", normalized))
+    has_specific_context = bool(re.search(r"(聊天|約會|請客|慶生|商務|安靜|家庭|長輩|包廂)", normalized))
+    if has_location and (has_people or has_datetime or has_specific_context):
+        return False
     has_restaurant_phrase = any(
         phrase in normalized
         for phrase in ("推薦", "找", "想吃", "想找", "餐廳", "店", "聚餐", "吃飯", "用餐", "約會", "請客", "聊天", "慶生")
@@ -720,7 +726,12 @@ def _restaurant_clarification_text() -> str:
 
 
 def _strip_specific_shop_keyword(text: str) -> str:
-    normalized = re.sub(r"\s+", "", str(text or "").strip())
+    raw = str(text or "").strip()
+    intent_match = re.search(
+        r"(?:我要訂|我想訂|想訂|幫我訂|我要|我想要|選|改成|換成)([^，,。.!！?？\n]{2,32})",
+        raw,
+    )
+    normalized = re.sub(r"\s+", "", intent_match.group(1) if intent_match else raw)
     normalized = normalized.strip("，,。.!！?？")
     normalized = re.sub(r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|下午|早午餐|下週[一二三四五六日天]?|週[一二三四五六日天])", "", normalized)
     normalized = re.sub(r"[0-2]?\d[:：點時](半|[0-5]?\d分?)?", "", normalized)
@@ -775,6 +786,52 @@ def _specific_shop_keyword(text: str) -> str:
 
 def _normalized_name(value: str) -> str:
     return re.sub(r"[\s｜|\-－_（）()·・.,，。!！?？]+", "", str(value or "").lower())
+
+
+def _last_clarified_restaurant_query(history: list[dict]) -> str:
+    if not history:
+        return ""
+    for index in range(len(history) - 1, 0, -1):
+        current = history[index]
+        previous = history[index - 1]
+        if current.get("role") != "model" or previous.get("role") != "user":
+            continue
+        if "收斂方向" not in str(current.get("content") or ""):
+            continue
+        query = str(previous.get("content") or "").strip()
+        if query and _restaurant_need_clarification(query):
+            return query
+    return ""
+
+
+def _query_can_complete_clarification(query: str) -> bool:
+    normalized = str(query or "").strip()
+    if not normalized or _restaurant_need_clarification(normalized):
+        return False
+    if _booking_intent(normalized) or _payment_intent(normalized):
+        return False
+    if _specific_shop_keyword(normalized):
+        return False
+    constraints = _extract_query_constraints(normalized)
+    return bool(
+        constraints["districts"]
+        or constraints["stations"]
+        or constraints["categories"]
+        or constraints.get("specific_cuisines")
+        or constraints.get("wants_burger")
+        or re.search(r"(聊天|約會|請客|慶生|商務|安靜|家庭|長輩|包廂|[一二三四五六七八九十\d]+人)", normalized)
+    )
+
+
+def _effective_agent_query(query: str, history: list[dict]) -> str:
+    previous_query = _last_clarified_restaurant_query(history)
+    if previous_query and _query_can_complete_clarification(query):
+        return _line_merge_followup_query(previous_query, query)
+    return query
+
+
+def _agent_should_force_search(query: str) -> bool:
+    return bool(_specific_shop_keyword(query) or _line_should_force_recommendation_cards(query))
 
 
 def _authoritative_category_slug(payload: dict) -> str:
@@ -3004,11 +3061,12 @@ def _after_tool_call(
 
 async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], dict]:
     history = session_store.load_history(session_id) if session_id else []
-    contents = _history_to_contents(history, query)
-    state = AgentToolState(query=query, session_id=session_id, history=history, contents=contents)
+    effective_query = _effective_agent_query(query, history)
+    contents = _history_to_contents(history, effective_query)
+    state = AgentToolState(query=effective_query, session_id=session_id, history=history, contents=contents)
     final_answer = ""
 
-    if _restaurant_need_clarification(query):
+    if _restaurant_need_clarification(effective_query):
         final_answer = _restaurant_clarification_text()
         if session_id:
             session_store.save_history(
@@ -3038,6 +3096,10 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
                 break
 
         if not function_call:
+            if not state.tools_used and _agent_should_force_search(effective_query):
+                tool_result = await tool_semantic_search(effective_query)
+                _after_tool_call(state, "semantic_shop_search", tool_result)
+                break
             final_answer = filter_output(response.text)
             break
 
@@ -3070,9 +3132,9 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
         final_answer = filter_output(final.text)
 
     if state.last_tool_result.get("shops"):
-        decision = _build_agent_recommendation_decision(query, state.last_tool_result)
+        decision = _build_agent_recommendation_decision(effective_query, state.last_tool_result)
         state.last_tool_result = await _enrich_agent_search_result(
-            query,
+            effective_query,
             state.last_tool_result,
             decision.recommended_shop_ids,
         )
@@ -3279,12 +3341,13 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
     - Zero-tool-call path: sync answer chunked at character level (fast response, streaming moot)
     """
     history = session_store.load_history(session_id) if session_id else []
-    contents = _history_to_contents(history, query)
-    state = AgentToolState(query=query, session_id=session_id, history=history, contents=contents)
+    effective_query = _effective_agent_query(query, history)
+    contents = _history_to_contents(history, effective_query)
+    state = AgentToolState(query=effective_query, session_id=session_id, history=history, contents=contents)
     direct_answer: str | None = None
     yield {"type": "turn_start", "query": query, "session_id": session_id}
 
-    if _explicit_same_day_booking_request(query):
+    if _explicit_same_day_booking_request(effective_query):
         full_answer = _same_day_booking_policy_answer()
         chunk_size = 18
         for i in range(0, len(full_answer), chunk_size):
@@ -3311,7 +3374,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
         yield done_payload
         return
 
-    if _restaurant_need_clarification(query):
+    if _restaurant_need_clarification(effective_query):
         full_answer = _restaurant_clarification_text()
         chunk_size = 18
         for i in range(0, len(full_answer), chunk_size):
@@ -3357,16 +3420,16 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
 
         if not function_call:
             if not state.tools_used:
-                if _line_should_force_recommendation_cards(query):
+                if _agent_should_force_search(effective_query):
                     tool_name = "semantic_shop_search"
-                    tool_args = {"query": query}
+                    tool_args = {"query": effective_query}
                     yield {
                         "type": "tool_execution_start",
                         "name": tool_name,
                         "args": tool_args,
                         "session_id": session_id,
                     }
-                    tool_result = await tool_semantic_search(query)
+                    tool_result = await tool_semantic_search(effective_query)
                     _after_tool_call(state, tool_name, tool_result)
                     yield {
                         "type": "tool_execution_end",
@@ -3378,7 +3441,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                     break
                 # Zero tool calls — answer already computed; fast path, chunk as-is
                 direct_answer = filter_output(response.text)
-                if _booking_intent(query):
+                if _booking_intent(effective_query):
                     duplicate_transaction = _latest_successful_booking_transaction(history)
                     if duplicate_transaction and (
                         str(duplicate_transaction.get("booking_code") or "") in direct_answer
@@ -3442,13 +3505,13 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             state.final_transaction = transaction
             state.last_tool_result["transaction"] = transaction
         else:
-            clarification = _booking_branch_clarification_from_search(query, state.last_tool_result)
+            clarification = _booking_branch_clarification_from_search(effective_query, state.last_tool_result)
             if clarification:
                 full_answer = clarification
             else:
-                decision = _build_agent_recommendation_decision(query, state.last_tool_result)
+                decision = _build_agent_recommendation_decision(effective_query, state.last_tool_result)
                 state.last_tool_result = await _enrich_agent_search_result(
-                    query,
+                    effective_query,
                     state.last_tool_result,
                     decision.recommended_shop_ids,
                 )
@@ -4878,6 +4941,8 @@ def _line_card_request_intent(text: str) -> bool:
 
 
 def _line_selection_token(text: str) -> str:
+    if _line_booking_followup_intent(text):
+        return ""
     specific = _specific_shop_keyword(text)
     if specific:
         return specific
@@ -5304,6 +5369,108 @@ def _line_merge_followup_query(previous_query: str, user_text: str) -> str:
     return f"{previous_query}，補充條件：{normalized}"
 
 
+def _zh_number_to_int(value: str) -> int | None:
+    digits = re.sub(r"\D", "", value)
+    if digits:
+        try:
+            return int(digits)
+        except ValueError:
+            return None
+    mapping = {"一": 1, "二": 2, "兩": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+    if value == "十":
+        return 10
+    if value.startswith("十") and len(value) == 2:
+        return 10 + mapping.get(value[1], 0)
+    if value.endswith("十") and len(value) == 2:
+        return mapping.get(value[0], 0) * 10
+    if "十" in value and len(value) == 3:
+        return mapping.get(value[0], 0) * 10 + mapping.get(value[2], 0)
+    return mapping.get(value)
+
+
+def _line_booking_prefill_from_text(text: str) -> dict:
+    normalized = str(text or "").strip()
+    today = taipei_today()
+    booking_date = ""
+    if "後天" in normalized:
+        booking_date = (today + timedelta(days=2)).isoformat()
+    elif "明天" in normalized or "明晚" in normalized:
+        booking_date = (today + timedelta(days=1)).isoformat()
+
+    booking_time = ""
+    explicit_time = re.search(r"([0-2]?\d)[:：]([0-5]\d)", normalized)
+    if explicit_time:
+        hour = int(explicit_time.group(1))
+        minute = int(explicit_time.group(2))
+        booking_time = f"{hour:02d}:{minute:02d}"
+    else:
+        hour_match = re.search(r"([0-2]?\d)點", normalized)
+        if hour_match:
+            hour = int(hour_match.group(1))
+            if hour <= 11 and any(token in normalized for token in ("晚", "晚上", "晚餐")):
+                hour += 12
+            booking_time = f"{hour:02d}:00"
+        elif any(token in normalized for token in ("晚上", "晚餐", "明晚")):
+            booking_time = "19:00"
+        elif any(token in normalized for token in ("中午", "午餐")):
+            booking_time = "12:00"
+
+    people = None
+    people_match = re.search(r"([一二兩三四五六七八九十\d]{1,3})\s*人", normalized)
+    if people_match:
+        people = _zh_number_to_int(people_match.group(1))
+        if people is not None:
+            people = min(12, max(1, people))
+
+    return {"date": booking_date, "time": booking_time, "people": people}
+
+
+def _line_booking_followup_intent(text: str) -> bool:
+    prefill = _line_booking_prefill_from_text(text)
+    return bool(prefill.get("date") or prefill.get("time") or prefill.get("people"))
+
+
+async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dict] | None:
+    if not _line_booking_followup_intent(user_text):
+        return None
+    state = _load_line_recommendation_state(user_id)
+    shown_ids = [
+        int(shop_id)
+        for shop_id in state.get("shown_shop_ids", [])
+        if str(shop_id).isdigit()
+    ]
+    if not shown_ids:
+        return None
+    if len(shown_ids) > 1:
+        return [build_text_message("我收到日期/時間了。請先回覆要訂哪一間店名，避免幫你訂錯餐廳。")]
+
+    shop_id = shown_ids[0]
+    prefill = _line_booking_prefill_from_text(user_text)
+    booking_date = str(prefill.get("date") or (taipei_today() + timedelta(days=1)).isoformat())
+    booking_time = str(prefill.get("time") or "19:00")
+    people = prefill.get("people")
+    line_token = _line_token_for_user(user_id)
+    booking_uri = _line_public_uri(
+        f"/line/book/{shop_id}?date={quote_plus(booking_date)}&time={quote_plus(booking_time)}"
+        f"&people={quote_plus(str(people or 2))}&lt={quote_plus(line_token)}"
+    )
+    shop = await _fetch_java_shop(shop_id)
+    shop_name = str((shop or {}).get("name") or f"店家 {shop_id}")
+    if people is None:
+        return [
+            build_text_message(
+                f"我已鎖定「{shop_name}」，並先帶入 {booking_date} {booking_time}。"
+                f"還缺人數；你可以回覆「4人」，或直接點這裡填表：{booking_uri}"
+            )
+        ]
+    return [
+        build_text_message(
+            f"我已鎖定「{shop_name}」，訂位表已帶入 {booking_date} {booking_time}、{people} 人。"
+            f"請點這裡確認並送出：{booking_uri}"
+        )
+    ]
+
+
 async def _build_line_reply_messages(event: dict) -> list[dict]:
     event_type = event.get("type")
     source = event.get("source") or {}
@@ -5356,6 +5523,10 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     named_selection_messages = await _build_line_named_selection_cards(user_text, user_id)
     if named_selection_messages is not None:
         return named_selection_messages
+
+    booking_followup_messages = await _build_line_booking_followup(user_text, user_id)
+    if booking_followup_messages is not None:
+        return booking_followup_messages
 
     clarification_messages = await _build_line_clarification_if_needed(user_text, user_id)
     if clarification_messages is not None:
