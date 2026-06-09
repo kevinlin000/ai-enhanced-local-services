@@ -50,7 +50,6 @@ PRIMARY_TYPE_MAP = {
     "brunch_restaurant": 2010,
     "american_restaurant": 2010,
     "australian_restaurant": 2010,
-    "mexican_restaurant": 2010,
     "hamburger_restaurant": 2010,
     "breakfast_restaurant": 2010,
     "hot_dog_restaurant": 2010,
@@ -206,7 +205,7 @@ INTERNATIONAL_KEYWORDS = {
 }
 CHINESE_KEYWORDS = {"台菜", "滬菜", "粵菜", "港點", "熱炒", "台式", "川菜", "客家", "小籠包", "麵食", "鵝肉"}
 STEAK_TAG_KEYWORDS = {"牛排", "steak"}
-KOREAN_TAG_KEYWORDS = {"韓式", "韓國", "泡菜", "弘大"}
+KOREAN_TAG_KEYWORDS = {"韓式", "韓國", "韓式烤肉", "韓式料理", "泡菜鍋", "石鍋拌飯", "部隊鍋", "弘大"}
 INDIAN_TAG_KEYWORDS = {"印度", "indian", "asrah", "瑪莎拉", "清真", "halal"}
 THAI_TAG_KEYWORDS = {"泰式", "泰國", "thai", "打拋", "月亮蝦餅", "綠咖哩"}
 MIDDLE_EASTERN_TAG_KEYWORDS = {"中東", "以色列", "鷹嘴豆泥", "hummus", "摩洛哥", "moroccan"}

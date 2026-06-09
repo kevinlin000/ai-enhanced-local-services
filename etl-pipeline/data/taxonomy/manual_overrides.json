@@ -1743,6 +1743,13 @@
         "韓式"
       ],
       "source": "manual_audit"
+    },
+    {
+      "match": "肉次方 燒肉放題 台北峨眉店",
+      "tags": [
+        "韓式"
+      ],
+      "source": "manual_audit"
     }
   ]
 }

@@ -57,6 +57,20 @@ def canonical_type_ids() -> set[int]:
     return {int(item["type_id"]) for item in payload["categories"]}
 
 
+def test_primary_type_map_has_no_duplicate_keys():
+    source = (ROOT / "app" / "taxonomy.py").read_text(encoding="utf-8")
+    start = source.index("PRIMARY_TYPE_MAP = {")
+    end = source.index("\n}\n", start)
+    keys = []
+    for line in source[start:end].splitlines():
+        stripped = line.strip()
+        if stripped.startswith('"'):
+            keys.append(stripped.split('"', 2)[1])
+
+    duplicates = sorted({key for key in keys if keys.count(key) > 1})
+    assert duplicates == []
+
+
 def test_manual_override_fixture_schema_and_type_ids():
     payload = load_manual_overrides()
     assert payload["meta"]["version"] == 1
@@ -154,6 +168,27 @@ def test_classifier_indian_restaurant_maps_to_international_category():
     })
     assert result["primary_type_id"] == 2013
     assert "印度" in result["tags"]
+
+
+def test_mexican_restaurant_maps_to_international_category():
+    result = classify_shop({
+        "display_name": "墨西哥塔可餐廳",
+        "primary_type": "mexican_restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "墨西哥料理、taco、辣醬與玉米餅。"},
+    })
+    assert result["primary_type_id"] == 2013
+
+
+def test_kimchi_side_dish_does_not_create_korean_tag():
+    result = classify_shop({
+        "display_name": "日式燒肉測試店",
+        "primary_type": "yakiniku_restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "日式燒肉、牛舌、味噌湯與泡菜小菜。"},
+    })
+    assert result["primary_type_id"] == 2002
+    assert "韓式" not in result["tags"]
 
 
 def test_manual_audit_override_beats_conflicting_keywords():
