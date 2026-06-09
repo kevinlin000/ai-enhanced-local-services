@@ -132,6 +132,34 @@ def test_manual_no_korean_tag_override_suppresses_keyword_tag():
     assert "韓式" not in result["tags"]
 
 
+def test_second_manual_audit_overrides_edge_cases():
+    cases = [
+        ("品田牧場 台北松山車站店", "豬排、套餐與日式定食，甜點為附餐。", 2004),
+        ("小紐約披薩 中山店", "美式披薩、酒吧與聚餐餐點。", 2010),
+        ("神燈搓一下", "印度、中東與墨西哥風味的異國料理。", 2013),
+        ("胖肚肚燒肉 大安店", "炭火燒肉吃到飽與牛舌。", 2002),
+    ]
+    for name, summary, expected_type_id in cases:
+        result = classify_shop({
+            "display_name": name,
+            "primary_type": "restaurant",
+            "types": ["restaurant", "food"],
+            "ai_extracted": {"ai_summary": summary},
+        })
+        assert result["primary_type_id"] == expected_type_id
+
+
+def test_manual_buffet_tag_can_stay_secondary_to_vegetarian():
+    result = classify_shop({
+        "display_name": "果然匯 台北天母店",
+        "primary_type": "vegetarian_restaurant",
+        "types": ["restaurant", "food"],
+        "ai_extracted": {"ai_summary": "蔬食自助餐與吃到飽餐檯。"},
+    })
+    assert result["primary_type_id"] == 2005
+    assert "吃到飽" in result["tags"]
+
+
 def test_classifier_fixture_10104_buffet_premium():
     shop = load_shops()[10104]
     result = classify_shop(shop)
@@ -210,14 +238,14 @@ def test_v20_wilsonpark_steak_wine_maps_to_american():
     assert result["primary_type_id"] == 2010
 
 
-def test_v20_pin_tian_steak_maps_to_american():
+def test_manual_pin_tian_pork_cutlet_maps_to_japanese():
     result = classify_shop({
         "display_name": "品田牧場 台北松山車站店",
         "primary_type": "restaurant",
         "types": ["restaurant", "food"],
         "ai_extracted": {"ai_summary": "豬排、排餐與套餐。"},
     })
-    assert result["primary_type_id"] == 2010
+    assert result["primary_type_id"] == 2004
 
 
 def test_v20_zhangmen_craft_beer_maps_to_izakaya():

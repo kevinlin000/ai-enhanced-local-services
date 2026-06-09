@@ -1,34 +1,34 @@
 # Taxonomy Audit
 
 - Unique shops scanned: 600
-- Audit rows: 247
+- Audit rows: 166
 - Korean-tagged rows needing review: 5
 
 ## Category Distribution
 
 - 2001 火鍋: 88
-- 2002 日式燒肉: 58
-- 2003 居酒屋: 59
-- 2004 日式料理: 79
-- 2005 素食: 26
-- 2007 義法料理: 82
+- 2002 日式燒肉: 60
+- 2003 居酒屋: 63
+- 2004 日式料理: 74
+- 2005 素食: 25
+- 2007 義法料理: 79
 - 2008 中式料理: 89
 - 2009 韓式料理: 16
 - 2010 美式料理: 55
 - 2011 自助餐: 8
-- 2012 咖啡/甜點: 34
-- 2013 異國料理: 6
+- 2012 咖啡/甜點: 35
+- 2013 異國料理: 8
 
 ## Tag Distribution
 
-- 約會: 154
-- 親子: 153
+- 約會: 153
+- 親子: 152
 - 義式: 76
 - 餐酒館: 35
 - 牛排: 34
 - 商務: 33
 - 早午餐: 24
-- 吃到飽: 22
+- 吃到飽: 23
 - 韓式: 20
 - 法式: 18
 - 泰式: 12
@@ -41,8 +41,8 @@
 
 ## Flag Distribution
 
-- high_impact: 246
-- keyword_conflict: 205
+- high_impact: 165
+- keyword_conflict: 124
 - defaulted_to_chinese: 37
 - korean_tag_review: 5
 
@@ -58,83 +58,83 @@
 
 | priority | shop_id | name | category | tags | flags | suggestion | evidence |
 | ---: | ---: | --- | --- | --- | --- | --- | --- |
-| 45 | 10175 | 肉次方 燒肉放題 台北峨眉店 | 日式燒肉 | 泰式、吃到飽、約會 | keyword_conflict;high_impact | 檢查是否應改為 韓式料理 (2009)；命中：石鍋拌飯 | 韓式料理:石鍋拌飯 |
-| 45 | 10176 | 島語 台北漢來店 | 自助餐 | 牛排、吃到飽、約會、商務 | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：壽司 | 日式料理:壽司; 美式料理:牛排; 咖啡/甜點:甜點 |
-| 45 | 10427 | 泰滾 Rolling Thai 泰式火鍋(南京店） | 火鍋 | 泰式、約會 | keyword_conflict;high_impact | 檢查是否應改為 異國料理 (2013)；命中：thai | 異國料理:thai |
-| 45 | 10583 | 初樂燒肉 | 日式燒肉 | 約會、親子 | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：漢堡 | 美式料理:漢堡 |
-| 45 | 10584 | 洋城義大利餐廳-東森廣場北車店 | 義法料理 | 義式 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：甜點 | 咖啡/甜點:甜點 |
-| 45 | 10174 | 悠悠龍貓咖啡 | 咖啡/甜點 | 義式、約會、親子 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利 | 義法料理:義大利麵、義大利 |
-| 45 | 10619 | 火燒鳥日式居酒屋 | 居酒屋 | 約會 | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：烏龍麵 | 日式料理:烏龍麵 |
-| 45 | 10585 | 發肉燒肉餐酒敦北一店 | 日式燒肉 | 約會 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：甜點 | 咖啡/甜點:甜點 |
-| 45 | 10670 | 大河屋 燒肉丼 串燒-微風北車店 | 居酒屋 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：燒肉 | 日式燒肉:燒肉 |
-| 45 | 10128 | 唐宮蒙古烤肉酸菜白肉餐廳 | 火鍋 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：烤肉 | 日式燒肉:烤肉; 中式料理:熱炒 |
-| 45 | 10620 | 胖肚肚燒肉 大安店 | 美式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：烤肉、燒肉、牛舌 | 日式燒肉:烤肉、燒肉、牛舌 |
-| 45 | 10162 | 小紅莓石頭火鍋城 | 火鍋 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：台式 | 中式料理:台式 |
-| 45 | 10220 | 蔦燒日式居酒屋-石牌店 | 居酒屋 |  | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：牛舌 | 日式燒肉:牛舌 |
-| 45 | 10187 | 布納咖啡館 內湖館 | 咖啡/甜點 | 義式、親子 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利 | 義法料理:義大利麵、義大利 |
-| 45 | 10110 | Woolloomooloo | 義法料理 | 景觀 | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：漢堡 | 美式料理:漢堡; 咖啡/甜點:甜點 |
-| 45 | 10136 | Second Floor 貳樓敦南店 | 美式料理 | Brunch | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：法式 | 義法料理:法式; 咖啡/甜點:咖啡 |
-| 45 | 10129 | 紅翻天生猛海鮮 | 中式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：下酒 | 居酒屋:下酒; 日式料理:生魚片 |
-| 45 | 10351 | NAGOYA 道地日式蛋包飯（開放電話及私訊訂位） | 日式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：漢堡 | 美式料理:漢堡 |
-| 45 | 10737 | WOWFFIZI cafe&Bistro 烏菲茲餐酒館 | 義法料理 | 餐酒館、約會 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：cafe、蛋糕、甜點 | 咖啡/甜點:cafe、蛋糕、甜點 |
-| 45 | 10168 | 石二鍋 台北捷運後山埤店 | 火鍋 |  | keyword_conflict;high_impact | 檢查是否應改為 素食 (2005)；命中：蔬食 | 素食:蔬食 |
-| 45 | 10519 | 神燈搓一下 | 素食 | 印度、中東 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：甜點 | 咖啡/甜點:甜點 |
-| 45 | 10738 | 瀧厚炙燒熟成牛排 台北.南港店 | 美式料理 | 牛排、法式、親子 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：法式 | 義法料理:法式 |
-| 45 | 10621 | 忠孝｜燒肉政宗 YAKINIKU MASAMUNE | 日式燒肉 |  | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：漢堡 | 美式料理:漢堡 |
-| 45 | 10188 | 築間幸福鍋物 台北內湖店 | 火鍋 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 素食 (2005)；命中：蔬食 | 素食:蔬食; 義法料理:西班牙 |
-| 45 | 10140 | 樂子the Diner 瑞安店 | 美式料理 | Brunch | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：燉飯 | 義法料理:燉飯; 咖啡/甜點:咖啡 |
-| 45 | 10151 | 深夜裡的法國手工甜點 | 咖啡/甜點 | 法式 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：法式 | 義法料理:法式 |
-| 45 | 10355 | GumGum Beer & Wings | 義法料理 | 約會、親子 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕 | 咖啡/甜點:蛋糕 |
-| 45 | 10521 | 錢都日式涮涮鍋 台北師大店 | 火鍋 |  | keyword_conflict;high_impact | 檢查是否應改為 素食 (2005)；命中：蔬食 | 素食:蔬食; 咖啡/甜點:甜點 |
-| 45 | 10108 | 布納咖啡館 信義館 | 咖啡/甜點 | 牛排、義式、約會、親子 | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：啤酒、精釀 | 居酒屋:啤酒、精釀; 義法料理:義大利麵、義大利、燉飯; 美式料理:牛排 |
-| 45 | 10358 | 蝸牛義大利餐廳 天母店 | 義法料理 | 義式、親子 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕 | 咖啡/甜點:蛋糕 |
-| 45 | 10226 | 酒米食堂chumi_canteen－北投店beitou | 日式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：居酒屋、啤酒 | 居酒屋:居酒屋、啤酒 |
-| 45 | 10674 | 樂軒和牛專門店 | 日式燒肉 | 約會、商務 | keyword_conflict;high_impact | 檢查是否應改為 火鍋 (2001)；命中：壽喜燒、涮涮鍋、涮涮 | 火鍋:壽喜燒、涮涮鍋、涮涮 |
-| 45 | 10739 | 小紐約披薩 中山店 LNYPIZZA Little New York Pizzeria Zhongshan | 義法料理 |  | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：酒吧 | 居酒屋:酒吧; 美式料理:美式 |
-| 45 | 10156 | 一番地壽喜燒 古亭店 | 火鍋 | 吃到飽 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：甜點 | 咖啡/甜點:甜點 |
-| 45 | 10361 | 詩篇咖啡餐廳Psalms Cafe & Restaurant | 義法料理 | 義式 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：cafe、下午茶、咖啡 | 咖啡/甜點:cafe、下午茶、咖啡 |
-| 45 | 10676 | 林居sushi日本料理 | 日式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：台式 | 中式料理:台式 |
-| 45 | 10442 | At.First早寓 | 義法料理 | 早午餐、牛排、義式 | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：早午餐、牛排 | 美式料理:早午餐、牛排 |
-| 45 | 10278 | 蔦燒日式居酒屋-北投店 | 居酒屋 | 約會 | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：牛舌 | 日式燒肉:牛舌; 日式料理:烏龍麵 |
-| 45 | 10523 | Remember Me_記得我．café -深夜咖啡館 寵物友善 | 咖啡/甜點 | 約會、親子 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：燉飯 | 義法料理:燉飯 |
-| 45 | 10363 | 老朋友小酌熱炒 | 中式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：啤酒 | 居酒屋:啤酒; 義法料理:西班牙 |
-| 45 | 10365 | 渣男 Taiwan Bistro 信義一渣 | 居酒屋 | 餐酒館 | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：烏龍麵 | 日式料理:烏龍麵; 中式料理:台式; 咖啡/甜點:咖啡 |
-| 45 | 10280 | 蔬軾 | 素食 | 印度、義式、親子 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、披薩 | 義法料理:義大利麵、義大利、披薩 |
-| 45 | 10524 | gonnaEAT 內湖店 | 義法料理 | 約會、商務、親子 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕、咖啡 | 咖啡/甜點:蛋糕、咖啡 |
-| 45 | 10627 | 肉你好燒肉-合江總舖 | 日式燒肉 |  | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：居酒屋 | 居酒屋:居酒屋 |
-| 45 | 10591 | 火人串燒 | 日式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：串燒 | 居酒屋:串燒 |
-| 45 | 10678 | 渣男Taiwan Bistro古亭四渣 | 居酒屋 | 餐酒館、商務 | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：台式 | 中式料理:台式 |
-| 45 | 10367 | 川邸鍋物 劍潭店 | 火鍋 |  | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕、甜點 | 咖啡/甜點:蛋糕、甜點 |
-| 45 | 10526 | M One Cafe A11 | 美式料理 | 早午餐、約會 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：cafe | 咖啡/甜點:cafe |
-| 45 | 10592 | 品司和食 | 日式料理 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 火鍋 (2001)；命中：火鍋 | 火鍋:火鍋 |
-| 45 | 10628 | 蔦燒日式居酒屋-士林店 | 居酒屋 |  | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：壽司 | 日式料理:壽司 |
-| 45 | 10181 | Bogart's Smokehouse Taipei (美式木柴煙燻屋) OPEN til SOLDOUT | 美式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：烤肉 | 日式燒肉:烤肉 |
-| 45 | 10528 | 紅屋牛排館民生店 | 美式料理 | 牛排、商務 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕、甜點 | 咖啡/甜點:蛋糕、甜點 |
-| 45 | 10369 | i99 COFFEE 景美店 | 咖啡/甜點 | 吃到飽 | keyword_conflict;high_impact | 檢查是否應改為 火鍋 (2001)；命中：鍋物、火鍋 | 火鍋:鍋物、火鍋; 居酒屋:暢飲 |
-| 45 | 10529 | 荖子鍋Plus 家樂福內湖店 | 火鍋 | 吃到飽 | keyword_conflict;high_impact | 檢查是否應改為 自助餐 (2011)；命中：自助餐 | 自助餐:自助餐 |
-| 45 | 10680 | TakeOut Burger&Cafe 民權店 | 美式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：cafe | 咖啡/甜點:cafe |
-| 45 | 10446 | PRESERVE 遠東GARDEN CITY 大巨蛋店 | 素食 | 義式、約會 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利 | 義法料理:義大利麵、義大利 |
-| 45 | 10286 | 蔣老爹愛吃鍋 市民店｜台北東區｜麻辣火鍋 | 火鍋 |  | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：台式 | 中式料理:台式 |
-| 45 | 10681 | 明水然・樂-遠百信義店(遠百A13店) | 日式料理 | 鐵板燒、約會 | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：漢堡 | 美式料理:漢堡 |
-| 45 | 10288 | 渣男TaiwanBistro 木柵二渣 | 居酒屋 | 餐酒館、約會 | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：台式 | 中式料理:台式 |
-| 45 | 10231 | 三燔北投 Mihan Beitou | 日式料理 | 約會 | keyword_conflict;high_impact | 檢查是否應改為 火鍋 (2001)；命中：壽喜燒、涮涮鍋、鍋物、涮涮 | 火鍋:壽喜燒、涮涮鍋、鍋物、涮涮; 咖啡/甜點:甜點 |
-| 45 | 10449 | 阿薄郎薄皮餃子－公館店 | 日式料理 | 餐酒館 | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：下酒、啤酒、串燒 | 居酒屋:下酒、啤酒、串燒; 中式料理:台式 |
-| 45 | 10531 | 野草居食屋 | 居酒屋 | 約會 | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：牛舌 | 日式燒肉:牛舌 |
-| 45 | 10171 | 肉執事台北松山門市 | 日式燒肉 |  | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：台式 | 中式料理:台式 |
-| 45 | 10451 | — LAX 慵懶 — 貓空 ｜ | 義法料理 | 泰式、義式、約會、親子、景觀 | keyword_conflict;high_impact | 檢查是否應改為 異國料理 (2013)；命中：月亮蝦餅 | 異國料理:月亮蝦餅 |
-| 45 | 10533 | A Beach 101&Pizza | 義法料理 | 約會、親子 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕、甜點 | 咖啡/甜點:蛋糕、甜點 |
-| 45 | 10630 | 燒鳩 刺身•串燒•夜食 | 日式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：串燒、暢飲 | 居酒屋:串燒、暢飲 |
-| 45 | 10631 | 哞屋Mon wo | 日式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：燒肉 | 日式燒肉:燒肉; 美式料理:漢堡 |
-| 45 | 10453 | 墨竹亭 燃麵本家 台北六張犁店 | 中式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 火鍋 (2001)；命中：壽喜燒 | 火鍋:壽喜燒; 日式燒肉:燒肉 |
-| 45 | 10455 | 品田牧場 台北松山車站店 | 美式料理 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：甜點 | 咖啡/甜點:甜點 |
-| 45 | 10182 | 花漾夯夯鍋-政大店 \| 火鍋259起 \| 木柵火鍋吃到飽\|木柵宵夜 | 火鍋 | 吃到飽 | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：麵食 | 中式料理:麵食 |
-| 45 | 10183 | 呼嚕小酒館 Purrson Bistro | 義法料理 | 餐酒館 | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：漢堡 | 美式料理:漢堡 |
-| 45 | 10633 | 青杉燒肉 | 日式燒肉 | 約會、商務 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：燉飯 | 義法料理:燉飯 |
-| 45 | 10538 | 果然匯 台北天母店 | 素食 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：披薩 | 義法料理:披薩; 咖啡/甜點:甜點 |
-| 45 | 10634 | 三柒燒肉專門店-大安敦化店 | 日式燒肉 | 牛排 | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：牛排 | 美式料理:牛排 |
-| 45 | 10539 | Second Floor 貳樓微風南山店 | 美式料理 | 牛排、法式、約會、親子、景觀 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：法式 | 義法料理:法式; 中式料理:台式; 咖啡/甜點:蛋糕 |
-| 45 | 10460 | 加分100%浜中特選昆布鍋物-八德店 | 火鍋 |  | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：烏龍麵 | 日式料理:烏龍麵 |
-| 45 | 10141 | 葉公館滬菜 | 中式料理 | 商務 | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：燒肉 | 日式燒肉:燒肉 |
-| 45 | 10747 | 小小麥 信義新光A11 | 日式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：燒肉 | 日式燒肉:燒肉 |
-| 45 | 10378 | 波赫士領地精品咖啡館 明水店 提拉米蘇 千層蛋糕 | 咖啡/甜點 | 早午餐、牛排、義式、約會 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：披薩、義式 | 義法料理:披薩、義式; 美式料理:早午餐、牛排 |
-| 45 | 10296 | overthink 餐飲小吃部 | 義法料理 | 義式、約會 | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：啤酒、精釀 | 居酒屋:啤酒、精釀; 中式料理:台式 |
+| 45 | 10236 | 辣椒多一點麻辣鍋物養生鍋 | 火鍋 |  | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕 | 咖啡/甜點:蛋糕 |
+| 45 | 10572 | Chill嗨嗨酒場 Bar | 日式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：酒場、串燒 | 居酒屋:酒場、串燒 |
+| 45 | 10139 | 小小樹食 敦南店 | 素食 | 義式 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利 | 義法料理:義大利麵、義大利; 咖啡/甜點:蛋糕 |
+| 45 | 10749 | 日本橋浜町食事处 微風北車店 | 日式料理 | 商務 | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：居酒屋 | 居酒屋:居酒屋 |
+| 45 | 10543 | BaganHood 蔬食餐酒館 | 素食 | 泰式、中東、義式、餐酒館、約會 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、披薩 | 義法料理:義大利麵、義大利、披薩; 異國料理:墨西哥料理、鷹嘴豆泥 |
+| 45 | 10544 | 茱莉金牛排餐酒館 | 美式料理 | 牛排、法式、餐酒館、約會 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：法式 | 義法料理:法式 |
+| 45 | 10545 | 前鎮水產-海霸王 昆明店 | 火鍋 |  | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：生魚片 | 日式料理:生魚片 |
+| 45 | 10599 | 士林串燒 | 日式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：串燒 | 居酒屋:串燒 |
+| 45 | 10385 | CURA PIZZA 窯火熾心.古道樂嚐 （店休日、一、二） | 義法料理 |  | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：麵食 | 中式料理:麵食; 咖啡/甜點:甜點 |
+| 45 | 10386 | Last Order | 義法料理 | 牛排、餐酒館、約會 | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：牛舌 | 日式燒肉:牛舌; 美式料理:牛排 |
+| 45 | 10547 | 陶膳日式料理 | 日式料理 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：居酒屋 | 居酒屋:居酒屋 |
+| 45 | 10548 | 東京串燒酒場 | 居酒屋 | 約會 | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：烏龍麵 | 日式料理:烏龍麵 |
+| 45 | 10166 | 潮肉壽喜燒-永吉店 | 火鍋 | 吃到飽 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：甜點 | 咖啡/甜點:甜點 |
+| 45 | 10549 | Fa Burger | 美式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：烤肉 | 日式燒肉:烤肉 |
+| 45 | 10464 | PRESERVE LaLaport 南港店 | 美式料理 | 早午餐、義式、約會、親子 | keyword_conflict;high_impact | 檢查是否應改為 素食 (2005)；命中：蔬食 | 素食:蔬食; 義法料理:義大利麵、義大利 |
+| 45 | 10550 | Extension 1 by 橘色 | 日式料理 | 約會 | keyword_conflict;high_impact | 檢查是否應改為 火鍋 (2001)；命中：壽喜燒、鍋物 | 火鍋:壽喜燒、鍋物 |
+| 45 | 10465 | 無口小廚 Mukuchi Kitchen & Bar | 素食 |  | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：拉麵 | 日式料理:拉麵 |
+| 45 | 10552 | 這一小鍋 台北北護店(最後收客20:00)【呷Bar店】 | 火鍋 |  | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：台式、麵食 | 中式料理:台式、麵食 |
+| 45 | 10553 | 草根早午餐 TOUCH WOOD | 美式料理 | 早午餐、法式、餐酒館 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：法式 | 義法料理:法式; 咖啡/甜點:咖啡 |
+| 45 | 10637 | 燒究食寓 萬華店 – 居酒屋｜宵夜｜串燒 | 居酒屋 | 牛排、親子 | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：牛排 | 美式料理:牛排 |
+| 45 | 10638 | Takeout Burger&Cafe 延吉店 （最後點餐21：30）/美式漢堡/寵物友善/大安區美食/貓咪餐廳 | 美式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：cafe | 咖啡/甜點:cafe |
+| 45 | 10467 | PEPPINO 培皮諾小館 | 義法料理 | 義式、約會 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：甜點 | 咖啡/甜點:甜點 |
+| 45 | 10556 | 德朗火鍋 (信義店) | 火鍋 | 法式、商務 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：法式 | 義法料理:法式; 咖啡/甜點:甜點 |
+| 45 | 10691 | Eatfoodie udon 好好吃餐房(烏龍麵 鍋燒意麵) | 火鍋 | 義式 | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：烏龍麵 | 日式料理:烏龍麵; 義法料理:義大利麵、義大利 |
+| 45 | 10557 | AN58西班牙創意料理 | 義法料理 | 牛排、約會 | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：牛排 | 美式料理:牛排 |
+| 45 | 10692 | 鹿境早午餐 Arrival Brunch & Cafe - 早午餐推薦 ｜ 餐廳 ｜小巨蛋早午餐 ｜ 包場 ｜ 法式吐司 ｜ 漢堡｜咖喱 ｜小巨蛋早午餐｜台北早午餐推薦 | 美式料理 | Brunch、早午餐、法式、約會 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：法式 | 義法料理:法式; 咖啡/甜點:cafe |
+| 45 | 10468 | Creative Pasta 創義麵 東湖店 | 義法料理 | 義式、親子 | keyword_conflict;high_impact | 檢查是否應改為 素食 (2005)；命中：素食 | 素食:素食 |
+| 45 | 10558 | 根來阿財鐵板燒 | 日式料理 | 鐵板燒 | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：熱炒、台式 | 中式料理:熱炒、台式 |
+| 45 | 10693 | 捌千代居酒屋 松山店 | 居酒屋 |  | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：烏龍麵 | 日式料理:烏龍麵 |
+| 45 | 10694 | 嚐居 | 居酒屋 |  | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：壽司 | 日式料理:壽司 |
+| 45 | 10757 | 爍場居酒屋復興店 | 日式燒肉 |  | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：居酒屋、下酒、串燒、暢飲 | 居酒屋:居酒屋、下酒、串燒、暢飲 |
+| 45 | 10303 | 好吧 | 美式料理 | 早午餐、義式、親子 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義式 | 義法料理:義式 |
+| 45 | 10560 | GumGum Not Only Beer & Wings 雞翅啤酒吧-內科店 | 居酒屋 | 義式、餐酒館、約會 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、燉飯、披薩 | 義法料理:義大利麵、義大利、燉飯、披薩; 咖啡/甜點:蛋糕 |
+| 45 | 10390 | 子女居酒屋 | 居酒屋 |  | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：天婦羅、烏龍麵 | 日式料理:天婦羅、烏龍麵 |
+| 45 | 10640 | 七転八起-中山必吃串燒\|人氣串燒\|串燒專門店\|串燒烤肉\|熱門居酒屋\|居酒屋推薦\|喝酒聚餐推薦\|隱藏居酒屋 | 居酒屋 | 約會 | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：烤肉 | 日式燒肉:烤肉 |
+| 45 | 10641 | 東京家庭義大利麵 堺人餐飲 天母 | 中式料理 | 義式、親子 | keyword_conflict;high_impact | 檢查是否應改為 素食 (2005)；命中：素食 | 素食:素食; 義法料理:義大利麵、義大利 |
+| 45 | 10603 | 極簡鍋物｜萬華199和牛火鍋｜西門町火鍋推薦｜小龍蝦專賣店｜萬華美食 | 火鍋 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：燒肉 | 日式燒肉:燒肉 |
+| 45 | 10758 | Niconico Yakiniku 冠軍燒肉-西門 | 日式燒肉 | 約會 | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：烏龍麵 | 日式料理:烏龍麵 |
+| 45 | 10307 | 謀魚蝦也蠔南港直營店 | 火鍋 |  | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：熱炒 | 中式料理:熱炒 |
+| 45 | 10643 | 八和和牛燒肉專門店-安和本店 | 日式燒肉 | 約會 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕 | 咖啡/甜點:蛋糕 |
+| 45 | 10695 | 試試工作室 | 日式燒肉 | 義式、約會 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、燉飯、義式 | 義法料理:義大利麵、義大利、燉飯、義式; 咖啡/甜點:蛋糕 |
+| 45 | 10562 | HANNA Pasta Café パスタ カフェ | 義法料理 | 義式、約會 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕 | 咖啡/甜點:蛋糕 |
+| 45 | 10696 | Agusto奧古斯托 牛排龍蝦餐酒館 大安店｜新北美食義式餐廳 生日聚餐約會推薦 | 義法料理 | 牛排、法式、義式、餐酒館、約會 | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：牛排 | 美式料理:牛排 |
+| 45 | 10697 | 大河屋 燒肉丼 串燒-中信南港店 | 日式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：燒肉 | 日式燒肉:燒肉; 居酒屋:串燒 |
+| 45 | 10698 | 樂氣串燒居酒屋 | 居酒屋 | 義式 | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：烏龍麵 | 日式料理:烏龍麵; 義法料理:義式 |
+| 45 | 10391 | 孫太太嚴選超市火鍋台北民族店 | 火鍋 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：甜點 | 咖啡/甜點:甜點 |
+| 45 | 10473 | Lazy Pasta 慵懶義式廚房文山萬芳店 | 義法料理 | 義式、親子 | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：麵食 | 中式料理:麵食 |
+| 45 | 10564 | Plants | 素食 | 中東 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：燉飯 | 義法料理:燉飯 |
+| 45 | 10474 | 朝鑫壽司（Asashi sushi) | 日式料理 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：串燒 | 居酒屋:串燒 |
+| 45 | 10202 | 嗯哼咖啡食堂(Uh huh cafe) | 咖啡/甜點 |  | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：漢堡 | 美式料理:漢堡 |
+| 45 | 10393 | 加分昆布鍋物-食べ放題-新生店 | 火鍋 | 吃到飽、親子 | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：麵食 | 中式料理:麵食 |
+| 45 | 10566 | 鍋董日式涮涮鍋劍潭旗艦店 | 日式料理 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 火鍋 (2001)；命中：涮涮鍋、涮涮 | 火鍋:涮涮鍋、涮涮 |
+| 45 | 10605 | 肉你好燒肉-延吉店 | 日式燒肉 | 約會 | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：啤酒 | 居酒屋:啤酒 |
+| 45 | 10573 | 豆町村燒肉 | 日式燒肉 | 牛排、約會 | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：牛排 | 美式料理:牛排 |
+| 45 | 10475 | The Slice Shop 信義安和 | 義法料理 |  | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：美式 | 美式料理:美式 |
+| 45 | 10763 | 源本家燒肉火鍋 | 日式燒肉 |  | keyword_conflict;high_impact | 檢查是否應改為 火鍋 (2001)；命中：火鍋 | 火鍋:火鍋 |
+| 45 | 10607 | 大河屋 燒肉丼 串燒-微風南京店 | 日式燒肉 |  | keyword_conflict;high_impact | 檢查是否應改為 居酒屋 (2003)；命中：串燒 | 居酒屋:串燒 |
+| 45 | 10764 | CHIT CHAT Cafe 南京店 | 咖啡/甜點 | 早午餐 | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：早午餐 | 美式料理:早午餐 |
+| 45 | 10765 | AW Cafe Wine Bistro | 義法料理 | 早午餐、牛排、餐酒館、約會 | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：早午餐、牛排 | 美式料理:早午餐、牛排; 咖啡/甜點:cafe |
+| 45 | 10608 | 深深 永康制作所（建議先打電話問一下） | 日式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：燒肉 | 日式燒肉:燒肉 |
+| 45 | 10477 | 無尽蔵居酒屋Mujinzou Izakaya（週五僅接受電話訂位） | 居酒屋 |  | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：壽司 | 日式料理:壽司 |
+| 45 | 10647 | Monday蔬食料理 錦州店 | 素食 | 義式 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、義式 | 義法料理:義大利麵、義大利、義式; 美式料理:漢堡 |
+| 45 | 10478 | 麥味登 文山饗食大亨店 | 美式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：咖啡 | 咖啡/甜點:咖啡 |
+| 45 | 10398 | GiraPizza 旋轉披薩 | 義法料理 | 義式、餐酒館 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：咖啡 | 咖啡/甜點:咖啡 |
+| 45 | 10701 | 原蔬生活 élémentlifes……………..……...（僅接受一週內電話預約 We accept phone reservations up to one week in advance.） | 素食 | 義式、約會 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利、燉飯、義式 | 義法料理:義大利麵、義大利、燉飯、義式; 異國料理:pho |
+| 45 | 10702 | 鳥居町日料居酒屋（東湖店) | 居酒屋 |  | keyword_conflict;high_impact | 檢查是否應改為 日式料理 (2004)；命中：生魚片、壽司 | 日式料理:生魚片、壽司; 咖啡/甜點:蛋糕 |
+| 45 | 10399 | 曹料理 | 日式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：牛舌 | 日式燒肉:牛舌 |
+| 45 | 10318 | 全養知 異國蔬食 莊敬店 | 素食 | 中東、義式、約會 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義式 | 義法料理:義式; 異國料理:摩洛哥 |
+| 45 | 10768 | RKZ Caf'e | 義法料理 | 牛排、約會 | keyword_conflict;high_impact | 檢查是否應改為 美式料理 (2010)；命中：牛排 | 美式料理:牛排 |
+| 45 | 10570 | 蘇草salvia | 咖啡/甜點 | 早午餐、義式 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義大利麵、義大利 | 義法料理:義大利麵、義大利; 美式料理:早午餐 |
+| 45 | 10609 | 酒桃Sake momo | 居酒屋 | 義式、餐酒館 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義式 | 義法料理:義式 |
+| 45 | 10571 | 穗月朝食（最後點餐為營業前30分鐘） | 美式料理 | 泰式 | keyword_conflict;high_impact | 檢查是否應改為 異國料理 (2013)；命中：打拋 | 異國料理:打拋 |
+| 45 | 10481 | 中山區麻辣火鍋/麻辣火鍋推薦/滑嫩鴨血豆腐/麻凡麻辣火鍋/養生蔬果湯 | 火鍋 | 法式、商務 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：法式 | 義法料理:法式 |
+| 45 | 10703 | 老菘田居酒屋(串燒‧酒場) 南京店 | 居酒屋 |  | keyword_conflict;high_impact | 檢查是否應改為 日式燒肉 (2002)；命中：燒肉 | 日式燒肉:燒肉 |
+| 45 | 10482 | 豐橋火鍋 | 火鍋 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 素食 (2005)；命中：蔬食 | 素食:蔬食 |
+| 45 | 10704 | PAI CAFÉ & BRUNCH 八德店 | 美式料理 | Brunch、早午餐、法式 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：法式 | 義法料理:法式; 咖啡/甜點:拿鐵 |
+| 45 | 10649 | 大河牧場 漢堡排洋食館-內湖大全聯店 | 美式料理 | 親子 | keyword_conflict;high_impact | 檢查是否應改為 火鍋 (2001)；命中：壽喜燒 | 火鍋:壽喜燒 |
+| 45 | 10705 | 波赫士領地精品咖啡館 提拉米蘇 千層蛋糕 BorgesPlace昌吉店 | 咖啡/甜點 | 早午餐、牛排、義式 | keyword_conflict;high_impact | 檢查是否應改為 義法料理 (2007)；命中：義式 | 義法料理:義式; 美式料理:早午餐、牛排 |
+| 45 | 10241 | 貓蕊 貓咪餐廳 | 美式料理 | 早午餐、親子 | keyword_conflict;high_impact | 檢查是否應改為 咖啡/甜點 (2012)；命中：蛋糕 | 咖啡/甜點:蛋糕 |
+| 45 | 10403 | 男子漢拉麵食堂-北投店 | 日式料理 |  | keyword_conflict;high_impact | 檢查是否應改為 中式料理 (2008)；命中：麵食 | 中式料理:麵食 |
