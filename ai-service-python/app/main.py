@@ -234,6 +234,100 @@ CATEGORY_FALLBACK_KEYWORDS = {
     "cafe": {"咖啡", "拿鐵", "手沖", "甜點", "下午茶", "蛋糕"},
 }
 
+CATEGORY_CONFLICT_KEYWORDS = {
+    "chinese": {
+        "韓式",
+        "韓國",
+        "韓廚",
+        "韓式烤肉",
+        "韓式料理",
+        "韓式豬腳",
+        "韓義",
+        "泡菜鍋",
+        "石鍋拌飯",
+        "部隊鍋",
+        "義式",
+        "義大利麵",
+        "pasta",
+        "pizza",
+        "披薩",
+        "日式",
+        "日本料理",
+        "壽司",
+        "拉麵",
+        "居酒屋",
+        "串燒",
+        "泰式",
+        "泰國",
+        "印度",
+        "清真",
+        "halal",
+        "越南",
+        "中東",
+        "墨西哥",
+        "美式",
+        "漢堡",
+        "brunch",
+        "早午餐",
+        "火鍋",
+        "鍋物",
+        "燒肉",
+        "烤肉",
+    },
+    "korean": {
+        "台菜",
+        "臺菜",
+        "中式",
+        "中菜",
+        "川菜",
+        "粵菜",
+        "港點",
+        "義式",
+        "義大利麵",
+        "pasta",
+        "日式",
+        "日本料理",
+        "壽司",
+        "拉麵",
+    },
+    "japanese": {
+        "台菜",
+        "臺菜",
+        "中式",
+        "中菜",
+        "韓式",
+        "韓國",
+        "韓廚",
+        "義式",
+        "義大利麵",
+        "pasta",
+    },
+    "hotpot": {
+        "韓式烤肉",
+        "韓式燒肉",
+        "日式燒肉",
+        "和牛燒肉",
+        "義大利麵",
+        "pasta",
+        "pizza",
+        "早午餐",
+        "brunch",
+        "拉麵",
+    },
+    "yakiniku": {
+        "台菜",
+        "臺菜",
+        "義大利麵",
+        "pasta",
+        "pizza",
+        "火鍋",
+        "鍋物",
+        "拉麵",
+        "咖啡",
+        "甜點",
+    },
+}
+
 CATEGORY_ALIASES = {
     "brunch": "american",
     "steakhouse": "american",
@@ -288,6 +382,38 @@ TAIWANESE_CUISINE_BLOCK_HINTS = {
     "啤酒",
     "居酒屋",
     "酒場",
+    "韓式",
+    "韓國",
+    "韓廚",
+    "韓義",
+    "泡菜鍋",
+    "石鍋拌飯",
+    "部隊鍋",
+    "義式",
+    "義大利麵",
+    "pasta",
+    "pizza",
+    "披薩",
+    "日式",
+    "日本料理",
+    "壽司",
+    "拉麵",
+    "泰式",
+    "泰國",
+    "印度",
+    "清真",
+    "halal",
+    "越南",
+    "中東",
+    "墨西哥",
+    "美式",
+    "漢堡",
+    "brunch",
+    "早午餐",
+    "火鍋",
+    "鍋物",
+    "燒肉",
+    "烤肉",
 }
 BUSINESS_DINING_HINTS = {"商務", "請客", "正式", "包廂", "宴席", "聚餐", "老字號", "高級", "精緻"}
 CLOSED_SHOP_HINTS = {"暫停營業", "停業", "歇業", "永久停業", "設備整修", "結束營業"}
@@ -702,6 +828,45 @@ def _has_taiwanese_cuisine_semantics(payload: dict) -> bool:
     return any(keyword.lower() in text for keyword in TAIWANESE_CUISINE_STRONG_HINTS)
 
 
+def _has_explicit_category_conflict(payload: dict, requested_category: str) -> bool:
+    text = _payload_text(payload)
+    return any(
+        keyword.lower() in text
+        for keyword in CATEGORY_CONFLICT_KEYWORDS.get(requested_category, set())
+    )
+
+
+def _matches_requested_category(payload: dict, constraints: dict) -> bool:
+    categories = constraints.get("categories", [])
+    if not categories:
+        return True
+
+    text = _payload_text(payload)
+    for requested in categories:
+        requested = _canonical_category_slug(requested)
+        if _has_explicit_category_conflict(payload, requested):
+            continue
+
+        if _authoritative_category_slug(payload) == requested:
+            return True
+
+        # Specific cuisines such as Thai/Indian can be represented under the
+        # broader international category while still carrying clear cuisine text.
+        if any(
+            _matches_specific_cuisine(payload, cuisine)
+            for cuisine in constraints.get("specific_cuisines", [])
+        ):
+            return True
+
+        if not _authoritative_category_slug(payload):
+            if _semantic_category_slug(payload) == requested:
+                return True
+            if any(keyword.lower() in text for keyword in CATEGORY_FALLBACK_KEYWORDS.get(requested, set())):
+                return True
+
+    return False
+
+
 def _normalized_rating(value) -> float:
     try:
         rating = float(value or 0.0)
@@ -735,6 +900,8 @@ def _matches_specific_cuisine(payload: dict, cuisine: str) -> bool:
     rule = SPECIFIC_CUISINE_RULES.get(cuisine)
     if not rule:
         return False
+    if _authoritative_category_slug(payload) == cuisine:
+        return True
     primary_text = " ".join(
         str(part)
         for part in (
@@ -1263,15 +1430,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
 
     if constraints["categories"]:
         def category_match(hit: dict) -> bool:
-            slug = _semantic_category_slug(hit)
-            if slug in constraints["categories"]:
-                return True
-            text = _payload_text(hit)
-            return any(
-                keyword.lower() in text
-                for requested in constraints["categories"]
-                for keyword in CATEGORY_FALLBACK_KEYWORDS.get(requested, set())
-            )
+            return _matches_requested_category(hit, constraints)
 
         matching = [
             hit for hit in raw_hits
@@ -1462,35 +1621,20 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
                 [hit.get("name") for hit in raw_hits[:8]],
             )
         else:
-            authoritative_category = [
+            strict_category = [
                 hit for hit in raw_hits
-                if _authoritative_category_slug(hit) in constraints["categories"]
+                if _matches_requested_category(hit, constraints)
             ]
-            legacy_semantic_category = [
+            rejected_conflicts = [
                 hit for hit in raw_hits
-                if not _authoritative_category_slug(hit)
-                and _semantic_category_slug(hit) in constraints["categories"]
+                if any(_has_explicit_category_conflict(hit, category) for category in constraints["categories"])
             ]
-            text_category = [
-                hit for hit in raw_hits
-                if not _authoritative_category_slug(hit)
-                if any(
-                    keyword.lower() in _payload_text(hit)
-                    for requested in constraints["categories"]
-                    for keyword in CATEGORY_FALLBACK_KEYWORDS.get(requested, set())
-                )
-            ]
-            # Prefer authoritative taxonomy. Text fallback only exists for legacy
-            # payloads that do not yet carry category_slug.
-            strict_category = authoritative_category or legacy_semantic_category or text_category
             raw_hits = strict_category
             logger.warning(
-                "search_strict_category_filter query=%r categories=%s authoritative=%s legacy=%s text=%s strict=%s",
+                "search_strict_category_filter query=%r categories=%s rejected_conflicts=%s strict=%s",
                 query,
                 constraints["categories"],
-                [hit.get("name") for hit in authoritative_category[:8]],
-                [hit.get("name") for hit in legacy_semantic_category[:8]],
-                [hit.get("name") for hit in text_category[:8]],
+                [hit.get("name") for hit in rejected_conflicts[:8]],
                 [hit.get("name") for hit in strict_category[:8]],
             )
 

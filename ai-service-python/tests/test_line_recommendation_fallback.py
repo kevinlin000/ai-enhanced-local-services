@@ -187,10 +187,23 @@ def test_taiwanese_cuisine_query_rejects_bistro_fillers():
         "atmosphere_tags": ["餐酒館", "聚餐"],
         "rerank_score": 0.9,
     }
+    korean_pasta = {
+        "name": "金孫韓廚 義大利麵 (中山店)",
+        "category_slug": "chinese",
+        "avg_price": 480,
+        "rating": 4.5,
+        "ai_summary": "韓義混血料理，韓國辣醬魷魚義大利麵與海鮮煎餅是熱門選擇。",
+        "signature_dishes": ["韓國辣醬魷魚義大利麵", "海鮮煎餅"],
+        "atmosphere_tags": ["聚餐"],
+        "rerank_score": 1.1,
+    }
 
     assert main._has_taiwanese_cuisine_semantics(taicai)
     assert not main._is_taiwanese_cuisine_mismatch(taicai)
     assert main._is_taiwanese_cuisine_mismatch(bistro)
+    assert main._is_taiwanese_cuisine_mismatch(korean_pasta)
+    assert main._matches_requested_category(taicai, constraints)
+    assert not main._matches_requested_category(korean_pasta, constraints)
     assert (
         main._taiwanese_cuisine_sort_key(constraints, taicai)
         > main._taiwanese_cuisine_sort_key(constraints, bistro)
@@ -226,6 +239,35 @@ def test_taiwanese_cuisine_query_rejects_bistro_fillers():
         main._taiwanese_cuisine_sort_key(constraints, business_taicai)
         > main._taiwanese_cuisine_sort_key(constraints, popular_taicai)
     )
+
+
+def test_explicit_chinese_query_rejects_conflicting_cuisine_identity():
+    constraints = main._extract_query_constraints("中山區中式料理")
+    assert constraints["categories"] == ["chinese"]
+    assert constraints["districts"] == ["中山"]
+
+    chinese = {
+        "name": "雞家莊本店",
+        "district": "中山",
+        "category_slug": "chinese",
+        "ai_summary": "老字號台菜餐廳，招牌三味雞與家庭聚餐合菜。",
+    }
+    stale_korean = {
+        "name": "金孫韓廚 義大利麵 (中山店)",
+        "district": "中山",
+        "category_slug": "chinese",
+        "ai_summary": "韓義混血料理，韓國辣醬魷魚義大利麵與海鮮煎餅是熱門選擇。",
+    }
+    euro_bistro = {
+        "name": "WOWFFIZI cafe&Bistro 烏菲茲餐酒館",
+        "district": "中山",
+        "category_slug": "chinese",
+        "ai_summary": "餐酒館，主打義大利麵、燉飯與紅白酒。",
+    }
+
+    assert main._matches_requested_category(chinese, constraints)
+    assert not main._matches_requested_category(stale_korean, constraints)
+    assert not main._matches_requested_category(euro_bistro, constraints)
 
 
 def test_inactive_search_hit_detects_closed_restaurants():
