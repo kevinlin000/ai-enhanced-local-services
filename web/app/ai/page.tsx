@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { javaApi } from "@/lib/api";
-import { streamAgentResponse, type AgentTransaction } from "@/lib/agentStream";
+import { streamAgentResponse, type AgentComparisonRow, type AgentTransaction } from "@/lib/agentStream";
 import { useAuth } from "@/lib/auth";
 import { AgentShopCard } from "@/components/AgentShopCard";
 import type { AgentShop } from "@/lib/agentTypes";
@@ -197,9 +197,10 @@ function formatComparisonMeta(shop: AgentShop): string {
   return [price, location].filter(Boolean).join(" · ");
 }
 
-function AgentShopComparisonTable({ shops }: { shops: AgentShop[] }) {
+function AgentShopComparisonTable({ shops, rows }: { shops: AgentShop[]; rows?: AgentComparisonRow[] }) {
   const [insightsByShop, setInsightsByShop] = useState<Record<number, TableReviewInsights | null>>({});
   const shopIdsKey = shops.map((shop) => shop.shop_id).join(",");
+  const rowsByShop = new Map((rows ?? []).map((row) => [Number(row.shop_id), row]));
 
   useEffect(() => {
     if (!shopIdsKey) return;
@@ -248,22 +249,24 @@ function AgentShopComparisonTable({ shops }: { shops: AgentShop[] }) {
           <tbody className="divide-y divide-black/5">
             {shops.map((shop) => {
               const insights = insightsByShop[shop.shop_id];
+              const backendRow = rowsByShop.get(shop.shop_id);
               const isThin = !hasRichComparisonData(shop, insights);
+              const meta = backendRow?.meta || formatComparisonMeta(shop);
               return (
                 <tr key={shop.shop_id} className="align-top">
                   <td className="px-4 py-3">
                     <Link href={`/shops/${shop.shop_id}`} className="font-bold text-zinc-900 hover:text-emerald-800">
                       {shop.name}
                     </Link>
-                    {formatComparisonMeta(shop) ? (
-                      <div className="mt-1 text-xs leading-5 text-zinc-500">{formatComparisonMeta(shop)}</div>
+                    {meta ? (
+                      <div className="mt-1 text-xs leading-5 text-zinc-500">{meta}</div>
                     ) : null}
                   </td>
                   <td className={`px-4 py-3 leading-6 ${isThin ? "text-amber-800" : "text-zinc-700"}`}>
-                    {formatFeatureHighlight(shop, insights)}
+                    {backendRow?.feature_highlight || formatFeatureHighlight(shop, insights)}
                   </td>
-                  <td className="px-4 py-3 leading-6 text-zinc-700">{formatBestFor(shop, insights)}</td>
-                  <td className="px-4 py-3 leading-6 text-zinc-700">{formatOnlineBookingStatus(shop, insights)}</td>
+                  <td className="px-4 py-3 leading-6 text-zinc-700">{backendRow?.best_for || formatBestFor(shop, insights)}</td>
+                  <td className="px-4 py-3 leading-6 text-zinc-700">{backendRow?.booking_status || formatOnlineBookingStatus(shop, insights)}</td>
                 </tr>
               );
             })}
@@ -837,7 +840,7 @@ export default function AiPage() {
                     {m.shops.map((shop, rank) => (
                       <AgentShopCard key={shop.shop_id} shop={shop} rank={rank + 1} />
                     ))}
-                    <AgentShopComparisonTable shops={m.shops} />
+                    <AgentShopComparisonTable shops={m.shops} rows={m.comparisonRows} />
                   </div>
                 ) : null}
                 {m.transaction ? (

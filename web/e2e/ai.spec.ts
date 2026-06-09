@@ -52,6 +52,24 @@ async function mockAgentRecommendation(page: Page) {
         tools_used: ["semantic_shop_search"],
         recommended_shop_ids: [9002, 9001, 9003],
         scope_note: "中山區符合條件較少，我先擴大到台北漢堡店，整理 3 間符合需求的餐廳。",
+        comparison_rows: [
+          {
+            shop_id: 9002,
+            name: "測試漢堡 B",
+            feature_highlight: "後端比較：厚切牛肉堡",
+            best_for: "後端情境：約會",
+            booking_status: "後端訂位：建議提前",
+            meta: "後端 meta：NT$ 450-650 · 大安",
+          },
+          {
+            shop_id: 9001,
+            name: "測試漢堡 A",
+            feature_highlight: "後端比較：牛肉漢堡",
+            best_for: "後端情境：朋友聚餐",
+            booking_status: "後端訂位：可線上訂位",
+            meta: "後端 meta：NT$ 350-500 · 中山",
+          },
+        ],
         tool_result: {
           shops: [
             {
@@ -188,6 +206,9 @@ test("AI page renders mocked recommendation cards and comparison table", async (
   await expect(page.getByText("查看詳情 / 訂位")).toHaveCount(3);
   await expect(page.getByRole("heading", { name: "快速比較" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "特色亮點" })).toBeVisible();
+  await expect(page.getByText("後端比較：厚切牛肉堡")).toBeVisible();
+  await expect(page.getByText("後端情境：約會")).toBeVisible();
+  await expect(page.getByText("後端訂位：建議提前")).toBeVisible();
   await expect(page.getByText("done duplicate should not overwrite agent_end")).toHaveCount(0);
 });
 

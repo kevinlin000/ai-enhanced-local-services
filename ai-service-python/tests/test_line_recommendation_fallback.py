@@ -132,8 +132,23 @@ async def test_web_agent_stream_forces_cards_when_model_skips_search(monkeypatch
     async def fake_tool_semantic_search(query: str):
         return {
             "shops": [
-                {"shop_id": 10022, "name": "青花驕 中山北店", "district": "中山區", "ai_summary": "中山聚餐。"},
-                {"shop_id": 10123, "name": "海霸王 中山店", "district": "中山", "ai_summary": "中式聚餐。"},
+                {
+                    "shop_id": 10022,
+                    "name": "青花驕 中山北店",
+                    "district": "中山區",
+                    "ai_summary": "中山聚餐。",
+                    "signature_dishes": ["麻辣鍋", "牛肉"],
+                    "atmosphere_tags": ["多人聚餐"],
+                    "booking_difficulty": "可線上訂位，建議提前",
+                },
+                {
+                    "shop_id": 10123,
+                    "name": "海霸王 中山店",
+                    "district": "中山",
+                    "ai_summary": "中式聚餐。",
+                    "signature_dishes": ["海鮮"],
+                    "atmosphere_tags": ["家庭聚餐"],
+                },
             ]
         }
 
@@ -160,6 +175,15 @@ async def test_web_agent_stream_forces_cards_when_model_skips_search(monkeypatch
     done = events[-1]
     assert "semantic_shop_search" in done["tools_used"]
     assert done["recommended_shop_ids"] == [10022, 10123]
+    assert [shop["shop_id"] for shop in done["shops"]] == [10022, 10123]
+    assert done["comparison_rows"][0] == {
+        "shop_id": 10022,
+        "name": "青花驕 中山北店",
+        "feature_highlight": "招牌：麻辣鍋、牛肉",
+        "best_for": "多人聚餐",
+        "booking_status": "可線上訂位，建議提前",
+        "meta": "中山區",
+    }
     assert [shop["shop_id"] for shop in done["tool_result"]["shops"]] == [10022, 10123]
 
 

@@ -1818,6 +1818,137 @@ def _decision_payload(decision: AgentRecommendationDecision) -> dict:
     }
 
 
+def _short_agent_text(value: str | None, limit: int = 58) -> str:
+    text = re.sub(r"\s+", " ", value or "").strip().rstrip("。！？!")
+    if len(text) <= limit:
+        return text
+    clipped = text[:limit]
+    cut = max(clipped.rfind("，"), clipped.rfind("、"), clipped.rfind("；"))
+    return f"{(clipped[:cut] if cut > 18 else clipped).rstrip('，、；')}..."
+
+
+def _agent_comparison_feature(shop: dict) -> str:
+    dishes = [item for item in _parse_json_list(shop.get("signature_dishes")) if item][:3]
+    if dishes:
+        return f"招牌：{'、'.join(dishes)}"
+    summary = _short_agent_text(str(shop.get("ai_summary") or ""))
+    if summary:
+        return summary
+    comments = shop.get("comments")
+    if isinstance(comments, int) and comments >= 500:
+        return f"Google 評論量 {comments} 則，可先作為人氣參考"
+    return "資料較少，建議先確認菜單、營業時間與訂位狀態"
+
+
+def _agent_comparison_best_for(shop: dict) -> str:
+    tags = [item for item in _parse_json_list(shop.get("atmosphere_tags")) if item][:2]
+    if tags:
+        return "、".join(tags)
+
+    text = " ".join(
+        str(part or "")
+        for part in (
+            shop.get("name"),
+            shop.get("category"),
+            shop.get("category_slug"),
+            shop.get("ai_summary"),
+        )
+    ).lower()
+    if re.search(r"火鍋|麻辣|鍋底|鴛鴦鍋", text):
+        return "多人聚餐、想吃鍋物"
+    if re.search(r"漢堡|burger|美式", text):
+        return "朋友聚餐、想吃美式漢堡"
+    if re.search(r"家庭|長輩|親子|小孩", text):
+        return "家庭聚餐、長輩同行"
+    if re.search(r"商務|包廂|正式|宴客", text):
+        return "商務聚餐、正式宴客"
+    if re.search(r"約會|氣氛|浪漫|安靜", text):
+        return "約會、安靜聊天"
+    try:
+        if int(shop.get("avg_price") or 0) <= 300:
+            return "快速簡餐、預算友善"
+    except (TypeError, ValueError):
+        pass
+    return "朋友聚餐、一般正餐" if _shop_has_rich_context(shop) else "需先確認資料完整度"
+
+
+def _agent_comparison_booking_status(shop: dict) -> str:
+    if shop.get("hot_seat_vouchers"):
+        return "Hot Seat 可搶"
+    booking = str(shop.get("booking_difficulty") or "").strip()
+    if booking and "未提及" not in booking:
+        return booking
+    return "可線上訂位，建議確認"
+
+
+def _agent_comparison_meta(shop: dict) -> str:
+    price = shop.get("price_per_person") or (f"NT$ {shop.get('avg_price')}" if shop.get("avg_price") else "")
+    location = " · ".join(
+        part
+        for part in (
+            shop.get("district"),
+            f"捷運{shop.get('mrt_station')}" if shop.get("mrt_station") else None,
+        )
+        if part
+    )
+    return " · ".join(part for part in (price, location) if part)
+
+
+def _selected_agent_response_shops(tool_result: dict) -> list[dict]:
+    shops = tool_result.get("shops", []) if isinstance(tool_result, dict) else []
+    if not isinstance(shops, list) or not shops:
+        return []
+
+    ids = (
+        tool_result.get("agent_decision", {}).get("recommended_shop_ids")
+        if isinstance(tool_result.get("agent_decision"), dict)
+        else None
+    )
+    selected_ids = [
+        int(shop_id)
+        for shop_id in (ids or [])
+        if str(shop_id).isdigit()
+    ]
+    if selected_ids:
+        selected = _shops_for_ids(shops, selected_ids)
+        selected_id_set = {_shop_id(shop) for shop in selected}
+        selected.extend(shop for shop in shops if _shop_id(shop) not in selected_id_set)
+        return selected[: min(3, len(shops))]
+    return shops[: min(3, len(shops))]
+
+
+def _agent_comparison_rows(shops: list[dict]) -> list[dict]:
+    rows: list[dict] = []
+    for shop in shops:
+        shop_id = _shop_id(shop)
+        if shop_id is None:
+            continue
+        rows.append(
+            {
+                "shop_id": shop_id,
+                "name": shop.get("name"),
+                "feature_highlight": _agent_comparison_feature(shop),
+                "best_for": _agent_comparison_best_for(shop),
+                "booking_status": _agent_comparison_booking_status(shop),
+                "meta": _agent_comparison_meta(shop),
+            }
+        )
+    return rows
+
+
+def _agent_response_contract(tool_result: dict) -> dict:
+    contract = {
+        **(tool_result.get("agent_decision", {}) if isinstance(tool_result.get("agent_decision"), dict) else {}),
+        "transaction": tool_result.get("transaction") if isinstance(tool_result, dict) else None,
+        "scope_note": tool_result.get("scope_note") if isinstance(tool_result, dict) else None,
+    }
+    shops = _selected_agent_response_shops(tool_result) if isinstance(tool_result, dict) else []
+    if shops:
+        contract["shops"] = shops
+        contract["comparison_rows"] = _agent_comparison_rows(shops)
+    return contract
+
+
 def _find_shop_from_tool_result(tool_result: dict, shop_id: int | None) -> dict | None:
     if shop_id is None:
         return None
@@ -2491,9 +2622,7 @@ async def agent(req: AgentRequest):
     return {
         "query":      req.query,
         "answer":     final_answer,
-        **last_tool_result.get("agent_decision", {}),
-        "transaction": last_tool_result.get("transaction"),
-        "scope_note": last_tool_result.get("scope_note"),
+        **_agent_response_contract(last_tool_result),
         "tools_used": tools_used,
         "tool_result": last_tool_result,
         "session_id": session_id,
@@ -2715,9 +2844,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
     done_payload = {
         "type": "done",
         "answer": full_answer,
-        **state.last_tool_result.get("agent_decision", {}),
-        "transaction": state.last_tool_result.get("transaction"),
-        "scope_note": state.last_tool_result.get("scope_note"),
+        **_agent_response_contract(state.last_tool_result),
         "tools_used": state.tools_used,
         "tool_result": state.last_tool_result,
         "session_id": session_id,
