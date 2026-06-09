@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import base64
 import contextvars
@@ -2599,6 +2601,79 @@ def _agent_response_contract(tool_result: dict) -> dict:
     return contract
 
 
+def _recommendation_context_from_tool_result(query: str, tool_result: dict) -> dict | None:
+    shops = _selected_agent_response_shops(tool_result) if isinstance(tool_result, dict) else []
+    compact_shops = []
+    for shop in shops[:3]:
+        shop_id = _shop_id(shop)
+        if shop_id is None:
+            continue
+        compact_shops.append({"shop_id": shop_id, "name": str(shop.get("name") or f"店家 {shop_id}")})
+    if not compact_shops:
+        return None
+    return {"query": query, "shops": compact_shops}
+
+
+def _latest_recommendation_context(history: list[dict]) -> dict:
+    for turn in reversed(history):
+        recommendation = turn.get("recommendation") if isinstance(turn, dict) else None
+        if isinstance(recommendation, dict):
+            shops = recommendation.get("shops")
+            if isinstance(shops, list) and shops:
+                return recommendation
+    return {}
+
+
+def _agent_booking_followup_from_history(query: str, history: list[dict]) -> ToolGuardResult | None:
+    if _booking_intent(query) or _payment_intent(query):
+        return None
+    prefill = _line_booking_prefill_from_text(query)
+    if not (prefill.get("date") or prefill.get("time") or prefill.get("people")):
+        return None
+
+    recommendation = _latest_recommendation_context(history)
+    shops = recommendation.get("shops") if isinstance(recommendation, dict) else []
+    if not isinstance(shops, list) or not shops:
+        return None
+    if len(shops) > 1:
+        return ToolGuardResult(
+            action="direct",
+            direct_answer="我收到日期/人數了。請先回覆要訂哪一間店名，避免幫你訂錯餐廳。",
+        )
+
+    shop = shops[0]
+    try:
+        shop_id = int(shop.get("shop_id"))
+    except (TypeError, ValueError):
+        return None
+    shop_name = str(shop.get("name") or f"店家 {shop_id}")
+    missing = []
+    if not prefill.get("date"):
+        missing.append("日期")
+    if not prefill.get("time"):
+        missing.append("時間")
+    if not prefill.get("people"):
+        missing.append("人數")
+    if missing:
+        return ToolGuardResult(
+            action="direct",
+            direct_answer=f"我已鎖定「{shop_name}」，還缺{'、'.join(missing)}。請補齊後我再幫你送出訂位。",
+            last_tool_result={"shops": [{"shop_id": shop_id, "name": shop_name}]},
+        )
+
+    return ToolGuardResult(
+        action="continue",
+        args={
+            "shop_id": shop_id,
+            "people": int(prefill["people"]),
+            "date": str(prefill["date"]),
+            "time": str(prefill["time"]),
+            "table_type": "normal",
+        },
+        last_tool_result={"shops": [{"shop_id": shop_id, "name": shop_name}]},
+    )
+
+
 def _find_shop_from_tool_result(tool_result: dict, shop_id: int | None) -> dict | None:
     if shop_id is None:
         return None
@@ -3078,7 +3153,33 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
             )
         return final_answer, [], {}
 
+    booking_followup = _agent_booking_followup_from_history(effective_query, history)
+    if booking_followup is not None:
+        if booking_followup.action == "direct":
+            final_answer = booking_followup.direct_answer or ""
+            state.last_tool_result = booking_followup.last_tool_result or {}
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {"role": "model", "content": final_answer},
+                    ],
+                )
+            return final_answer, [], state.last_tool_result
+        state.latest_search_result = booking_followup.last_tool_result or {}
+        guard = _before_tool_call(state, "create_booking", booking_followup.args)
+        if guard.action == "direct":
+            final_answer = guard.direct_answer or ""
+            state.final_transaction = guard.final_transaction
+            state.last_tool_result = guard.last_tool_result or {}
+        elif guard.action != "stop":
+            tool_result = await tool_create_booking(**guard.args)
+            _after_tool_call(state, "create_booking", tool_result)
+
     for _ in range(4):
+        if state.booking_result is not None or final_answer:
+            break
         response = generate(
             settings.gemini_agent_model,
             state.contents,
@@ -3131,7 +3232,16 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
         )
         final_answer = filter_output(final.text)
 
-    if state.last_tool_result.get("shops"):
+    if state.booking_result is not None:
+        transaction = _build_booking_transaction(
+            state.booking_result,
+            state.payment_result,
+            state.latest_search_result,
+        )
+        final_answer = _booking_confirmation_narrative(transaction)
+        state.final_transaction = transaction
+        state.last_tool_result["transaction"] = transaction
+    elif state.last_tool_result.get("shops"):
         decision = _build_agent_recommendation_decision(effective_query, state.last_tool_result)
         state.last_tool_result = await _enrich_agent_search_result(
             effective_query,
@@ -3143,9 +3253,15 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
             state.last_tool_result["agent_decision"] = _decision_payload(decision)
 
     if session_id:
+        recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
         new_history = history + [
             {"role": "user", "content": query},
-            {"role": "model", "content": final_answer},
+            {
+                "role": "model",
+                "content": final_answer,
+                **({"transaction": state.final_transaction} if state.final_transaction else {}),
+                **({"recommendation": recommendation} if recommendation else {}),
+            },
         ]
         session_store.save_history(session_id, new_history)
 
@@ -3401,8 +3517,64 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
         yield done_payload
         return
 
+    booking_followup = _agent_booking_followup_from_history(effective_query, history)
+    if booking_followup is not None:
+        if booking_followup.action == "direct":
+            full_answer = booking_followup.direct_answer or ""
+            state.last_tool_result = booking_followup.last_tool_result or {}
+            chunk_size = 18
+            for i in range(0, len(full_answer), chunk_size):
+                chunk = full_answer[i : i + chunk_size]
+                yield {"type": "message_update", "content": chunk}
+                yield {"type": "chunk", "content": chunk}
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {"role": "model", "content": full_answer},
+                    ],
+                )
+            done_payload = {
+                "type": "done",
+                "answer": full_answer,
+                **_agent_response_contract(state.last_tool_result),
+                "tools_used": [],
+                "tool_result": state.last_tool_result,
+                "session_id": session_id,
+            }
+            yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+            yield done_payload
+            return
+
+        state.latest_search_result = booking_followup.last_tool_result or {}
+        guard = _before_tool_call(state, "create_booking", booking_followup.args)
+        if guard.action == "direct":
+            direct_answer = guard.direct_answer
+            state.final_transaction = guard.final_transaction
+            state.last_tool_result = guard.last_tool_result or {}
+        elif guard.action != "stop":
+            tool_name = "create_booking"
+            yield {
+                "type": "tool_execution_start",
+                "name": tool_name,
+                "args": guard.args,
+                "session_id": session_id,
+            }
+            tool_result = await tool_create_booking(**guard.args)
+            _after_tool_call(state, tool_name, tool_result)
+            yield {
+                "type": "tool_execution_end",
+                "name": tool_name,
+                "result_summary": _tool_result_summary(tool_result),
+                "session_id": session_id,
+            }
+            yield {"type": "tool", "name": tool_name}
+
     # Phase 1: tool-calling loop (sync) — yields tool events as each fires
     for _ in range(4):
+        if state.booking_result is not None or direct_answer is not None:
+            break
         response = generate(
             settings.gemini_agent_model,
             state.contents,
@@ -3524,6 +3696,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             yield {"type": "chunk", "content": chunk}
 
     if session_id:
+        recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
         session_store.save_history(
             session_id,
             history + [
@@ -3532,6 +3705,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                     "role": "model",
                     "content": full_answer,
                     **({"transaction": state.final_transaction} if state.final_transaction else {}),
+                    **({"recommendation": recommendation} if recommendation else {}),
                 },
             ],
         )

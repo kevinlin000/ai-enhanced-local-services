@@ -74,6 +74,22 @@ def _compact_turn(turn: dict[str, Any]) -> dict[str, Any] | None:
             if key in transaction
         }
 
+    recommendation = turn.get("recommendation")
+    if isinstance(recommendation, dict):
+        shops = recommendation.get("shops")
+        if isinstance(shops, list):
+            compacted["recommendation"] = {
+                "query": str(recommendation.get("query") or "")[:500],
+                "shops": [
+                    {
+                        "shop_id": shop.get("shop_id"),
+                        "name": str(shop.get("name") or "")[:120],
+                    }
+                    for shop in shops[:3]
+                    if isinstance(shop, dict) and shop.get("shop_id")
+                ],
+            }
+
     return compacted
 
 

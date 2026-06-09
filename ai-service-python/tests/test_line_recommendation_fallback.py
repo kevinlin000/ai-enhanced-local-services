@@ -78,6 +78,38 @@ def test_agent_response_contract_orders_shops_and_builds_comparison_rows():
     }
 
 
+def test_session_history_compacts_recommendation_context():
+    compacted = main.session_store.compact_history(
+        [
+            {
+                "role": "model",
+                "content": "推薦青田七六。",
+                "recommendation": {
+                    "query": "青田七六",
+                    "shops": [
+                        {"shop_id": 10222, "name": "青田七六", "large": "ignored"},
+                        {"shop_id": 10223, "name": "備選"},
+                    ],
+                },
+            }
+        ]
+    )
+
+    assert compacted == [
+        {
+            "role": "model",
+            "content": "推薦青田七六。",
+            "recommendation": {
+                "query": "青田七六",
+                "shops": [
+                    {"shop_id": 10222, "name": "青田七六"},
+                    {"shop_id": 10223, "name": "備選"},
+                ],
+            },
+        }
+    ]
+
+
 def test_line_location_context_merges_into_nearby_text():
     state = {"title": "台北101", "address": "台北市信義區市府路45號"}
 
@@ -459,6 +491,96 @@ async def test_web_agent_stream_merges_clarification_followup(monkeypatch):
     done = events[-1]
     assert captured["query"] == "推薦7人聚餐餐廳，補充條件：大安區，適合聊天"
     assert done["recommended_shop_ids"] == [10101]
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_books_from_single_recommendation_followup(monkeypatch):
+    captured = {}
+    saved = {}
+
+    async def fake_create_booking(**kwargs):
+        captured.update(kwargs)
+        return {
+            "success": True,
+            "shopId": kwargs["shop_id"],
+            "shopName": "青田七六",
+            "bookingCode": "BK-WEB-FOLLOWUP",
+            "people": kwargs["people"],
+            "date": kwargs["date"],
+            "time": kwargs["time"],
+            "tableType": kwargs["table_type"],
+            "needsDeposit": False,
+        }
+
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("single-shop booking followup should not ask the model")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {"role": "user", "content": "青田七六"},
+            {
+                "role": "model",
+                "content": "我已整理青田七六。",
+                "recommendation": {"query": "青田七六", "shops": [{"shop_id": 10222, "name": "青田七六"}]},
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
+    monkeypatch.setattr(main, "tool_create_booking", fake_create_booking)
+    monkeypatch.setattr(main, "generate", fail_generate)
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "明天晚上19點 4人",
+            "test-web-booking-followup",
+        )
+    ]
+
+    done = events[-1]
+    assert captured["shop_id"] == 10222
+    assert captured["people"] == 4
+    assert captured["date"] == "2026-06-11"
+    assert captured["time"] == "19:00"
+    assert done["transaction"]["booking_code"] == "BK-WEB-FOLLOWUP"
+    assert saved["history"][-1]["transaction"]["booking_code"] == "BK-WEB-FOLLOWUP"
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_asks_missing_booking_people(monkeypatch):
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("missing booking fields should be handled before model")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {"role": "user", "content": "青田七六"},
+            {
+                "role": "model",
+                "content": "我已整理青田七六。",
+                "recommendation": {"query": "青田七六", "shops": [{"shop_id": 10222, "name": "青田七六"}]},
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "generate", fail_generate)
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "明天晚上",
+            "test-web-booking-missing-people",
+        )
+    ]
+
+    done = events[-1]
+    assert "還缺人數" in done["answer"]
+    assert done["tools_used"] == []
 
 
 @pytest.mark.anyio
