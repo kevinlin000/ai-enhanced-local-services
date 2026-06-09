@@ -1,6 +1,6 @@
 # Taxonomy Spec
 
-Status: active. V34 applies the second manual audit correction batch.
+Status: active. V35 applies the third manual audit correction batch.
 
 Data baseline: 600 active shops in MySQL taxonomy audit on 2026-06-09.
 
@@ -17,17 +17,17 @@ Decision:
 
 | type_id | 主分類 | 店家數 | 說明 |
 | --- | --- | ---: | --- |
-| 2001 | 火鍋 | 88 | 火鍋、涮涮鍋、壽喜燒、鍋物吃到飽 |
-| 2002 | 日式燒肉 | 60 | 日式燒肉為主 |
-| 2003 | 居酒屋 | 63 | 日式酒場、小酌串燒 |
-| 2004 | 日式料理 | 74 | 拉麵、鰻魚飯、純日料正餐 |
-| 2005 | 素食 | 25 | 蔬食、vegan、素食百匯 |
+| 2001 | 火鍋 | 89 | 火鍋、涮涮鍋、壽喜燒、鍋物吃到飽 |
+| 2002 | 日式燒肉 | 57 | 日式燒肉為主 |
+| 2003 | 居酒屋 | 67 | 日式酒場、小酌串燒 |
+| 2004 | 日式料理 | 73 | 拉麵、鰻魚飯、純日料正餐 |
+| 2005 | 素食 | 26 | 蔬食、vegan、素食百匯 |
 | 2007 | 義法料理 | 79 | 義式、法式、西式餐酒館、鐵板套餐 |
-| 2008 | 中式料理 | 89 | 台菜、粵菜、港點、熱炒、小籠包、中式宴席 |
+| 2008 | 中式料理 | 90 | 台菜、粵菜、港點、熱炒、小籠包、中式宴席 |
 | 2009 | 韓式料理 | 16 | 韓式烤肉、韓式鍋物、韓式正餐；保留 `#韓式` tag |
-| 2010 | 美式料理 | 55 | 美式、澳式、brunch 主體、漢堡、煙燻肉 |
+| 2010 | 美式料理 | 51 | 美式、澳式、brunch 主體、漢堡、煙燻肉 |
 | 2011 | 自助餐 | 8 | buffet / cafeteria / 吃到飽主體 |
-| 2012 | 咖啡/甜點 | 35 | 咖啡館、甜點店、下午茶 |
+| 2012 | 咖啡/甜點 | 36 | 咖啡館、甜點店、下午茶 |
 | 2013 | 異國料理 | 8 | 印度、泰式、中東、越南、墨西哥等；用 cuisine tags 區分細項 |
 
 ### 1.2 type_id Policy
@@ -56,6 +56,7 @@ Note:
 - `2009` was promoted back to primary category in V32.
 - `2013` was added in V33 instead of reusing `2006`, so the retired steak id remains semantically clean.
 - V34 applies the second manual audit batch, including 品田牧場 -> 日式料理, 泰滾 / 神燈搓一下 -> 異國料理, and 果然匯 retaining 素食 with `#吃到飽`.
+- V35 applies the third manual audit batch, including 麥味登 -> 中式料理 + `#早午餐`, 大河牧場漢堡排洋食館 -> 日式料理, and 貓蕊 -> 咖啡/甜點.
 
 ## 2. Badge Rule
 

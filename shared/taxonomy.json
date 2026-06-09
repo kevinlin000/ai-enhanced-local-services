@@ -3,7 +3,7 @@
     "version": 1,
     "description": "Single source of truth for ByteBites taxonomy: categories / badges / tags. Both web (Next.js) and ai-service-python MUST read from this file. Do not hand-copy values into either codebase.",
     "source_of_truth": true,
-    "aligned_with": ["docs/taxonomy-spec.md", "db/migration/V15", "db/migration/V16", "db/migration/V32", "db/migration/V33", "db/migration/V34"]
+    "aligned_with": ["docs/taxonomy-spec.md", "db/migration/V15", "db/migration/V16", "db/migration/V32", "db/migration/V33", "db/migration/V34", "db/migration/V35"]
   },
   "categories": [
     { "type_id": 2008, "slug": "chinese",    "name": "中式料理", "sort": 1 },

@@ -160,6 +160,23 @@ def test_manual_buffet_tag_can_stay_secondary_to_vegetarian():
     assert "吃到飽" in result["tags"]
 
 
+def test_third_manual_audit_overrides_special_cases():
+    cases = [
+        ("麥味登 文山饗食大亨店", "台式連鎖早餐、漢堡、蛋餅與咖啡。", 2008),
+        ("大河牧場 漢堡排洋食館-內湖大全聯店", "日式洋食漢堡排與壽喜燒風味套餐。", 2004),
+        ("東京家庭義大利麵 堺人餐飲 天母", "日式義大利麵、明太子麵與和風洋食。", 2004),
+        ("試試工作室", "義式料理、私廚手作料理與甜點。", 2007),
+    ]
+    for name, summary, expected_type_id in cases:
+        result = classify_shop({
+            "display_name": name,
+            "primary_type": "restaurant",
+            "types": ["restaurant", "food"],
+            "ai_extracted": {"ai_summary": summary},
+        })
+        assert result["primary_type_id"] == expected_type_id
+
+
 def test_classifier_fixture_10104_buffet_premium():
     shop = load_shops()[10104]
     result = classify_shop(shop)
