@@ -18,6 +18,65 @@ def test_line_force_recommendation_cards_skips_booking_and_payment_queries():
     assert not _line_should_force_recommendation_cards("我要付款訂金")
 
 
+def test_agent_response_contract_orders_shops_and_builds_comparison_rows():
+    payload = main._agent_response_contract(
+        {
+            "agent_decision": {
+                "recommended_shop_ids": [3, 1],
+                "narrative": "推薦 B 與 A。",
+                "rejected_shop_ids": [2],
+                "rejection_summary": None,
+            },
+            "scope_note": "附近符合條件較少，已擴大搜尋。",
+            "transaction": {
+                "kind": "booking",
+                "success": True,
+                "status": "PENDING_PAYMENT",
+                "booking_code": "BK-CONTRACT-001",
+            },
+            "shops": [
+                {
+                    "shop_id": 1,
+                    "name": "候選 A",
+                    "district": "中山",
+                    "avg_price": 500,
+                    "ai_summary": "適合聊天的餐廳。",
+                },
+                {
+                    "shop_id": 2,
+                    "name": "候選 C",
+                    "district": "信義",
+                    "category": "美式料理",
+                    "ai_summary": "資料較少。",
+                },
+                {
+                    "shop_id": 3,
+                    "name": "候選 B",
+                    "district": "大安",
+                    "mrt_station": "忠孝復興",
+                    "price_per_person": "NT$ 450-650",
+                    "signature_dishes": ["厚切牛肉堡", "奶昔"],
+                    "atmosphere_tags": ["約會", "餐酒館"],
+                    "booking_difficulty": "可線上訂位，建議提前",
+                },
+            ],
+        }
+    )
+
+    assert payload["recommended_shop_ids"] == [3, 1]
+    assert [shop["shop_id"] for shop in payload["shops"]] == [3, 1, 2]
+    assert payload["scope_note"] == "附近符合條件較少，已擴大搜尋。"
+    assert payload["transaction"]["booking_code"] == "BK-CONTRACT-001"
+    assert payload["comparison_rows"][0] == {
+        "shop_id": 3,
+        "name": "候選 B",
+        "feature_highlight": "招牌：厚切牛肉堡、奶昔",
+        "best_for": "約會、餐酒館",
+        "booking_status": "可線上訂位，建議提前",
+        "meta": "NT$ 450-650 · 大安 · 捷運忠孝復興",
+    }
+
+
 def test_line_location_context_merges_into_nearby_text():
     state = {"title": "台北101", "address": "台北市信義區市府路45號"}
 

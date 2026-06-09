@@ -17,7 +17,7 @@ legacy events.
 | `tool_execution_start` | A tool is about to run after guard checks. | `name`, `args`, `session_id` |
 | `tool_execution_end` | A tool finished successfully or returned an error payload. | `name`, `result_summary`, `session_id` |
 | `message_update` | A visible answer chunk is available. | `content` |
-| `agent_end` | Final answer and structured payload are complete. | `answer`, `tools_used`, `tool_result`, `transaction`, `session_id` |
+| `agent_end` | Final answer and structured payload are complete. | `answer`, `recommended_shop_ids`, `shops`, `comparison_rows`, `scope_note`, `transaction`, `tools_used`, `tool_result`, `session_id` |
 | `agent_error` | The request failed after streaming started. | `message`, `session_id` |
 
 ## Legacy Compatibility
@@ -38,6 +38,52 @@ Frontend migration can be incremental:
 2. Add `tool_execution_start` / `tool_execution_end` for richer tool status UI.
 3. Switch finalization from `done` to `agent_end`.
 4. Keep legacy handlers until all deployed clients are updated.
+
+## Final Payload Contract
+
+Both `agent_end` and legacy `done` carry the same final response payload. The
+non-stream endpoint `POST /api/ai/agent` returns the same fields at the top
+level, except for the SSE-only `type`.
+
+Stable top-level fields:
+
+| Field | Meaning | UI use |
+| --- | --- | --- |
+| `answer` | Human-readable narrative written by the agent. | Render as markdown/text in Web and LINE. |
+| `recommended_shop_ids` | Ordered shop IDs selected by the agent, max 3 for recommendation turns. | Source of truth for card ordering. |
+| `shops` | Hydrated selected shops ordered by `recommended_shop_ids`, filled to 3 when possible. | Web renders full cards; LINE renders compact Flex cards. |
+| `comparison_rows` | Deterministic comparison summary for the same `shops`. | Web comparison table; LINE may ignore. |
+| `scope_note` | Explanation when a query had to expand location/category scope. | Web alert band; LINE intro text. |
+| `transaction` | Structured booking/payment payload when a turn creates or updates a booking. | Web modal/card; LINE notification/CTA state. |
+| `tools_used` | Tool names used during this turn. | Debug/status chips. |
+| `tool_result` | Raw latest tool payload retained for compatibility and debugging. | Fallback only; new UI should prefer top-level fields. |
+
+`comparison_rows` uses these keys:
+
+```json
+{
+  "shop_id": 10009,
+  "name": "橘色涮涮屋 信義館",
+  "feature_highlight": "招牌：頂級肉品、海鮮套餐",
+  "best_for": "約會、精緻聚餐",
+  "booking_status": "可線上訂位，建議提前",
+  "meta": "NT$ 1200 · 信義 · 捷運市政府"
+}
+```
+
+The backend builds `comparison_rows` deterministically from hydrated shop
+metadata. It must not depend on LLM free-form output. This keeps Web and LINE
+aligned on the underlying decision while still allowing different visual
+presentations.
+
+Frontend precedence:
+
+1. Prefer top-level `shops`, `comparison_rows`, `scope_note`, and `transaction`.
+2. Fall back to `tool_result.shops`, `tool_result.comparison_rows`, and
+   `tool_result.agent_decision.recommended_shop_ids` only for backward
+   compatibility.
+3. Ignore duplicate legacy `done` if `agent_end` has already finalized the
+   message.
 
 ## Tool Guard Hooks
 
