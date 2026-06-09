@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from datetime import date as date_cls, datetime, timedelta
 from pathlib import Path
 from typing import AsyncIterator
-from urllib.parse import quote_plus
+from urllib.parse import parse_qs, quote_plus
 from zoneinfo import ZoneInfo
 from app import session_store
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -692,6 +692,91 @@ def _extract_query_constraints(query: str) -> dict:
     }
 
 
+def _restaurant_need_clarification(query: str) -> bool:
+    normalized = str(query or "").strip()
+    if not normalized:
+        return False
+    if _booking_intent(normalized) or _payment_intent(normalized) or _line_card_request_intent(normalized):
+        return False
+    if _specific_shop_keyword(normalized):
+        return False
+    constraints = _extract_query_constraints(normalized)
+    if constraints["categories"] or constraints.get("wants_burger") or constraints.get("specific_cuisines"):
+        return False
+    has_restaurant_phrase = any(
+        phrase in normalized
+        for phrase in ("推薦", "找", "想吃", "想找", "餐廳", "店", "聚餐", "吃飯", "用餐", "約會", "請客", "聊天", "慶生")
+    )
+    has_people_or_context = bool(re.search(r"[一二三四五六七八九十\d]+人|聚餐|聊天|約會|請客|慶生|商務|安靜", normalized))
+    has_location_only = bool(constraints["districts"] or constraints["stations"]) and has_people_or_context
+    return has_restaurant_phrase or has_location_only
+
+
+def _restaurant_clarification_text() -> str:
+    return (
+        "我先幫你收斂方向，避免亂推薦。請補 2-3 個條件："
+        "地點或捷運站、日期/時段與人數、料理類型或氣氛（例如安靜聊天、商務請客、慶生）。"
+    )
+
+
+def _strip_specific_shop_keyword(text: str) -> str:
+    normalized = re.sub(r"\s+", "", str(text or "").strip())
+    normalized = normalized.strip("，,。.!！?？")
+    normalized = re.sub(r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|下午|早午餐|下週[一二三四五六日天]?|週[一二三四五六日天])", "", normalized)
+    normalized = re.sub(r"[0-2]?\d[:：點時](半|[0-5]?\d分?)?", "", normalized)
+    normalized = re.sub(r"[一二三四五六七八九十\d]+人", "", normalized)
+    for phrase in (
+        "幫我訂",
+        "幫我找",
+        "幫我",
+        "那我要",
+        "那我想要",
+        "我要訂",
+        "我想訂",
+        "想訂",
+        "我要",
+        "我想要",
+        "請幫我",
+        "推薦",
+        "想吃",
+        "想找",
+        "找",
+        "可以嗎",
+        "好了",
+        "的",
+        "餐廳",
+    ):
+        normalized = normalized.replace(phrase, "")
+    return normalized.strip("，,。.!！?？")
+
+
+def _specific_shop_keyword(text: str) -> str:
+    keyword = _strip_specific_shop_keyword(text)
+    if len(keyword) < 2 or len(keyword) > 18:
+        return ""
+    if re.fullmatch(r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|下午|早午餐|[0-2]?\d[:：點時]?)", keyword):
+        return ""
+    constraints = _extract_query_constraints(keyword)
+    if constraints["categories"] or constraints.get("wants_burger") or constraints.get("specific_cuisines"):
+        return ""
+    if keyword in {"推薦", "找", "餐廳", "聚餐", "吃飯", "用餐", "聊天", "約會", "請客", "附近", "圖卡", "卡片"}:
+        return ""
+    if any(phrase in keyword for phrase in ("聚餐", "聊天", "約會", "請客", "附近", "好吃", "安靜", "商務")):
+        return ""
+    if any(keyword in values or keyword == district for district, values in DISTRICT_HINTS.items()):
+        return ""
+    station_values = {station.replace("站", "") for station in STATION_HINTS} | {
+        value.replace("站", "") for values in STATION_HINTS.values() for value in values
+    }
+    if keyword in station_values:
+        return ""
+    return keyword
+
+
+def _normalized_name(value: str) -> str:
+    return re.sub(r"[\s｜|\-－_（）()·・.,，。!！?？]+", "", str(value or "").lower())
+
+
 def _authoritative_category_slug(payload: dict) -> str:
     explicit_slug = _canonical_category_slug(payload.get("category_slug"))
     if explicit_slug:
@@ -1326,6 +1411,60 @@ async def _burger_supplements(constraints: dict, existing_ids: set[int], limit: 
     return supplements[:limit]
 
 
+async def _java_shop_name_supplements(query: str, existing_ids: set[int], limit: int = 5) -> list[dict]:
+    keyword = _specific_shop_keyword(query)
+    if not keyword:
+        return []
+
+    try:
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            response = await client.get(
+                f"{settings.java_backend_url}/api/shop/search",
+                params={"q": keyword, "page": 1, "size": max(limit, 8)},
+            )
+        if response.status_code != 200:
+            return []
+        payload = response.json()
+        data = payload.get("data") if isinstance(payload, dict) else {}
+        records = data.get("records") if isinstance(data, dict) else []
+    except Exception:
+        logger.exception("shop_name_supplement_failed query=%s keyword=%s", query, keyword)
+        return []
+
+    normalized_keyword = _normalized_name(keyword)
+    supplements: list[dict] = []
+    for shop in records or []:
+        if not isinstance(shop, dict):
+            continue
+        try:
+            shop_id = int(shop.get("id") or 0)
+        except (TypeError, ValueError):
+            continue
+        if not shop_id or shop_id in existing_ids:
+            continue
+        name = str(shop.get("name") or "")
+        normalized_name = _normalized_name(name)
+        if not normalized_keyword or (
+            normalized_keyword not in normalized_name and normalized_name not in normalized_keyword
+        ):
+            continue
+        metadata = await _fetch_java_ai_metadata(shop_id)
+        hit = _java_shop_to_search_hit(shop, metadata)
+        hit["score"] = 2.0
+        hit["rerank_score"] = 2.0 + _metadata_bonus(keyword, hit)
+        supplements.append(hit)
+
+    supplements.sort(
+        key=lambda hit: (
+            1 if _normalized_name(keyword) == _normalized_name(str(hit.get("name") or "")) else 0,
+            hit.get("rating") or 0,
+            hit.get("comments") or 0,
+        ),
+        reverse=True,
+    )
+    return supplements[:limit]
+
+
 async def _semantic_hits(query: str, top_k: int) -> list[dict]:
     gemini = get_gemini()
     emb_resp = gemini.models.embed_content(
@@ -1386,6 +1525,18 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
     )
     if burger_hits:
         raw_hits.extend(burger_hits)
+    exact_name_hits = await _java_shop_name_supplements(
+        query,
+        {int(hit["shop_id"]) for hit in raw_hits if hit.get("shop_id")},
+        limit=max(3, top_k),
+    )
+    if exact_name_hits:
+        raw_hits = exact_name_hits + raw_hits
+        logger.warning(
+            "search_exact_name_supplement query=%r exact=%s",
+            query,
+            [hit.get("name") for hit in exact_name_hits[:8]],
+        )
 
     before_active_filter = len(raw_hits)
     raw_hits = [hit for hit in raw_hits if not _is_inactive_search_hit(hit)]
@@ -1929,6 +2080,8 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 - 先判斷需求完整度，再決定追問、查店家、比較或訂位。
 - 明確推薦需求：已有地點、料理類型、用途、人數、日期/時段中的至少 2 個，或指定店名 → 可以查 tool 並推薦。
 - 模糊需求：只有「想聚餐」「7 個人能聚餐」「適合聊天」「附近好吃」「推薦餐廳」但缺少區域、日期/時段或料理偏好 → 不要硬推薦；先用 2-3 個短問題收斂需求（區域、日期/時段、料理/氣氛）。
+- 使用者後續補充「給我圖卡」「卡片」「我要某店」「明天晚上」時，要沿用前文，不要當成全新的問題。
+- 使用者指定精確店名（例如「青田七六」「劉山東牛肉麵」）時，必須以該店為主查詢；禁止改推薦名字相似或向量相近但不是同一家店的餐廳。
 - 若使用者問「比較」「哪個適合」「幫我挑」「適合安靜聊天/家庭/約會」→ 回答必須有判斷依據，不只列店名。
 - 查到多家候選時，用短段落或條列比較，不要輸出 markdown table；LINE 內表格會跑版。
 - 若是口味真實性問題（如「正宗川菜」「香麻辣」「像日本當地」），先說明判斷維度，再推薦符合的店。
@@ -2855,6 +3008,18 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
     state = AgentToolState(query=query, session_id=session_id, history=history, contents=contents)
     final_answer = ""
 
+    if _restaurant_need_clarification(query):
+        final_answer = _restaurant_clarification_text()
+        if session_id:
+            session_store.save_history(
+                session_id,
+                history + [
+                    {"role": "user", "content": query},
+                    {"role": "model", "content": final_answer},
+                ],
+            )
+        return final_answer, [], {}
+
     for _ in range(4):
         response = generate(
             settings.gemini_agent_model,
@@ -3121,6 +3286,33 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
 
     if _explicit_same_day_booking_request(query):
         full_answer = _same_day_booking_policy_answer()
+        chunk_size = 18
+        for i in range(0, len(full_answer), chunk_size):
+            chunk = full_answer[i : i + chunk_size]
+            yield {"type": "message_update", "content": chunk}
+            yield {"type": "chunk", "content": chunk}
+        if session_id:
+            session_store.save_history(
+                session_id,
+                history + [
+                    {"role": "user", "content": query},
+                    {"role": "model", "content": full_answer},
+                ],
+            )
+        done_payload = {
+            "type": "done",
+            "answer": full_answer,
+            "transaction": None,
+            "tools_used": [],
+            "tool_result": {},
+            "session_id": session_id,
+        }
+        yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+        yield done_payload
+        return
+
+    if _restaurant_need_clarification(query):
+        full_answer = _restaurant_clarification_text()
         chunk_size = 18
         for i in range(0, len(full_answer), chunk_size):
             chunk = full_answer[i : i + chunk_size]
@@ -3760,8 +3952,9 @@ async def line_booking_pay(shop_id: int, bookingCode: str, lt: str = "", lineUse
 
 
 @app.post("/line/book/{shop_id}/pay/confirm", response_class=HTMLResponse)
-async def line_booking_pay_confirm(shop_id: int, bookingCode: str, lt: str = "", lineUserId: str = ""):
+async def line_booking_pay_confirm(request: Request, shop_id: int, bookingCode: str, lt: str = "", lineUserId: str = ""):
     line_user_id, line_token = _line_context(lt, lineUserId)
+    payment_method = await _line_payment_method_from_request(request)
     shop = await _fetch_java_shop(shop_id)
     name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
     result = await _pay_line_booking(bookingCode, line_user_id, line_token)
@@ -3780,6 +3973,8 @@ async def line_booking_pay_confirm(shop_id: int, bookingCode: str, lt: str = "",
         )
 
     payment = result.get("data") if isinstance(result.get("data"), dict) else {}
+    payment["method"] = payment_method
+    payment["methodLabel"] = _line_payment_method_label(payment_method)
     booking = await _fetch_line_booking(bookingCode, line_user_id, line_token) or {
         "bookingCode": bookingCode,
         "shopId": shop_id,
@@ -3789,6 +3984,28 @@ async def line_booking_pay_confirm(shop_id: int, bookingCode: str, lt: str = "",
         "depositTotal": payment.get("amount"),
     }
     return HTMLResponse(_line_booking_result_page(shop_id, name, booking, line_user_id, line_token, payment=payment))
+
+
+async def _line_payment_method_from_request(request: Request) -> str:
+    try:
+        body = (await request.body()).decode("utf-8")
+    except Exception:
+        body = ""
+    values = parse_qs(body)
+    raw = str((values.get("paymentMethod") or ["credit_card"])[0] or "credit_card")
+    return raw if raw in _LINE_PAYMENT_METHOD_LABELS else "credit_card"
+
+
+_LINE_PAYMENT_METHOD_LABELS = {
+    "credit_card": "信用卡",
+    "line_pay": "LINE Pay",
+    "apple_pay": "Apple Pay",
+    "jkos_pay": "街口支付",
+}
+
+
+def _line_payment_method_label(method: str) -> str:
+    return _LINE_PAYMENT_METHOD_LABELS.get(method, "信用卡")
 
 
 def _line_booking_payment_page(shop_id: int, escaped_shop_name: str, booking: dict, line_token: str) -> str:
@@ -3816,16 +4033,28 @@ def _line_booking_payment_page(shop_id: int, escaped_shop_name: str, booking: di
           <p>訂位編號：<strong>{booking_code}</strong></p>
           <p>座位保留到：{hold_expires_at or "依系統狀態為準"}</p>
         </section>
-        <section>
-          <h2>選擇付款方式</h2>
-          <div class="payment-options">
-            <div class="payment-option selected"><strong>信用卡</strong><span>TapPay sandbox 測試卡</span></div>
-            <div class="payment-option"><strong>LINE Pay</strong><span>Demo wallet authorization</span></div>
-            <div class="payment-option"><strong>Apple Pay</strong><span>Demo wallet authorization</span></div>
-            <div class="payment-option"><strong>街口支付</strong><span>Demo wallet authorization</span></div>
-          </div>
-        </section>
         <form class="actions" method="post" action="{confirm_uri}">
+          <section>
+            <h2>選擇付款方式</h2>
+            <div class="payment-options" role="radiogroup" aria-label="付款方式">
+              <label class="payment-option">
+                <input type="radio" name="paymentMethod" value="credit_card" checked>
+                <strong>信用卡</strong><span>TapPay sandbox 測試卡</span>
+              </label>
+              <label class="payment-option">
+                <input type="radio" name="paymentMethod" value="line_pay">
+                <strong>LINE Pay</strong><span>Demo wallet authorization</span>
+              </label>
+              <label class="payment-option">
+                <input type="radio" name="paymentMethod" value="apple_pay">
+                <strong>Apple Pay</strong><span>Demo wallet authorization</span>
+              </label>
+              <label class="payment-option">
+                <input type="radio" name="paymentMethod" value="jkos_pay">
+                <strong>街口支付</strong><span>Demo wallet authorization</span>
+              </label>
+            </div>
+          </section>
           <button class="primary" type="submit">確認 demo 付款</button>
           <a class="secondary" href="{status_uri}">返回訂位狀態</a>
         </form>
@@ -4010,6 +4239,8 @@ def _line_booking_result_page(
     elif status == "EXPIRED":
         title = "訂位已逾期"
     deposit_note = _line_booking_deposit_note(status, needs_deposit, deposit_total, hold_expires_at)
+    payment_method_label = _html_escape(str((payment or {}).get("methodLabel") or ""))
+    payment_method_note = f"<p>付款方式：<strong>{payment_method_label}</strong></p>" if payment_method_label else ""
     payment_note = f"<p>付款交易編號：<strong>{payment_trans_id}</strong></p>" if payment_trans_id else ""
     actions = [
         f'<a class="primary" href="{pay_uri}">立即繳訂金</a>'
@@ -4032,6 +4263,7 @@ def _line_booking_result_page(
           <p>{booking_date} {booking_time} · {people} 人</p>
           <p>狀態：<strong>{status_label}</strong></p>
           {deposit_note}
+          {payment_method_note}
           {payment_note}
         </section>
         <div class="actions">
@@ -4380,9 +4612,16 @@ async def _build_line_cards_for_query(
     if selected_ids:
         selected = [int(shop_id) for shop_id in selected_ids if str(shop_id).isdigit()]
     else:
+        exact_keyword = _specific_shop_keyword(query)
+        exact_matches = [
+            shop
+            for shop in deduped
+            if exact_keyword and _normalized_name(exact_keyword) in _normalized_name(str(shop.get("name") or ""))
+        ]
+        selection_pool = exact_matches[:1] if exact_matches else deduped[:3]
         selected = [
             int(sid)
-            for shop in deduped[:3]
+            for shop in selection_pool
             if (sid := _shop_id(shop)) is not None
         ]
     selected = [shop_id for shop_id in selected if any(_shop_id(shop) == shop_id for shop in shops)]
@@ -4592,7 +4831,7 @@ async def _build_line_named_selection_cards(user_text: str, user_id: str) -> lis
     state = _load_line_recommendation_state(user_id)
     previous_query = str(state.get("query") or "").strip()
     if not previous_query:
-        return None
+        return await _build_line_cards_for_query(normalized, user_id, selected_ids=None, save_query=normalized)
     try:
         shops = await _semantic_hits(previous_query, top_k=30)
     except Exception:
@@ -4604,7 +4843,7 @@ async def _build_line_named_selection_cards(user_text: str, user_id: str) -> lis
         if _line_shop_matches_selection(shop, normalized)
     ]
     if not matches:
-        return None
+        return await _build_line_cards_for_query(normalized, user_id, selected_ids=None, save_query=normalized)
     selected_ids = [
         int(sid)
         for shop in _dedupe_shops_by_brand(matches)[:3]
@@ -4639,6 +4878,11 @@ def _line_card_request_intent(text: str) -> bool:
 
 
 def _line_selection_token(text: str) -> str:
+    specific = _specific_shop_keyword(text)
+    if specific:
+        return specific
+    if _restaurant_need_clarification(text):
+        return ""
     normalized = re.sub(r"\s+", "", str(text or "").strip().lower())
     normalized = normalized.strip("，,。.!！?？")
     if not normalized or len(normalized) > 12:
@@ -4717,7 +4961,16 @@ def _line_should_force_recommendation_cards(text: str) -> bool:
             or constraints["wants_hot_seat"]
         )
     )
-    return has_food_or_place and (has_request_phrase or has_specific_dining_need)
+    asks_definition = any(phrase in normalized for phrase in ("是什麼", "怎麼", "如何", "差別", "意思"))
+    has_clear_category_only = bool(constraints["categories"] or constraints.get("specific_cuisines") or constraints.get("wants_burger"))
+    return has_food_or_place and (has_request_phrase or has_specific_dining_need or (has_clear_category_only and not asks_definition))
+
+
+async def _build_line_clarification_if_needed(user_text: str, user_id: str) -> list[dict] | None:
+    if not _restaurant_need_clarification(user_text):
+        return None
+    _save_line_recommendation_state(user_id, query=user_text, shown_shop_ids=[])
+    return [build_text_message(_restaurant_clarification_text())]
 
 
 async def _build_line_fallback_recommendation_cards(user_text: str, user_id: str) -> list[dict] | None:
@@ -5103,6 +5356,10 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     named_selection_messages = await _build_line_named_selection_cards(user_text, user_id)
     if named_selection_messages is not None:
         return named_selection_messages
+
+    clarification_messages = await _build_line_clarification_if_needed(user_text, user_id)
+    if clarification_messages is not None:
+        return clarification_messages
 
     forced_card_messages = await _build_line_fallback_recommendation_cards(effective_user_text, user_id)
     if forced_card_messages is not None:
@@ -6441,9 +6698,10 @@ def _line_shell(title: str, body: str) -> str:
     .status-list p {{ margin:6px 0; }}
     .booking-form {{ display:grid; gap:14px; margin-top:12px; }}
     .payment-options {{ display:grid; gap:10px; margin-top:12px; }}
-    .payment-option {{ display:flex; justify-content:space-between; gap:12px; padding:12px 14px; border:1px solid rgba(0,0,0,.12); border-radius:8px; background:#fff; }}
+    .payment-option {{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; padding:12px 14px; border:1px solid rgba(0,0,0,.12); border-radius:8px; background:#fff; cursor:pointer; }}
+    .payment-option input {{ width:18px; height:18px; min-height:18px; margin:0; padding:0; accent-color:#16833a; }}
     .payment-option span {{ color:#6f6a62; font-size:13px; font-weight:700; text-align:right; }}
-    .payment-option.selected {{ border-color:#16833a; background:#eef8f1; }}
+    .payment-option:has(input:checked) {{ border-color:#16833a; background:#eef8f1; }}
     label {{ display:grid; gap:6px; color:#514d47; font-size:13px; font-weight:800; }}
     input, select {{ min-height:48px; border:1px solid rgba(0,0,0,.14); border-radius:8px; background:#fff; color:#171512; font:inherit; font-size:16px; padding:0 12px; }}
     button {{ border:0; font:inherit; cursor:pointer; }}

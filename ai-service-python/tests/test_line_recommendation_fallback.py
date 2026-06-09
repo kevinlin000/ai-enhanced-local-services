@@ -11,6 +11,7 @@ def test_line_force_recommendation_cards_for_clear_restaurant_query():
     assert _line_should_force_recommendation_cards("推薦信義區高級火鍋")
     assert _line_should_force_recommendation_cards("信義區高級火鍋")
     assert _line_should_force_recommendation_cards("附近高級火鍋")
+    assert _line_should_force_recommendation_cards("韓式料理")
 
 
 def test_line_force_recommendation_cards_skips_booking_and_payment_queries():
@@ -366,6 +367,33 @@ def test_prefer_rich_hits_returns_empty_when_only_legacy_seed_matches():
     ]
 
     assert main._prefer_rich_hits(hits, top_k=3) == []
+
+
+def test_specific_shop_keyword_ignores_vague_or_time_only_followups():
+    assert main._specific_shop_keyword("那我要青田七六好了") == "青田七六"
+    assert main._specific_shop_keyword("明天 晚上") == ""
+    assert main._specific_shop_keyword("推薦7人聚餐餐廳") == ""
+    assert main._specific_shop_keyword("大安區，適合聊天") == ""
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_clarifies_vague_group_need(monkeypatch):
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("vague restaurant needs should be clarified before model search")
+
+    monkeypatch.setattr(main, "generate", fail_generate)
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "推薦7人聚餐餐廳",
+            "test-vague-web",
+        )
+    ]
+
+    done = events[-1]
+    assert done["tools_used"] == []
+    assert "收斂方向" in done["answer"]
 
 
 @pytest.mark.anyio
@@ -819,6 +847,66 @@ async def test_line_card_request_replays_previous_cards(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_line_vague_need_clarifies_and_saves_context(monkeypatch):
+    saved = {}
+
+    async def fail_run_agent_turn(query: str, session_id: str):
+        raise AssertionError("vague line requests should not wait for model output")
+
+    monkeypatch.setattr(main, "_load_line_recommendation_state", lambda user_id: {})
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda user_id, query, shown_shop_ids: saved.update({"user_id": user_id, "query": query, "shown": shown_shop_ids}))
+    monkeypatch.setattr(main, "_run_agent_turn", fail_run_agent_turn)
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "推薦7人聚餐餐廳"},
+        }
+    )
+
+    assert "收斂方向" in messages[0]["text"]
+    assert saved == {"user_id": "test-user", "query": "推薦7人聚餐餐廳", "shown": []}
+
+
+@pytest.mark.anyio
+async def test_line_followup_after_clarification_merges_previous_need(monkeypatch):
+    captured = {}
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        captured["query"] = query
+        return [
+            {
+                "shop_id": 10101,
+                "name": "大安聊天餐館",
+                "district": "大安",
+                "category": "中式料理",
+                "ai_summary": "座位寬敞，適合多人聊天。",
+            }
+        ]
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "推薦7人聚餐餐廳", "shown_shop_ids": []},
+    )
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "大安區，適合聊天"},
+        }
+    )
+
+    assert captured["query"] == "推薦7人聚餐餐廳，補充條件：大安區，適合聊天"
+    assert messages[1]["type"] == "flex"
+
+
+@pytest.mark.anyio
 async def test_line_short_name_selects_previous_recommendation(monkeypatch):
     async def fake_semantic_hits(query: str, top_k: int):
         return [
@@ -860,6 +948,49 @@ async def test_line_short_name_selects_previous_recommendation(monkeypatch):
     bubbles = messages[1]["contents"]["contents"]
     assert len(bubbles) == 1
     assert bubbles[0]["body"]["contents"][1]["text"] == "橘色涮涮屋 信義館"
+
+
+@pytest.mark.anyio
+async def test_line_specific_shop_name_returns_only_that_shop(monkeypatch):
+    captured = {}
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        captured["query"] = query
+        return [
+            {
+                "shop_id": 10222,
+                "name": "青田七六",
+                "district": "大安",
+                "mrt_station": "東門",
+                "category": "中式料理",
+                "ai_summary": "老屋餐廳，適合聊天聚餐。",
+            },
+            {
+                "shop_id": 10223,
+                "name": "青靜綠",
+                "district": "文山",
+                "category": "素食",
+                "ai_summary": "蔬食餐廳。",
+            },
+        ]
+
+    monkeypatch.setattr(main, "_load_line_recommendation_state", lambda user_id: {})
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "那我要青田七六好了"},
+        }
+    )
+
+    assert captured["query"] == "青田七六"
+    bubbles = messages[1]["contents"]["contents"]
+    assert len(bubbles) == 1
+    assert bubbles[0]["body"]["contents"][1]["text"] == "青田七六"
 
 
 @pytest.mark.anyio
@@ -1023,6 +1154,29 @@ def test_line_booking_flex_pending_payment_has_pay_action(monkeypatch):
     parking_uri = next(button["action"]["uri"] for button in footer if button["action"]["label"] == "我會開車")
     assert "/line/book/10009/parking?" in parking_uri
     assert "driving=true" in parking_uri
+
+
+def test_line_booking_payment_page_has_selectable_methods(monkeypatch):
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+    html = main._line_booking_payment_page(
+        10009,
+        "橘色涮涮屋 信義館",
+        {
+            "bookingCode": "BK-ABC",
+            "people": 2,
+            "date": "2026-06-08",
+            "time": "19:00",
+            "depositTotal": 600,
+        },
+        "line-token",
+    )
+
+    assert 'role="radiogroup"' in html
+    assert 'name="paymentMethod" value="credit_card" checked' in html
+    assert 'name="paymentMethod" value="line_pay"' in html
+    assert 'name="paymentMethod" value="apple_pay"' in html
+    assert 'name="paymentMethod" value="jkos_pay"' in html
+    assert "LINE Pay" in html
 
 
 def test_line_booking_result_page_shows_paid_completion(monkeypatch):
