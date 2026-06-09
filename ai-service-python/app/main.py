@@ -2608,7 +2608,20 @@ def _recommendation_context_from_tool_result(query: str, tool_result: dict) -> d
         shop_id = _shop_id(shop)
         if shop_id is None:
             continue
-        compact_shops.append({"shop_id": shop_id, "name": str(shop.get("name") or f"店家 {shop_id}")})
+        compact_shops.append(
+            {
+                "shop_id": shop_id,
+                "name": str(shop.get("name") or f"店家 {shop_id}"),
+                "district": shop.get("district"),
+                "category": shop.get("category") or shop.get("category_slug"),
+                "avg_price": shop.get("avg_price"),
+                "price_per_person": shop.get("price_per_person"),
+                "ai_summary": shop.get("ai_summary"),
+                "signature_dishes": _parse_json_list(shop.get("signature_dishes"))[:5],
+                "atmosphere_tags": _parse_json_list(shop.get("atmosphere_tags"))[:5],
+                "booking_difficulty": shop.get("booking_difficulty"),
+            }
+        )
     if not compact_shops:
         return None
     return {"query": query, "shops": compact_shops}
@@ -2657,6 +2670,143 @@ def _recommended_shop_from_text(query: str, shops: list[dict]) -> dict | None:
         if normalized_keyword in name or name in normalized_keyword:
             return shop
     return None
+
+
+def _recommendation_advice_intent(query: str) -> bool:
+    normalized = str(query or "").strip()
+    if not normalized or _line_more_recommendation_intent(normalized):
+        return False
+    if _booking_intent(normalized) or _payment_intent(normalized):
+        return False
+    return any(
+        phrase in normalized
+        for phrase in (
+            "為什麼",
+            "原因",
+            "哪間",
+            "哪家",
+            "哪個",
+            "比較",
+            "差異",
+            "差在哪",
+            "幫我挑",
+            "你覺得",
+            "最適合",
+            "適合我",
+            "適合聊天",
+            "適合商務",
+            "適合約會",
+            "適合聚餐",
+        )
+    )
+
+
+def _recommendation_dimension(query: str) -> str:
+    normalized = str(query or "")
+    if any(token in normalized for token in ("聊天", "安靜", "久坐")):
+        return "聊天"
+    if any(token in normalized for token in ("商務", "請客", "宴客", "正式")):
+        return "商務"
+    if any(token in normalized for token in ("約會", "慶生", "氣氛")):
+        return "約會"
+    if any(token in normalized for token in ("多人", "聚餐", "7人", "七人", "包廂")):
+        return "多人聚餐"
+    if any(token in normalized for token in ("家庭", "長輩", "小孩", "親子")):
+        return "家庭"
+    if any(token in normalized for token in ("便宜", "平價", "預算", "划算")):
+        return "預算"
+    return "整體"
+
+
+def _shop_advice_text(shop: dict) -> str:
+    summary = str(shop.get("ai_summary") or "").strip()
+    if summary:
+        return _short_agent_text(summary, limit=72)
+    dishes = _parse_json_list(shop.get("signature_dishes"))
+    if dishes:
+        return f"招牌可先看 {'、'.join(dishes[:3])}"
+    tags = _parse_json_list(shop.get("atmosphere_tags"))
+    if tags:
+        return f"用餐情境偏 {'、'.join(tags[:3])}"
+    return "目前資料較少，建議進詳情確認菜單、評論與訂位規則"
+
+
+def _shop_dimension_score(shop: dict, dimension: str) -> int:
+    text = " ".join(
+        str(part or "")
+        for part in (
+            shop.get("name"),
+            shop.get("category"),
+            shop.get("ai_summary"),
+            shop.get("booking_difficulty"),
+            " ".join(_parse_json_list(shop.get("signature_dishes"))),
+            " ".join(_parse_json_list(shop.get("atmosphere_tags"))),
+        )
+    )
+    keyword_map = {
+        "聊天": ("聊天", "安靜", "舒適", "寬敞", "久坐", "包廂"),
+        "商務": ("商務", "請客", "宴客", "包廂", "正式", "精緻", "高級"),
+        "約會": ("約會", "氣氛", "浪漫", "慶生", "精緻"),
+        "多人聚餐": ("多人", "聚餐", "包廂", "合菜", "寬敞", "家庭"),
+        "家庭": ("家庭", "長輩", "親子", "小孩", "合菜"),
+        "預算": ("平價", "划算", "便宜", "預算"),
+    }
+    score = 0
+    for keyword in keyword_map.get(dimension, ()):
+        if keyword in text:
+            score += 2
+    if _shop_has_rich_context(shop):
+        score += 1
+    try:
+        avg_price = int(shop.get("avg_price") or 0)
+    except (TypeError, ValueError):
+        avg_price = 0
+    if dimension in {"商務", "約會"} and avg_price >= 800:
+        score += 1
+    if dimension == "預算" and avg_price and avg_price <= 500:
+        score += 2
+    return score
+
+
+def _recommendation_advice_answer(query: str, shops: list[dict]) -> str:
+    valid_shops = [shop for shop in shops if isinstance(shop, dict) and _shop_id(shop) is not None]
+    if not valid_shops:
+        return ""
+    selected = _recommended_shop_from_text(query, valid_shops)
+    if selected is not None:
+        name = str(selected.get("name") or f"店家 {_shop_id(selected)}")
+        return (
+            f"關於「{name}」：{_shop_advice_text(selected)}。"
+            f"我會再留意：{_agent_comparison_booking_status(selected)}。"
+        )
+
+    dimension = _recommendation_dimension(query)
+    ranked = sorted(
+        valid_shops,
+        key=lambda shop: (_shop_dimension_score(shop, dimension), _shop_has_rich_context(shop)),
+        reverse=True,
+    )
+    best = ranked[0]
+    best_name = str(best.get("name") or f"店家 {_shop_id(best)}")
+    lines = [f"如果以「{dimension}」來看，我會優先選「{best_name}」。"]
+    for shop in ranked[:3]:
+        name = str(shop.get("name") or f"店家 {_shop_id(shop)}")
+        lines.append(f"- {name}：{_shop_advice_text(shop)}；{_agent_comparison_meta(shop) or '資料未標示價位/地點'}")
+    lines.append("如果你要，我可以接著幫你鎖定其中一間並帶入日期、人數。")
+    return "\n".join(lines)
+
+
+def _agent_recommendation_advice_from_history(query: str, history: list[dict]) -> ToolGuardResult | None:
+    if not _recommendation_advice_intent(query):
+        return None
+    recommendation = _latest_recommendation_context(history)
+    shops = recommendation.get("shops") if isinstance(recommendation, dict) else []
+    if not isinstance(shops, list) or not shops:
+        return None
+    answer = _recommendation_advice_answer(query, shops)
+    if not answer:
+        return None
+    return ToolGuardResult(action="direct", direct_answer=answer, last_tool_result={"shops": shops})
 
 
 def _agent_booking_followup_from_history(query: str, history: list[dict]) -> ToolGuardResult | None:
@@ -3241,6 +3391,20 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
     state = AgentToolState(query=effective_query, session_id=session_id, history=history, contents=contents)
     final_answer = ""
 
+    recommendation_advice = _agent_recommendation_advice_from_history(effective_query, history)
+    if recommendation_advice is not None:
+        final_answer = recommendation_advice.direct_answer or ""
+        state.last_tool_result = recommendation_advice.last_tool_result or {}
+        if session_id:
+            session_store.save_history(
+                session_id,
+                history + [
+                    {"role": "user", "content": query},
+                    {"role": "model", "content": final_answer},
+                ],
+            )
+        return final_answer, [], state.last_tool_result
+
     if _restaurant_need_clarification(effective_query):
         final_answer = _restaurant_clarification_text()
         if session_id:
@@ -3601,6 +3765,35 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             "transaction": None,
             "tools_used": [],
             "tool_result": {},
+            "session_id": session_id,
+        }
+        yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+        yield done_payload
+        return
+
+    recommendation_advice = _agent_recommendation_advice_from_history(effective_query, history)
+    if recommendation_advice is not None:
+        full_answer = recommendation_advice.direct_answer or ""
+        state.last_tool_result = recommendation_advice.last_tool_result or {}
+        chunk_size = 18
+        for i in range(0, len(full_answer), chunk_size):
+            chunk = full_answer[i : i + chunk_size]
+            yield {"type": "message_update", "content": chunk}
+            yield {"type": "chunk", "content": chunk}
+        if session_id:
+            session_store.save_history(
+                session_id,
+                history + [
+                    {"role": "user", "content": query},
+                    {"role": "model", "content": full_answer},
+                ],
+            )
+        done_payload = {
+            "type": "done",
+            "answer": full_answer,
+            **_agent_response_contract(state.last_tool_result),
+            "tools_used": [],
+            "tool_result": state.last_tool_result,
             "session_id": session_id,
         }
         yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
@@ -5225,6 +5418,30 @@ async def _build_line_card_request(user_text: str, user_id: str) -> list[dict] |
     return messages or [build_text_message("我暫時無法重送剛剛的圖卡，請再輸入一次地點和類型。")]
 
 
+async def _build_line_recommendation_advice(user_text: str, user_id: str) -> list[dict] | None:
+    if not _recommendation_advice_intent(user_text):
+        return None
+    state = _load_line_recommendation_state(user_id)
+    previous_query = str(state.get("query") or "").strip()
+    shown_ids = [
+        int(shop_id)
+        for shop_id in state.get("shown_shop_ids", [])
+        if str(shop_id).isdigit()
+    ]
+    if not previous_query or not shown_ids:
+        return None
+    try:
+        shops = await _semantic_hits(previous_query, top_k=30)
+    except Exception:
+        logger.exception("line_recommendation_advice_search_failed user_id=%s query=%s", user_id, previous_query)
+        return [build_text_message("我暫時無法讀取剛剛的推薦依據，請稍後再試一次。")]
+    selected_shops = _shops_for_ids(shops, shown_ids)
+    if not selected_shops:
+        return None
+    answer = _recommendation_advice_answer(user_text, selected_shops)
+    return [build_text_message(answer)] if answer else None
+
+
 async def _build_line_named_selection_cards(user_text: str, user_id: str) -> list[dict] | None:
     normalized = _line_selection_token(user_text)
     if not normalized:
@@ -5864,6 +6081,10 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
         user_text,
         _load_line_location_state(user_id),
     )
+
+    advice_messages = await _build_line_recommendation_advice(user_text, user_id)
+    if advice_messages is not None:
+        return advice_messages
 
     contextual_messages = await _build_line_contextual_followup(user_text, user_id)
     if contextual_messages is not None:

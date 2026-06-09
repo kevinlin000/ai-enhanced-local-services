@@ -78,16 +78,38 @@ def _compact_turn(turn: dict[str, Any]) -> dict[str, Any] | None:
     if isinstance(recommendation, dict):
         shops = recommendation.get("shops")
         if isinstance(shops, list):
+            compact_shops = []
+            for shop in shops[:3]:
+                if not isinstance(shop, dict) or not shop.get("shop_id"):
+                    continue
+                compact_shop = {
+                    "shop_id": shop.get("shop_id"),
+                    "name": str(shop.get("name") or "")[:120],
+                }
+                for key, limit in (
+                    ("district", 40),
+                    ("category", 80),
+                    ("price_per_person", 80),
+                    ("ai_summary", 500),
+                    ("booking_difficulty", 160),
+                ):
+                    value = str(shop.get(key) or "").strip()
+                    if value:
+                        compact_shop[key] = value[:limit]
+                if shop.get("avg_price") is not None:
+                    compact_shop["avg_price"] = shop.get("avg_price")
+                for key, limit in (("signature_dishes", 80), ("atmosphere_tags", 40)):
+                    values = [
+                        str(item)[:limit]
+                        for item in (shop.get(key) or [])[:5]
+                        if item
+                    ]
+                    if values:
+                        compact_shop[key] = values
+                compact_shops.append(compact_shop)
             compacted["recommendation"] = {
                 "query": str(recommendation.get("query") or "")[:500],
-                "shops": [
-                    {
-                        "shop_id": shop.get("shop_id"),
-                        "name": str(shop.get("name") or "")[:120],
-                    }
-                    for shop in shops[:3]
-                    if isinstance(shop, dict) and shop.get("shop_id")
-                ],
+                "shops": compact_shops,
             }
 
     return compacted

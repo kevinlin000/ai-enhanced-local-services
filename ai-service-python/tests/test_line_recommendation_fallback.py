@@ -88,7 +88,16 @@ def test_session_history_compacts_recommendation_context():
                     "query": "青田七六",
                     "shops": [
                         {"shop_id": 10222, "name": "青田七六", "large": "ignored"},
-                        {"shop_id": 10223, "name": "備選"},
+                        {
+                            "shop_id": 10223,
+                            "name": "備選",
+                            "district": "大安",
+                            "category": "中式料理",
+                            "ai_summary": "適合聊天。",
+                            "signature_dishes": ["三杯雞"],
+                            "atmosphere_tags": ["聊天"],
+                            "booking_difficulty": "可線上訂位",
+                        },
                     ],
                 },
             }
@@ -103,7 +112,16 @@ def test_session_history_compacts_recommendation_context():
                 "query": "青田七六",
                 "shops": [
                     {"shop_id": 10222, "name": "青田七六"},
-                    {"shop_id": 10223, "name": "備選"},
+                        {
+                            "shop_id": 10223,
+                            "name": "備選",
+                            "district": "大安",
+                            "category": "中式料理",
+                            "ai_summary": "適合聊天。",
+                            "signature_dishes": ["三杯雞"],
+                            "atmosphere_tags": ["聊天"],
+                        "booking_difficulty": "可線上訂位",
+                    },
                 ],
             },
         }
@@ -700,6 +718,59 @@ async def test_web_agent_stream_more_recommendations_excludes_seen(monkeypatch):
     assert captured["query"] == "信義區高級火鍋"
     assert "semantic_shop_search" in done["tools_used"]
     assert [shop["shop_id"] for shop in done["shops"]] == [10220, 10221]
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_answers_recommendation_advice(monkeypatch):
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("recommendation advice should use saved context")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {"role": "user", "content": "大安區適合聊天"},
+            {
+                "role": "model",
+                "content": "我整理了兩間。",
+                "recommendation": {
+                    "query": "大安區適合聊天",
+                    "shops": [
+                        {
+                            "shop_id": 10101,
+                            "name": "大安聊天餐館",
+                            "district": "大安",
+                            "ai_summary": "座位寬敞，適合慢慢聊天。",
+                            "atmosphere_tags": ["聊天", "安靜"],
+                            "signature_dishes": ["三杯雞"],
+                        },
+                        {
+                            "shop_id": 10102,
+                            "name": "熱鬧燒肉",
+                            "district": "大安",
+                            "ai_summary": "氣氛熱鬧，適合聚餐。",
+                            "atmosphere_tags": ["聚餐"],
+                        },
+                    ],
+                },
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "generate", fail_generate)
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "哪間最適合聊天？",
+            "test-web-advice",
+        )
+    ]
+
+    done = events[-1]
+    assert "大安聊天餐館" in done["answer"]
+    assert "聊天" in done["answer"]
+    assert done["tools_used"] == []
 
 
 @pytest.mark.anyio
@@ -1333,6 +1404,51 @@ async def test_line_negative_ordinal_gets_more_recommendations(monkeypatch):
     payload = json.dumps(messages, ensure_ascii=False)
     assert "麻凡麻辣火鍋" in payload
     assert "辛殿麻辣鍋" not in payload
+
+
+@pytest.mark.anyio
+async def test_line_recommendation_advice_uses_previous_cards(monkeypatch):
+    captured = {}
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        captured["query"] = query
+        return [
+            {
+                "shop_id": 10009,
+                "name": "橘色涮涮屋 信義館",
+                "district": "信義",
+                "ai_summary": "精緻火鍋，適合正式請客。",
+                "atmosphere_tags": ["商務", "約會"],
+                "signature_dishes": ["海鮮套餐"],
+            },
+            {
+                "shop_id": 10115,
+                "name": "辛殿麻辣鍋｜信義店",
+                "district": "信義",
+                "ai_summary": "麻辣鍋吃到飽，氣氛熱鬧。",
+                "atmosphere_tags": ["聚餐"],
+                "signature_dishes": ["麻辣鍋"],
+            },
+        ]
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009, 10115]},
+    )
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "為什麼推薦第二間？"},
+        }
+    )
+
+    assert captured["query"] == "信義區高級火鍋"
+    assert "辛殿麻辣鍋" in messages[0]["text"]
+    assert "麻辣鍋吃到飽" in messages[0]["text"]
 
 
 @pytest.mark.anyio
