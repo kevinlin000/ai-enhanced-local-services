@@ -700,6 +700,46 @@ async def test_web_agent_stream_exact_shop_booking_asks_missing_fields(monkeypat
 
 
 @pytest.mark.anyio
+async def test_web_agent_stream_rejects_same_day_booking_followup(monkeypatch):
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("same-day booking followup should bypass model")
+
+    async def fail_create_booking(**kwargs):
+        raise AssertionError("same-day booking followup should not create booking")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {"role": "user", "content": "青田七六"},
+            {
+                "role": "model",
+                "content": "我已整理青田七六。",
+                "recommendation": {"query": "青田七六", "shops": [{"shop_id": 10222, "name": "青田七六"}]},
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
+    monkeypatch.setattr(main, "generate", fail_generate)
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "今晚 4人",
+            "test-web-same-day-followup",
+        )
+    ]
+
+    done = events[-1]
+    assert "今天" in done["answer"]
+    assert "最早可預訂明天" in done["answer"]
+    assert done["tools_used"] == []
+    assert "transaction" not in done or done["transaction"] is None
+
+
+@pytest.mark.anyio
 async def test_web_agent_stream_answers_latest_booking_status(monkeypatch):
     def fail_generate(*args, **kwargs):
         raise AssertionError("booking status followup should bypass model")
@@ -2199,6 +2239,32 @@ async def test_line_booking_followup_asks_people_when_missing(monkeypatch):
 
     assert "還缺人數" in messages[0]["text"]
     assert "2026-06-11 19:00" in messages[0]["text"]
+
+
+@pytest.mark.anyio
+async def test_line_booking_followup_rejects_same_day_short_reply(monkeypatch):
+    async def fail_fetch_java_shop(shop_id: int):
+        raise AssertionError("same-day booking followup should stop before fetching shop")
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "青田七六", "shown_shop_ids": [10222]},
+    )
+    monkeypatch.setattr(main, "_fetch_java_shop", fail_fetch_java_shop)
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "今晚 4人"},
+        }
+    )
+
+    assert "今天" in messages[0]["text"]
+    assert "最早可預訂明天" in messages[0]["text"]
+    assert "/line/book/" not in messages[0]["text"]
 
 
 @pytest.mark.anyio

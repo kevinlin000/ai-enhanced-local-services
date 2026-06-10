@@ -2319,6 +2319,10 @@ def _booking_intent(query: str) -> bool:
 def _explicit_same_day_booking_request(query: str) -> bool:
     if not _booking_intent(query):
         return False
+    return _same_day_datetime_request(query)
+
+
+def _same_day_datetime_request(query: str) -> bool:
     normalized = query.replace(" ", "").replace("　", "")
     if "明天" in normalized:
         return False
@@ -2889,6 +2893,8 @@ def _agent_booking_followup_from_history(query: str, history: list[dict]) -> Too
     prefill = _line_booking_prefill_from_text(query)
     if not (prefill.get("date") or prefill.get("time") or prefill.get("people")):
         return None
+    if _same_day_datetime_request(query):
+        return ToolGuardResult(action="direct", direct_answer=_same_day_booking_policy_answer())
 
     recommendation = _latest_recommendation_context(history)
     shops = recommendation.get("shops") if isinstance(recommendation, dict) else []
@@ -6793,7 +6799,7 @@ def _line_booking_followup_intent(text: str) -> bool:
 async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dict] | None:
     if not _line_booking_followup_intent(user_text):
         return None
-    if _explicit_same_day_booking_request(user_text):
+    if _same_day_datetime_request(user_text):
         return [build_text_message(_same_day_booking_policy_answer())]
     state = _load_line_recommendation_state(user_id)
     shown_ids = [
