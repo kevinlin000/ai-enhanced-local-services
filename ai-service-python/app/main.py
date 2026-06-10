@@ -850,17 +850,20 @@ def _last_clarified_restaurant_query(history: list[dict]) -> str:
             continue
         if "收斂方向" not in str(current.get("content") or ""):
             continue
+        clarification_query = str(current.get("clarification_query") or "").strip()
+        if clarification_query and _restaurant_need_clarification(clarification_query):
+            return clarification_query
         query = str(previous.get("content") or "").strip()
         if query and _restaurant_need_clarification(query):
             return query
     return ""
 
 
-def _query_can_complete_clarification(query: str) -> bool:
+def _query_is_clarification_followup(query: str) -> bool:
     normalized = str(query or "").strip()
-    if not normalized or _restaurant_need_clarification(normalized):
+    if not normalized:
         return False
-    if _booking_intent(normalized) or _payment_intent(normalized):
+    if _booking_intent(normalized) or _payment_intent(normalized) or _line_more_recommendation_intent(normalized):
         return False
     if _specific_shop_keyword(normalized):
         return False
@@ -871,13 +874,19 @@ def _query_can_complete_clarification(query: str) -> bool:
         or constraints["categories"]
         or constraints.get("specific_cuisines")
         or constraints.get("wants_burger")
-        or re.search(r"(聊天|約會|請客|慶生|商務|安靜|家庭|長輩|包廂|[一二三四五六七八九十\d]+人)", normalized)
+        or constraints.get("wants_nearby")
+        or re.search(
+            r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|早午餐|下午|"
+            r"[0-2]?\d[:：點時]|聊天|約會|請客|慶生|商務|安靜|家庭|長輩|包廂|"
+            r"[一二三四五六七八九十\d]+人)",
+            normalized,
+        )
     )
 
 
 def _effective_agent_query(query: str, history: list[dict]) -> str:
     previous_query = _last_clarified_restaurant_query(history)
-    if previous_query and _query_can_complete_clarification(query):
+    if previous_query and _query_is_clarification_followup(query):
         return _line_merge_followup_query(previous_query, query)
     return query
 
@@ -4026,7 +4035,7 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
                 session_id,
                 history + [
                     {"role": "user", "content": query},
-                    {"role": "model", "content": final_answer},
+                    {"role": "model", "content": final_answer, "clarification_query": effective_query},
                 ],
             )
         return final_answer, [], {}
@@ -4697,7 +4706,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 session_id,
                 history + [
                     {"role": "user", "content": query},
-                    {"role": "model", "content": full_answer},
+                    {"role": "model", "content": full_answer, "clarification_query": effective_query},
                 ],
             )
         done_payload = {
@@ -6692,10 +6701,19 @@ async def _build_line_contextual_followup(user_text: str, user_id: str) -> list[
         if previous_query:
             return [build_text_message("剛剛的推薦已經整理完成。你可以回「還有嗎」看更多，或直接說想調整的條件。")]
         return [build_text_message("目前沒有正在整理的推薦。你可以直接告訴我地點和想吃的類型。")]
-    if not previous_query or not _line_adjustment_intent(user_text):
-        return None
+    contextual_adjusted_query = None
+    if previous_query and _restaurant_need_clarification(previous_query) and _query_is_clarification_followup(user_text):
+        adjusted_query = _line_merge_followup_query(previous_query, user_text)
+        if _restaurant_need_clarification(adjusted_query):
+            _save_line_recommendation_state(user_id, query=adjusted_query, shown_shop_ids=[])
+            return [build_text_message(_restaurant_clarification_text(adjusted_query))]
+        contextual_adjusted_query = adjusted_query
+    if contextual_adjusted_query is None:
+        if not previous_query or not _line_adjustment_intent(user_text):
+            return None
+        contextual_adjusted_query = _line_merge_followup_query(previous_query, user_text)
 
-    adjusted_query = _line_merge_followup_query(previous_query, user_text)
+    adjusted_query = contextual_adjusted_query
     try:
         shops = await _semantic_hits(adjusted_query, top_k=30)
     except Exception:

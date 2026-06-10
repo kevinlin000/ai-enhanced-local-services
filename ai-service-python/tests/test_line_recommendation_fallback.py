@@ -553,6 +553,43 @@ async def test_web_agent_stream_merges_clarification_followup(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_web_agent_stream_keeps_partial_clarification_draft(monkeypatch):
+    saved = {}
+
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("partial clarification followup should bypass model")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {"role": "user", "content": "推薦7人聚餐餐廳"},
+            {
+                "role": "model",
+                "content": main._restaurant_clarification_text("推薦7人聚餐餐廳"),
+                "clarification_query": "推薦7人聚餐餐廳",
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
+    monkeypatch.setattr(main, "generate", fail_generate)
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "明天晚上",
+            "test-web-partial-clarification",
+        )
+    ]
+
+    done = events[-1]
+    assert done["tools_used"] == []
+    assert "地點或捷運站" in done["answer"]
+    assert "料理類型或氣氛" in done["answer"]
+    assert saved["history"][-1]["clarification_query"] == "推薦7人聚餐餐廳，補充條件：明天晚上"
+
+
+@pytest.mark.anyio
 async def test_web_agent_stream_books_from_single_recommendation_followup(monkeypatch):
     captured = {}
     saved = {}
@@ -1879,6 +1916,79 @@ async def test_line_nearby_with_saved_location_recommends_cards(monkeypatch):
     )
 
     assert captured["query"] == "台北市信義區信義路五段7號附近，附近高級火鍋"
+    assert messages[1]["type"] == "flex"
+
+
+@pytest.mark.anyio
+async def test_line_partial_clarification_followup_updates_context(monkeypatch):
+    saved = {}
+
+    async def fail_semantic_hits(query: str, top_k: int):
+        raise AssertionError("partial clarification should not search yet")
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "推薦7人聚餐餐廳", "shown_shop_ids": []},
+    )
+    monkeypatch.setattr(
+        main,
+        "_save_line_recommendation_state",
+        lambda user_id, query, shown_shop_ids: saved.update({"user_id": user_id, "query": query, "shown": shown_shop_ids}),
+    )
+    monkeypatch.setattr(main, "_semantic_hits", fail_semantic_hits)
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "明天晚上"},
+        }
+    )
+
+    assert "地點或捷運站" in messages[0]["text"]
+    assert "料理類型或氣氛" in messages[0]["text"]
+    assert saved == {
+        "user_id": "test-user",
+        "query": "推薦7人聚餐餐廳，補充條件：明天晚上",
+        "shown": [],
+    }
+
+
+@pytest.mark.anyio
+async def test_line_completed_clarification_followup_searches(monkeypatch):
+    captured = {}
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        captured["query"] = query
+        return [
+            {
+                "shop_id": 10101,
+                "name": "大安聊天餐館",
+                "district": "大安",
+                "category": "中式料理",
+                "ai_summary": "座位寬敞，適合多人聊天。",
+            }
+        ]
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "推薦7人聚餐餐廳，補充條件：明天晚上", "shown_shop_ids": []},
+    )
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "大安區，適合聊天"},
+        }
+    )
+
+    assert captured["query"] == "推薦7人聚餐餐廳，補充條件：明天晚上，補充條件：大安區，適合聊天"
     assert messages[1]["type"] == "flex"
 
 

@@ -122,6 +122,10 @@ def _compact_turn(turn: dict[str, Any]) -> dict[str, Any] | None:
         if compact_draft:
             compacted["booking_draft"] = compact_draft
 
+    clarification_query = str(turn.get("clarification_query") or "").strip()
+    if clarification_query:
+        compacted["clarification_query"] = clarification_query[:500]
+
     return compacted
 
 
