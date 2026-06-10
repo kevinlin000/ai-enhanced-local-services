@@ -783,6 +783,114 @@ async def test_web_agent_stream_pays_latest_pending_booking(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_web_agent_stream_cancel_requires_confirmation(monkeypatch):
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("cancel prompt should bypass model")
+
+    async def fail_cancel_booking(**kwargs):
+        raise AssertionError("plain cancel should not execute destructive action")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {
+                "role": "model",
+                "content": "訂位已完成。",
+                "transaction": {
+                    "kind": "booking",
+                    "success": True,
+                    "status": "CONFIRMED",
+                    "shop_id": 10222,
+                    "shop_name": "青田七六",
+                    "booking_code": "BK-CANCEL",
+                    "people": 4,
+                    "date": "2026-06-11",
+                    "time": "19:00",
+                },
+            }
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "tool_cancel_booking", fail_cancel_booking)
+    monkeypatch.setattr(main, "generate", fail_generate)
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "取消訂位",
+            "test-web-cancel-prompt",
+        )
+    ]
+
+    done = events[-1]
+    assert "確認取消" in done["answer"]
+    assert "BK-CANCEL" in done["answer"]
+    assert done["tools_used"] == []
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_confirm_cancel_latest_booking(monkeypatch):
+    captured = {}
+
+    async def fake_cancel_booking(booking_code: str):
+        captured["booking_code"] = booking_code
+        return {
+            "success": True,
+            "bookingCode": booking_code,
+            "shopId": 10222,
+            "shopName": "青田七六",
+            "people": 4,
+            "date": "2026-06-11",
+            "time": "19:00",
+            "tableType": "normal",
+            "status": "CANCELED",
+        }
+
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("confirm cancel should bypass model")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {
+                "role": "model",
+                "content": "訂位已完成。",
+                "transaction": {
+                    "kind": "booking",
+                    "success": True,
+                    "status": "CONFIRMED",
+                    "shop_id": 10222,
+                    "shop_name": "青田七六",
+                    "booking_code": "BK-CANCEL",
+                    "people": 4,
+                    "date": "2026-06-11",
+                    "time": "19:00",
+                },
+            }
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "tool_cancel_booking", fake_cancel_booking)
+    monkeypatch.setattr(main, "generate", fail_generate)
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "確認取消 BK-CANCEL",
+            "test-web-confirm-cancel",
+        )
+    ]
+
+    done = events[-1]
+    assert captured["booking_code"] == "BK-CANCEL"
+    assert done["tools_used"] == ["cancel_booking"]
+    assert done["transaction"]["status"] == "CANCELED"
+    assert "訂位已取消" in done["answer"]
+
+
+@pytest.mark.anyio
 async def test_web_agent_stream_books_ordinal_recommendation_followup(monkeypatch):
     captured = {}
 
@@ -1934,6 +2042,65 @@ async def test_line_booking_action_without_state_links_my_bookings(monkeypatch):
 
     assert messages[0]["type"] == "text"
     assert "/line/my-bookings?" in messages[0]["text"]
+
+
+@pytest.mark.anyio
+async def test_line_confirm_cancel_uses_latest_booking_state(monkeypatch):
+    captured = {}
+    saved = {}
+
+    async def fake_cancel_line_booking(booking_code: str, line_user_id: str, line_token: str):
+        captured.update({"booking_code": booking_code, "line_user_id": line_user_id, "line_token": line_token})
+        return {
+            "success": True,
+            "data": {
+                "bookingCode": booking_code,
+                "shopId": 10222,
+                "shopName": "青田七六",
+                "date": "2026-06-11",
+                "time": "19:00",
+                "people": 4,
+                "status": "CANCELED",
+            },
+        }
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_booking_state",
+        lambda user_id: {
+            "phase": "created",
+            "booking": {
+                "bookingCode": "BK-LINE-CANCEL",
+                "shopId": 10222,
+                "shopName": "青田七六",
+                "date": "2026-06-11",
+                "time": "19:00",
+                "people": 4,
+                "status": "CONFIRMED",
+            },
+        },
+    )
+    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(main, "_cancel_line_booking", fake_cancel_line_booking)
+    monkeypatch.setattr(main, "_save_line_booking_state", lambda *args, **kwargs: saved.update({"args": args}))
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "確認取消 BK-LINE-CANCEL"},
+        }
+    )
+
+    assert captured == {
+        "booking_code": "BK-LINE-CANCEL",
+        "line_user_id": "test-user",
+        "line_token": "line-token",
+    }
+    assert saved["args"][2] == "canceled"
+    assert messages[0]["type"] == "flex"
+    assert messages[0]["altText"] == "訂位已取消"
 
 
 @pytest.mark.anyio

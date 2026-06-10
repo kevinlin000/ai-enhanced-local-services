@@ -65,6 +65,7 @@ const TOOL_LABELS: Record<string, string> = {
   create_hot_seat_order: "建立 Hot Seat 訂單",
   create_booking: "檢查並建立訂位",
   pay_booking_with_test_card: "確認訂金付款",
+  cancel_booking: "取消訂位",
 };
 
 const STATUS_LABELS = {
@@ -477,6 +478,47 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
           <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-900">
             <p className="font-semibold">錯誤：{current.error ?? "付款流程未完成"}</p>
             <p className="mt-2">此訂位需要訂金，付款成功前不應視為完成。</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (current.status === "CANCELED") {
+    return (
+      <Card className="mt-3 w-full overflow-hidden border-stone-200 bg-gradient-to-br from-stone-50 to-zinc-50 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base text-stone-950">
+            <CalendarCheck className="h-5 w-5 text-stone-600" />
+            訂位已取消
+            <Badge variant="secondary" className="ml-auto bg-white/80 text-stone-700">
+              CANCELED
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <div className="grid gap-3 rounded-xl border border-stone-200 bg-white/75 p-4 md:grid-cols-2">
+            <div>
+              <p className="text-xs text-muted-foreground">店家</p>
+              <p className="font-semibold text-foreground">{shopLabel}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">訂位編號</p>
+              <p className="font-mono font-semibold text-foreground">{current.booking_code ?? "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">人數</p>
+              <p className="font-medium">{current.people ?? "-"} 人</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">時間</p>
+              <p className="font-medium">
+                {current.date ?? "-"} {current.time ?? ""}
+              </p>
+            </div>
+          </div>
+          <div className="rounded-xl border border-stone-200 bg-white/75 p-3 text-xs leading-5 text-stone-700">
+            這筆訂位已取消；若要重新安排，請重新告訴 AI 店名、日期、時間與人數。
           </div>
         </CardContent>
       </Card>

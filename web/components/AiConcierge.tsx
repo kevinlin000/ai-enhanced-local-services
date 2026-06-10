@@ -22,6 +22,7 @@ const TOOL_LABELS: Record<string, string> = {
   create_hot_seat_order: "建立 Hot Seat",
   create_booking: "建立訂位",
   pay_booking_with_test_card: "確認付款",
+  cancel_booking: "取消訂位",
 };
 
 function toolLabel(name: string): string {
@@ -73,6 +74,7 @@ function CompactTransactionStatus({ transaction }: { transaction: AgentTransacti
     PAYMENT_FAILED: "付款未完成",
     FAILED: "訂位失敗",
     EXPIRED: "保留逾期",
+    CANCELED: "已取消",
   };
   return (
     <div className="mt-3 rounded-xl border border-foreground/10 bg-background/80 px-3 py-2.5 text-xs leading-5">

@@ -2036,6 +2036,25 @@ async def tool_pay_booking_with_test_card(booking_code: str) -> dict:
     return {"success": True, **data["data"]}
 
 
+async def tool_cancel_booking(booking_code: str) -> dict:
+    """Cancel a booking after an explicit user confirmation."""
+    auth_headers = _agent_java_auth_headers()
+    if not auth_headers:
+        return {"success": False, "error": "請先用 LINE 登入網頁，再取消訂位。"}
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        r = await client.post(
+            f"{settings.java_backend_url}/api/booking/{quote_plus(booking_code)}/cancel",
+            headers=auth_headers,
+            json={},
+        )
+    if r.status_code != 200:
+        return {"success": False, "error": f"HTTP {r.status_code}"}
+    data = r.json()
+    if not data.get("success"):
+        return {"success": False, "error": data.get("errorMsg", "unknown")}
+    return {"success": True, **data["data"]}
+
+
 def _agent_java_auth_headers() -> dict[str, str] | None:
     token = _agent_auth_token.get("").strip()
     if not token:
@@ -2049,6 +2068,7 @@ TOOL_DISPATCH = {
     "create_hot_seat_order": tool_create_hot_seat_order,
     "create_booking": tool_create_booking,
     "pay_booking_with_test_card": tool_pay_booking_with_test_card,
+    "cancel_booking": tool_cancel_booking,
 }
 
 TOOLS = [
@@ -2321,6 +2341,16 @@ def _booking_status_intent(query: str) -> bool:
 def _booking_cancel_intent(query: str) -> bool:
     normalized = str(query or "").strip()
     return any(token in normalized for token in ("取消訂位", "取消這筆", "取消這個", "不要這筆", "退訂"))
+
+
+def _booking_cancel_confirmation_intent(query: str) -> bool:
+    normalized = str(query or "").strip()
+    return any(token in normalized for token in ("確認取消", "確定取消", "是的取消", "確認退訂", "確定退訂"))
+
+
+def _booking_code_from_text(query: str) -> str:
+    match = re.search(r"\b(BK[-A-Z0-9]+)\b", str(query or ""), flags=re.IGNORECASE)
+    return match.group(1).upper() if match else ""
 
 
 def _brand_matches_query(query: str, brand: str) -> bool:
@@ -3027,6 +3057,17 @@ def _build_booking_transaction(
 def _booking_confirmation_narrative(transaction: dict) -> str:
     if transaction.get("status") == "FAILED":
         return f"訂位建立失敗：{transaction.get('error') or '後端未回傳原因'}"
+    if transaction.get("status") == "CANCELED":
+        shop_name = transaction.get("shop_name") or f"店家 ID {transaction.get('shop_id')}"
+        return "\n".join(
+            [
+                "訂位已取消。",
+                "",
+                f"- 店家：{shop_name}",
+                f"- 時間：{transaction.get('date')} {transaction.get('time')}",
+                f"- 訂位編號：`{transaction.get('booking_code')}`",
+            ]
+        )
     if transaction.get("status") == "PAYMENT_FAILED":
         return (
             "已建立訂位，但訂金付款失敗。\n\n"
@@ -3107,6 +3148,28 @@ def _booking_cancel_prompt(transaction: dict) -> str:
     )
 
 
+def _booking_cancel_confirmation_mismatch(query: str, transaction: dict) -> str | None:
+    requested_code = _booking_code_from_text(query)
+    current_code = str(transaction.get("booking_code") or "").upper()
+    if requested_code and current_code and requested_code != current_code:
+        return (
+            f"你提供的訂位編號 `{requested_code}` 和最近一筆 `{current_code}` 不一致。"
+            "為避免取消錯訂位，請重新確認訂位編號。"
+        )
+    return None
+
+
+def _booking_cancel_not_allowed_narrative(transaction: dict) -> str | None:
+    status = str(transaction.get("status") or "")
+    if status == "CANCELED":
+        return "這筆訂位已取消，不需要重複取消。"
+    if status == "EXPIRED":
+        return "這筆訂位保留已逾期，不需要取消。"
+    if not transaction.get("booking_code"):
+        return "我找不到這筆訂位的訂位編號，無法安全取消。"
+    return None
+
+
 def _booking_payment_not_needed_narrative(transaction: dict) -> str:
     status = str(transaction.get("status") or "")
     if status in {"PAID", "CONFIRMED"}:
@@ -3137,6 +3200,36 @@ def _booking_transaction_after_payment(transaction: dict, payment_result: dict) 
                 "success": False,
                 "status": "PAYMENT_FAILED",
                 "error": payment_result.get("error") or "付款流程未完成",
+            }
+        )
+    return updated
+
+
+def _booking_transaction_after_cancel(transaction: dict, cancel_result: dict) -> dict:
+    updated = dict(transaction)
+    if cancel_result.get("success"):
+        updated.update(
+            {
+                "success": True,
+                "status": "CANCELED",
+                "shop_id": cancel_result.get("shopId") or updated.get("shop_id"),
+                "shop_name": cancel_result.get("shopName") or updated.get("shop_name"),
+                "booking_code": cancel_result.get("bookingCode") or updated.get("booking_code"),
+                "people": cancel_result.get("people") or updated.get("people"),
+                "date": cancel_result.get("date") or updated.get("date"),
+                "time": cancel_result.get("time") or updated.get("time"),
+                "table_type": cancel_result.get("tableType") or updated.get("table_type"),
+                "needs_deposit": bool(cancel_result.get("needsDeposit", updated.get("needs_deposit"))),
+                "deposit_total": cancel_result.get("depositTotal") or updated.get("deposit_total"),
+                "error": None,
+            }
+        )
+    else:
+        updated.update(
+            {
+                "success": False,
+                "status": "FAILED",
+                "error": cancel_result.get("error") or "取消訂位失敗",
             }
         )
     return updated
@@ -3501,7 +3594,12 @@ async def _agent_exact_booking_from_query(query: str) -> ToolGuardResult | None:
 
 
 def _agent_booking_action_from_history(query: str, history: list[dict]) -> ToolGuardResult | None:
-    if not (_payment_intent(query) or _booking_status_intent(query) or _booking_cancel_intent(query)):
+    if not (
+        _payment_intent(query)
+        or _booking_status_intent(query)
+        or _booking_cancel_intent(query)
+        or _booking_cancel_confirmation_intent(query)
+    ):
         return None
 
     transaction = _latest_booking_transaction(history)
@@ -3509,6 +3607,19 @@ def _agent_booking_action_from_history(query: str, history: list[dict]) -> ToolG
         return ToolGuardResult(
             action="direct",
             direct_answer="我目前找不到最近一筆訂位。請提供訂位編號，或先到「我的訂位」確認。",
+        )
+
+    if _booking_cancel_confirmation_intent(query):
+        mismatch = _booking_cancel_confirmation_mismatch(query, transaction)
+        if mismatch:
+            return ToolGuardResult(action="direct", direct_answer=mismatch, last_tool_result={"transaction": transaction})
+        not_allowed = _booking_cancel_not_allowed_narrative(transaction)
+        if not_allowed:
+            return ToolGuardResult(action="direct", direct_answer=not_allowed, last_tool_result={"transaction": transaction})
+        return ToolGuardResult(
+            action="cancel",
+            args={"booking_code": str(transaction.get("booking_code"))},
+            last_tool_result={"transaction": transaction},
         )
 
     if _payment_intent(query):
@@ -3662,6 +3773,23 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
                     ],
                 )
             return final_answer, [], state.last_tool_result
+        if booking_action.action == "cancel":
+            cancel_result = await tool_cancel_booking(**booking_action.args)
+            state.tools_used.append("cancel_booking")
+            base_transaction = (booking_action.last_tool_result or {}).get("transaction") or {}
+            transaction = _booking_transaction_after_cancel(base_transaction, cancel_result)
+            final_answer = _booking_confirmation_narrative(transaction)
+            state.final_transaction = transaction
+            state.last_tool_result = {"transaction": transaction}
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {"role": "model", "content": final_answer, "transaction": transaction},
+                    ],
+                )
+            return final_answer, state.tools_used, state.last_tool_result
         guard = _before_tool_call(state, "pay_booking_with_test_card", booking_action.args)
         if guard.action != "stop":
             payment_result = await tool_pay_booking_with_test_card(**guard.args)
@@ -4145,6 +4273,53 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 "answer": full_answer,
                 **_agent_response_contract(state.last_tool_result),
                 "tools_used": [],
+                "tool_result": state.last_tool_result,
+                "session_id": session_id,
+            }
+            yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+            yield done_payload
+            return
+
+        if booking_action.action == "cancel":
+            tool_name = "cancel_booking"
+            state.tools_used.append(tool_name)
+            yield {
+                "type": "tool_execution_start",
+                "name": tool_name,
+                "args": booking_action.args,
+                "session_id": session_id,
+            }
+            cancel_result = await tool_cancel_booking(**booking_action.args)
+            yield {
+                "type": "tool_execution_end",
+                "name": tool_name,
+                "result_summary": _tool_result_summary(cancel_result),
+                "session_id": session_id,
+            }
+            yield {"type": "tool", "name": tool_name}
+            base_transaction = (booking_action.last_tool_result or {}).get("transaction") or {}
+            transaction = _booking_transaction_after_cancel(base_transaction, cancel_result)
+            full_answer = _booking_confirmation_narrative(transaction)
+            state.final_transaction = transaction
+            state.last_tool_result = {"transaction": transaction}
+            chunk_size = 18
+            for i in range(0, len(full_answer), chunk_size):
+                chunk = full_answer[i : i + chunk_size]
+                yield {"type": "message_update", "content": chunk}
+                yield {"type": "chunk", "content": chunk}
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {"role": "model", "content": full_answer, "transaction": transaction},
+                    ],
+                )
+            done_payload = {
+                "type": "done",
+                "answer": full_answer,
+                **_agent_response_contract(state.last_tool_result),
+                "tools_used": state.tools_used,
                 "tool_result": state.last_tool_result,
                 "session_id": session_id,
             }
@@ -6686,7 +6861,12 @@ async def _build_line_exact_booking_request(user_text: str, user_id: str) -> lis
 
 
 async def _build_line_booking_action(user_text: str, user_id: str) -> list[dict] | None:
-    if not (_payment_intent(user_text) or _booking_status_intent(user_text) or _booking_cancel_intent(user_text)):
+    if not (
+        _payment_intent(user_text)
+        or _booking_status_intent(user_text)
+        or _booking_cancel_intent(user_text)
+        or _booking_cancel_confirmation_intent(user_text)
+    ):
         return None
 
     state = _load_line_booking_state(user_id)
@@ -6699,6 +6879,29 @@ async def _build_line_booking_action(user_text: str, user_id: str) -> list[dict]
                 f"{_line_public_uri(f'/line/my-bookings?lt={quote_plus(line_token)}')}"
             )
         ]
+
+    if _booking_cancel_confirmation_intent(user_text):
+        requested_code = _booking_code_from_text(user_text)
+        booking_code = str(booking.get("bookingCode") or "").upper()
+        if requested_code and booking_code and requested_code != booking_code:
+            return [
+                build_text_message(
+                    f"你提供的訂位編號 `{requested_code}` 和最近一筆 `{booking_code}` 不一致。"
+                    "為避免取消錯訂位，請重新確認訂位編號。"
+                )
+            ]
+        status = str(booking.get("status") or "")
+        if status == "CANCELED":
+            return [_line_booking_flex_message(booking, "canceled", line_user_id=user_id)]
+        if status == "EXPIRED":
+            return [build_text_message("這筆訂位保留已逾期，不需要取消。")]
+        line_token = _line_token_for_user(user_id)
+        result = await _cancel_line_booking(str(booking.get("bookingCode") or ""), user_id, line_token)
+        if not result.get("success"):
+            return [build_text_message(str(result.get("errorMsg") or "取消訂位暫時無法完成，請稍後再試。"))]
+        canceled = result.get("data") if isinstance(result.get("data"), dict) else dict(booking)
+        _save_line_booking_state(user_id, canceled, "canceled")
+        return [_line_booking_flex_message(canceled, "canceled", line_user_id=user_id)]
 
     phase = str(state.get("phase") or "updated")
     return [_line_booking_flex_message(booking, phase, line_user_id=user_id)]

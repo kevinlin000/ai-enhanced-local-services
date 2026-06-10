@@ -1,7 +1,7 @@
 export type AgentTransaction = {
   kind: "booking";
   success: boolean;
-  status: "CONFIRMED" | "PAID" | "PENDING_PAYMENT" | "PAYMENT_FAILED" | "FAILED" | "EXPIRED";
+  status: "CONFIRMED" | "PAID" | "PENDING_PAYMENT" | "PAYMENT_FAILED" | "FAILED" | "EXPIRED" | "CANCELED";
   shop_id?: number | null;
   shop_name?: string | null;
   booking_code?: string | null;
