@@ -3945,11 +3945,16 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
             final_answer = booking_followup.direct_answer or ""
             state.last_tool_result = booking_followup.last_tool_result or {}
             if session_id:
+                recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
                 session_store.save_history(
                     session_id,
                     history + [
                         {"role": "user", "content": query},
-                        {"role": "model", "content": final_answer},
+                        {
+                            "role": "model",
+                            "content": final_answer,
+                            **({"recommendation": recommendation} if recommendation else {}),
+                        },
                     ],
                 )
             return final_answer, [], state.last_tool_result
@@ -4287,11 +4292,16 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 yield {"type": "message_update", "content": chunk}
                 yield {"type": "chunk", "content": chunk}
             if session_id:
+                recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
                 session_store.save_history(
                     session_id,
                     history + [
                         {"role": "user", "content": query},
-                        {"role": "model", "content": full_answer},
+                        {
+                            "role": "model",
+                            "content": full_answer,
+                            **({"recommendation": recommendation} if recommendation else {}),
+                        },
                     ],
                 )
             done_payload = {
@@ -4592,11 +4602,16 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 yield {"type": "message_update", "content": chunk}
                 yield {"type": "chunk", "content": chunk}
             if session_id:
+                recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
                 session_store.save_history(
                     session_id,
                     history + [
                         {"role": "user", "content": query},
-                        {"role": "model", "content": full_answer},
+                        {
+                            "role": "model",
+                            "content": full_answer,
+                            **({"recommendation": recommendation} if recommendation else {}),
+                        },
                     ],
                 )
             done_payload = {
@@ -4639,11 +4654,16 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 yield {"type": "message_update", "content": chunk}
                 yield {"type": "chunk", "content": chunk}
             if session_id:
+                recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
                 session_store.save_history(
                     session_id,
                     history + [
                         {"role": "user", "content": query},
-                        {"role": "model", "content": full_answer},
+                        {
+                            "role": "model",
+                            "content": full_answer,
+                            **({"recommendation": recommendation} if recommendation else {}),
+                        },
                     ],
                 )
             done_payload = {
@@ -6849,6 +6869,11 @@ async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dic
         if prefill.get("time"):
             known.append(str(prefill.get("time")))
         known_text = f"，已先帶入{' '.join(known)}" if known else ""
+        _save_line_recommendation_state(
+            user_id,
+            query=str(state.get("query") or user_text),
+            shown_shop_ids=[shop_id],
+        )
         return [
             build_text_message(
                 f"我已鎖定「{shop_name}」{known_text}，還缺{'、'.join(missing)}。"

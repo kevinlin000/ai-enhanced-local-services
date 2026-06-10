@@ -741,6 +741,8 @@ async def test_web_agent_stream_rejects_same_day_booking_followup(monkeypatch):
 
 @pytest.mark.anyio
 async def test_web_agent_stream_locks_ordinal_booking_and_asks_missing_fields(monkeypatch):
+    saved = {}
+
     def fail_generate(*args, **kwargs):
         raise AssertionError("ordinal booking selection should bypass model")
 
@@ -766,7 +768,7 @@ async def test_web_agent_stream_locks_ordinal_booking_and_asks_missing_fields(mo
             },
         ],
     )
-    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
     monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
     monkeypatch.setattr(main, "generate", fail_generate)
 
@@ -782,6 +784,9 @@ async def test_web_agent_stream_locks_ordinal_booking_and_asks_missing_fields(mo
     assert "太田日式燒肉" in done["answer"]
     assert "還缺日期、時間、人數" in done["answer"]
     assert done["tools_used"] == []
+    locked_shop = saved["history"][-1]["recommendation"]["shops"][0]
+    assert locked_shop["shop_id"] == 10102
+    assert locked_shop["name"] == "太田日式燒肉"
 
 
 @pytest.mark.anyio
@@ -2261,6 +2266,8 @@ async def test_line_booking_followup_uses_ordinal_shop(monkeypatch):
 
 @pytest.mark.anyio
 async def test_line_booking_followup_locks_ordinal_and_asks_missing_fields(monkeypatch):
+    saved = {}
+
     async def fake_fetch_java_shop(shop_id: int):
         assert shop_id == 10115
         return {"id": shop_id, "name": "辛殿麻辣鍋｜信義店"}
@@ -2271,6 +2278,11 @@ async def test_line_booking_followup_locks_ordinal_and_asks_missing_fields(monke
         lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009, 10115]},
     )
     monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
+    monkeypatch.setattr(
+        main,
+        "_save_line_recommendation_state",
+        lambda *args, **kwargs: saved.update({"args": args, "kwargs": kwargs}),
+    )
 
     messages = await main._build_line_reply_messages(
         {
@@ -2283,6 +2295,7 @@ async def test_line_booking_followup_locks_ordinal_and_asks_missing_fields(monke
     assert "辛殿麻辣鍋｜信義店" in messages[0]["text"]
     assert "還缺日期、時間、人數" in messages[0]["text"]
     assert "/line/book/" not in messages[0]["text"]
+    assert saved["kwargs"]["shown_shop_ids"] == [10115]
 
 
 @pytest.mark.anyio
