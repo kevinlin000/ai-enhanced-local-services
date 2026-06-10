@@ -424,6 +424,7 @@ def test_specific_shop_keyword_ignores_vague_or_time_only_followups():
     assert main._specific_shop_keyword("那我要青田七六好了") == "青田七六"
     assert main._specific_shop_keyword("？你怎麼推薦這個？我要青田七六") == "青田七六"
     assert main._specific_shop_keyword("我要訂青田七六明天晚上19點 4人") == "青田七六"
+    assert main._specific_shop_keyword("我要訂青田七六下週五晚上7點 4人") == "青田七六"
     assert main._specific_shop_keyword("預約青田七六 4人") == "青田七六"
     assert main._specific_shop_keyword("明天 晚上") == ""
     assert main._specific_shop_keyword("推薦7人聚餐餐廳") == ""
@@ -433,6 +434,26 @@ def test_specific_shop_keyword_ignores_vague_or_time_only_followups():
     assert main._selection_index_from_text("第一間") == 0
     assert main._selection_index_from_text("訂第二家明天晚上") == 1
     assert main._selection_index_from_text("第3個 4人") == 2
+
+
+def test_booking_prefill_parses_weekday_dates(monkeypatch):
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    assert main._line_booking_prefill_from_text("下週五晚上7點 4人") == {
+        "date": "2026-06-19",
+        "time": "19:00",
+        "people": 4,
+    }
+    assert main._line_booking_prefill_from_text("週五晚上7點半 4人") == {
+        "date": "2026-06-12",
+        "time": "19:30",
+        "people": 4,
+    }
+    assert main._line_booking_prefill_from_text("星期六中午 兩人") == {
+        "date": "2026-06-13",
+        "time": "12:00",
+        "people": 2,
+    }
 
 
 @pytest.mark.anyio
@@ -623,7 +644,7 @@ async def test_web_agent_stream_books_exact_shop_without_history(monkeypatch):
     events = [
         event
         async for event in main._run_agent_turn_stream(
-            "我要訂青田七六明天晚上19點 4人",
+            "我要訂青田七六下週五晚上7點 4人",
             "test-web-exact-booking",
         )
     ]
@@ -632,7 +653,7 @@ async def test_web_agent_stream_books_exact_shop_without_history(monkeypatch):
     assert captured_search["query"] == "青田七六"
     assert captured_booking["shop_id"] == 10222
     assert captured_booking["people"] == 4
-    assert captured_booking["date"] == "2026-06-11"
+    assert captured_booking["date"] == "2026-06-19"
     assert captured_booking["time"] == "19:00"
     assert done["tools_used"] == ["semantic_shop_search", "create_booking"]
     assert done["transaction"]["booking_code"] == "BK-WEB-EXACT"
@@ -1944,13 +1965,13 @@ async def test_line_exact_shop_booking_without_history(monkeypatch):
         {
             "type": "message",
             "source": {"type": "user", "userId": "test-user"},
-            "message": {"type": "text", "text": "我要訂青田七六明天晚上19點 4人"},
+            "message": {"type": "text", "text": "我要訂青田七六下週五晚上7點 4人"},
         }
     )
 
     assert captured_search["query"] == "青田七六"
     assert "青田七六" in messages[0]["text"]
-    assert "2026-06-11 19:00、4 人" in messages[0]["text"]
+    assert "2026-06-19 19:00、4 人" in messages[0]["text"]
     assert "/line/book/10222?" in messages[0]["text"]
     assert "people=4" in messages[0]["text"]
     assert saved_state["kwargs"]["shown_shop_ids"] == [10222]
@@ -1986,6 +2007,27 @@ async def test_line_exact_shop_booking_asks_missing_fields(monkeypatch):
     assert "青田七六" in messages[0]["text"]
     assert "還缺日期、時間、人數" in messages[0]["text"]
     assert "/line/book/10222?" in messages[0]["text"]
+
+
+@pytest.mark.anyio
+async def test_line_exact_shop_booking_rejects_same_day(monkeypatch):
+    async def fail_semantic_hits(query: str, top_k: int):
+        raise AssertionError("same-day booking should be rejected before search")
+
+    monkeypatch.setattr(main, "_semantic_hits", fail_semantic_hits)
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "我要訂青田七六今天晚上7點 4人"},
+        }
+    )
+
+    assert "今天" in messages[0]["text"]
+    assert "最早可預訂明天" in messages[0]["text"]
+    assert "/line/book/" not in messages[0]["text"]
 
 
 @pytest.mark.anyio

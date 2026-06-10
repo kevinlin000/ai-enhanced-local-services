@@ -735,7 +735,12 @@ def _strip_specific_shop_keyword(text: str) -> str:
         raw,
     )
     normalized = (intent_match.group(1) if intent_match else raw).strip("，,。.!！?？")
-    normalized = re.sub(r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|下午|早午餐|下週[一二三四五六日天]?|週[一二三四五六日天])", "", normalized)
+    normalized = re.sub(
+        r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|下午|早午餐|"
+        r"(下|這|本)?(週|星期|禮拜)[一二三四五六日天]?)",
+        "",
+        normalized,
+    )
     normalized = re.sub(r"[0-2]?\d[:：點時](半|[0-5]?\d分?)?", "", normalized)
     normalized = re.sub(r"\s+[一二兩三四五六七八九十\d]{1,3}\s*人", "", normalized)
     normalized = re.sub(r"\d{1,3}\s*人", "", normalized)
@@ -6717,6 +6722,29 @@ def _zh_number_to_int(value: str) -> int | None:
     return mapping.get(value)
 
 
+def _weekday_booking_date_from_text(text: str, today: date_cls) -> str:
+    normalized = str(text or "").strip()
+    match = re.search(r"(?P<prefix>下|這|本)?(?:週|星期|禮拜)(?P<day>[一二三四五六日天])", normalized)
+    if not match:
+        return ""
+
+    weekday_map = {"一": 0, "二": 1, "三": 2, "四": 3, "五": 4, "六": 5, "日": 6, "天": 6}
+    target_weekday = weekday_map.get(match.group("day"))
+    if target_weekday is None:
+        return ""
+
+    prefix = match.group("prefix") or ""
+    current_weekday = today.weekday()
+    if prefix == "下":
+        days_until_next_monday = 7 - current_weekday
+        return (today + timedelta(days=days_until_next_monday + target_weekday)).isoformat()
+
+    days_until = target_weekday - current_weekday
+    if days_until <= 0:
+        days_until += 7
+    return (today + timedelta(days=days_until)).isoformat()
+
+
 def _line_booking_prefill_from_text(text: str) -> dict:
     normalized = str(text or "").strip()
     today = taipei_today()
@@ -6725,6 +6753,8 @@ def _line_booking_prefill_from_text(text: str) -> dict:
         booking_date = (today + timedelta(days=2)).isoformat()
     elif "明天" in normalized or "明晚" in normalized:
         booking_date = (today + timedelta(days=1)).isoformat()
+    else:
+        booking_date = _weekday_booking_date_from_text(normalized, today)
 
     booking_time = ""
     explicit_time = re.search(r"([0-2]?\d)[:：]([0-5]\d)", normalized)
@@ -6733,12 +6763,13 @@ def _line_booking_prefill_from_text(text: str) -> dict:
         minute = int(explicit_time.group(2))
         booking_time = f"{hour:02d}:{minute:02d}"
     else:
-        hour_match = re.search(r"([0-2]?\d)點", normalized)
+        hour_match = re.search(r"([0-2]?\d)點(半)?", normalized)
         if hour_match:
             hour = int(hour_match.group(1))
             if hour <= 11 and any(token in normalized for token in ("晚", "晚上", "晚餐")):
                 hour += 12
-            booking_time = f"{hour:02d}:00"
+            minute = 30 if hour_match.group(2) else 0
+            booking_time = f"{hour:02d}:{minute:02d}"
         elif any(token in normalized for token in ("晚上", "晚餐", "明晚")):
             booking_time = "19:00"
         elif any(token in normalized for token in ("中午", "午餐")):
@@ -6762,6 +6793,8 @@ def _line_booking_followup_intent(text: str) -> bool:
 async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dict] | None:
     if not _line_booking_followup_intent(user_text):
         return None
+    if _explicit_same_day_booking_request(user_text):
+        return [build_text_message(_same_day_booking_policy_answer())]
     state = _load_line_recommendation_state(user_id)
     shown_ids = [
         int(shop_id)
@@ -6806,6 +6839,8 @@ async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dic
 async def _build_line_exact_booking_request(user_text: str, user_id: str) -> list[dict] | None:
     if not _booking_intent(user_text) or _payment_intent(user_text):
         return None
+    if _explicit_same_day_booking_request(user_text):
+        return [build_text_message(_same_day_booking_policy_answer())]
 
     keyword = _specific_shop_keyword(user_text)
     if not keyword:
