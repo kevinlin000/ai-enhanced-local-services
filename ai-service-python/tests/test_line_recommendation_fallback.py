@@ -10,7 +10,7 @@ from app.main import _line_should_force_recommendation_cards
 def test_line_force_recommendation_cards_for_clear_restaurant_query():
     assert _line_should_force_recommendation_cards("推薦信義區高級火鍋")
     assert _line_should_force_recommendation_cards("信義區高級火鍋")
-    assert _line_should_force_recommendation_cards("附近高級火鍋")
+    assert not _line_should_force_recommendation_cards("附近高級火鍋")
     assert _line_should_force_recommendation_cards("韓式料理")
 
 
@@ -454,6 +454,20 @@ def test_booking_prefill_parses_weekday_dates(monkeypatch):
         "time": "12:00",
         "people": 2,
     }
+
+
+def test_restaurant_clarification_text_targets_missing_fields():
+    group_text = main._restaurant_clarification_text("推薦7人聚餐餐廳")
+    assert "地點或捷運站" in group_text
+    assert "料理類型或氣氛" in group_text
+    assert "日期或時段" in group_text
+
+    district_text = main._restaurant_clarification_text("大安區餐廳")
+    assert "地點或捷運站" not in district_text
+    assert "料理類型或氣氛" in district_text
+
+    nearby_text = main._restaurant_clarification_text("附近高級火鍋")
+    assert "位置或捷運站" in nearby_text
 
 
 @pytest.mark.anyio
@@ -1800,6 +1814,72 @@ async def test_line_vague_need_clarifies_and_saves_context(monkeypatch):
 
     assert "收斂方向" in messages[0]["text"]
     assert saved == {"user_id": "test-user", "query": "推薦7人聚餐餐廳", "shown": []}
+
+
+@pytest.mark.anyio
+async def test_line_nearby_without_location_clarifies(monkeypatch):
+    saved = {}
+
+    async def fail_semantic_hits(query: str, top_k: int):
+        raise AssertionError("nearby without location should not search")
+
+    monkeypatch.setattr(main, "_load_line_recommendation_state", lambda user_id: {})
+    monkeypatch.setattr(main, "_load_line_location_state", lambda user_id: {})
+    monkeypatch.setattr(
+        main,
+        "_save_line_recommendation_state",
+        lambda user_id, query, shown_shop_ids: saved.update({"user_id": user_id, "query": query, "shown": shown_shop_ids}),
+    )
+    monkeypatch.setattr(main, "_semantic_hits", fail_semantic_hits)
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "附近高級火鍋"},
+        }
+    )
+
+    assert "位置或捷運站" in messages[0]["text"]
+    assert saved == {"user_id": "test-user", "query": "附近高級火鍋", "shown": []}
+
+
+@pytest.mark.anyio
+async def test_line_nearby_with_saved_location_recommends_cards(monkeypatch):
+    captured = {}
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        captured["query"] = query
+        return [
+            {
+                "shop_id": 10115,
+                "name": "辛殿麻辣鍋｜信義店",
+                "district": "信義區",
+                "category": "火鍋",
+                "ai_summary": "適合聚餐的麻辣鍋。",
+            }
+        ]
+
+    monkeypatch.setattr(main, "_load_line_recommendation_state", lambda user_id: {})
+    monkeypatch.setattr(
+        main,
+        "_load_line_location_state",
+        lambda user_id: {"title": "台北 101", "address": "台北市信義區信義路五段7號"},
+    )
+    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "附近高級火鍋"},
+        }
+    )
+
+    assert captured["query"] == "台北市信義區信義路五段7號附近，附近高級火鍋"
+    assert messages[1]["type"] == "flex"
 
 
 @pytest.mark.anyio

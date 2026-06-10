@@ -704,9 +704,12 @@ def _restaurant_need_clarification(query: str) -> bool:
     if _specific_shop_keyword(normalized):
         return False
     constraints = _extract_query_constraints(normalized)
+    has_location = bool(constraints["districts"] or constraints["stations"])
+    has_explicit_location_text = bool(re.search(r"(台北|新北|[^\s，,。；;]{1,8}(區|站|路|街|商圈|夜市|百貨))", normalized))
+    if constraints.get("wants_nearby") and not (has_location or has_explicit_location_text):
+        return True
     if constraints["categories"] or constraints.get("wants_burger") or constraints.get("specific_cuisines"):
         return False
-    has_location = bool(constraints["districts"] or constraints["stations"])
     has_people = bool(re.search(r"[一二三四五六七八九十\d]+人", normalized))
     has_datetime = bool(re.search(r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|早午餐|下午|[0-2]?\d[:：點時])", normalized))
     has_specific_context = bool(re.search(r"(聊天|約會|請客|慶生|商務|安靜|家庭|長輩|包廂)", normalized))
@@ -721,7 +724,45 @@ def _restaurant_need_clarification(query: str) -> bool:
     return has_restaurant_phrase or has_location_only
 
 
-def _restaurant_clarification_text() -> str:
+def _restaurant_clarification_gaps(query: str) -> list[str]:
+    normalized = str(query or "").strip()
+    constraints = _extract_query_constraints(normalized)
+    gaps: list[str] = []
+    has_location = bool(constraints["districts"] or constraints["stations"])
+    has_explicit_location_text = bool(re.search(r"(台北|新北|[^\s，,。；;]{1,8}(區|站|路|街|商圈|夜市|百貨))", normalized))
+    has_category = bool(
+        constraints["categories"]
+        or constraints.get("wants_burger")
+        or constraints.get("specific_cuisines")
+    )
+    has_people = bool(re.search(r"[一二三四五六七八九十\d]+人", normalized))
+    has_datetime = bool(re.search(r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|早午餐|下午|[0-2]?\d[:：點時])", normalized))
+    has_specific_context = bool(re.search(r"(聊天|約會|請客|慶生|商務|安靜|家庭|長輩|包廂)", normalized))
+    if constraints.get("wants_nearby") and not (has_location or has_explicit_location_text):
+        gaps.append("位置或捷運站")
+    elif not has_location and not has_explicit_location_text and not has_category:
+        gaps.append("地點或捷運站")
+    if not has_category and not has_specific_context:
+        gaps.append("料理類型或氣氛")
+    if ("聚餐" in normalized or "多人" in normalized) and not has_people:
+        gaps.append("人數")
+    if not has_datetime and has_people and not has_category:
+        gaps.append("日期或時段")
+    deduped: list[str] = []
+    for gap in gaps:
+        if gap not in deduped:
+            deduped.append(gap)
+    return deduped[:3]
+
+
+def _restaurant_clarification_text(query: str = "") -> str:
+    gaps = _restaurant_clarification_gaps(query)
+    if gaps:
+        return (
+            f"我先幫你收斂方向，避免亂推薦。還差{len(gaps)}個關鍵條件："
+            f"{'、'.join(gaps)}。"
+            "你可以直接回覆例如「大安區，適合聊天」或「中山站，台菜，4人晚餐」。"
+        )
     return (
         "我先幫你收斂方向，避免亂推薦。請補 2-3 個條件："
         "地點或捷運站、日期/時段與人數、料理類型或氣氛（例如安靜聊天、商務請客、慶生）。"
@@ -3979,7 +4020,7 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
         return final_answer, [], state.last_tool_result
 
     if _restaurant_need_clarification(effective_query):
-        final_answer = _restaurant_clarification_text()
+        final_answer = _restaurant_clarification_text(effective_query)
         if session_id:
             session_store.save_history(
                 session_id,
@@ -4645,7 +4686,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
         return
 
     if _restaurant_need_clarification(effective_query):
-        full_answer = _restaurant_clarification_text()
+        full_answer = _restaurant_clarification_text(effective_query)
         chunk_size = 18
         for i in range(0, len(full_answer), chunk_size):
             chunk = full_answer[i : i + chunk_size]
@@ -6433,6 +6474,8 @@ def _line_should_force_recommendation_cards(text: str) -> bool:
         return False
     if _booking_intent(normalized) or _payment_intent(normalized):
         return False
+    if _restaurant_need_clarification(normalized):
+        return False
     constraints = _extract_query_constraints(normalized)
     has_food_or_place = bool(
         constraints["categories"]
@@ -6464,7 +6507,7 @@ async def _build_line_clarification_if_needed(user_text: str, user_id: str) -> l
     if not _restaurant_need_clarification(user_text):
         return None
     _save_line_recommendation_state(user_id, query=user_text, shown_shop_ids=[])
-    return [build_text_message(_restaurant_clarification_text())]
+    return [build_text_message(_restaurant_clarification_text(user_text))]
 
 
 async def _build_line_fallback_recommendation_cards(user_text: str, user_id: str) -> list[dict] | None:
@@ -7170,7 +7213,7 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     if booking_followup_messages is not None:
         return booking_followup_messages
 
-    clarification_messages = await _build_line_clarification_if_needed(user_text, user_id)
+    clarification_messages = await _build_line_clarification_if_needed(effective_user_text, user_id)
     if clarification_messages is not None:
         return clarification_messages
 
