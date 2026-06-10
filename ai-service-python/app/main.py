@@ -2692,6 +2692,50 @@ def _latest_recommendation_context(history: list[dict]) -> dict:
     return {}
 
 
+def _latest_booking_draft(history: list[dict]) -> dict:
+    for turn in reversed(history):
+        booking_draft = turn.get("booking_draft") if isinstance(turn, dict) else None
+        if isinstance(booking_draft, dict) and booking_draft:
+            return booking_draft
+    return {}
+
+
+def _compact_booking_prefill(prefill: dict | None) -> dict:
+    if not isinstance(prefill, dict):
+        return {}
+    compact: dict = {}
+    for key in ("date", "time", "table_type"):
+        value = str(prefill.get(key) or "").strip()
+        if value:
+            compact[key] = value
+    people = prefill.get("people")
+    try:
+        if people is not None:
+            compact["people"] = int(people)
+    except (TypeError, ValueError):
+        pass
+    return compact
+
+
+def _merge_booking_prefill(current: dict, draft: dict | None) -> dict:
+    merged = dict(current or {})
+    if not isinstance(draft, dict):
+        return merged
+    for key in ("date", "time", "people", "table_type"):
+        if merged.get(key) in (None, "") and draft.get(key) not in (None, ""):
+            merged[key] = draft.get(key)
+    return merged
+
+
+def _booking_draft_payload(shop_id: int, shop_name: str, prefill: dict | None) -> dict:
+    draft = {
+        "shop_id": int(shop_id),
+        "shop_name": str(shop_name or f"店家 {shop_id}"),
+    }
+    draft.update(_compact_booking_prefill(prefill))
+    return draft
+
+
 def _selection_index_from_text(text: str) -> int | None:
     normalized = re.sub(r"\s+", "", str(text or ""))
     ordinal_match = re.search(r"第([一二兩三四五六七八九十\d]{1,3})(間|家|個|張|名|項)?", normalized)
@@ -2911,11 +2955,21 @@ def _agent_booking_followup_from_history(query: str, history: list[dict]) -> Too
     if _same_day_datetime_request(query):
         return ToolGuardResult(action="direct", direct_answer=_same_day_booking_policy_answer())
 
+    booking_draft = _latest_booking_draft(history)
+    prefill = _merge_booking_prefill(prefill, booking_draft)
     recommendation = _latest_recommendation_context(history)
     shops = recommendation.get("shops") if isinstance(recommendation, dict) else []
+    selected_shop = None
+    if isinstance(shops, list) and shops:
+        selected_shop = shops[0] if len(shops) == 1 else _recommended_shop_from_text(query, shops)
+    if selected_shop is None and isinstance(booking_draft, dict) and booking_draft.get("shop_id"):
+        selected_shop = {
+            "shop_id": booking_draft.get("shop_id"),
+            "name": booking_draft.get("shop_name") or f"店家 {booking_draft.get('shop_id')}",
+        }
     if not isinstance(shops, list) or not shops:
-        return None
-    selected_shop = shops[0] if len(shops) == 1 else _recommended_shop_from_text(query, shops)
+        if selected_shop is None:
+            return None
     if selected_shop is None:
         return ToolGuardResult(
             action="direct",
@@ -2935,12 +2989,17 @@ def _agent_booking_followup_from_history(query: str, history: list[dict]) -> Too
     if not prefill.get("people"):
         missing.append("人數")
     if missing:
+        draft = _booking_draft_payload(shop_id, shop_name, prefill)
         return ToolGuardResult(
             action="direct",
             direct_answer=f"我已鎖定「{shop_name}」，還缺{'、'.join(missing)}。請補齊後我再幫你送出訂位。",
-            last_tool_result={"shops": [{"shop_id": shop_id, "name": shop_name}]},
+            last_tool_result={
+                "shops": [{"shop_id": shop_id, "name": shop_name}],
+                "booking_draft": draft,
+            },
         )
 
+    draft = _booking_draft_payload(shop_id, shop_name, prefill)
     return ToolGuardResult(
         action="continue",
         args={
@@ -2950,7 +3009,10 @@ def _agent_booking_followup_from_history(query: str, history: list[dict]) -> Too
             "time": str(prefill["time"]),
             "table_type": "normal",
         },
-        last_tool_result={"shops": [{"shop_id": shop_id, "name": shop_name}]},
+        last_tool_result={
+            "shops": [{"shop_id": shop_id, "name": shop_name}],
+            "booking_draft": draft,
+        },
     )
 
 
@@ -3855,6 +3917,11 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
             final_answer = exact_booking.direct_answer or ""
             if session_id:
                 recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
+                booking_draft = (
+                    state.last_tool_result.get("booking_draft")
+                    if isinstance(state.last_tool_result.get("booking_draft"), dict)
+                    else None
+                )
                 session_store.save_history(
                     session_id,
                     history + [
@@ -3863,6 +3930,7 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
                             "role": "model",
                             "content": final_answer,
                             **({"recommendation": recommendation} if recommendation else {}),
+                            **({"booking_draft": booking_draft} if booking_draft else {}),
                         },
                     ],
                 )
@@ -3946,6 +4014,11 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
             state.last_tool_result = booking_followup.last_tool_result or {}
             if session_id:
                 recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
+                booking_draft = (
+                    state.last_tool_result.get("booking_draft")
+                    if isinstance(state.last_tool_result.get("booking_draft"), dict)
+                    else None
+                )
                 session_store.save_history(
                     session_id,
                     history + [
@@ -3954,6 +4027,7 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
                             "role": "model",
                             "content": final_answer,
                             **({"recommendation": recommendation} if recommendation else {}),
+                            **({"booking_draft": booking_draft} if booking_draft else {}),
                         },
                     ],
                 )
@@ -4293,6 +4367,11 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 yield {"type": "chunk", "content": chunk}
             if session_id:
                 recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
+                booking_draft = (
+                    state.last_tool_result.get("booking_draft")
+                    if isinstance(state.last_tool_result.get("booking_draft"), dict)
+                    else None
+                )
                 session_store.save_history(
                     session_id,
                     history + [
@@ -4301,6 +4380,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                             "role": "model",
                             "content": full_answer,
                             **({"recommendation": recommendation} if recommendation else {}),
+                            **({"booking_draft": booking_draft} if booking_draft else {}),
                         },
                     ],
                 )
@@ -4655,6 +4735,11 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 yield {"type": "chunk", "content": chunk}
             if session_id:
                 recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
+                booking_draft = (
+                    state.last_tool_result.get("booking_draft")
+                    if isinstance(state.last_tool_result.get("booking_draft"), dict)
+                    else None
+                )
                 session_store.save_history(
                     session_id,
                     history + [
@@ -4663,6 +4748,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                             "role": "model",
                             "content": full_answer,
                             **({"recommendation": recommendation} if recommendation else {}),
+                            **({"booking_draft": booking_draft} if booking_draft else {}),
                         },
                     ],
                 )
@@ -6427,7 +6513,12 @@ def _clear_line_recommendation_state(user_id: str) -> None:
         logger.exception("line_recommendation_state_clear_failed user_id=%s", user_id)
 
 
-def _save_line_recommendation_state(user_id: str, query: str, shown_shop_ids: list[int]) -> None:
+def _save_line_recommendation_state(
+    user_id: str,
+    query: str,
+    shown_shop_ids: list[int],
+    booking_prefill: dict | None = None,
+) -> None:
     deduped: list[int] = []
     for shop_id in shown_shop_ids:
         try:
@@ -6436,14 +6527,15 @@ def _save_line_recommendation_state(user_id: str, query: str, shown_shop_ids: li
             continue
         if sid not in deduped:
             deduped.append(sid)
+    payload = {"query": query, "shown_shop_ids": deduped[-60:]}
+    compact_prefill = _compact_booking_prefill(booking_prefill)
+    if compact_prefill:
+        payload["booking_prefill"] = compact_prefill
     try:
         session_store.client().setex(
             _line_recommendation_state_key(user_id),
             LINE_RECOMMENDATION_TTL_SECONDS,
-            json.dumps(
-                {"query": query, "shown_shop_ids": deduped[-60:]},
-                ensure_ascii=False,
-            ),
+            json.dumps(payload, ensure_ascii=False),
         )
     except Exception:
         logger.exception("line_recommendation_state_save_failed user_id=%s", user_id)
@@ -6851,7 +6943,8 @@ async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dic
         return [build_text_message("我收到日期/時間了。請先回覆要訂哪一間店名，避免幫你訂錯餐廳。")]
 
     shop_id = shown_ids[0]
-    prefill = _line_booking_prefill_from_text(user_text)
+    saved_prefill = state.get("booking_prefill") if isinstance(state.get("booking_prefill"), dict) else {}
+    prefill = _merge_booking_prefill(_line_booking_prefill_from_text(user_text), saved_prefill)
     people = prefill.get("people")
     shop = await _fetch_java_shop(shop_id)
     shop_name = str((shop or {}).get("name") or f"店家 {shop_id}")
@@ -6873,6 +6966,7 @@ async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dic
             user_id,
             query=str(state.get("query") or user_text),
             shown_shop_ids=[shop_id],
+            booking_prefill=prefill,
         )
         return [
             build_text_message(
@@ -6930,7 +7024,12 @@ async def _build_line_exact_booking_request(user_text: str, user_id: str) -> lis
         f"/line/book/{shop_id}?date={quote_plus(booking_date)}&time={quote_plus(booking_time)}"
         f"&people={quote_plus(str(people or 2))}&lt={quote_plus(line_token)}"
     )
-    _save_line_recommendation_state(user_id, query=keyword, shown_shop_ids=[shop_id])
+    _save_line_recommendation_state(
+        user_id,
+        query=keyword,
+        shown_shop_ids=[shop_id],
+        booking_prefill=prefill,
+    )
 
     missing = []
     if not prefill.get("date"):

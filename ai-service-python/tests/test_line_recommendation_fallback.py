@@ -787,6 +787,67 @@ async def test_web_agent_stream_locks_ordinal_booking_and_asks_missing_fields(mo
     locked_shop = saved["history"][-1]["recommendation"]["shops"][0]
     assert locked_shop["shop_id"] == 10102
     assert locked_shop["name"] == "太田日式燒肉"
+    assert saved["history"][-1]["booking_draft"]["shop_id"] == 10102
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_merges_booking_draft_after_locked_selection(monkeypatch):
+    captured = {}
+
+    async def fake_create_booking(**kwargs):
+        captured.update(kwargs)
+        return {
+            "success": True,
+            "shopId": kwargs["shop_id"],
+            "shopName": "太田日式燒肉",
+            "bookingCode": "BK-WEB-DRAFT",
+            "people": kwargs["people"],
+            "date": kwargs["date"],
+            "time": kwargs["time"],
+            "tableType": kwargs["table_type"],
+            "needsDeposit": False,
+        }
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {"role": "user", "content": "訂第二間"},
+            {
+                "role": "model",
+                "content": "我已鎖定太田日式燒肉，還缺人數。",
+                "recommendation": {
+                    "query": "訂第二間",
+                    "shops": [{"shop_id": 10102, "name": "太田日式燒肉"}],
+                },
+                "booking_draft": {
+                    "shop_id": 10102,
+                    "shop_name": "太田日式燒肉",
+                    "date": "2026-06-19",
+                    "time": "19:00",
+                },
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "tool_create_booking", fake_create_booking)
+    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("booking draft should bypass model")))
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "4人",
+            "test-web-booking-draft",
+        )
+    ]
+
+    done = events[-1]
+    assert captured["shop_id"] == 10102
+    assert captured["people"] == 4
+    assert captured["date"] == "2026-06-19"
+    assert captured["time"] == "19:00"
+    assert captured["table_type"] == "normal"
+    assert done["transaction"]["booking_code"] == "BK-WEB-DRAFT"
 
 
 @pytest.mark.anyio
@@ -2296,6 +2357,41 @@ async def test_line_booking_followup_locks_ordinal_and_asks_missing_fields(monke
     assert "還缺日期、時間、人數" in messages[0]["text"]
     assert "/line/book/" not in messages[0]["text"]
     assert saved["kwargs"]["shown_shop_ids"] == [10115]
+    assert saved["kwargs"]["booking_prefill"] == {"date": "", "time": "", "people": None}
+
+
+@pytest.mark.anyio
+async def test_line_booking_followup_merges_saved_prefill(monkeypatch):
+    async def fake_fetch_java_shop(shop_id: int):
+        return {"id": shop_id, "name": "辛殿麻辣鍋｜信義店"}
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {
+            "query": "信義區高級火鍋",
+            "shown_shop_ids": [10115],
+            "booking_prefill": {"date": "2026-06-19", "time": "19:00"},
+        },
+    )
+    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
+    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "4人"},
+        }
+    )
+
+    assert "辛殿麻辣鍋｜信義店" in messages[0]["text"]
+    assert "2026-06-19 19:00、4 人" in messages[0]["text"]
+    assert "/line/book/10115?" in messages[0]["text"]
+    assert "date=2026-06-19" in messages[0]["text"]
+    assert "time=19%3A00" in messages[0]["text"]
+    assert "people=4" in messages[0]["text"]
 
 
 @pytest.mark.anyio

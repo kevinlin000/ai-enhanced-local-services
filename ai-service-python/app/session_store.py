@@ -112,6 +112,16 @@ def _compact_turn(turn: dict[str, Any]) -> dict[str, Any] | None:
                 "shops": compact_shops,
             }
 
+    booking_draft = turn.get("booking_draft")
+    if isinstance(booking_draft, dict):
+        compact_draft = {}
+        for key in ("shop_id", "shop_name", "date", "time", "people", "table_type"):
+            value = booking_draft.get(key)
+            if value not in (None, ""):
+                compact_draft[key] = value
+        if compact_draft:
+            compacted["booking_draft"] = compact_draft
+
     return compacted
 
 
