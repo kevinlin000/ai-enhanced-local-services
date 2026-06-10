@@ -679,6 +679,110 @@ async def test_web_agent_stream_exact_shop_booking_asks_missing_fields(monkeypat
 
 
 @pytest.mark.anyio
+async def test_web_agent_stream_answers_latest_booking_status(monkeypatch):
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("booking status followup should bypass model")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {
+                "role": "model",
+                "content": "訂位已保留。",
+                "transaction": {
+                    "kind": "booking",
+                    "success": False,
+                    "status": "PENDING_PAYMENT",
+                    "shop_id": 10222,
+                    "shop_name": "青田七六",
+                    "booking_code": "BK-STATUS",
+                    "people": 4,
+                    "date": "2026-06-11",
+                    "time": "19:00",
+                    "needs_deposit": True,
+                    "deposit_total": 400,
+                },
+            }
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "generate", fail_generate)
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "查看狀態",
+            "test-web-booking-status",
+        )
+    ]
+
+    done = events[-1]
+    assert "BK-STATUS" in done["answer"]
+    assert "待付訂金" in done["answer"]
+    assert done["transaction"]["booking_code"] == "BK-STATUS"
+    assert done["tools_used"] == []
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_pays_latest_pending_booking(monkeypatch):
+    captured = {}
+
+    async def fake_pay_booking_with_test_card(booking_code: str):
+        captured["booking_code"] = booking_code
+        return {
+            "success": True,
+            "rec_trade_id": "TAPPAY-DEMO-1",
+            "amount": 400,
+            "note": "信用卡 demo 付款完成",
+        }
+
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("payment followup should bypass model")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {
+                "role": "model",
+                "content": "訂位已保留。",
+                "transaction": {
+                    "kind": "booking",
+                    "success": False,
+                    "status": "PENDING_PAYMENT",
+                    "shop_id": 10222,
+                    "shop_name": "青田七六",
+                    "booking_code": "BK-PAY",
+                    "people": 4,
+                    "date": "2026-06-11",
+                    "time": "19:00",
+                    "needs_deposit": True,
+                    "deposit_total": 400,
+                },
+            }
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "tool_pay_booking_with_test_card", fake_pay_booking_with_test_card)
+    monkeypatch.setattr(main, "generate", fail_generate)
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "我要付款",
+            "test-web-booking-pay",
+        )
+    ]
+
+    done = events[-1]
+    assert captured["booking_code"] == "BK-PAY"
+    assert done["tools_used"] == ["pay_booking_with_test_card"]
+    assert done["transaction"]["status"] == "PAID"
+    assert done["transaction"]["rec_trade_id"] == "TAPPAY-DEMO-1"
+
+
+@pytest.mark.anyio
 async def test_web_agent_stream_books_ordinal_recommendation_followup(monkeypatch):
     captured = {}
 
@@ -1777,6 +1881,62 @@ async def test_line_exact_shop_booking_asks_missing_fields(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_line_booking_action_uses_latest_booking_state(monkeypatch):
+    monkeypatch.setattr(
+        main,
+        "_load_line_booking_state",
+        lambda user_id: {
+            "phase": "created",
+            "booking": {
+                "bookingCode": "BK-LINE-PAY",
+                "shopId": 10222,
+                "shopName": "青田七六",
+                "date": "2026-06-11",
+                "time": "19:00",
+                "people": 4,
+                "status": "PENDING_PAYMENT",
+                "needsDeposit": True,
+                "depositTotal": 400,
+            },
+        },
+    )
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "我要付款"},
+        }
+    )
+
+    assert messages[0]["type"] == "flex"
+    assert messages[0]["altText"] == "訂位保留成功，待付訂金"
+    payload = json.dumps(messages[0], ensure_ascii=False)
+    assert "BK-LINE-PAY" in payload
+    assert "立即繳訂金" in payload
+    assert "/line/book/10222/pay?" in payload
+
+
+@pytest.mark.anyio
+async def test_line_booking_action_without_state_links_my_bookings(monkeypatch):
+    monkeypatch.setattr(main, "_load_line_booking_state", lambda user_id: {})
+    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "查看狀態"},
+        }
+    )
+
+    assert messages[0]["type"] == "text"
+    assert "/line/my-bookings?" in messages[0]["text"]
+
+
+@pytest.mark.anyio
 async def test_line_booking_followup_uses_ordinal_shop(monkeypatch):
     async def fake_fetch_java_shop(shop_id: int):
         return {"id": shop_id, "name": "辛殿麻辣鍋｜信義店"}
@@ -2100,6 +2260,7 @@ async def test_internal_availability_released_pushes_line_card(monkeypatch):
 @pytest.mark.anyio
 async def test_internal_booking_updated_pushes_cancel_card(monkeypatch):
     pushed = {}
+    saved = {}
 
     async def fake_push_messages(user_id, messages, channel_access_token, enabled):
         pushed["user_id"] = user_id
@@ -2107,6 +2268,7 @@ async def test_internal_booking_updated_pushes_cancel_card(monkeypatch):
         return {"ok": True}
 
     monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    monkeypatch.setattr(main, "_save_line_booking_state", lambda *args, **kwargs: saved.update({"args": args}))
     monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
 
     class FakeRequest:
@@ -2133,6 +2295,9 @@ async def test_internal_booking_updated_pushes_cancel_card(monkeypatch):
     assert response["ok"] is True
     assert pushed["user_id"] == "Uabc123"
     assert pushed["messages"][0]["altText"] == "訂位已取消"
+    assert saved["args"][0] == "Uabc123"
+    assert saved["args"][1]["bookingCode"] == "BK-CANCEL"
+    assert saved["args"][2] == "canceled"
 
 
 @pytest.mark.anyio
