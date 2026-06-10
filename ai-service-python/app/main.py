@@ -2727,6 +2727,20 @@ def _recommended_shop_from_text(query: str, shops: list[dict]) -> dict | None:
     return None
 
 
+def _booking_selection_intent(query: str) -> bool:
+    normalized = re.sub(r"\s+", "", str(query or "").strip())
+    if not normalized or _payment_intent(normalized) or _line_more_recommendation_intent(normalized):
+        return False
+    if _booking_intent(normalized):
+        return True
+    return bool(
+        re.search(
+            r"(我要|我想要|選|要|就|訂).{0,4}(第[一二兩三四五六七八九十\d]{1,3}|[一二兩三四五六七八九十\d]{1,3})(間|家|個)",
+            normalized,
+        )
+    )
+
+
 def _exact_shop_matches(query: str, shops: list[dict]) -> list[dict]:
     keyword = _specific_shop_keyword(query)
     normalized_keyword = _normalized_name(keyword)
@@ -2891,7 +2905,8 @@ def _agent_booking_followup_from_history(query: str, history: list[dict]) -> Too
     if _payment_intent(query):
         return None
     prefill = _line_booking_prefill_from_text(query)
-    if not (prefill.get("date") or prefill.get("time") or prefill.get("people")):
+    has_prefill = bool(prefill.get("date") or prefill.get("time") or prefill.get("people"))
+    if not has_prefill and not _booking_selection_intent(query):
         return None
     if _same_day_datetime_request(query):
         return ToolGuardResult(action="direct", direct_answer=_same_day_booking_policy_answer())
@@ -2904,7 +2919,7 @@ def _agent_booking_followup_from_history(query: str, history: list[dict]) -> Too
     if selected_shop is None:
         return ToolGuardResult(
             action="direct",
-            direct_answer="我收到日期/人數了。請先回覆要訂哪一間店名，避免幫你訂錯餐廳。",
+            direct_answer="我收到訂位需求了。請先回覆要訂哪一間店名或第幾間，避免幫你訂錯餐廳。",
         )
 
     try:
@@ -6793,7 +6808,7 @@ def _line_booking_prefill_from_text(text: str) -> dict:
 
 def _line_booking_followup_intent(text: str) -> bool:
     prefill = _line_booking_prefill_from_text(text)
-    return bool(prefill.get("date") or prefill.get("time") or prefill.get("people"))
+    return bool(prefill.get("date") or prefill.get("time") or prefill.get("people") or _booking_selection_intent(text))
 
 
 async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dict] | None:
@@ -6817,23 +6832,37 @@ async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dic
 
     shop_id = shown_ids[0]
     prefill = _line_booking_prefill_from_text(user_text)
-    booking_date = str(prefill.get("date") or (taipei_today() + timedelta(days=1)).isoformat())
-    booking_time = str(prefill.get("time") or "19:00")
     people = prefill.get("people")
+    shop = await _fetch_java_shop(shop_id)
+    shop_name = str((shop or {}).get("name") or f"店家 {shop_id}")
+    missing = []
+    if not prefill.get("date"):
+        missing.append("日期")
+    if not prefill.get("time"):
+        missing.append("時間")
+    if people is None:
+        missing.append("人數")
+    if missing:
+        known = []
+        if prefill.get("date"):
+            known.append(str(prefill.get("date")))
+        if prefill.get("time"):
+            known.append(str(prefill.get("time")))
+        known_text = f"，已先帶入{' '.join(known)}" if known else ""
+        return [
+            build_text_message(
+                f"我已鎖定「{shop_name}」{known_text}，還缺{'、'.join(missing)}。"
+                "請直接回覆例如「下週五晚上7點 4人」，我再幫你帶入訂位表。"
+            )
+        ]
+
+    booking_date = str(prefill.get("date"))
+    booking_time = str(prefill.get("time"))
     line_token = _line_token_for_user(user_id)
     booking_uri = _line_public_uri(
         f"/line/book/{shop_id}?date={quote_plus(booking_date)}&time={quote_plus(booking_time)}"
-        f"&people={quote_plus(str(people or 2))}&lt={quote_plus(line_token)}"
+        f"&people={quote_plus(str(people))}&lt={quote_plus(line_token)}"
     )
-    shop = await _fetch_java_shop(shop_id)
-    shop_name = str((shop or {}).get("name") or f"店家 {shop_id}")
-    if people is None:
-        return [
-            build_text_message(
-                f"我已鎖定「{shop_name}」，並先帶入 {booking_date} {booking_time}。"
-                f"還缺人數；你可以回覆「4人」，或直接點這裡填表：{booking_uri}"
-            )
-        ]
     return [
         build_text_message(
             f"我已鎖定「{shop_name}」，訂位表已帶入 {booking_date} {booking_time}、{people} 人。"

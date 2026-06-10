@@ -740,6 +740,51 @@ async def test_web_agent_stream_rejects_same_day_booking_followup(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_web_agent_stream_locks_ordinal_booking_and_asks_missing_fields(monkeypatch):
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("ordinal booking selection should bypass model")
+
+    async def fail_create_booking(**kwargs):
+        raise AssertionError("missing booking fields should not create booking")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {"role": "user", "content": "中山區適合聚餐"},
+            {
+                "role": "model",
+                "content": "我整理了三間。",
+                "recommendation": {
+                    "query": "中山區適合聚餐",
+                    "shops": [
+                        {"shop_id": 10101, "name": "藝奇"},
+                        {"shop_id": 10102, "name": "太田日式燒肉"},
+                        {"shop_id": 10103, "name": "七転八起"},
+                    ],
+                },
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
+    monkeypatch.setattr(main, "generate", fail_generate)
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "訂第二間",
+            "test-web-ordinal-booking-missing",
+        )
+    ]
+
+    done = events[-1]
+    assert "太田日式燒肉" in done["answer"]
+    assert "還缺日期、時間、人數" in done["answer"]
+    assert done["tools_used"] == []
+
+
+@pytest.mark.anyio
 async def test_web_agent_stream_answers_latest_booking_status(monkeypatch):
     def fail_generate(*args, **kwargs):
         raise AssertionError("booking status followup should bypass model")
@@ -2212,6 +2257,32 @@ async def test_line_booking_followup_uses_ordinal_shop(monkeypatch):
     assert "2026-06-11 19:00、4 人" in messages[0]["text"]
     assert "/line/book/10115?" in messages[0]["text"]
     assert "people=4" in messages[0]["text"]
+
+
+@pytest.mark.anyio
+async def test_line_booking_followup_locks_ordinal_and_asks_missing_fields(monkeypatch):
+    async def fake_fetch_java_shop(shop_id: int):
+        assert shop_id == 10115
+        return {"id": shop_id, "name": "辛殿麻辣鍋｜信義店"}
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009, 10115]},
+    )
+    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "訂第二間"},
+        }
+    )
+
+    assert "辛殿麻辣鍋｜信義店" in messages[0]["text"]
+    assert "還缺日期、時間、人數" in messages[0]["text"]
+    assert "/line/book/" not in messages[0]["text"]
 
 
 @pytest.mark.anyio
