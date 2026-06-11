@@ -420,6 +420,54 @@ TAIWANESE_CUISINE_BLOCK_HINTS = {
     "烤肉",
 }
 BUSINESS_DINING_HINTS = {"商務", "請客", "正式", "包廂", "宴席", "聚餐", "老字號", "高級", "精緻"}
+CONTEXT_INTENT_RULES = {
+    "quiet_chat": {
+        "query": {"聊天", "安靜", "久坐", "好聊", "慢慢聊"},
+        "strong": {"安靜", "聊天", "舒適", "寬敞", "桌距", "久坐", "包廂", "自在", "放鬆"},
+        "weak": {"約會", "精緻", "家庭", "親子"},
+        "block": {
+            "吵",
+            "喧囂",
+            "熱鬧",
+            "桌距偏近",
+            "桌距相對緊鄰",
+            "緊鄰",
+            "緊湊",
+            "尖峰",
+            "時間限制",
+            "100分鐘",
+            "油煙",
+            "排隊",
+            "熱炒",
+            "燒肉",
+            "烤網",
+            "居酒屋",
+            "串燒",
+            "小酌",
+            "微醺",
+            "酒吧",
+            "餐酒館",
+        },
+    },
+    "business": {
+        "query": {"商務", "請客", "宴客", "正式"},
+        "strong": {"商務", "請客", "正式", "包廂", "宴席", "老字號", "高級", "精緻", "合菜"},
+        "weak": {"安靜", "舒適", "桌距", "聚餐"},
+        "block": {"酒吧", "餐酒館", "小酌", "吵", "喧囂", "油煙", "自助"},
+    },
+    "date": {
+        "query": {"約會", "浪漫", "紀念日"},
+        "strong": {"約會", "浪漫", "氣氛", "精緻", "安靜", "舒適"},
+        "weak": {"甜點", "景觀", "調酒"},
+        "block": {"吵", "喧囂", "油煙", "桌距偏近", "熱炒"},
+    },
+    "family": {
+        "query": {"家庭", "親子", "小孩", "長輩"},
+        "strong": {"家庭", "親子", "長輩", "寬敞", "安靜", "包廂", "舒適"},
+        "weak": {"聚餐", "合菜"},
+        "block": {"酒吧", "餐酒館", "吵", "喧囂", "排隊", "油煙"},
+    },
+}
 CLOSED_SHOP_HINTS = {"暫停營業", "停業", "歇業", "永久停業", "設備整修", "結束營業"}
 SPECIFIC_CUISINE_RULES = {
     "korean": {
@@ -1334,6 +1382,8 @@ def _metadata_bonus(query: str, payload: dict) -> float:
         elif _is_specific_cuisine_mismatch(payload, cuisine):
             bonus -= 0.65
 
+    bonus += _context_intent_bonus(query, payload)
+
     for canonical, keywords in INTENT_HINTS.items():
         if any(keyword in query_lower for keyword in keywords):
             if canonical.lower() in tags or canonical.lower() in text:
@@ -1372,6 +1422,29 @@ def _metadata_bonus(query: str, payload: dict) -> float:
     if price_per_person and any(token in query_lower for token in ("價位", "預算", "人均")):
         bonus += 0.08
 
+    return bonus
+
+
+def _context_intent_bonus(query: str, payload: dict) -> float:
+    query_lower = str(query or "").lower()
+    text = _payload_text(payload)
+    tags = {tag.lower() for tag in _parse_json_list(payload.get("atmosphere_tags"))}
+    bonus = 0.0
+    for rule in CONTEXT_INTENT_RULES.values():
+        if not any(token.lower() in query_lower for token in rule["query"]):
+            continue
+        strong = {token.lower() for token in rule["strong"]}
+        weak = {token.lower() for token in rule["weak"]}
+        block = {token.lower() for token in rule["block"]}
+        strong_hits = sum(1 for token in strong if token in text or token in tags)
+        weak_hits = sum(1 for token in weak if token in text or token in tags)
+        block_hits = sum(1 for token in block if token in text or token in tags)
+        if strong_hits:
+            bonus += min(0.48, 0.22 + strong_hits * 0.1)
+        if weak_hits:
+            bonus += min(0.16, weak_hits * 0.06)
+        if block_hits:
+            bonus -= min(0.42, 0.18 + block_hits * 0.08)
     return bonus
 
 
@@ -2651,10 +2724,46 @@ def _agent_shop_feature(shop: dict) -> str:
     return _short_agent_text(feature, 42)
 
 
-def _agent_shop_line(shop: dict, index: int) -> str:
+def _agent_context_best_for_label(query: str, shop: dict) -> str:
+    query_lower = str(query or "").lower()
+    text = _payload_text(shop)
+    if any(token in query_lower for token in CONTEXT_INTENT_RULES["quiet_chat"]["query"]):
+        if _context_intent_bonus(query, shop) > 0.18:
+            return "安靜聊天"
+    if any(token in query_lower for token in CONTEXT_INTENT_RULES["business"]["query"]):
+        if _context_intent_bonus(query, shop) > 0.18:
+            return "商務請客"
+    if any(token in query_lower for token in CONTEXT_INTENT_RULES["date"]["query"]):
+        if _context_intent_bonus(query, shop) > 0.18:
+            return "約會"
+    if any(token in query_lower for token in CONTEXT_INTENT_RULES["family"]["query"]):
+        if _context_intent_bonus(query, shop) > 0.18:
+            return "家庭聚餐"
+    if "聚餐" in query_lower and "聚餐" in text:
+        return "聚餐"
+    return ""
+
+
+def _agent_shop_best_for(shop: dict, query: str) -> str:
+    contextual = _agent_context_best_for_label(query, shop)
+    base_items = [item for item in _agent_comparison_best_for(shop).split("、") if item]
+    merged: list[str] = []
+    if contextual:
+        merged.append(contextual)
+    if "聚餐" in str(query or "") and "聚餐" in _payload_text(shop) and "聚餐" not in merged:
+        merged.append("聚餐")
+    for item in base_items:
+        if contextual and item in contextual:
+            continue
+        if item not in merged:
+            merged.append(item)
+    return "、".join(merged[:2])
+
+
+def _agent_shop_line(shop: dict, index: int, query: str = "") -> str:
     name = _agent_display_shop_name(shop, index)
     feature = _agent_shop_feature(shop)
-    best_for = _agent_comparison_best_for(shop)
+    best_for = _agent_shop_best_for(shop, query)
     booking = _agent_comparison_booking_status(shop)
     parts = [feature]
     if best_for:
@@ -2690,7 +2799,7 @@ def _agent_concierge_narrative(
     else:
         lead = f"我先用「{basis}」幫你篩，優先看這 {count} 家。"
     lines = [lead]
-    lines.extend(_agent_shop_line(shop, index) for index, shop in enumerate(selected, start=1))
+    lines.extend(_agent_shop_line(shop, index, query) for index, shop in enumerate(selected, start=1))
     lines.append(_agent_recommendation_cta(query))
     return "\n".join(lines)
 

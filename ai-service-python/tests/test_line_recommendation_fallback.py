@@ -344,6 +344,30 @@ def test_taiwanese_cuisine_query_rejects_bistro_fillers():
     )
 
 
+def test_context_intent_bonus_prefers_quiet_chat_fit():
+    quiet_shop = {
+        "name": "大安舒適小館",
+        "district": "大安",
+        "category_slug": "euro",
+        "ai_summary": "空間舒適，桌距寬敞，適合久坐聊天與放鬆聚餐。",
+        "atmosphere_tags": ["安靜", "聊天"],
+    }
+    noisy_shop = {
+        "name": "大安熱炒酒場",
+        "district": "大安",
+        "category_slug": "chinese",
+        "ai_summary": "下班時段喧囂熱鬧，桌距偏近，適合小酌，油煙感明顯。",
+        "atmosphere_tags": ["聚餐"],
+    }
+
+    query = "大安區適合聊天聚餐"
+
+    assert main._context_intent_bonus(query, quiet_shop) > 0
+    assert main._context_intent_bonus(query, noisy_shop) < 0
+    assert main._metadata_bonus(query, quiet_shop) > main._metadata_bonus(query, noisy_shop)
+    assert "適合 安靜聊天、聚餐" in main._agent_shop_line(quiet_shop, 1, query)
+
+
 def test_explicit_chinese_query_rejects_conflicting_cuisine_identity():
     constraints = main._extract_query_constraints("中山區中式料理")
     assert constraints["categories"] == ["chinese"]
