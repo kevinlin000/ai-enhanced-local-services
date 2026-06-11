@@ -937,6 +937,35 @@ def _normalized_name(value: str) -> str:
     return re.sub(r"[\s｜|\-－_（）()·・.,，。!！?？]+", "", str(value or "").lower())
 
 
+def _recommended_shop_name_score(query: str, shop: dict) -> int:
+    normalized_query = _normalized_name(query)
+    raw_name = str(shop.get("name") or "")
+    normalized_name = _normalized_name(raw_name)
+    if not normalized_query or not normalized_name:
+        return 0
+    if normalized_name in normalized_query:
+        return 1000 + len(normalized_name)
+    if normalized_query in normalized_name and len(normalized_query) >= 3:
+        return 800 + len(normalized_query)
+
+    parts = [
+        _normalized_name(part)
+        for part in re.split(r"[\s｜|\-－_（）()·・/／]+", raw_name)
+        if _normalized_name(part)
+    ]
+    generic_parts = {"台北", "臺北", "信義", "中山", "大安", "松山", "中正", "大同", "萬華", "文山", "店", "分店"}
+    matched = [
+        part
+        for part in parts
+        if len(part) >= 3 and part not in generic_parts and part in normalized_query
+    ]
+    if not matched:
+        return 0
+    if not any(len(part) >= 4 for part in matched):
+        return 0
+    return sum(len(part) for part in matched)
+
+
 def _is_restaurant_clarification_response(turn: dict) -> bool:
     if turn.get("role") != "model":
         return False
@@ -3117,6 +3146,14 @@ def _recommended_shop_from_text(query: str, shops: list[dict]) -> dict | None:
     index = _selection_index_from_text(query)
     if index is not None:
         return shops[index] if 0 <= index < len(shops) else None
+
+    scored_matches = [
+        (score, idx, shop)
+        for idx, shop in enumerate(shops)
+        if (score := _recommended_shop_name_score(query, shop)) > 0
+    ]
+    if scored_matches:
+        return max(scored_matches, key=lambda item: (item[0], -item[1]))[2]
 
     keyword = _specific_shop_keyword(query)
     normalized_keyword = _normalized_name(keyword)

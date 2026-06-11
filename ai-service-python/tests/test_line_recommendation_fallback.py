@@ -778,6 +778,63 @@ async def test_web_agent_stream_books_from_single_recommendation_followup(monkey
 
 
 @pytest.mark.anyio
+async def test_web_agent_stream_books_exact_shop_from_recommendation_name(monkeypatch):
+    captured = {}
+    saved = {}
+
+    async def fail_create_booking(**kwargs):
+        captured.update(kwargs)
+        raise AssertionError("draft confirmation should not create booking immediately")
+
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("exact recommended-shop booking should not ask the model")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {"role": "user", "content": "推薦大安區美式漢堡"},
+            {
+                "role": "model",
+                "content": "我整理了三間，辛殿麻辣鍋｜信義店也在快速比較裡。",
+                "recommendation": {
+                    "query": "推薦大安區美式漢堡",
+                    "shops": [
+                        {"shop_id": 10115, "name": "辛殿麻辣鍋｜信義店", "district": "信義"},
+                        {"shop_id": 10220, "name": "辣椒多一點麻辣鍋物養生鍋", "district": "文山"},
+                        {"shop_id": 10221, "name": "築間幸福鍋物 台北南門店", "district": "中正"},
+                    ],
+                },
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
+    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
+    monkeypatch.setattr(main, "generate", fail_generate)
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "我要訂位 辛殿麻辣鍋｜信義店 明天 2人 晚上19:00",
+            "test-web-booking-exact-recommended-name",
+        )
+    ]
+
+    done = events[-1]
+    assert captured == {}
+    assert done["booking_draft"]["shop_id"] == 10115
+    assert done["booking_draft"]["shop_name"] == "辛殿麻辣鍋｜信義店"
+    assert done["booking_draft"]["people"] == 2
+    assert done["booking_draft"]["date"] == "2026-06-11"
+    assert done["booking_draft"]["time"] == "19:00"
+    assert done["transaction"] is None
+    assert "確認訂位" in done["answer"]
+    assert "請先回覆要訂哪一間" not in done["answer"]
+    assert saved["history"][-1]["booking_draft"]["shop_id"] == 10115
+
+
+@pytest.mark.anyio
 async def test_web_agent_stream_books_exact_shop_without_history(monkeypatch):
     captured_search = {}
     captured_booking = {}
