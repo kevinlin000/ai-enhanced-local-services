@@ -509,6 +509,7 @@ def test_booking_prefill_parses_weekday_dates(monkeypatch):
 
 def test_restaurant_clarification_text_targets_missing_fields():
     group_text = main._restaurant_clarification_text("推薦7人聚餐餐廳")
+    assert "7人我先記下" in group_text
     assert "地點或捷運站" in group_text
     assert "料理類型或氣氛" in group_text
     assert "日期或時段" in group_text
@@ -538,7 +539,8 @@ async def test_web_agent_stream_clarifies_vague_group_need(monkeypatch):
 
     done = events[-1]
     assert done["tools_used"] == []
-    assert "收斂方向" in done["answer"]
+    assert "7人我先記下" in done["answer"]
+    assert "直接回一句就好" in done["answer"]
 
 
 @pytest.mark.anyio
@@ -1953,7 +1955,8 @@ async def test_line_vague_need_clarifies_and_saves_context(monkeypatch):
         }
     )
 
-    assert "收斂方向" in messages[0]["text"]
+    assert "7人我先記下" in messages[0]["text"]
+    assert "直接回一句就好" in messages[0]["text"]
     assert saved == {"user_id": "test-user", "query": "推薦7人聚餐餐廳", "shown": []}
 
 

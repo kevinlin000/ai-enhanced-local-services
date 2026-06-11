@@ -755,17 +755,45 @@ def _restaurant_clarification_gaps(query: str) -> list[str]:
     return deduped[:3]
 
 
+def _restaurant_clarification_known_context(query: str) -> str:
+    normalized = str(query or "").strip()
+    if not normalized:
+        return ""
+    constraints = _extract_query_constraints(normalized)
+    known: list[str] = []
+    if constraints.get("districts"):
+        known.append("、".join(f"{district}區" for district in constraints["districts"][:2]))
+    elif constraints.get("stations"):
+        known.append("、".join(f"{station}站附近" for station in constraints["stations"][:2]))
+    people_match = re.search(r"([一二三四五六七八九十\d]+)人", normalized)
+    if people_match:
+        known.append(f"{people_match.group(1)}人")
+    category_label = _category_label_for_constraints(constraints)
+    if category_label != "餐廳":
+        known.append(category_label)
+    for label, pattern in (
+        ("安靜聊天", r"安靜|聊天"),
+        ("商務請客", r"商務|請客|宴客"),
+        ("約會", r"約會"),
+        ("慶生", r"慶生|生日"),
+    ):
+        if re.search(pattern, normalized) and label not in known:
+            known.append(label)
+    return "、".join(known[:3])
+
+
 def _restaurant_clarification_text(query: str = "") -> str:
     gaps = _restaurant_clarification_gaps(query)
+    known = _restaurant_clarification_known_context(query)
+    prefix = f"{known}我先記下。" if known else ""
     if gaps:
         return (
-            f"我先幫你收斂方向，避免亂推薦。還差{len(gaps)}個關鍵條件："
-            f"{'、'.join(gaps)}。"
-            "你可以直接回覆例如「大安區，適合聊天」或「中山站，台菜，4人晚餐」。"
+            f"{prefix}還需要{'、'.join(gaps)}，我才能把候選收斂到可訂、適合的店。"
+            "直接回一句就好，例如「大安區，適合聊天，明天晚上」或「中山站，台菜，週六晚餐」。"
         )
     return (
-        "我先幫你收斂方向，避免亂推薦。請補 2-3 個條件："
-        "地點或捷運站、日期/時段與人數、料理類型或氣氛（例如安靜聊天、商務請客、慶生）。"
+        f"{prefix}再補地點或捷運站、日期/時段與料理氣氛，我就能開始精準篩選。"
+        "例如「信義區，商務請客，明晚 7 點」。"
     )
 
 
@@ -840,6 +868,23 @@ def _normalized_name(value: str) -> str:
     return re.sub(r"[\s｜|\-－_（）()·・.,，。!！?？]+", "", str(value or "").lower())
 
 
+def _is_restaurant_clarification_response(turn: dict) -> bool:
+    if turn.get("role") != "model":
+        return False
+    if turn.get("clarification_query"):
+        return True
+    content = str(turn.get("content") or "")
+    return any(
+        marker in content
+        for marker in (
+            "收斂方向",
+            "我才能把候選收斂",
+            "直接回一句就好",
+            "我就能開始精準篩選",
+        )
+    )
+
+
 def _last_clarified_restaurant_query(history: list[dict]) -> str:
     if not history:
         return ""
@@ -848,7 +893,7 @@ def _last_clarified_restaurant_query(history: list[dict]) -> str:
         previous = history[index - 1]
         if current.get("role") != "model" or previous.get("role") != "user":
             continue
-        if "收斂方向" not in str(current.get("content") or ""):
+        if not _is_restaurant_clarification_response(current):
             continue
         clarification_query = str(current.get("clarification_query") or "").strip()
         if clarification_query and _restaurant_need_clarification(clarification_query):
@@ -2223,7 +2268,7 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 - 若使用者問「比較」「哪個適合」「幫我挑」「適合安靜聊天/家庭/約會」→ 回答必須有判斷依據，不只列店名。
 - 查到多家候選時，用短段落或條列比較，不要輸出 markdown table；LINE 內表格會跑版。
 - 若是口味真實性問題（如「正宗川菜」「香麻辣」「像日本當地」），先說明判斷維度，再推薦符合的店。
-- 需要追問時不要道歉；用「我先幫你收斂方向」的語氣，讓使用者知道下一步怎麼回答。
+- 需要追問時不要道歉；先承接已知條件，再用一句話說還缺什麼，讓使用者知道下一步怎麼回答。
 - 不要把不確定資訊寫成事實；資料未標示時寫「目前資料未標示」。
 
 ==== 地點與捷運 ====
