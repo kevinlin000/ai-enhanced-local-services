@@ -725,20 +725,6 @@ export default function AiPage() {
   async function sendAgentMessage(q: string) {
     if (!q.trim()) return;
     const userMsg = q.trim();
-    if (mounted && isAuthLoading) return;
-    if (mounted && !isLoggedIn) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "user", content: userMsg },
-        {
-          role: "ai",
-          content: "請先用 LINE 登入，再使用 ByteBites AI。這樣推薦、訂位、付款與空位通知才會同步到你的帳號。",
-          done: true,
-        },
-      ]);
-      setQuery("");
-      return;
-    }
     const activeSessionId = sessionId || getOrCreateSessionId();
     if (!sessionId) setSessionId(activeSessionId);
     setMessages((prev) => [
@@ -813,7 +799,7 @@ export default function AiPage() {
                       onClick={login}
                       className="rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
                     >
-                      用 LINE 登入後開始
+                      用 LINE 登入同步訂位
                     </button>
                   ) : null}
                   {PRESETS.map((preset) => (
@@ -821,7 +807,7 @@ export default function AiPage() {
                       key={preset}
                       type="button"
                       onClick={() => handleRun(preset)}
-                      disabled={loading || isAuthLoading || (mounted && !isLoggedIn)}
+                      disabled={loading}
                       className="rounded-full bg-[#eee8dc] px-4 py-3 text-sm font-bold text-zinc-600 transition hover:bg-[#e5dccb] disabled:opacity-60"
                     >
                       {preset}
@@ -902,12 +888,12 @@ export default function AiPage() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="找餐廳 問 ByteBites AI"
                 onKeyDown={(event) => event.key === "Enter" && !loading && handleRun(query)}
-                disabled={loading || isAuthLoading || (mounted && !isLoggedIn)}
+                disabled={loading}
                 className="h-11 flex-1 border-0 bg-transparent px-2 text-base shadow-none focus-visible:ring-0"
               />
               <Button
                 onClick={() => handleRun(query)}
-                disabled={loading || isAuthLoading || !query.trim() || (mounted && !isLoggedIn)}
+                disabled={loading || !query.trim()}
                 className="h-11 rounded-full bg-[#171512] px-5 font-semibold text-white hover:bg-black"
               >
                 {loading ? "搜尋中" : "送出"}
