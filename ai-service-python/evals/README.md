@@ -36,3 +36,20 @@ Improvement options:
 cd ai-service-python
 uv run python scripts/run_rag_eval.py evals/dataset.jsonl
 ```
+
+## Conversation Quality Gates
+
+`conversation_quality_cases.jsonl` defines the critical Web/LINE AI concierge flows that must not regress before a demo or release:
+
+- vague group dining requests must ask for missing context instead of guessing
+- recommendation follow-ups can create booking drafts from exact shop names
+- booking drafts can be edited by natural language, including time and shop changes
+- negative selections such as "不要第二間，換一家" must request more candidates, not accidentally book the rejected shop
+- cuisine hard constraints must keep Taiwanese/business and Korean cuisine intent from being swallowed by noisy vector matches
+
+Run the executable regression suite:
+
+```bash
+cd ai-service-python
+uv run pytest tests/test_agent_conversation_eval.py -q
+```
