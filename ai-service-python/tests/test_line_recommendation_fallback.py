@@ -2446,6 +2446,7 @@ async def test_line_booking_followup_uses_selected_single_shop(monkeypatch):
     )
     monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
     monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
     monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
@@ -2459,8 +2460,12 @@ async def test_line_booking_followup_uses_selected_single_shop(monkeypatch):
 
     assert "青田七六" in messages[0]["text"]
     assert "2026-06-11 19:00、4 人" in messages[0]["text"]
-    assert "/line/book/10222?" in messages[0]["text"]
-    assert "people=4" in messages[0]["text"]
+    assert messages[1]["type"] == "flex"
+    payload = json.dumps(messages[1], ensure_ascii=False)
+    assert "確認訂位內容" in payload
+    assert "確認送出訂位" in payload
+    assert "/line/book/10222/confirm?" in payload
+    assert "people=4" in payload
 
 
 @pytest.mark.anyio
@@ -2488,6 +2493,7 @@ async def test_line_exact_shop_booking_without_history(monkeypatch):
 
     monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
     monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(
         main,
         "_save_line_recommendation_state",
@@ -2507,8 +2513,11 @@ async def test_line_exact_shop_booking_without_history(monkeypatch):
     assert captured_search["query"] == "青田七六"
     assert "青田七六" in messages[0]["text"]
     assert "2026-06-19 19:00、4 人" in messages[0]["text"]
-    assert "/line/book/10222?" in messages[0]["text"]
-    assert "people=4" in messages[0]["text"]
+    assert messages[1]["type"] == "flex"
+    payload = json.dumps(messages[1], ensure_ascii=False)
+    assert "確認訂位內容" in payload
+    assert "/line/book/10222/confirm?" in payload
+    assert "people=4" in payload
     assert saved_state["kwargs"]["shown_shop_ids"] == [10222]
 
 
@@ -2528,6 +2537,7 @@ async def test_line_exact_shop_booking_asks_missing_fields(monkeypatch):
     monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
     monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
     monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
     monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
@@ -2622,6 +2632,83 @@ async def test_line_booking_action_without_state_links_my_bookings(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_line_booking_draft_confirmation_creates_booking(monkeypatch):
+    captured = {}
+    saved = {}
+    cleared = {}
+
+    async def fake_reserve_line_booking(shop_id, people, booking_date, booking_time, table_type, line_user_id, line_token):
+        captured.update(
+            {
+                "shop_id": shop_id,
+                "people": people,
+                "date": booking_date,
+                "time": booking_time,
+                "table_type": table_type,
+                "line_user_id": line_user_id,
+                "line_token": line_token,
+            }
+        )
+        return {
+            "success": True,
+            "data": {
+                "bookingCode": "BK-LINE-DRAFT",
+                "shopId": shop_id,
+                "shopName": "青田七六",
+                "date": booking_date,
+                "time": booking_time,
+                "people": people,
+                "tableType": table_type,
+                "status": "CONFIRMED",
+                "needsDeposit": False,
+            },
+        }
+
+    monkeypatch.setattr(main, "_load_line_booking_state", lambda user_id: {})
+    monkeypatch.setattr(
+        main,
+        "_load_line_booking_draft_state",
+        lambda user_id: {
+            "shop_id": 10222,
+            "shop_name": "青田七六",
+            "date": "2026-06-19",
+            "time": "19:00",
+            "people": 4,
+            "table_type": "normal",
+        },
+    )
+    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(main, "_reserve_line_booking", fake_reserve_line_booking)
+    monkeypatch.setattr(main, "_clear_line_booking_draft_state", lambda user_id: cleared.update({"user_id": user_id}))
+    monkeypatch.setattr(main, "_save_line_booking_state", lambda user_id, booking, phase: saved.update({"user_id": user_id, "booking": booking, "phase": phase}))
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "沒問題"},
+        }
+    )
+
+    assert captured == {
+        "shop_id": 10222,
+        "people": 4,
+        "date": "2026-06-19",
+        "time": "19:00",
+        "table_type": "normal",
+        "line_user_id": "test-user",
+        "line_token": "line-token",
+    }
+    assert cleared["user_id"] == "test-user"
+    assert saved["phase"] == "created"
+    assert messages[0]["type"] == "flex"
+    payload = json.dumps(messages[0], ensure_ascii=False)
+    assert "BK-LINE-DRAFT" in payload
+    assert "訂位已完成" in payload
+
+
+@pytest.mark.anyio
 async def test_line_confirm_cancel_uses_latest_booking_state(monkeypatch):
     captured = {}
     saved = {}
@@ -2692,6 +2779,7 @@ async def test_line_booking_followup_uses_ordinal_shop(monkeypatch):
     )
     monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
     monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
     monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
@@ -2705,8 +2793,10 @@ async def test_line_booking_followup_uses_ordinal_shop(monkeypatch):
 
     assert "辛殿麻辣鍋｜信義店" in messages[0]["text"]
     assert "2026-06-11 19:00、4 人" in messages[0]["text"]
-    assert "/line/book/10115?" in messages[0]["text"]
-    assert "people=4" in messages[0]["text"]
+    assert messages[1]["type"] == "flex"
+    payload = json.dumps(messages[1], ensure_ascii=False)
+    assert "/line/book/10115/confirm?" in payload
+    assert "people=4" in payload
 
 
 @pytest.mark.anyio
@@ -2760,6 +2850,7 @@ async def test_line_booking_followup_merges_saved_prefill(monkeypatch):
     )
     monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
     monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -2772,10 +2863,12 @@ async def test_line_booking_followup_merges_saved_prefill(monkeypatch):
 
     assert "辛殿麻辣鍋｜信義店" in messages[0]["text"]
     assert "2026-06-19 19:00、4 人" in messages[0]["text"]
-    assert "/line/book/10115?" in messages[0]["text"]
-    assert "date=2026-06-19" in messages[0]["text"]
-    assert "time=19%3A00" in messages[0]["text"]
-    assert "people=4" in messages[0]["text"]
+    assert messages[1]["type"] == "flex"
+    payload = json.dumps(messages[1], ensure_ascii=False)
+    assert "/line/book/10115/confirm?" in payload
+    assert "date=2026-06-19" in payload
+    assert "time=19%3A00" in payload
+    assert "people=4" in payload
 
 
 @pytest.mark.anyio

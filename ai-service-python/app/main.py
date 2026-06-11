@@ -6988,6 +6988,45 @@ def _save_line_booking_state(user_id: str, booking: dict, phase: str = "updated"
         logger.exception("line_booking_state_save_failed user_id=%s", user_id)
 
 
+def _line_booking_draft_state_key(user_id: str) -> str:
+    return f"line:booking-draft:{user_id}"
+
+
+def _load_line_booking_draft_state(user_id: str) -> dict:
+    try:
+        raw = session_store.client().get(_line_booking_draft_state_key(user_id))
+    except Exception:
+        logger.exception("line_booking_draft_load_failed user_id=%s", user_id)
+        return {}
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _save_line_booking_draft_state(user_id: str, draft: dict) -> None:
+    if not user_id or not isinstance(draft, dict) or not draft.get("shop_id"):
+        return
+    try:
+        session_store.client().setex(
+            _line_booking_draft_state_key(user_id),
+            LINE_BOOKING_TTL_SECONDS,
+            json.dumps(draft, ensure_ascii=False),
+        )
+    except Exception:
+        logger.exception("line_booking_draft_save_failed user_id=%s", user_id)
+
+
+def _clear_line_booking_draft_state(user_id: str) -> None:
+    try:
+        session_store.client().delete(_line_booking_draft_state_key(user_id))
+    except Exception:
+        logger.exception("line_booking_draft_clear_failed user_id=%s", user_id)
+
+
 def _line_location_state_key(user_id: str) -> str:
     return f"line:location:{user_id}"
 
@@ -7347,6 +7386,37 @@ def _line_booking_followup_intent(text: str) -> bool:
     return bool(prefill.get("date") or prefill.get("time") or prefill.get("people") or _booking_selection_intent(text))
 
 
+async def _build_line_booking_draft_confirmation(user_text: str, user_id: str) -> list[dict] | None:
+    if not _booking_confirm_intent(user_text):
+        return None
+    draft = _load_line_booking_draft_state(user_id)
+    if not draft:
+        return None
+    missing = _booking_draft_missing(draft)
+    if missing:
+        return [
+            build_text_message(
+                f"這筆訂位草稿還缺{'、'.join(missing)}。請直接補齊，例如「明天晚上7點 4人」。"
+            )
+        ]
+    line_token = _line_token_for_user(user_id)
+    result = await _reserve_line_booking(
+        int(draft.get("shop_id")),
+        int(draft.get("people")),
+        str(draft.get("date")),
+        str(draft.get("time")),
+        str(draft.get("table_type") or "normal"),
+        user_id,
+        line_token,
+    )
+    if not result.get("success"):
+        return [build_text_message(str(result.get("errorMsg") or "訂位暫時無法完成，請稍後再試。"))]
+    booking = result.get("data") if isinstance(result.get("data"), dict) else {}
+    _clear_line_booking_draft_state(user_id)
+    _save_line_booking_state(user_id, booking, "created")
+    return [_line_booking_flex_message(booking, "created", line_user_id=user_id)]
+
+
 async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dict] | None:
     if not _line_booking_followup_intent(user_text):
         return None
@@ -7392,25 +7462,23 @@ async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dic
             shown_shop_ids=[shop_id],
             booking_prefill=prefill,
         )
+        _save_line_booking_draft_state(user_id, _booking_draft_payload(shop_id, shop_name, prefill))
         return [
             build_text_message(
                 f"我已鎖定「{shop_name}」{known_text}，還缺{'、'.join(missing)}。"
-                "請直接回覆例如「下週五晚上7點 4人」，我再幫你帶入訂位表。"
+                "請直接回覆例如「下週五晚上7點 4人」，我再幫你整理確認卡。"
             )
         ]
 
     booking_date = str(prefill.get("date"))
     booking_time = str(prefill.get("time"))
-    line_token = _line_token_for_user(user_id)
-    booking_uri = _line_public_uri(
-        f"/line/book/{shop_id}?date={quote_plus(booking_date)}&time={quote_plus(booking_time)}"
-        f"&people={quote_plus(str(people))}&lt={quote_plus(line_token)}"
-    )
+    draft = _booking_draft_payload(shop_id, shop_name, {**prefill, "date": booking_date, "time": booking_time, "people": people})
+    _save_line_booking_draft_state(user_id, draft)
     return [
         build_text_message(
-            f"我已鎖定「{shop_name}」，訂位表已帶入 {booking_date} {booking_time}、{people} 人。"
-            f"請點這裡確認並送出：{booking_uri}"
-        )
+            f"我已整理好「{shop_name}」{booking_date} {booking_time}、{people} 人的訂位草稿。請確認後再送出。"
+        ),
+        _line_booking_draft_flex_message(draft, line_user_id=user_id),
     ]
 
 
@@ -7443,11 +7511,6 @@ async def _build_line_exact_booking_request(user_text: str, user_id: str) -> lis
     booking_date = str(prefill.get("date") or (taipei_today() + timedelta(days=1)).isoformat())
     booking_time = str(prefill.get("time") or "19:00")
     people = prefill.get("people")
-    line_token = _line_token_for_user(user_id)
-    booking_uri = _line_public_uri(
-        f"/line/book/{shop_id}?date={quote_plus(booking_date)}&time={quote_plus(booking_time)}"
-        f"&people={quote_plus(str(people or 2))}&lt={quote_plus(line_token)}"
-    )
     _save_line_recommendation_state(
         user_id,
         query=keyword,
@@ -7463,6 +7526,12 @@ async def _build_line_exact_booking_request(user_text: str, user_id: str) -> lis
     if people is None:
         missing.append("人數")
     if missing:
+        line_token = _line_token_for_user(user_id)
+        booking_uri = _line_public_uri(
+            f"/line/book/{shop_id}?date={quote_plus(booking_date)}&time={quote_plus(booking_time)}"
+            f"&people={quote_plus(str(people or 2))}&lt={quote_plus(line_token)}"
+        )
+        _save_line_booking_draft_state(user_id, _booking_draft_payload(shop_id, shop_name, prefill))
         return [
             build_text_message(
                 f"我已鎖定「{shop_name}」，還缺{'、'.join(missing)}。"
@@ -7470,11 +7539,13 @@ async def _build_line_exact_booking_request(user_text: str, user_id: str) -> lis
             )
         ]
 
+    draft = _booking_draft_payload(shop_id, shop_name, {**prefill, "date": booking_date, "time": booking_time, "people": people})
+    _save_line_booking_draft_state(user_id, draft)
     return [
         build_text_message(
-            f"我已鎖定「{shop_name}」，訂位表已帶入 {booking_date} {booking_time}、{people} 人。"
-            f"請點這裡確認並送出：{booking_uri}"
-        )
+            f"我已整理好「{shop_name}」{booking_date} {booking_time}、{people} 人的訂位草稿。請確認後再送出。"
+        ),
+        _line_booking_draft_flex_message(draft, line_user_id=user_id),
     ]
 
 
@@ -7565,6 +7636,10 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     booking_action_messages = await _build_line_booking_action(user_text, user_id)
     if booking_action_messages is not None:
         return booking_action_messages
+
+    booking_draft_confirmation_messages = await _build_line_booking_draft_confirmation(user_text, user_id)
+    if booking_draft_confirmation_messages is not None:
+        return booking_draft_confirmation_messages
 
     advice_messages = await _build_line_recommendation_advice(user_text, user_id)
     if advice_messages is not None:
@@ -8126,6 +8201,82 @@ def _line_booking_flex_message(booking: dict, phase: str, line_user_id: str = ""
                 ],
             },
             "footer": {"type": "box", "layout": "vertical", "spacing": "sm", "contents": buttons},
+        },
+    }
+
+
+def _line_booking_draft_flex_message(draft: dict, line_user_id: str = "") -> dict:
+    shop_id = int(draft.get("shop_id") or 0)
+    shop_name = str(draft.get("shop_name") or f"店家 {shop_id}")
+    booking_date = str(draft.get("date") or "")
+    booking_time = str(draft.get("time") or "")
+    people = int(draft.get("people") or 0)
+    table_type = str(draft.get("table_type") or "normal")
+    line_token = _line_token_for_user(line_user_id) if line_user_id else ""
+    line_query = f"&lt={quote_plus(line_token)}" if line_token else ""
+    confirm_uri = _line_public_uri(
+        f"/line/book/{shop_id}/confirm?date={quote_plus(booking_date)}&time={quote_plus(booking_time)}"
+        f"&people={quote_plus(str(people))}&tableType={quote_plus(table_type)}{line_query}"
+    )
+    edit_uri = _line_public_uri(
+        f"/line/book/{shop_id}?date={quote_plus(booking_date)}&time={quote_plus(booking_time)}"
+        f"&people={quote_plus(str(people or 2))}&tableType={quote_plus(table_type)}{line_query}"
+    )
+    rows = [
+        ("店家", shop_name),
+        ("日期時間", f"{booking_date or '-'} {booking_time or ''}".strip()),
+        ("人數", f"{people or '-'} 人"),
+        ("座位", {"normal": "一般座位", "bar": "吧台", "private": "包廂"}.get(table_type, "一般座位")),
+    ]
+    return {
+        "type": "flex",
+        "altText": f"確認訂位：{shop_name}",
+        "contents": {
+            "type": "bubble",
+            "size": "mega",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {"type": "text", "text": "BYTEBITES DRAFT", "size": "xs", "color": "#16833a", "weight": "bold"},
+                    {"type": "text", "text": "確認訂位內容", "size": "lg", "weight": "bold", "wrap": True},
+                    {
+                        "type": "text",
+                        "text": "確認後才會送出訂位；你也可以直接回「沒問題」或「確認訂位」。",
+                        "size": "xs",
+                        "color": "#666666",
+                        "wrap": True,
+                    },
+                    {"type": "separator", "margin": "md"},
+                    {
+                        "type": "box",
+                        "layout": "vertical",
+                        "spacing": "xs",
+                        "margin": "md",
+                        "contents": [_line_booking_flex_row(label, value) for label, value in rows],
+                    },
+                ],
+            },
+            "footer": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {
+                        "type": "button",
+                        "style": "primary",
+                        "height": "sm",
+                        "action": {"type": "uri", "label": "確認送出訂位", "uri": confirm_uri},
+                    },
+                    {
+                        "type": "button",
+                        "style": "secondary",
+                        "height": "sm",
+                        "action": {"type": "uri", "label": "修改日期人數", "uri": edit_uri},
+                    },
+                ],
+            },
         },
     }
 
