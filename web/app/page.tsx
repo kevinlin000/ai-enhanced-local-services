@@ -17,7 +17,7 @@ const HOT_STATIONS = [
   "中山",
 ];
 
-const AI_PROMPTS = ["信義區想吃火鍋", "今晚有位的約會餐廳", "大安區美式漢堡", "幫我訂明晚 7 點 2 人"];
+const AI_PROMPTS = ["中山區 4 人台菜包廂", "明晚 7 點可訂火鍋", "大安區適合聊天聚餐", "訂位後需要停車提醒"];
 
 function parseTags(raw?: string): string[] {
   if (!raw) return [];
@@ -393,13 +393,13 @@ export default async function Home({
       <section className="border-b border-[#ded7c9] px-6 py-12 md:px-12 md:py-16">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1fr] lg:items-center">
           <div>
-            <p className="text-sm font-semibold tracking-normal text-[#b59a58]">獨家桌位，僅此一處</p>
+            <p className="text-sm font-semibold tracking-normal text-[#b59a58]">AI 訂位決策平台</p>
             <h1 className="mt-5 text-5xl font-semibold leading-[1.02] tracking-normal md:text-7xl">
-              餐飲體驗
-              <span className="block text-[#b59a58]">臻於極致</span>
+              從需求到入座
+              <span className="block text-[#b59a58]">一次排好</span>
             </h1>
             <p className="mt-7 max-w-xl text-lg leading-8 text-zinc-600">
-              ByteBites 連接餐廳探索、AI 推薦、空位通知與訂金付款。這裡不列出所有座位，只挑真正值得你花時間看的那一席。
+              ByteBites 把餐廳搜尋、AI 推薦、訂位付款、候補通知與停車提醒接在同一個流程。你說需求，系統負責縮小選項並完成後續安排。
             </p>
           </div>
 
@@ -407,8 +407,8 @@ export default async function Home({
             <div className="flex items-start gap-4">
               <Sparkles className="mt-1 h-8 w-8 fill-[#1c1914] text-[#1c1914]" />
               <div>
-                <h2 className="text-3xl font-semibold tracking-normal md:text-4xl">今晚想去哪？</h2>
-                <p className="mt-2 text-zinc-600">用自然語言找最適合的一間</p>
+                <h2 className="text-3xl font-semibold tracking-normal md:text-4xl">輸入需求，直接安排</h2>
+                <p className="mt-2 text-zinc-600">推薦、訂位、付款與通知同步處理</p>
               </div>
             </div>
             <Link
@@ -416,7 +416,7 @@ export default async function Home({
               className="mt-8 flex items-center gap-3 rounded-xl border border-[#d9d1c1] bg-[#faf7ef] px-5 py-4 text-left text-zinc-500 transition hover:bg-white"
             >
               <Search className="h-5 w-5" />
-              <span className="flex-1 text-sm font-semibold md:text-base">找餐廳、查空位、直接訂位</span>
+              <span className="flex-1 text-sm font-semibold md:text-base">描述人數、地點、料理與時間</span>
               <Bot className="h-5 w-5 text-[#b59a58]" />
             </Link>
             <div className="mt-5 flex flex-wrap gap-3">

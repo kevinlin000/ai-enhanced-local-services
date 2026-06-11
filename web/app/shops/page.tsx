@@ -57,11 +57,11 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const AI_QUICK_QUERIES = [
-  "適合約會的高級餐廳",
-  "中山站附近高級火鍋",
-  "有 Hot Seat 的熱門餐廳",
-  "適合商務請客的台菜",
-  "信義區難訂的日式料理",
+  "中山區 商務宴請 台菜 安靜包廂",
+  "大安區 約會餐廳 晚餐 氣氛好",
+  "信義區 日式料理 高評價 難訂",
+  "捷運站附近 火鍋 4 人聚餐",
+  "今晚可訂 熱門時段 Hot Seat",
 ];
 
 const SCORE_OPTIONS = [
@@ -378,9 +378,9 @@ function ShopsPageContent() {
       {/* Header */}
       <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-normal">探索餐廳</h1>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-normal">餐廳探索</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {options?.totalShops ?? "—"} 家台北中高價餐廳，整合分類、捷運、評分與 AI 摘要
+            {options?.totalShops ?? "—"} 家台北餐廳資料，依料理、區域、捷運、評價與訂位訊號快速縮小範圍
           </p>
         </div>
 
@@ -394,7 +394,7 @@ function ShopsPageContent() {
             }`}
           >
             <Search className="h-4 w-4" />
-            一般搜尋
+            條件篩選
           </button>
           <button
             onClick={switchToAi}
@@ -405,7 +405,7 @@ function ShopsPageContent() {
             }`}
           >
             <Sparkles className="h-4 w-4" />
-            AI 語意
+            需求排序
           </button>
         </div>
       </div>
@@ -419,8 +419,8 @@ function ShopsPageContent() {
           onChange={(e) => setQ(e.target.value)}
           placeholder={
             searchMode === "ai"
-              ? "用自然語言描述，例如「適合約會的鐵板燒」"
-              : "搜尋店名、地址、區域或捷運站"
+              ? "輸入決策條件，例如「中山區 商務宴請 台菜 安靜包廂」"
+              : "搜尋店名、地址、行政區或捷運站"
           }
           className={`w-full rounded-lg border bg-background py-2.5 pl-10 pr-10 text-sm focus:outline-none focus:ring-2 ${
             searchMode === "ai"
@@ -502,10 +502,10 @@ function ShopsPageContent() {
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between gap-3">
             <p className="text-xs font-medium tracking-normal text-primary">
-              AI 快速情境
+              常用決策模板
             </p>
             <p className="text-[11px] text-muted-foreground">
-              直接搜需求，不用選左邊篩選
+              套用後可再調整條件
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -717,10 +717,10 @@ function ShopsPageContent() {
           {searchMode === "ai" && debouncedQ && !aiLoading && (
             <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
               <p className="text-xs text-primary">
-                AI 依語意排序：先找符合場景，再看價位、預約難度、Hot Seat 與招牌菜。
+                需求排序會先比對地點、料理與用餐目的，再參考價位、預約難度、熱門時段與招牌菜。
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                搜尋詞：{debouncedQ}
+                目前條件：{debouncedQ}
               </p>
             </div>
           )}
@@ -728,7 +728,7 @@ function ShopsPageContent() {
           {visibleShops.length === 0 && !isLoading && (
             <div className="text-center py-12 text-muted-foreground text-sm">
               {searchMode === "ai" && debouncedQ
-                ? "AI 未找到相符店家"
+                ? "沒有匹配這組需求的餐廳資料"
                 : "沒有符合條件的店家"}
             </div>
           )}
@@ -868,7 +868,7 @@ function ShopsPageContent() {
                       )}
 
                       <div className="mt-4 border-t border-[rgb(222_216_203_/_0.72)] pt-3 text-xs font-medium text-muted-foreground transition-colors group-hover:text-[var(--bb-gold)]">
-                        查看詳情 / 訂位
+                        查看資料與訂位
                       </div>
                     </div>
                   </div>

@@ -799,10 +799,10 @@ export default function AiPage() {
                   AI DINING CONCIERGE
                 </p>
                 <h1 className="mt-4 text-5xl font-semibold leading-[1.05] tracking-normal md:text-7xl">
-                  今晚想去哪？
+                  把用餐需求交給 AI
                 </h1>
                 <p className="mx-auto mt-4 max-w-xl text-base leading-8 text-zinc-500">
-                  告訴 ByteBites AI，你想吃什麼、幾個人、什麼時間。推薦、訂位、付款與空位通知都在同一個對話裡完成。
+                  說出地點、料理、人數與時間。ByteBites AI 會整理選項，並把訂位、付款、候補通知接到同一個流程。
                 </p>
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
                   {mounted && !isAuthLoading && !isLoggedIn ? (
