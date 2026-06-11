@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ByteBites Web
 
-## Getting Started
+Next.js frontend for ByteBites. It renders the restaurant discovery page, AI concierge, booking/payment flows, favorites, notifications, and merchant slot management.
 
-First, run the development server:
+## Local Run
+
+Start backend services first:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd ~/projects/ai-enhanced-local-services
+docker compose up -d
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Start Java backend:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd ~/projects/ai-enhanced-local-services/backend-java
+set -a; source .env; set +a
+mvn spring-boot:run
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Start AI service:
 
-## Learn More
+```bash
+cd ~/projects/ai-enhanced-local-services/ai-service-python
+set -a; source .env; set +a
+uv run uvicorn app.main:app --reload --port 8000
+```
 
-To learn more about Next.js, take a look at the following resources:
+Start web:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+cd ~/projects/ai-enhanced-local-services/web
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open http://localhost:3000.
 
-## Deploy on Vercel
+## Environment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Copy `.env.example` to `.env.local`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For local development, keep browser calls behind Next.js rewrites:
+
+```bash
+NEXT_PUBLIC_JAVA_API=/api/java
+JAVA_API_PROXY_TARGET=http://localhost:8081
+AI_API_PROXY_TARGET=http://localhost:8000
+```
+
+For a temporary public demo, deploy the web app and point the proxy targets to public Java/AI URLs, for example ngrok URLs:
+
+```bash
+NEXT_PUBLIC_JAVA_API=/api/java
+JAVA_API_PROXY_TARGET=https://your-java-url.ngrok-free.app
+AI_API_PROXY_TARGET=https://your-ai-url.ngrok-free.app
+```
+
+Also add the deployed web origin to Java:
+
+```bash
+CORS_ALLOWED_ORIGIN_PATTERNS=https://your-web-demo.example.com,https://*.ngrok-free.app
+FRONTEND_URL=https://your-web-demo.example.com
+LINE_REDIRECT_URI=https://your-java-url.ngrok-free.app/api/auth/line/callback
+```
+
+## Validation
+
+```bash
+npm run test
+npm run build
+```
+
+Use the main demo path for a presentation:
+
+1. Ask AI for a dining need, such as `大安區 7人 適合聊天`.
+2. Open a recommendation card and show review highlights / ABSA detail.
+3. Create a booking, choose driving preference, and show deposit payment.
+4. Show LINE sync, booking status, cancellation, and parking reminder flow.

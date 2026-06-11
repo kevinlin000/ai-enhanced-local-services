@@ -64,6 +64,10 @@ management:
     tags:
       application: bytebites-java
 
+bytebites:
+  cors:
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:}
+
 line:
   oauth:
     client-id: ${LINE_CHANNEL_ID:placeholder_channel_id}
