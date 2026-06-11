@@ -4092,6 +4092,16 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
             tool_result = await tool_create_booking(**guard.args)
             _after_tool_call(state, "create_booking", tool_result)
 
+    if (
+        state.booking_result is None
+        and not final_answer
+        and not state.last_tool_result.get("shops")
+        and not state.tools_used
+        and _agent_should_force_search(effective_query)
+    ):
+        tool_result = await tool_semantic_search(effective_query)
+        _after_tool_call(state, "semantic_shop_search", tool_result)
+
     for _ in range(4):
         if state.booking_result is not None or final_answer or state.last_tool_result.get("shops"):
             break
@@ -4837,6 +4847,31 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 "session_id": session_id,
             }
             yield {"type": "tool", "name": tool_name}
+
+    if (
+        state.booking_result is None
+        and direct_answer is None
+        and not state.last_tool_result.get("shops")
+        and not state.tools_used
+        and _agent_should_force_search(effective_query)
+    ):
+        tool_name = "semantic_shop_search"
+        tool_args = {"query": effective_query}
+        yield {
+            "type": "tool_execution_start",
+            "name": tool_name,
+            "args": tool_args,
+            "session_id": session_id,
+        }
+        tool_result = await tool_semantic_search(effective_query)
+        _after_tool_call(state, tool_name, tool_result)
+        yield {
+            "type": "tool_execution_end",
+            "name": tool_name,
+            "result_summary": _tool_result_summary(tool_result),
+            "session_id": session_id,
+        }
+        yield {"type": "tool", "name": tool_name}
 
     # Phase 1: tool-calling loop (sync) — yields tool events as each fires
     for _ in range(4):

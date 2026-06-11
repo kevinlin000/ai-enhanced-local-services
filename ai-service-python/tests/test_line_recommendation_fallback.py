@@ -553,6 +553,59 @@ async def test_web_agent_stream_merges_clarification_followup(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_web_agent_stream_forces_clear_recommendation_search_before_model(monkeypatch):
+    captured = {}
+
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("clear recommendation queries should search before model tool-calling")
+
+    async def fake_tool_semantic_search(query: str):
+        captured["query"] = query
+        return {
+            "shops": [
+                {
+                    "shop_id": 10549,
+                    "name": "Fa Burger",
+                    "district": "大安",
+                    "category": "美式料理",
+                    "category_slug": "american",
+                    "ai_summary": "職人麵包與現烤牛肉漢堡。",
+                    "signature_dishes": ["巧巴達粉嫩牛"],
+                    "atmosphere_tags": ["聚餐"],
+                }
+            ]
+        }
+
+    monkeypatch.setattr(main.session_store, "load_history", lambda session_id: [])
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "generate", fail_generate)
+    monkeypatch.setattr(main, "tool_semantic_search", fake_tool_semantic_search)
+    monkeypatch.setattr(
+        main,
+        "_build_agent_recommendation_decision",
+        lambda query, tool_result: main.AgentRecommendationDecision(
+            recommended_shop_ids=[10549],
+            narrative="我先用大安區與美式漢堡幫你篩選。我會優先看 Fa Burger：職人麵包與現烤牛肉漢堡；若要訂位，請補日期、人數與時間。",
+            rejected_shop_ids=[],
+        ),
+    )
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "推薦大安區美式漢堡",
+            "test-clear-recommendation",
+        )
+    ]
+
+    done = events[-1]
+    assert captured["query"] == "推薦大安區美式漢堡"
+    assert done["tools_used"] == ["semantic_shop_search"]
+    assert done["recommended_shop_ids"] == [10549]
+    assert "Fa Burger" in done["answer"]
+
+
+@pytest.mark.anyio
 async def test_web_agent_stream_keeps_partial_clarification_draft(monkeypatch):
     saved = {}
 
