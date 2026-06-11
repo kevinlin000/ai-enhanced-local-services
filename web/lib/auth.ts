@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 
 const KEY = "bytebites_token";
 
+function browserSafeJavaApi(): string {
+  const configured = process.env.NEXT_PUBLIC_JAVA_API ?? "/api/java";
+  if (configured.startsWith("http://localhost") || configured.startsWith("http://127.0.0.1")) {
+    return "/api/java";
+  }
+  return configured;
+}
+
 export type AuthUser = {
   id: number;
   displayName: string;
@@ -71,7 +79,7 @@ export function useAuth() {
   }, [mounted, token]);
 
   const login = () => {
-    const javaApi = process.env.NEXT_PUBLIC_JAVA_API ?? "/api/java";
+    const javaApi = browserSafeJavaApi();
     window.location.href = `${javaApi}/api/auth/line/login`;
   };
 

@@ -17,6 +17,7 @@ import {
   PenSquare,
   Search,
   UserCircle,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
@@ -63,11 +64,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isLoggedIn, isAuthLoading, login, logout, mounted, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("bytebites_sidebar_collapsed");
     if (stored === "true") setCollapsed(true);
   }, []);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   const toggleCollapsed = () => {
     setCollapsed((current) => {
@@ -242,6 +248,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-[rgb(255_253_248_/_0.9)] px-4 backdrop-blur md:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className="rounded-lg p-2 text-[var(--bb-ink)] hover:bg-muted"
+            aria-label="開啟選單"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
           <Link href="/" className="text-2xl font-semibold tracking-normal">
             bb
           </Link>
@@ -254,6 +268,138 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
         </header>
+        {mobileMenuOpen ? (
+          <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/28"
+              aria-label="關閉選單"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <aside className="relative flex h-full w-[86vw] max-w-[340px] flex-col border-r bg-[rgb(255_253_248)] shadow-2xl">
+              <div className="flex h-16 items-center justify-between border-b px-5">
+                <Link href="/" className="text-3xl font-semibold tracking-normal text-[var(--bb-ink)]">
+                  bb
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="關閉選單"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="border-b px-5 py-5">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-background ring-1 ring-border"
+                    style={{ width: 46, height: 46 }}
+                  >
+                    {pictureUrl ? (
+                      <img
+                        src={pictureUrl}
+                        alt={displayName}
+                        width={46}
+                        height={46}
+                        className="h-full w-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <UserCircle className="h-8 w-8 text-zinc-500" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-medium tracking-normal">{displayName}</p>
+                    <p className="mt-0.5 text-xs font-medium text-zinc-500">
+                      {mounted && isAuthLoading ? "正在確認 LINE 登入" : mounted && isLoggedIn ? "LINE 已登入" : "未登入"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-4 py-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    window.location.href = "/ai";
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium hover:bg-muted"
+                >
+                  <PenSquare className="h-5 w-5" />
+                  開始新對話
+                </button>
+              </div>
+
+              <nav className="flex-1 space-y-1 px-3">
+                {NAV_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(pathname, item.href);
+                  const className = `flex items-center gap-3 rounded-lg px-4 py-3 text-[15px] font-medium transition ${
+                    active
+                      ? "bb-shell-active"
+                      : item.disabled
+                        ? "cursor-not-allowed text-zinc-400"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`;
+
+                  if (item.disabled) {
+                    return (
+                      <div key={item.label} className={className}>
+                        <Icon className="h-5 w-5" />
+                        <span className="flex-1">{item.label}</span>
+                        <span className="rounded-full bg-background px-2 py-0.5 text-[10px] font-medium text-zinc-400">
+                          soon
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <Link key={item.label} href={item.href} className={className}>
+                      <Icon className="h-5 w-5" />
+                      <span className="flex-1">{item.label}</span>
+                      <ChevronRight className="h-4 w-4 opacity-60" />
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              <div className="space-y-3 border-t px-4 py-5">
+                {mounted ? (
+                  isAuthLoading ? null : isLoggedIn ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        logout();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium hover:bg-muted"
+                    >
+                      <LogOut className="h-5 w-5" />
+                      登出
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        login();
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg bg-emerald-700 px-3 py-2.5 text-left text-sm font-medium text-white hover:bg-emerald-800"
+                    >
+                      <LogIn className="h-5 w-5" />
+                      用 LINE 登入
+                    </button>
+                  )
+                ) : null}
+                <p className="px-3 text-[11px] text-muted-foreground/70">Version: 1.4.0</p>
+              </div>
+            </aside>
+          </div>
+        ) : null}
         {children}
       </div>
     </div>

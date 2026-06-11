@@ -1,4 +1,8 @@
-const JAVA_API = process.env.NEXT_PUBLIC_JAVA_API ?? "http://localhost:8081";
+const RAW_JAVA_API = process.env.NEXT_PUBLIC_JAVA_API ?? "/api/java";
+const JAVA_API =
+  RAW_JAVA_API.startsWith("http://localhost") || RAW_JAVA_API.startsWith("http://127.0.0.1")
+    ? "/api/java"
+    : RAW_JAVA_API;
 // AI calls use relative /api/ai/* — proxied through Next.js rewrite to http://localhost:8000
 // This avoids mixed content (HTTPS page → HTTP direct). Never use http://localhost:8000 directly.
 const AI_API = "";
