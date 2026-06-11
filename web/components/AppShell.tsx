@@ -15,6 +15,7 @@ import {
   Menu,
   MessageSquareText,
   PenSquare,
+  Presentation,
   Search,
   UserCircle,
   X,
@@ -26,6 +27,11 @@ const NAV_ITEMS = [
     label: "與 AI 助手聊天",
     href: "/ai",
     icon: MessageSquareText,
+  },
+  {
+    label: "專案亮點",
+    href: "/showcase",
+    icon: Presentation,
   },
   {
     label: "探索餐廳",
