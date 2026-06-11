@@ -70,6 +70,10 @@ export type AgentStreamEvent =
     }
   | { type: "error"; message: string };
 
+function isTerminalEvent(event: AgentStreamEvent): boolean {
+  return event.type === "agent_end" || event.type === "done" || event.type === "agent_error" || event.type === "error";
+}
+
 export async function streamAgentResponse(
   body: { query: string; session_id?: string },
   onEvent: (event: AgentStreamEvent) => void,
@@ -77,39 +81,51 @@ export async function streamAgentResponse(
   const token = typeof window !== "undefined" ? window.localStorage.getItem("bytebites_token") : null;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch("/api/ai/agent/stream", {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 45_000);
 
-  if (!res.ok || !res.body) {
-    throw new Error(`${res.status} ${res.statusText}`);
-  }
+  try {
+    const res = await fetch("/api/ai/agent/stream", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
 
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder("utf-8");
-  let buffer = "";
+    if (!res.ok || !res.body) {
+      throw new Error(`${res.status} ${res.statusText}`);
+    }
 
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
 
-    const frames = buffer.split("\n\n");
-    buffer = frames.pop() ?? "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
 
-    for (const frame of frames) {
-      const line = frame
-        .split("\n")
-        .find((item) => item.startsWith("data: "));
-      if (!line) continue;
-      try {
-        const parsed = JSON.parse(line.slice(6)) as AgentStreamEvent;
-        onEvent(parsed);
-      } catch {
-        // ignore malformed frame
+      const frames = buffer.split("\n\n");
+      buffer = frames.pop() ?? "";
+
+      for (const frame of frames) {
+        const line = frame
+          .split("\n")
+          .find((item) => item.startsWith("data: "));
+        if (!line) continue;
+        try {
+          const parsed = JSON.parse(line.slice(6)) as AgentStreamEvent;
+          onEvent(parsed);
+          if (isTerminalEvent(parsed)) {
+            await reader.cancel().catch(() => {});
+            return;
+          }
+        } catch {
+          // ignore malformed frame
+        }
       }
     }
+  } finally {
+    window.clearTimeout(timeout);
   }
 }
