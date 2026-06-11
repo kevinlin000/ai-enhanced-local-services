@@ -3033,6 +3033,22 @@ def _latest_recommendation_context(history: list[dict]) -> dict:
     return {}
 
 
+def _recommendation_context_for_selection(query: str, history: list[dict]) -> dict:
+    index = _selection_index_from_text(query)
+    for turn in reversed(history):
+        recommendation = turn.get("recommendation") if isinstance(turn, dict) else None
+        if not isinstance(recommendation, dict):
+            continue
+        shops = recommendation.get("shops")
+        if not isinstance(shops, list) or not shops:
+            continue
+        if index is not None and 0 <= index < len(shops):
+            return recommendation
+        if index is None and _recommended_shop_from_text(query, shops) is not None:
+            return recommendation
+    return _latest_recommendation_context(history)
+
+
 def _latest_booking_draft(history: list[dict]) -> dict:
     for turn in reversed(history):
         booking_draft = turn.get("booking_draft") if isinstance(turn, dict) else None
@@ -3397,7 +3413,7 @@ def _agent_booking_followup_from_history(query: str, history: list[dict]) -> Too
         return ToolGuardResult(action="direct", direct_answer=_same_day_booking_policy_answer())
 
     prefill = _merge_booking_prefill(prefill, booking_draft, override=edit_intent)
-    recommendation = _latest_recommendation_context(history)
+    recommendation = _recommendation_context_for_selection(query, history) if edit_intent else _latest_recommendation_context(history)
     shops = recommendation.get("shops") if isinstance(recommendation, dict) else []
     selected_shop = None
     if isinstance(shops, list) and shops:

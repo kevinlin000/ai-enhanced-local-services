@@ -1140,6 +1140,70 @@ async def test_web_agent_stream_updates_booking_draft_time(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_web_agent_stream_switches_booking_draft_shop(monkeypatch):
+    saved = {}
+
+    async def fail_create_booking(**kwargs):
+        raise AssertionError("booking draft shop switch should not create booking immediately")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {"role": "user", "content": "中山區適合聚餐"},
+            {
+                "role": "model",
+                "content": "我整理了三間。",
+                "recommendation": {
+                    "query": "中山區適合聚餐",
+                    "shops": [
+                        {"shop_id": 10101, "name": "藝奇"},
+                        {"shop_id": 10102, "name": "太田日式燒肉"},
+                        {"shop_id": 10103, "name": "七転八起"},
+                    ],
+                },
+            },
+            {
+                "role": "model",
+                "content": "我幫你整理好訂位內容了。",
+                "recommendation": {
+                    "query": "訂第二間",
+                    "shops": [{"shop_id": 10102, "name": "太田日式燒肉"}],
+                },
+                "booking_draft": {
+                    "shop_id": 10102,
+                    "shop_name": "太田日式燒肉",
+                    "date": "2026-06-19",
+                    "time": "19:00",
+                    "people": 4,
+                },
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
+    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
+    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("draft shop switch should bypass model")))
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "換第三間，同樣時間人數",
+            "test-web-booking-draft-switch-shop",
+        )
+    ]
+
+    done = events[-1]
+    assert done["booking_draft"]["shop_id"] == 10103
+    assert done["booking_draft"]["shop_name"] == "七転八起"
+    assert done["booking_draft"]["people"] == 4
+    assert done["booking_draft"]["date"] == "2026-06-19"
+    assert done["booking_draft"]["time"] == "19:00"
+    assert done["transaction"] is None
+    assert "七転八起" in done["answer"]
+    assert saved["history"][-1]["booking_draft"]["shop_id"] == 10103
+
+
+@pytest.mark.anyio
 async def test_web_agent_stream_confirms_booking_draft_after_explicit_confirmation(monkeypatch):
     captured = {}
 
@@ -2848,6 +2912,63 @@ async def test_line_booking_draft_update_changes_time(monkeypatch):
     assert messages[1]["type"] == "flex"
     payload = json.dumps(messages[1], ensure_ascii=False)
     assert "time=20%3A00" in payload
+
+
+@pytest.mark.anyio
+async def test_line_booking_draft_update_switches_shop(monkeypatch):
+    saved_draft = {}
+
+    async def fake_fetch_java_shop(shop_id: int):
+        assert shop_id == 10103
+        return {"id": shop_id, "name": "七転八起"}
+
+    monkeypatch.setattr(main, "_load_line_booking_state", lambda user_id: {})
+    monkeypatch.setattr(
+        main,
+        "_load_line_booking_draft_state",
+        lambda user_id: {
+            "shop_id": 10102,
+            "shop_name": "太田日式燒肉",
+            "date": "2026-06-19",
+            "time": "19:00",
+            "people": 4,
+            "table_type": "normal",
+        },
+    )
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {
+            "query": "中山區適合聚餐",
+            "shown_shop_ids": [10101, 10102, 10103],
+            "shown_shops": [
+                {"shop_id": 10101, "name": "藝奇"},
+                {"shop_id": 10102, "name": "太田日式燒肉"},
+                {"shop_id": 10103, "name": "七転八起"},
+            ],
+        },
+    )
+    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
+    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda user_id, draft: saved_draft.update(draft))
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "換第三間，同樣時間人數"},
+        }
+    )
+
+    assert saved_draft["shop_id"] == 10103
+    assert saved_draft["shop_name"] == "七転八起"
+    assert saved_draft["date"] == "2026-06-19"
+    assert saved_draft["time"] == "19:00"
+    assert saved_draft["people"] == 4
+    assert "已更新成「七転八起」2026-06-19 19:00、4 人" in messages[0]["text"]
+    assert messages[1]["type"] == "flex"
+    payload = json.dumps(messages[1], ensure_ascii=False)
+    assert "/line/book/10103/confirm?" in payload
 
 
 @pytest.mark.anyio
