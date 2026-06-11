@@ -2564,6 +2564,92 @@ def _validate_agent_decision(
     )
 
 
+def _agent_query_basis_label(query: str) -> str:
+    constraints = _extract_query_constraints(query)
+    parts: list[str] = []
+    if constraints.get("districts"):
+        parts.append("、".join(f"{district}區" for district in constraints["districts"][:2]))
+    if constraints.get("stations"):
+        parts.append("、".join(f"{station}站附近" for station in constraints["stations"][:2]))
+    category_label = _category_label_for_constraints(constraints)
+    if category_label != "餐廳":
+        parts.append(category_label)
+    intent_labels = []
+    for label, pattern in (
+        ("商務請客", r"商務|請客|宴客"),
+        ("安靜聊天", r"安靜|聊天"),
+        ("約會", r"約會"),
+        ("多人聚餐", r"聚餐|多人|[五六七八九十\d]+人"),
+        ("慶生", r"慶生|生日"),
+    ):
+        if re.search(pattern, query):
+            intent_labels.append(label)
+    parts.extend(intent_labels[:2])
+    if constraints.get("wants_luxury") and "高質感" not in parts:
+        parts.append("高質感")
+    return " / ".join(parts[:4]) if parts else "地點、料理與用餐情境"
+
+
+def _agent_display_shop_name(shop: dict, index: int) -> str:
+    name = str(shop.get("name") or f"店家 {index}").strip()
+    for separator in ("（", "(", "/", "｜", "|"):
+        if separator in name:
+            name = name.split(separator, 1)[0].strip()
+    return _short_agent_text(name, 34) or f"店家 {index}"
+
+
+def _agent_shop_feature(shop: dict) -> str:
+    dishes = [item for item in _parse_json_list(shop.get("signature_dishes")) if item][:2]
+    if dishes:
+        return f"招牌 {'、'.join(dishes)}"
+    feature = _agent_comparison_feature(shop).replace("招牌：", "招牌 ")
+    return _short_agent_text(feature, 42)
+
+
+def _agent_shop_line(shop: dict, index: int) -> str:
+    name = _agent_display_shop_name(shop, index)
+    feature = _agent_shop_feature(shop)
+    best_for = _agent_comparison_best_for(shop)
+    booking = _agent_comparison_booking_status(shop)
+    parts = [feature]
+    if best_for:
+        parts.append(f"適合 {best_for}")
+    if booking:
+        parts.append(f"訂位：{booking}")
+    return f"{index}. {name}：{'；'.join(parts[:3])}。"
+
+
+def _agent_recommendation_cta(query: str) -> str:
+    prefill = _line_booking_prefill_from_text(query)
+    if prefill.get("date") and prefill.get("time") and prefill.get("people"):
+        return "下一步：如果你要其中一間，我可以接著幫你建立訂位。"
+    if prefill.get("date") or prefill.get("time") or prefill.get("people"):
+        return "下一步：再補齊日期、時間與人數，我就能把訂位流程接上。"
+    return "下一步：告訴我日期、時間與人數，我可以直接幫你查可訂並接到訂位流程。"
+
+
+def _agent_concierge_narrative(
+    query: str,
+    tool_result: dict,
+    decision: AgentRecommendationDecision,
+) -> str:
+    shops = tool_result.get("shops", []) if isinstance(tool_result, dict) else []
+    selected = _shops_for_ids(shops, decision.recommended_shop_ids)[:3]
+    if not selected:
+        return decision.narrative
+
+    basis = _agent_query_basis_label(query)
+    count = len(selected)
+    if count == 1:
+        lead = f"我先用「{basis}」幫你篩，最值得先看這 1 家。"
+    else:
+        lead = f"我先用「{basis}」幫你篩，優先看這 {count} 家。"
+    lines = [lead]
+    lines.extend(_agent_shop_line(shop, index) for index, shop in enumerate(selected, start=1))
+    lines.append(_agent_recommendation_cta(query))
+    return "\n".join(lines)
+
+
 def _decision_payload(decision: AgentRecommendationDecision) -> dict:
     return {
         "recommended_shop_ids": decision.recommended_shop_ids,
@@ -3566,7 +3652,13 @@ JSON schema:
             logger.exception("agent_decision_fallback_failed")
         decision = _fallback_agent_decision(fallback_answer, tool_result)
 
-    return _validate_agent_decision(decision, tool_result)
+    validated = _validate_agent_decision(decision, tool_result)
+    return AgentRecommendationDecision(
+        recommended_shop_ids=validated.recommended_shop_ids,
+        narrative=_agent_concierge_narrative(query, tool_result, validated),
+        rejected_shop_ids=validated.rejected_shop_ids,
+        rejection_summary=validated.rejection_summary,
+    )
 
 
 class SearchRequest(BaseModel):

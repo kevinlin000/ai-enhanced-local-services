@@ -78,6 +78,57 @@ def test_agent_response_contract_orders_shops_and_builds_comparison_rows():
     }
 
 
+def test_agent_concierge_narrative_uses_stable_decision_format():
+    narrative = main._agent_concierge_narrative(
+        "推薦大安區美式漢堡",
+        {
+            "shops": [
+                {
+                    "shop_id": 10549,
+                    "name": "Fa Burger",
+                    "district": "大安",
+                    "category": "美式料理",
+                    "category_slug": "american",
+                    "signature_dishes": ["巧巴達粉嫩牛"],
+                    "atmosphere_tags": ["聚餐"],
+                    "booking_difficulty": "預約困難",
+                },
+                {
+                    "shop_id": 10755,
+                    "name": "樂漢堡美式餐廳 台北大安店",
+                    "district": "大安",
+                    "category": "美式料理",
+                    "category_slug": "american",
+                    "signature_dishes": ["風味起司漢堡"],
+                    "atmosphere_tags": ["親子"],
+                },
+                {
+                    "shop_id": 10638,
+                    "name": "Takeout Burger&Cafe 延吉店 （最後點餐21：30）/美式漢堡/寵物友善/大安區美食",
+                    "district": "大安",
+                    "category": "美式料理",
+                    "category_slug": "american",
+                    "signature_dishes": ["蒜味乳酪漢堡", "塔塔醬炸魚堡", "松露漢堡"],
+                    "atmosphere_tags": ["聚餐", "寵物友善"],
+                },
+            ]
+        },
+        main.AgentRecommendationDecision(
+            recommended_shop_ids=[10549, 10755, 10638],
+            narrative="模型原始長文不應直接控制最終格式。",
+            rejected_shop_ids=[],
+        ),
+    )
+
+    assert narrative.startswith("我先用「大安區 / 漢堡店」幫你篩，優先看這 3 家。")
+    assert "1. Fa Burger：招牌 巧巴達粉嫩牛；適合 聚餐；訂位：預約困難。" in narrative
+    assert "2. 樂漢堡美式餐廳 台北大安店：招牌 風味起司漢堡；適合 親子；訂位：可線上訂位，建議確認。" in narrative
+    assert "3. Takeout Burger&Cafe 延吉店：招牌 蒜味乳酪漢堡、塔塔醬炸魚堡；適合 聚餐、寵物友善；訂位：可線上訂位，建議確認。" in narrative
+    assert "最後點餐" not in narrative
+    assert "大安區美食" not in narrative
+    assert "下一步：告訴我日期、時間與人數" in narrative
+
+
 def test_session_history_compacts_recommendation_context():
     compacted = main.session_store.compact_history(
         [
