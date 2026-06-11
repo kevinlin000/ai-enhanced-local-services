@@ -111,14 +111,50 @@ export async function streamAgentResponse(
   if (token) headers.Authorization = `Bearer ${token}`;
   const controller = new AbortController();
   let receivedEvent = false;
+  let terminalReceived = false;
   let firstEventTimedOut = false;
+  let shouldUseFallback = false;
+  let inactivityTimeout: number | null = null;
+  const requestFallback = () => {
+    shouldUseFallback = true;
+    controller.abort();
+  };
+  const clearInactivityTimeout = () => {
+    if (inactivityTimeout != null) {
+      window.clearTimeout(inactivityTimeout);
+      inactivityTimeout = null;
+    }
+  };
+  const resetInactivityTimeout = () => {
+    clearInactivityTimeout();
+    inactivityTimeout = window.setTimeout(requestFallback, 12_000);
+  };
   const firstEventTimeout = window.setTimeout(() => {
     if (!receivedEvent) {
       firstEventTimedOut = true;
-      controller.abort();
+      requestFallback();
     }
   }, 8_000);
-  const timeout = window.setTimeout(() => controller.abort(), 45_000);
+  const timeout = window.setTimeout(requestFallback, 45_000);
+
+  const runFallback = async () => {
+    const fallback = await fetchAgentFallback(body, headers);
+    onEvent({
+      type: "agent_end",
+      answer: fallback.answer ?? "",
+      recommended_shop_ids: fallback.recommended_shop_ids,
+      narrative: fallback.narrative,
+      rejected_shop_ids: fallback.rejected_shop_ids,
+      rejection_summary: fallback.rejection_summary,
+      scope_note: fallback.scope_note,
+      transaction: fallback.transaction,
+      shops: fallback.shops,
+      comparison_rows: fallback.comparison_rows,
+      tools_used: fallback.tools_used,
+      tool_result: fallback.tool_result,
+      session_id: fallback.session_id ?? body.session_id,
+    });
+  };
 
   try {
     const res = await fetch("/api/ai/agent/stream", {
@@ -155,37 +191,31 @@ export async function streamAgentResponse(
           window.clearTimeout(firstEventTimeout);
           onEvent(parsed);
           if (isTerminalEvent(parsed)) {
+            terminalReceived = true;
+            clearInactivityTimeout();
             await reader.cancel().catch(() => {});
             return;
           }
+          resetInactivityTimeout();
         } catch {
           // ignore malformed frame
         }
       }
     }
+
+    if (!terminalReceived) {
+      shouldUseFallback = true;
+      await runFallback();
+    }
   } catch (error) {
-    if (!receivedEvent && firstEventTimedOut) {
-      const fallback = await fetchAgentFallback(body, headers);
-      onEvent({
-        type: "agent_end",
-        answer: fallback.answer ?? "",
-        recommended_shop_ids: fallback.recommended_shop_ids,
-        narrative: fallback.narrative,
-        rejected_shop_ids: fallback.rejected_shop_ids,
-        rejection_summary: fallback.rejection_summary,
-        scope_note: fallback.scope_note,
-        transaction: fallback.transaction,
-        shops: fallback.shops,
-        comparison_rows: fallback.comparison_rows,
-        tools_used: fallback.tools_used,
-        tool_result: fallback.tool_result,
-        session_id: fallback.session_id ?? body.session_id,
-      });
+    if (shouldUseFallback || firstEventTimedOut) {
+      await runFallback();
       return;
     }
     throw error;
   } finally {
     window.clearTimeout(firstEventTimeout);
     window.clearTimeout(timeout);
+    clearInactivityTimeout();
   }
 }
