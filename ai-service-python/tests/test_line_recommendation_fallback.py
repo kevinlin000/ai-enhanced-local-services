@@ -2857,6 +2857,53 @@ async def test_line_booking_followup_uses_ordinal_shop(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_line_booking_followup_uses_exact_recommended_shop_name(monkeypatch):
+    saved_draft = {}
+
+    async def fake_fetch_java_shop(shop_id: int):
+        assert shop_id == 10115
+        return {"id": shop_id, "name": "辛殿麻辣鍋｜信義店"}
+
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {
+            "query": "信義區高級火鍋",
+            "shown_shop_ids": [10009, 10115, 10221],
+            "shown_shops": [
+                {"shop_id": 10009, "name": "橘色涮涮屋 信義館", "district": "信義"},
+                {"shop_id": 10115, "name": "辛殿麻辣鍋｜信義店", "district": "信義"},
+                {"shop_id": 10221, "name": "築間幸福鍋物 台北南門店", "district": "中正"},
+            ],
+        },
+    )
+    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
+    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda user_id, draft: saved_draft.update(draft))
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "我要訂位 辛殿麻辣鍋｜信義店 明天 2人 晚上19:00"},
+        }
+    )
+
+    assert "辛殿麻辣鍋｜信義店" in messages[0]["text"]
+    assert "2026-06-11 19:00、2 人" in messages[0]["text"]
+    assert messages[1]["type"] == "flex"
+    assert saved_draft["shop_id"] == 10115
+    assert saved_draft["people"] == 2
+    assert saved_draft["date"] == "2026-06-11"
+    assert saved_draft["time"] == "19:00"
+    payload = json.dumps(messages[1], ensure_ascii=False)
+    assert "/line/book/10115/confirm?" in payload
+    assert "people=2" in payload
+
+
+@pytest.mark.anyio
 async def test_line_booking_followup_locks_ordinal_and_asks_missing_fields(monkeypatch):
     saved = {}
 

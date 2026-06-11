@@ -3166,6 +3166,28 @@ def _recommended_shop_from_text(query: str, shops: list[dict]) -> dict | None:
     return None
 
 
+def _line_recommendation_shop_snapshots(shops: list[dict], selected_ids: list[int]) -> list[dict]:
+    selected = []
+    seen = set()
+    selected_id_set = {int(shop_id) for shop_id in selected_ids if str(shop_id).isdigit()}
+    for shop in shops:
+        if not isinstance(shop, dict):
+            continue
+        shop_id = _shop_id(shop)
+        if shop_id is None or shop_id not in selected_id_set or shop_id in seen:
+            continue
+        seen.add(shop_id)
+        selected.append(
+            {
+                "shop_id": shop_id,
+                "name": str(shop.get("name") or f"店家 {shop_id}"),
+                "district": str(shop.get("district") or ""),
+                "category": str(shop.get("category") or shop.get("category_slug") or ""),
+            }
+        )
+    return selected
+
+
 def _booking_selection_intent(query: str) -> bool:
     normalized = re.sub(r"\s+", "", str(query or "").strip())
     if not normalized or _payment_intent(normalized) or _line_more_recommendation_intent(normalized):
@@ -6485,6 +6507,14 @@ async def _build_line_more_recommendations(user_text: str, user_id: str) -> list
         user_id,
         query=previous_query,
         shown_shop_ids=[*seen_ids, *selected_ids],
+        shown_shops=[
+            *[
+                shop
+                for shop in state.get("shown_shops", [])
+                if isinstance(shop, dict)
+            ],
+            *remaining,
+        ],
     )
     search_result = await _build_agent_search_result(previous_query, remaining, selected_ids)
     remaining = search_result.get("shops", remaining)
@@ -6531,7 +6561,7 @@ async def _build_line_cards_for_query(
     search_result = await _build_agent_search_result(query, shops, selected)
     shops = search_result.get("shops", shops)
     selected_shops = _shops_for_ids(shops, selected)
-    _save_line_recommendation_state(user_id, query=save_query or query, shown_shop_ids=selected)
+    _save_line_recommendation_state(user_id, query=save_query or query, shown_shop_ids=selected, shown_shops=selected_shops)
     flex_or_bundle = build_line_flex_message(
         shops=shops,
         recommended_shop_ids=selected,
@@ -6970,6 +7000,7 @@ def _save_line_recommendation_state(
     query: str,
     shown_shop_ids: list[int],
     booking_prefill: dict | None = None,
+    shown_shops: list[dict] | None = None,
 ) -> None:
     deduped: list[int] = []
     for shop_id in shown_shop_ids:
@@ -6980,6 +7011,10 @@ def _save_line_recommendation_state(
         if sid not in deduped:
             deduped.append(sid)
     payload = {"query": query, "shown_shop_ids": deduped[-60:]}
+    if shown_shops:
+        compact_shops = _line_recommendation_shop_snapshots(shown_shops, deduped)
+        if compact_shops:
+            payload["shown_shops"] = compact_shops[-60:]
     compact_prefill = _compact_booking_prefill(booking_prefill)
     if compact_prefill:
         payload["booking_prefill"] = compact_prefill
@@ -7179,6 +7214,14 @@ async def _build_line_contextual_followup(user_text: str, user_id: str) -> list[
         user_id,
         query=adjusted_query,
         shown_shop_ids=[*seen_ids, *selected_ids],
+        shown_shops=[
+            *[
+                shop
+                for shop in state.get("shown_shops", [])
+                if isinstance(shop, dict)
+            ],
+            *deduped,
+        ],
     )
     search_result = await _build_agent_search_result(adjusted_query, shops, selected_ids)
     shops = search_result.get("shops", shops)
@@ -7231,7 +7274,7 @@ async def _build_line_agent_recommendation_messages(
             messages = flex_or_bundle.get("messages") or []
         else:
             messages = [flex_or_bundle]
-        _save_line_recommendation_state(user_id, query=user_text, shown_shop_ids=shown_ids)
+        _save_line_recommendation_state(user_id, query=user_text, shown_shop_ids=shown_ids, shown_shops=shops)
         if messages:
             selected_shops = _shops_for_ids(shops, shown_ids)
             intro = _line_scope_expansion_intro_from_note(search_result.get("scope_note"))
@@ -7467,9 +7510,19 @@ async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dic
     ]
     if not shown_ids:
         return None
+    shown_shops = [
+        shop
+        for shop in state.get("shown_shops", [])
+        if isinstance(shop, dict) and _shop_id(shop) in set(shown_ids)
+    ]
     ordinal_index = _selection_index_from_text(user_text)
     if len(shown_ids) > 1 and ordinal_index is not None and 0 <= ordinal_index < len(shown_ids):
         shown_ids = [shown_ids[ordinal_index]]
+    elif len(shown_ids) > 1 and shown_shops:
+        selected_shop = _recommended_shop_from_text(user_text, shown_shops)
+        selected_shop_id = _shop_id(selected_shop or {})
+        if selected_shop_id is not None:
+            shown_ids = [selected_shop_id]
     if len(shown_ids) > 1:
         return [build_text_message("我收到日期/時間了。請先回覆要訂哪一間店名，避免幫你訂錯餐廳。")]
 
@@ -7498,6 +7551,7 @@ async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dic
             query=str(state.get("query") or user_text),
             shown_shop_ids=[shop_id],
             booking_prefill=prefill,
+            shown_shops=shown_shops,
         )
         _save_line_booking_draft_state(user_id, _booking_draft_payload(shop_id, shop_name, prefill))
         return [
@@ -7553,6 +7607,7 @@ async def _build_line_exact_booking_request(user_text: str, user_id: str) -> lis
         query=keyword,
         shown_shop_ids=[shop_id],
         booking_prefill=prefill,
+        shown_shops=selected_shops,
     )
 
     missing = []
