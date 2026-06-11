@@ -3033,6 +3033,26 @@ async def test_internal_availability_released_pushes_line_card(monkeypatch):
     assert pushed["messages"][0]["type"] == "flex"
 
 
+def test_internal_line_secret_fails_closed_when_missing(monkeypatch):
+    monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "")
+    monkeypatch.setattr(main.settings, "line_internal_webhook_require_secret", True)
+
+    with pytest.raises(main.HTTPException) as exc:
+        main._verify_internal_line_secret({"secret": "anything"})
+
+    assert exc.value.status_code == 503
+
+
+def test_internal_line_secret_rejects_invalid_secret(monkeypatch):
+    monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "expected-secret")
+    monkeypatch.setattr(main.settings, "line_internal_webhook_require_secret", True)
+
+    with pytest.raises(main.HTTPException) as exc:
+        main._verify_internal_line_secret({"secret": "wrong-secret"})
+
+    assert exc.value.status_code == 403
+
+
 @pytest.mark.anyio
 async def test_internal_booking_updated_pushes_cancel_card(monkeypatch):
     pushed = {}

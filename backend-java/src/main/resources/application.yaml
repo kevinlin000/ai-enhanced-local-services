@@ -65,6 +65,9 @@ management:
       application: bytebites-java
 
 bytebites:
+  ai-service-url: ${AI_SERVICE_URL:http://localhost:8000}
+  line-internal-secret: ${LINE_INTERNAL_WEBHOOK_SECRET:}
+  line-action-secret: ${LINE_ACTION_SECRET:${LINE_INTERNAL_WEBHOOK_SECRET:}}
   cors:
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:}
 

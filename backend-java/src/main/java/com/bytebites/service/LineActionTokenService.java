@@ -21,7 +21,7 @@ public class LineActionTokenService {
 
     private final UserJpaService userJpaService;
 
-    @Value("${bytebites.line-action-secret:${LINE_ACTION_SECRET:${LINE_INTERNAL_WEBHOOK_SECRET:dev-line-action-secret}}}")
+    @Value("${bytebites.line-action-secret:}")
     private String secret;
 
     public Optional<Long> resolveOwnerId(Map<String, Object> body) {
@@ -71,8 +71,10 @@ public class LineActionTokenService {
     }
 
     private byte[] secretBytes() {
-        String value = secret == null || secret.isBlank() ? "dev-line-action-secret" : secret.trim();
-        return value.getBytes(StandardCharsets.UTF_8);
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("LINE action secret is not configured");
+        }
+        return secret.trim().getBytes(StandardCharsets.UTF_8);
     }
 
     private boolean constantTimeEquals(String a, String b) {

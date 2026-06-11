@@ -68,6 +68,21 @@ class LineActionTokenServiceTest {
         verify(userJpaService, never()).resolveLineIdentity("Uabc123", "林庭蔚");
     }
 
+    @Test
+    void resolveOwnerIdRejectsWhenSecretIsMissing() {
+        UserJpaService userJpaService = mock(UserJpaService.class);
+        LineActionTokenService service = new LineActionTokenService(userJpaService);
+
+        Optional<Long> result = service.resolveOwnerId(
+                "Uabc123",
+                token("Uabc123", Instant.now().plusSeconds(60).getEpochSecond()),
+                "林庭蔚"
+        );
+
+        assertThat(result).isEmpty();
+        verify(userJpaService, never()).resolveLineIdentity("Uabc123", "林庭蔚");
+    }
+
     private static LineActionTokenService service(UserJpaService userJpaService) {
         LineActionTokenService service = new LineActionTokenService(userJpaService);
         ReflectionTestUtils.setField(service, "secret", SECRET);

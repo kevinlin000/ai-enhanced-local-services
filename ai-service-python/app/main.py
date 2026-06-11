@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     line_public_web_url: str = "http://localhost:3000"
     line_background_push_enabled: bool = False
     line_internal_webhook_secret: str = ""
+    line_internal_webhook_require_secret: bool = True
     line_action_secret: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -99,6 +100,21 @@ def _line_action_secret() -> bytes:
         or "dev-line-action-secret"
     )
     return value.strip().encode("utf-8")
+
+
+def _verify_internal_line_secret(payload: dict) -> None:
+    expected_secret = (settings.line_internal_webhook_secret or "").strip()
+    if not expected_secret:
+        if settings.line_internal_webhook_require_secret:
+            raise HTTPException(
+                status_code=503,
+                detail="LINE internal webhook secret is not configured",
+            )
+        logger.warning("LINE internal webhook accepted without shared secret")
+        return
+    provided_secret = str(payload.get("secret") or "").strip()
+    if not hmac.compare_digest(provided_secret, expected_secret):
+        raise HTTPException(status_code=403, detail="Invalid internal secret")
 
 
 def _line_token_for_user(line_user_id: str) -> str:
@@ -5374,9 +5390,7 @@ async def line_webhook(request: Request):
 @app.post("/internal/line/availability-released")
 async def internal_line_availability_released(request: Request):
     payload = await request.json()
-    expected_secret = (settings.line_internal_webhook_secret or "").strip()
-    if expected_secret and str(payload.get("secret") or "") != expected_secret:
-        raise HTTPException(status_code=403, detail="Invalid internal secret")
+    _verify_internal_line_secret(payload)
     line_user_id = str(payload.get("lineUserId") or "").strip()
     if not line_user_id:
         return {"ok": True, "skipped": True, "reason": "No LINE user id"}
@@ -5392,9 +5406,7 @@ async def internal_line_availability_released(request: Request):
 @app.post("/internal/line/booking-updated")
 async def internal_line_booking_updated(request: Request):
     payload = await request.json()
-    expected_secret = (settings.line_internal_webhook_secret or "").strip()
-    if expected_secret and str(payload.get("secret") or "") != expected_secret:
-        raise HTTPException(status_code=403, detail="Invalid internal secret")
+    _verify_internal_line_secret(payload)
     line_user_id = str(payload.get("lineUserId") or "").strip()
     if not line_user_id:
         return {"ok": True, "skipped": True, "reason": "No LINE user id"}
@@ -5413,9 +5425,7 @@ async def internal_line_booking_updated(request: Request):
 @app.post("/internal/line/parking-reminder")
 async def internal_line_parking_reminder(request: Request):
     payload = await request.json()
-    expected_secret = (settings.line_internal_webhook_secret or "").strip()
-    if expected_secret and str(payload.get("secret") or "") != expected_secret:
-        raise HTTPException(status_code=403, detail="Invalid internal secret")
+    _verify_internal_line_secret(payload)
     line_user_id = str(payload.get("lineUserId") or "").strip()
     if not line_user_id:
         return {"ok": True, "skipped": True, "reason": "No LINE user id"}
