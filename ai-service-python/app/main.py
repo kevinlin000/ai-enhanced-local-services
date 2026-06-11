@@ -2958,6 +2958,7 @@ def _agent_response_contract(tool_result: dict) -> dict:
     contract = {
         **(tool_result.get("agent_decision", {}) if isinstance(tool_result.get("agent_decision"), dict) else {}),
         "transaction": tool_result.get("transaction") if isinstance(tool_result, dict) else None,
+        "booking_draft": tool_result.get("booking_draft") if isinstance(tool_result.get("booking_draft"), dict) else None,
         "scope_note": tool_result.get("scope_note") if isinstance(tool_result, dict) else None,
     }
     shops = _selected_agent_response_shops(tool_result) if isinstance(tool_result, dict) else []
@@ -3045,6 +3046,52 @@ def _booking_draft_payload(shop_id: int, shop_name: str, prefill: dict | None) -
     }
     draft.update(_compact_booking_prefill(prefill))
     return draft
+
+
+def _booking_confirm_intent(query: str) -> bool:
+    normalized = re.sub(r"\s+", "", str(query or ""))
+    if not normalized:
+        return False
+    return any(
+        phrase in normalized
+        for phrase in (
+            "確認訂位",
+            "確認送出",
+            "送出訂位",
+            "幫我送出",
+            "可以訂",
+            "就訂這個",
+            "就這樣訂",
+            "沒問題",
+            "確認",
+        )
+    )
+
+
+def _booking_draft_missing(draft: dict) -> list[str]:
+    missing = []
+    if not draft.get("date"):
+        missing.append("日期")
+    if not draft.get("time"):
+        missing.append("時間")
+    if not draft.get("people"):
+        missing.append("人數")
+    return missing
+
+
+def _booking_draft_confirmation_answer(draft: dict) -> str:
+    missing = _booking_draft_missing(draft)
+    shop_name = str(draft.get("shop_name") or f"店家 {draft.get('shop_id')}")
+    if missing:
+        return f"我已鎖定「{shop_name}」，還缺{'、'.join(missing)}。請補齊後我再幫你整理確認。"
+    return (
+        "我幫你整理好訂位內容了，請確認後我再送出。\n"
+        f"- 店家：{shop_name}\n"
+        f"- 日期：{draft.get('date')}\n"
+        f"- 時間：{draft.get('time')}\n"
+        f"- 人數：{draft.get('people')} 人\n"
+        "確認無誤後，可以點下方確認卡，或直接回「確認訂位」。"
+    )
 
 
 def _selection_index_from_text(text: str) -> int | None:
@@ -3261,7 +3308,7 @@ def _agent_booking_followup_from_history(query: str, history: list[dict]) -> Too
         return None
     prefill = _line_booking_prefill_from_text(query)
     has_prefill = bool(prefill.get("date") or prefill.get("time") or prefill.get("people"))
-    if not has_prefill and not _booking_selection_intent(query):
+    if not has_prefill and not _booking_selection_intent(query) and not _booking_confirm_intent(query):
         return None
     if _same_day_datetime_request(query):
         return ToolGuardResult(action="direct", direct_answer=_same_day_booking_policy_answer())
@@ -3303,7 +3350,7 @@ def _agent_booking_followup_from_history(query: str, history: list[dict]) -> Too
         draft = _booking_draft_payload(shop_id, shop_name, prefill)
         return ToolGuardResult(
             action="direct",
-            direct_answer=f"我已鎖定「{shop_name}」，還缺{'、'.join(missing)}。請補齊後我再幫你送出訂位。",
+            direct_answer=_booking_draft_confirmation_answer(draft),
             last_tool_result={
                 "shops": [{"shop_id": shop_id, "name": shop_name}],
                 "booking_draft": draft,
@@ -3311,6 +3358,16 @@ def _agent_booking_followup_from_history(query: str, history: list[dict]) -> Too
         )
 
     draft = _booking_draft_payload(shop_id, shop_name, prefill)
+    if not _booking_confirm_intent(query):
+        return ToolGuardResult(
+            action="direct",
+            direct_answer=_booking_draft_confirmation_answer(draft),
+            last_tool_result={
+                "shops": [{"shop_id": shop_id, "name": shop_name}],
+                "booking_draft": draft,
+            },
+        )
+
     return ToolGuardResult(
         action="continue",
         args={
@@ -3979,21 +4036,19 @@ async def _agent_exact_booking_from_query(query: str) -> ToolGuardResult | None:
     if not prefill.get("people"):
         missing.append("人數")
     if missing:
+        draft = _booking_draft_payload(shop_id, shop_name, prefill)
+        search_result["booking_draft"] = draft
         return ToolGuardResult(
             action="direct",
-            direct_answer=f"我已鎖定「{shop_name}」，還缺{'、'.join(missing)}。請補齊後我再幫你送出訂位。",
+            direct_answer=_booking_draft_confirmation_answer(draft),
             last_tool_result=search_result,
         )
 
+    draft = _booking_draft_payload(shop_id, shop_name, prefill)
+    search_result["booking_draft"] = draft
     return ToolGuardResult(
-        action="continue",
-        args={
-            "shop_id": shop_id,
-            "people": int(prefill["people"]),
-            "date": str(prefill["date"]),
-            "time": str(prefill["time"]),
-            "table_type": "normal",
-        },
+        action="direct",
+        direct_answer=_booking_draft_confirmation_answer(draft),
         last_tool_result=search_result,
     )
 
@@ -4847,6 +4902,11 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                 yield {"type": "chunk", "content": chunk}
             if session_id:
                 recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
+                booking_draft = (
+                    state.last_tool_result.get("booking_draft")
+                    if isinstance(state.last_tool_result.get("booking_draft"), dict)
+                    else None
+                )
                 session_store.save_history(
                     session_id,
                     history + [
@@ -4855,6 +4915,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                             "role": "model",
                             "content": full_answer,
                             **({"recommendation": recommendation} if recommendation else {}),
+                            **({"booking_draft": booking_draft} if booking_draft else {}),
                         },
                     ],
                 )
@@ -5266,6 +5327,11 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
 
     if session_id:
         recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
+        booking_draft = (
+            state.last_tool_result.get("booking_draft")
+            if isinstance(state.last_tool_result.get("booking_draft"), dict)
+            else None
+        )
         session_store.save_history(
             session_id,
             history + [
@@ -5275,6 +5341,7 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                     "content": full_answer,
                     **({"transaction": state.final_transaction} if state.final_transaction else {}),
                     **({"recommendation": recommendation} if recommendation else {}),
+                    **({"booking_draft": booking_draft} if booking_draft else {}),
                 },
             ],
         )

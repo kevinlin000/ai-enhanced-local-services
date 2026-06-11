@@ -19,6 +19,15 @@ export type AgentTransaction = {
   error?: string | null;
 };
 
+export type AgentBookingDraft = {
+  shop_id: number;
+  shop_name: string;
+  people?: number | null;
+  date?: string | null;
+  time?: string | null;
+  table_type?: string | null;
+};
+
 export type AgentComparisonRow = {
   shop_id?: number | string | null;
   name?: string | null;
@@ -43,6 +52,7 @@ export type AgentStreamEvent =
       rejection_summary?: string | null;
       scope_note?: string | null;
       transaction?: AgentTransaction | null;
+      booking_draft?: AgentBookingDraft | null;
       shops?: unknown;
       comparison_rows?: AgentComparisonRow[] | null;
       tools_used?: string[];
@@ -62,6 +72,7 @@ export type AgentStreamEvent =
       rejection_summary?: string | null;
       scope_note?: string | null;
       transaction?: AgentTransaction | null;
+      booking_draft?: AgentBookingDraft | null;
       shops?: unknown;
       comparison_rows?: AgentComparisonRow[] | null;
       tools_used?: string[];
@@ -78,6 +89,7 @@ type AgentResponse = {
   rejection_summary?: string | null;
   scope_note?: string | null;
   transaction?: AgentTransaction | null;
+  booking_draft?: AgentBookingDraft | null;
   shops?: unknown;
   comparison_rows?: AgentComparisonRow[] | null;
   tools_used?: string[];
@@ -148,6 +160,7 @@ export async function streamAgentResponse(
       rejection_summary: fallback.rejection_summary,
       scope_note: fallback.scope_note,
       transaction: fallback.transaction,
+      booking_draft: fallback.booking_draft,
       shops: fallback.shops,
       comparison_rows: fallback.comparison_rows,
       tools_used: fallback.tools_used,

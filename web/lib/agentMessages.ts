@@ -1,6 +1,6 @@
 import type { AgentShop } from "./agentTypes";
 import { agentFinalPayloadFromEvent } from "./agentResponse";
-import type { AgentComparisonRow, AgentStreamEvent, AgentTransaction } from "./agentStream";
+import type { AgentBookingDraft, AgentComparisonRow, AgentStreamEvent, AgentTransaction } from "./agentStream";
 
 export type AgentToolStepStatus = "active" | "done";
 
@@ -23,6 +23,7 @@ export type AgentChatMessage = {
   hasShops?: boolean;
   shops?: AgentShop[];
   transaction?: AgentTransaction;
+  bookingDraft?: AgentBookingDraft;
   scopeNote?: string;
   comparisonRows?: AgentComparisonRow[];
   hits?: {
@@ -159,6 +160,7 @@ export function applyAgentStreamEventToMessage(
         shops,
         hasShops: (shops?.length ?? 0) > 0,
         transaction: finalPayload.transaction ?? message.transaction,
+        bookingDraft: finalPayload.bookingDraft ?? message.bookingDraft,
         scopeNote: finalPayload.scopeNote ?? message.scopeNote,
         comparisonRows: finalPayload.comparisonRows ?? message.comparisonRows,
         finalEventHandled: true,

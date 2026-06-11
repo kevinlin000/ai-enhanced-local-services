@@ -1,5 +1,5 @@
 import type { AgentShop } from "./agentTypes";
-import type { AgentComparisonRow, AgentStreamEvent, AgentTransaction } from "@/lib/agentStream";
+import type { AgentBookingDraft, AgentComparisonRow, AgentStreamEvent, AgentTransaction } from "@/lib/agentStream";
 
 type AgentDecisionPayload = {
   recommended_shop_ids?: Array<number | string>;
@@ -10,6 +10,7 @@ type AgentToolResult = {
   shops?: AgentShop[];
   scope_note?: string | null;
   transaction?: AgentTransaction | null;
+  booking_draft?: AgentBookingDraft | null;
   comparison_rows?: AgentComparisonRow[] | null;
   agent_decision?: AgentDecisionPayload;
 };
@@ -18,6 +19,7 @@ export type AgentFinalPayload = {
   shops?: AgentShop[];
   recommendedShopIds?: number[];
   transaction?: AgentTransaction;
+  bookingDraft?: AgentBookingDraft;
   scopeNote?: string;
   comparisonRows?: AgentComparisonRow[];
 };
@@ -98,6 +100,10 @@ export function agentFinalPayloadFromEvent(event: AgentStreamEvent): AgentFinalP
     ("transaction" in event ? event.transaction ?? undefined : undefined) ??
     toolResult?.transaction ??
     undefined;
+  const bookingDraft =
+    ("booking_draft" in event ? event.booking_draft ?? undefined : undefined) ??
+    toolResult?.booking_draft ??
+    undefined;
   const scopeNote =
     ("scope_note" in event ? event.scope_note ?? undefined : undefined) ??
     toolResult?.scope_note ??
@@ -111,6 +117,7 @@ export function agentFinalPayloadFromEvent(event: AgentStreamEvent): AgentFinalP
     shops,
     recommendedShopIds: normalizeRecommendedShopIds(recommendedShopIds),
     transaction,
+    bookingDraft,
     scopeNote,
     comparisonRows,
   };

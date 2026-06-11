@@ -767,12 +767,14 @@ async def test_web_agent_stream_books_from_single_recommendation_followup(monkey
     ]
 
     done = events[-1]
-    assert captured["shop_id"] == 10222
-    assert captured["people"] == 4
-    assert captured["date"] == "2026-06-11"
-    assert captured["time"] == "19:00"
-    assert done["transaction"]["booking_code"] == "BK-WEB-FOLLOWUP"
-    assert saved["history"][-1]["transaction"]["booking_code"] == "BK-WEB-FOLLOWUP"
+    assert captured == {}
+    assert done["booking_draft"]["shop_id"] == 10222
+    assert done["booking_draft"]["people"] == 4
+    assert done["booking_draft"]["date"] == "2026-06-11"
+    assert done["booking_draft"]["time"] == "19:00"
+    assert done["transaction"] is None
+    assert "確認訂位" in done["answer"]
+    assert saved["history"][-1]["booking_draft"]["shop_id"] == 10222
 
 
 @pytest.mark.anyio
@@ -832,12 +834,14 @@ async def test_web_agent_stream_books_exact_shop_without_history(monkeypatch):
 
     done = events[-1]
     assert captured_search["query"] == "青田七六"
-    assert captured_booking["shop_id"] == 10222
-    assert captured_booking["people"] == 4
-    assert captured_booking["date"] == "2026-06-19"
-    assert captured_booking["time"] == "19:00"
-    assert done["tools_used"] == ["semantic_shop_search", "create_booking"]
-    assert done["transaction"]["booking_code"] == "BK-WEB-EXACT"
+    assert captured_booking == {}
+    assert done["booking_draft"]["shop_id"] == 10222
+    assert done["booking_draft"]["people"] == 4
+    assert done["booking_draft"]["date"] == "2026-06-19"
+    assert done["booking_draft"]["time"] == "19:00"
+    assert done["tools_used"] == ["semantic_shop_search"]
+    assert done["transaction"] is None
+    assert "確認訂位" in done["answer"]
 
 
 @pytest.mark.anyio
@@ -1019,6 +1023,63 @@ async def test_web_agent_stream_merges_booking_draft_after_locked_selection(monk
         async for event in main._run_agent_turn_stream(
             "4人",
             "test-web-booking-draft",
+        )
+    ]
+
+    done = events[-1]
+    assert captured == {}
+    assert done["booking_draft"]["shop_id"] == 10102
+    assert done["booking_draft"]["people"] == 4
+    assert done["booking_draft"]["date"] == "2026-06-19"
+    assert done["booking_draft"]["time"] == "19:00"
+    assert done["transaction"] is None
+    assert "確認訂位" in done["answer"]
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_confirms_booking_draft_after_explicit_confirmation(monkeypatch):
+    captured = {}
+
+    async def fake_create_booking(**kwargs):
+        captured.update(kwargs)
+        return {
+            "success": True,
+            "shopId": kwargs["shop_id"],
+            "shopName": "太田日式燒肉",
+            "bookingCode": "BK-WEB-DRAFT",
+            "people": kwargs["people"],
+            "date": kwargs["date"],
+            "time": kwargs["time"],
+            "tableType": kwargs["table_type"],
+            "needsDeposit": False,
+        }
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {
+                "role": "model",
+                "content": "我幫你整理好訂位內容了。",
+                "booking_draft": {
+                    "shop_id": 10102,
+                    "shop_name": "太田日式燒肉",
+                    "date": "2026-06-19",
+                    "time": "19:00",
+                    "people": 4,
+                },
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "tool_create_booking", fake_create_booking)
+    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("booking confirmation should bypass model")))
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "沒問題",
+            "test-web-booking-confirm",
         )
     ]
 
@@ -1294,11 +1355,13 @@ async def test_web_agent_stream_books_ordinal_recommendation_followup(monkeypatc
     ]
 
     done = events[-1]
-    assert captured["shop_id"] == 10102
-    assert captured["people"] == 4
-    assert captured["date"] == "2026-06-11"
-    assert captured["time"] == "19:00"
-    assert done["transaction"]["booking_code"] == "BK-WEB-SECOND"
+    assert captured == {}
+    assert done["booking_draft"]["shop_id"] == 10102
+    assert done["booking_draft"]["people"] == 4
+    assert done["booking_draft"]["date"] == "2026-06-11"
+    assert done["booking_draft"]["time"] == "19:00"
+    assert done["transaction"] is None
+    assert "確認訂位" in done["answer"]
 
 
 @pytest.mark.anyio

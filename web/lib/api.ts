@@ -286,6 +286,29 @@ export const javaApi = {
     fetchJson<{ success: boolean; data: { code: number; label: string }[] }>(
       `${JAVA_API}/api/payment/methods`,
     ),
+  reserveBooking: (body: {
+    shopId: number;
+    people: number;
+    date: string;
+    time: string;
+    tableType?: string;
+    idempotencyKey?: string;
+  }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking }>(
+      `${CLIENT_JAVA_API}/api/booking/reserve`,
+      {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({
+          shopId: body.shopId,
+          people: body.people,
+          date: body.date,
+          time: body.time,
+          tableType: body.tableType ?? "normal",
+          idempotencyKey: body.idempotencyKey,
+        }),
+      },
+    ),
   payBookingWithTestCard: (bookingCode: string) =>
     fetchJson<{
       success: boolean;

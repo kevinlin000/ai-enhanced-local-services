@@ -19,8 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { javaApi } from "@/lib/api";
-import { streamAgentResponse, type AgentComparisonRow, type AgentTransaction } from "@/lib/agentStream";
+import { AuthRequiredError, javaApi, type MyBooking } from "@/lib/api";
+import { streamAgentResponse, type AgentBookingDraft, type AgentComparisonRow, type AgentTransaction } from "@/lib/agentStream";
 import { useAuth } from "@/lib/auth";
 import { AgentShopCard } from "@/components/AgentShopCard";
 import type { AgentShop } from "@/lib/agentTypes";
@@ -356,6 +356,134 @@ function formatHoldCountdown(holdExpiresAt: string | null | undefined, nowMs: nu
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function bookingResponseToAgentTransaction(booking: MyBooking): AgentTransaction {
+  return {
+    kind: "booking",
+    success: booking.status === "CONFIRMED" || booking.status === "PAID" || booking.status === "PENDING_PAYMENT",
+    status: booking.status,
+    shop_id: booking.shopId,
+    shop_name: booking.shopName,
+    booking_code: booking.bookingCode,
+    people: booking.people,
+    date: booking.date,
+    time: booking.time,
+    table_type: booking.tableType,
+    needs_deposit: booking.needsDeposit,
+    deposit_total: booking.depositTotal,
+    hold_expires_at: booking.holdExpiresAt ?? null,
+    hold_minutes: booking.holdMinutes ?? null,
+    rec_trade_id: booking.paymentTransId ?? null,
+  };
+}
+
+function AgentBookingDraftCard({ draft }: { draft: AgentBookingDraft }) {
+  const { isLoggedIn, isAuthLoading, login, mounted } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [transaction, setTransaction] = useState<AgentTransaction | null>(null);
+  const complete = Boolean(draft.shop_id && draft.date && draft.time && draft.people);
+  const tableLabel = draft.table_type === "window" ? "靠窗" : draft.table_type === "box" ? "包廂" : "一般座位";
+
+  async function handleConfirm() {
+    if (!complete || submitting || transaction) return;
+    if (mounted && !isLoggedIn) {
+      setError("請先用 LINE 登入，再送出訂位。");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await javaApi.reserveBooking({
+        shopId: Number(draft.shop_id),
+        people: Number(draft.people),
+        date: String(draft.date),
+        time: String(draft.time),
+        tableType: draft.table_type ?? "normal",
+        idempotencyKey: `ai-${draft.shop_id}-${draft.date}-${draft.time}-${draft.people}`,
+      });
+      if (!response.success) throw new Error(response.errorMsg ?? "訂位失敗");
+      setTransaction(bookingResponseToAgentTransaction(response.data));
+    } catch (err) {
+      if (err instanceof AuthRequiredError) {
+        setError("請先用 LINE 登入，再送出訂位。");
+      } else {
+        setError(err instanceof Error ? err.message : "訂位失敗，請再試一次");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (transaction) return <AgentBookingConfirmationCard transaction={transaction} />;
+
+  return (
+    <Card className="mt-3 w-full overflow-hidden border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-stone-50 shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base text-emerald-950">
+          <CalendarCheck className="h-5 w-5 text-emerald-700" />
+          確認訂位內容
+          <Badge variant="secondary" className="ml-auto bg-white/80 text-emerald-800">
+            DRAFT
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <div className="grid gap-3 rounded-xl border border-emerald-100 bg-white/75 p-4 md:grid-cols-2">
+          <div>
+            <p className="text-xs text-muted-foreground">店家</p>
+            <p className="font-semibold text-foreground">{draft.shop_name ?? `店家 ${draft.shop_id}`}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">座位</p>
+            <p className="font-medium">{tableLabel}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">人數</p>
+            <p className="font-medium">{draft.people ? `${draft.people} 人` : "待補"}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">時間</p>
+            <p className="font-medium">
+              {draft.date ?? "待補"} {draft.time ?? ""}
+            </p>
+          </div>
+        </div>
+
+        {!complete ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs leading-5 text-amber-900">
+            還缺日期、時間或人數。直接在聊天室補一句，例如「明天晚上 7 點 4 人」。
+          </div>
+        ) : null}
+        {error ? (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-800">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            type="button"
+            onClick={handleConfirm}
+            disabled={!complete || submitting || isAuthLoading}
+            className="rounded-full bg-emerald-700 px-5 font-semibold text-white hover:bg-emerald-800 disabled:bg-zinc-300"
+          >
+            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+            確認送出訂位
+          </Button>
+          {mounted && !isLoggedIn ? (
+            <Button type="button" variant="outline" onClick={login} className="rounded-full">
+              用 LINE 登入
+            </Button>
+          ) : null}
+        </div>
+        <p className="text-[11px] leading-5 text-muted-foreground">
+          送出後會依店家規則建立訂位；若需訂金，下一步會在同張卡片顯示付款選項。
+        </p>
+      </CardContent>
+    </Card>
+  );
 }
 
 function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTransaction }) {
@@ -875,6 +1003,9 @@ export default function AiPage() {
                 ) : null}
                 {m.transaction ? (
                   <AgentBookingConfirmationCard transaction={m.transaction} />
+                ) : null}
+                {m.bookingDraft && !m.transaction ? (
+                  <AgentBookingDraftCard draft={m.bookingDraft} />
                 ) : null}
               </div>
             ))}
