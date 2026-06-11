@@ -1094,6 +1094,52 @@ async def test_web_agent_stream_merges_booking_draft_after_locked_selection(monk
 
 
 @pytest.mark.anyio
+async def test_web_agent_stream_updates_booking_draft_time(monkeypatch):
+    saved = {}
+
+    async def fail_create_booking(**kwargs):
+        raise AssertionError("booking draft edit should not create booking immediately")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {
+                "role": "model",
+                "content": "我幫你整理好訂位內容了。",
+                "booking_draft": {
+                    "shop_id": 10102,
+                    "shop_name": "太田日式燒肉",
+                    "date": "2026-06-19",
+                    "time": "19:00",
+                    "people": 4,
+                },
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
+    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
+    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("draft edit should bypass model")))
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "改成 20:00",
+            "test-web-booking-draft-edit-time",
+        )
+    ]
+
+    done = events[-1]
+    assert done["booking_draft"]["shop_id"] == 10102
+    assert done["booking_draft"]["people"] == 4
+    assert done["booking_draft"]["date"] == "2026-06-19"
+    assert done["booking_draft"]["time"] == "20:00"
+    assert done["transaction"] is None
+    assert "20:00" in done["answer"]
+    assert saved["history"][-1]["booking_draft"]["time"] == "20:00"
+
+
+@pytest.mark.anyio
 async def test_web_agent_stream_confirms_booking_draft_after_explicit_confirmation(monkeypatch):
     captured = {}
 
@@ -2763,6 +2809,45 @@ async def test_line_booking_draft_confirmation_creates_booking(monkeypatch):
     payload = json.dumps(messages[0], ensure_ascii=False)
     assert "BK-LINE-DRAFT" in payload
     assert "訂位已完成" in payload
+
+
+@pytest.mark.anyio
+async def test_line_booking_draft_update_changes_time(monkeypatch):
+    saved_draft = {}
+
+    monkeypatch.setattr(main, "_load_line_booking_state", lambda user_id: {})
+    monkeypatch.setattr(
+        main,
+        "_load_line_booking_draft_state",
+        lambda user_id: {
+            "shop_id": 10222,
+            "shop_name": "青田七六",
+            "date": "2026-06-19",
+            "time": "19:00",
+            "people": 4,
+            "table_type": "normal",
+        },
+    )
+    monkeypatch.setattr(main, "_load_line_recommendation_state", lambda user_id: {})
+    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda user_id, draft: saved_draft.update(draft))
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    messages = await main._build_line_reply_messages(
+        {
+            "type": "message",
+            "source": {"type": "user", "userId": "test-user"},
+            "message": {"type": "text", "text": "改成 20:00"},
+        }
+    )
+
+    assert saved_draft["shop_id"] == 10222
+    assert saved_draft["date"] == "2026-06-19"
+    assert saved_draft["time"] == "20:00"
+    assert saved_draft["people"] == 4
+    assert "已更新成「青田七六」2026-06-19 20:00、4 人" in messages[0]["text"]
+    assert messages[1]["type"] == "flex"
+    payload = json.dumps(messages[1], ensure_ascii=False)
+    assert "time=20%3A00" in payload
 
 
 @pytest.mark.anyio

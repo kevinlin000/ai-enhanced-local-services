@@ -3058,7 +3058,13 @@ def _compact_booking_prefill(prefill: dict | None) -> dict:
     return compact
 
 
-def _merge_booking_prefill(current: dict, draft: dict | None) -> dict:
+def _merge_booking_prefill(current: dict, draft: dict | None, *, override: bool = False) -> dict:
+    if override and isinstance(draft, dict):
+        merged = _compact_booking_prefill(draft)
+        for key in ("date", "time", "people", "table_type"):
+            if current.get(key) not in (None, ""):
+                merged[key] = current.get(key)
+        return merged
     merged = dict(current or {})
     if not isinstance(draft, dict):
         return merged
@@ -3097,6 +3103,20 @@ def _booking_confirm_intent(query: str) -> bool:
     )
 
 
+def _negative_selection_intent(query: str) -> bool:
+    normalized = re.sub(r"\s+", "", str(query or ""))
+    return any(token in normalized for token in ("不要", "不想要", "不訂", "換一家", "換別家", "其他家", "別間"))
+
+
+def _booking_draft_edit_intent(query: str) -> bool:
+    normalized = re.sub(r"\s+", "", str(query or ""))
+    if not normalized or _booking_confirm_intent(normalized):
+        return False
+    if _negative_selection_intent(normalized):
+        return False
+    return any(token in normalized for token in ("改成", "改到", "更改", "改一下", "換成", "換到", "改", "換"))
+
+
 def _booking_draft_missing(draft: dict) -> list[str]:
     missing = []
     if not draft.get("date"):
@@ -3129,7 +3149,7 @@ def _selection_index_from_text(text: str) -> int | None:
     if ordinal_match:
         value = _zh_number_to_int(ordinal_match.group(1))
         return value - 1 if value and value > 0 else None
-    prefix_match = re.search(r"(選|訂|要|看)([一二兩三四五六七八九十\d]{1,3})(間|家|個|張|名|項)", normalized)
+    prefix_match = re.search(r"(選|訂|要|看|換|改)([一二兩三四五六七八九十\d]{1,3})(間|家|個|張|名|項)", normalized)
     if prefix_match:
         value = _zh_number_to_int(prefix_match.group(2))
         return value - 1 if value and value > 0 else None
@@ -3192,11 +3212,13 @@ def _booking_selection_intent(query: str) -> bool:
     normalized = re.sub(r"\s+", "", str(query or "").strip())
     if not normalized or _payment_intent(normalized) or _line_more_recommendation_intent(normalized):
         return False
+    if _negative_selection_intent(normalized):
+        return False
     if _booking_intent(normalized):
         return True
     return bool(
         re.search(
-            r"(我要|我想要|選|要|就|訂).{0,4}(第[一二兩三四五六七八九十\d]{1,3}|[一二兩三四五六七八九十\d]{1,3})(間|家|個)",
+            r"(我要|我想要|選|要|就|訂|換|改).{0,4}(第[一二兩三四五六七八九十\d]{1,3}|[一二兩三四五六七八九十\d]{1,3})(間|家|個)",
             normalized,
         )
     )
@@ -3367,13 +3389,14 @@ def _agent_booking_followup_from_history(query: str, history: list[dict]) -> Too
         return None
     prefill = _line_booking_prefill_from_text(query)
     has_prefill = bool(prefill.get("date") or prefill.get("time") or prefill.get("people"))
-    if not has_prefill and not _booking_selection_intent(query) and not _booking_confirm_intent(query):
+    booking_draft = _latest_booking_draft(history)
+    edit_intent = _booking_draft_edit_intent(query) and bool(booking_draft)
+    if not has_prefill and not _booking_selection_intent(query) and not _booking_confirm_intent(query) and not edit_intent:
         return None
     if _same_day_datetime_request(query):
         return ToolGuardResult(action="direct", direct_answer=_same_day_booking_policy_answer())
 
-    booking_draft = _latest_booking_draft(history)
-    prefill = _merge_booking_prefill(prefill, booking_draft)
+    prefill = _merge_booking_prefill(prefill, booking_draft, override=edit_intent)
     recommendation = _latest_recommendation_context(history)
     shops = recommendation.get("shops") if isinstance(recommendation, dict) else []
     selected_shop = None
@@ -7497,6 +7520,55 @@ async def _build_line_booking_draft_confirmation(user_text: str, user_id: str) -
     return [_line_booking_flex_message(booking, "created", line_user_id=user_id)]
 
 
+async def _build_line_booking_draft_update(user_text: str, user_id: str) -> list[dict] | None:
+    if not _booking_draft_edit_intent(user_text):
+        return None
+    draft = _load_line_booking_draft_state(user_id)
+    if not draft:
+        return None
+    if _same_day_datetime_request(user_text):
+        return [build_text_message(_same_day_booking_policy_answer())]
+
+    state = _load_line_recommendation_state(user_id)
+    shown_ids = [
+        int(shop_id)
+        for shop_id in state.get("shown_shop_ids", [])
+        if str(shop_id).isdigit()
+    ]
+    shown_shops = [
+        shop
+        for shop in state.get("shown_shops", [])
+        if isinstance(shop, dict) and _shop_id(shop) in set(shown_ids)
+    ]
+
+    shop_id = int(draft.get("shop_id"))
+    shop_name = str(draft.get("shop_name") or f"店家 {shop_id}")
+    selected_shop = _recommended_shop_from_text(user_text, shown_shops) if shown_shops else None
+    selected_shop_id = _shop_id(selected_shop or {})
+    if selected_shop_id is not None:
+        shop_id = selected_shop_id
+        fetched = await _fetch_java_shop(shop_id)
+        shop_name = str((fetched or selected_shop or {}).get("name") or f"店家 {shop_id}")
+
+    prefill = _merge_booking_prefill(_line_booking_prefill_from_text(user_text), draft, override=True)
+    updated = _booking_draft_payload(shop_id, shop_name, prefill)
+    _save_line_booking_draft_state(user_id, updated)
+
+    missing = _booking_draft_missing(updated)
+    if missing:
+        return [
+            build_text_message(
+                f"我已更新訂位草稿，還缺{'、'.join(missing)}。請補齊後我再給你確認卡。"
+            )
+        ]
+    return [
+        build_text_message(
+            f"已更新成「{updated.get('shop_name')}」{updated.get('date')} {updated.get('time')}、{updated.get('people')} 人。請確認後再送出。"
+        ),
+        _line_booking_draft_flex_message(updated, line_user_id=user_id),
+    ]
+
+
 async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dict] | None:
     if not _line_booking_followup_intent(user_text):
         return None
@@ -7732,6 +7804,10 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     booking_draft_confirmation_messages = await _build_line_booking_draft_confirmation(user_text, user_id)
     if booking_draft_confirmation_messages is not None:
         return booking_draft_confirmation_messages
+
+    booking_draft_update_messages = await _build_line_booking_draft_update(user_text, user_id)
+    if booking_draft_update_messages is not None:
+        return booking_draft_update_messages
 
     advice_messages = await _build_line_recommendation_advice(user_text, user_id)
     if advice_messages is not None:
