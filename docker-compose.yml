@@ -1,3 +1,5 @@
+name: deploy
+
 services:
   rabbitmq:
     image: rabbitmq:3.13-management

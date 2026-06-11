@@ -31,11 +31,14 @@ public class AuthController {
     @Value("${line.oauth.frontend-url}")
     private String frontendUrl;
 
+    @Value("${line.oauth.cookie-path:/api/auth/line}")
+    private String oauthCookiePath;
+
     @GetMapping("/login")
     public void startLogin(HttpServletResponse resp) throws IOException {
         String state = UUID.randomUUID().toString();
         resp.addHeader("Set-Cookie", STATE_COOKIE + "=" + encode(state)
-                + "; Path=/api/auth/line; HttpOnly; SameSite=Lax; Max-Age=600");
+                + "; Path=" + oauthCookiePath + "; HttpOnly; SameSite=Lax; Max-Age=600");
         try {
             String url = lineOAuthService.buildAuthorizeUrl(state);
             resp.sendRedirect(url);
@@ -100,6 +103,6 @@ public class AuthController {
     }
 
     private void clearStateCookie(HttpServletResponse resp) {
-        resp.addHeader("Set-Cookie", STATE_COOKIE + "=; Path=/api/auth/line; HttpOnly; SameSite=Lax; Max-Age=0");
+        resp.addHeader("Set-Cookie", STATE_COOKIE + "=; Path=" + oauthCookiePath + "; HttpOnly; SameSite=Lax; Max-Age=0");
     }
 }
