@@ -165,8 +165,10 @@ export function AiConcierge() {
       setMessages((prev) => {
         const next = [...prev];
         const last = next[next.length - 1];
-        if (!last || last.role !== "ai") return [...prev, { role: "ai", content: "錯誤、再試一次" }];
-        next[next.length - 1] = { ...last, content: "錯誤、再試一次" };
+        if (!last || last.role !== "ai") {
+          return [...prev, { role: "ai", content: "錯誤、再試一次", done: true, statusLabel: "處理失敗" }];
+        }
+        next[next.length - 1] = { ...last, content: "錯誤、再試一次", done: true, statusLabel: "處理失敗" };
         return next;
       });
     } finally {

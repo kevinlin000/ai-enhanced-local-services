@@ -70,8 +70,36 @@ export type AgentStreamEvent =
     }
   | { type: "error"; message: string };
 
+type AgentResponse = {
+  answer?: string;
+  recommended_shop_ids?: Array<number | string>;
+  narrative?: string;
+  rejected_shop_ids?: number[];
+  rejection_summary?: string | null;
+  scope_note?: string | null;
+  transaction?: AgentTransaction | null;
+  shops?: unknown;
+  comparison_rows?: AgentComparisonRow[] | null;
+  tools_used?: string[];
+  tool_result?: unknown;
+  session_id?: string;
+};
+
 function isTerminalEvent(event: AgentStreamEvent): boolean {
   return event.type === "agent_end" || event.type === "done" || event.type === "agent_error" || event.type === "error";
+}
+
+async function fetchAgentFallback(
+  body: { query: string; session_id?: string },
+  headers: Record<string, string>,
+): Promise<AgentResponse> {
+  const res = await fetch("/api/ai/agent", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<AgentResponse>;
 }
 
 export async function streamAgentResponse(
@@ -82,6 +110,14 @@ export async function streamAgentResponse(
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
   const controller = new AbortController();
+  let receivedEvent = false;
+  let firstEventTimedOut = false;
+  const firstEventTimeout = window.setTimeout(() => {
+    if (!receivedEvent) {
+      firstEventTimedOut = true;
+      controller.abort();
+    }
+  }, 8_000);
   const timeout = window.setTimeout(() => controller.abort(), 45_000);
 
   try {
@@ -115,6 +151,8 @@ export async function streamAgentResponse(
         if (!line) continue;
         try {
           const parsed = JSON.parse(line.slice(6)) as AgentStreamEvent;
+          receivedEvent = true;
+          window.clearTimeout(firstEventTimeout);
           onEvent(parsed);
           if (isTerminalEvent(parsed)) {
             await reader.cancel().catch(() => {});
@@ -125,7 +163,29 @@ export async function streamAgentResponse(
         }
       }
     }
+  } catch (error) {
+    if (!receivedEvent && firstEventTimedOut) {
+      const fallback = await fetchAgentFallback(body, headers);
+      onEvent({
+        type: "agent_end",
+        answer: fallback.answer ?? "",
+        recommended_shop_ids: fallback.recommended_shop_ids,
+        narrative: fallback.narrative,
+        rejected_shop_ids: fallback.rejected_shop_ids,
+        rejection_summary: fallback.rejection_summary,
+        scope_note: fallback.scope_note,
+        transaction: fallback.transaction,
+        shops: fallback.shops,
+        comparison_rows: fallback.comparison_rows,
+        tools_used: fallback.tools_used,
+        tool_result: fallback.tool_result,
+        session_id: fallback.session_id ?? body.session_id,
+      });
+      return;
+    }
+    throw error;
   } finally {
+    window.clearTimeout(firstEventTimeout);
     window.clearTimeout(timeout);
   }
 }
