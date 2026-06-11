@@ -7,6 +7,7 @@ import hashlib
 import hmac
 import json
 import logging
+import os
 import re
 import time
 import httpx
@@ -64,6 +65,10 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+if settings.line_action_secret and not os.getenv("LINE_ACTION_SECRET"):
+    os.environ["LINE_ACTION_SECRET"] = settings.line_action_secret
+if settings.line_internal_webhook_secret and not os.getenv("LINE_INTERNAL_WEBHOOK_SECRET"):
+    os.environ["LINE_INTERNAL_WEBHOOK_SECRET"] = settings.line_internal_webhook_secret
 app = FastAPI(title="ByteBites AI Service", version="0.1.0")
 _agent_auth_token: contextvars.ContextVar[str] = contextvars.ContextVar("agent_auth_token", default="")
 app.add_middleware(
