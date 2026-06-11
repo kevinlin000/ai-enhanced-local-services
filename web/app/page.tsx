@@ -393,13 +393,13 @@ export default async function Home({
       <section className="border-b border-[#ded7c9] px-6 py-12 md:px-12 md:py-16">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1fr] lg:items-center">
           <div>
-            <p className="text-sm font-semibold tracking-normal text-[#b59a58]">AI 訂位決策平台</p>
-            <h1 className="mt-5 text-5xl font-semibold leading-[1.02] tracking-normal md:text-7xl">
-              從需求到入座
-              <span className="block text-[#b59a58]">一次排好</span>
+            <p className="text-sm font-semibold tracking-normal text-[#b59a58]">AI DINING OPERATIONS</p>
+            <h1 className="bb-display-serif mt-5 text-5xl leading-[1.04] tracking-normal md:text-7xl">
+              會推薦
+              <span className="block text-[#b59a58]">也會安排</span>
             </h1>
             <p className="mt-7 max-w-xl text-lg leading-8 text-zinc-600">
-              ByteBites 把餐廳搜尋、AI 推薦、訂位付款、候補通知與停車提醒接在同一個流程。你說需求，系統負責縮小選項並完成後續安排。
+              ByteBites 以 AI 判斷用餐情境，串接餐廳搜尋、訂位付款、候補通知與停車提醒。從選店到出發，每一步都有明確下一步。
             </p>
           </div>
 
@@ -407,8 +407,8 @@ export default async function Home({
             <div className="flex items-start gap-4">
               <Sparkles className="mt-1 h-8 w-8 fill-[#1c1914] text-[#1c1914]" />
               <div>
-                <h2 className="text-3xl font-semibold tracking-normal md:text-4xl">輸入需求，直接安排</h2>
-                <p className="mt-2 text-zinc-600">推薦、訂位、付款與通知同步處理</p>
+                <h2 className="text-3xl font-semibold tracking-normal md:text-4xl">說出需求，讓系統接手</h2>
+                <p className="mt-2 text-zinc-600">推薦、訂位、付款與通知同步整理</p>
               </div>
             </div>
             <Link

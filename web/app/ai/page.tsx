@@ -798,11 +798,11 @@ export default function AiPage() {
                 <p className="text-xs font-semibold tracking-normal text-[#b59a57]">
                   AI DINING CONCIERGE
                 </p>
-                <h1 className="mt-4 text-5xl font-semibold leading-[1.05] tracking-normal md:text-7xl">
-                  把用餐需求交給 AI
+                <h1 className="bb-display-serif mt-4 text-5xl leading-[1.06] tracking-normal md:text-7xl">
+                  把用餐安排交給 AI
                 </h1>
                 <p className="mx-auto mt-4 max-w-xl text-base leading-8 text-zinc-500">
-                  說出地點、料理、人數與時間。ByteBites AI 會整理選項，並把訂位、付款、候補通知接到同一個流程。
+                  說出地點、料理、人數與時間。ByteBites AI 會整理候選餐廳，並把訂位、付款與候補通知接到同一個流程。
                 </p>
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
                   {mounted && !isAuthLoading && !isLoggedIn ? (

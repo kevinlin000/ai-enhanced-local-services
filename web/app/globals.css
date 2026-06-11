@@ -219,6 +219,13 @@
     text-transform: uppercase;
   }
 
+  .bb-display-serif {
+    font-family: "Songti TC", "Noto Serif TC", "PingFang TC", "Microsoft JhengHei", serif;
+    font-weight: 600;
+    letter-spacing: 0;
+    font-kerning: normal;
+  }
+
   .bb-accent-rule {
     border-color: rgb(167 137 67 / 22%);
   }
