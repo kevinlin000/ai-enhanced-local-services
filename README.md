@@ -9,9 +9,21 @@
 
 Most restaurant products stop at discovery: browse restaurants, open a detail page, and leave the rest to the user. ByteBites goes further. A user can describe a dining need in natural language, receive structured recommendations, reserve a table, pay a demo deposit, receive LINE status updates, set availability notifications, and get parking guidance before the booking.
 
-這個專案不是靜態展示頁。它累積了 **480+ commits**，從 Spring Boot 在地化後端，演進成包含資料爬蟲、語意搜尋、評論分析、跨通路身份同步、交易狀態 contract、LINE bot、停車提醒與公開 demo 部署的完整 AI 產品。
+這個專案不是靜態展示頁。它累積了 **493 commits**，從 Spring Boot 在地化後端，演進成包含資料爬蟲、語意搜尋、評論分析、跨通路身份同步、交易狀態 contract、LINE bot、停車提醒與公開 demo 部署的完整 AI 產品。
 
-This is not a static showcase. Across **480+ commits**, the system evolved from a localized Spring Boot backend into a full-stack AI product with data pipelines, semantic search, review intelligence, cross-channel identity sync, transaction contracts, LINE bot integration, parking reminders, and demo deployment.
+This is not a static showcase. Across **493 commits**, the system evolved from a localized Spring Boot backend into a full-stack AI product with data pipelines, semantic search, review intelligence, cross-channel identity sync, transaction contracts, LINE bot integration, parking reminders, and demo deployment.
+
+## 發表重點 / Presentation Focus
+
+ByteBites 最值得展示的不是「有聊天機器人」，而是把 AI 放進真實用餐流程：從模糊需求、資料檢索、候選餐廳、訂位、付款、取消、候補、LINE 通知到停車提醒，全部有狀態、有 contract、有測試。這讓它更像一個 AI dining operations product，而不是 prompt demo。
+
+The key presentation point is not that ByteBites has a chatbot. It is that AI is embedded into an operational dining workflow: ambiguous intent, retrieval, recommendations, booking, payment, cancellation, waitlist, LINE notifications, and parking reminders all share state, contracts, and tests.
+
+Fast links:
+
+- [Presentation Guide / 發表指南](docs/presentation-guide.md)
+- [Project Journey / 專案演進總覽](docs/project-journey.md)
+- [Case Studies Index / 工程案例索引](docs/case-studies/README.md)
 
 ## 核心能力 / What It Does
 
@@ -162,6 +174,9 @@ ETL / data quality
 
 12. [Premium UI 不是變成 inline clone — 找回 ByteBites 的品牌定位](docs/case-studies/12-premium-ui-positioning.md)  
     Typography, product copy, visual identity, and the trade-off between premium aesthetics and differentiation.
+
+13. [AI Concierge 品質硬化 — 從會回答到可靠接待](docs/case-studies/13-ai-concierge-quality-hardening.md)
+    Dining-intent routing, vague-need clarification, cuisine/district constraints, context reranking, and customer-service tone hardening.
 
 ## 專案結構 / Project Structure
 

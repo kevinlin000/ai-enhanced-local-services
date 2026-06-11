@@ -1,14 +1,70 @@
 # Roadmap
 
-> 本專案以 **6 個月主線（v1.0）+ 階段性擴充** 的方式推進。
-> 已完成項目以 ✅ 標示；進行中為 🚧；規劃中為 📋。
-> 「不會做的事」是刻意排除的範圍，用於說明設計決策。
+> This roadmap is presentation-oriented. It separates what is already demo-ready, what is intentionally shown as a prototype, and what should become the next product moat.
+
+## Current Demo Baseline — 2026-06-11
+
+| Area | Status |
+|---|---|
+| Data | 600 active Taipei shops, crawler coverage reports, Qdrant payload sync, legacy seed cleanup |
+| Web | Premium app shell, discovery, AI chat, shop detail, booking/payment, favorites, notifications, merchant console |
+| LINE | Messaging bot, LINE Login, recommendation cards, booking/payment/cancel notifications |
+| AI | Semantic search, hard constraints, dialogue state, clarification policy, response contract, regression tests |
+| Booking | Web/LINE booking lifecycle, demo payment, cancellation, availability release |
+| Parking | Nearby parking data, driving preference, scheduled reminders, demo spot hold concept |
+| Deployment | Docker Compose infra, ngrok public demo, health checks for Java and AI |
+
+## Highest-CP Work Before Presentation
+
+- ✅ Keep demo URL, Java, AI, and Web health stable.
+- ✅ Use the public presentation guide and case studies as the core story.
+- ✅ Demo AI with one clear query, one vague query, and one context-heavy query.
+- 🚧 Tighten security boundaries where possible without breaking the public demo.
+- 🚧 Keep README, case studies, and report narrative synchronized with current features.
+
+## Next Product Moats
+
+These are the highest-value next steps after the presentation.
+
+1. **Private Preference Memory**
+   - Remember quiet-seat preference, disliked ingredients, "do not recommend again", favorite cuisines, and previous booking patterns.
+   - Use it to make Web AI and LINE AI feel like the same concierge over time.
+
+2. **Conversational Booking Changes**
+   - Support "改 8 點，同樣 4 位" and "換成明天晚上".
+   - AI should check availability, confirm the new state, and notify LINE.
+
+3. **Private AI-Matched Offers**
+   - Avoid public coupon pages.
+   - Trigger private offers only for high-intent users, off-peak capacity, or likely churn.
+
+4. **Group Dining Decision Flow**
+   - Share link in group chat.
+   - Members vote on time, budget, district, dietary restrictions.
+   - AI returns top options and one-click booking.
+
+5. **Incident Handling**
+   - Restaurant delay, user late arrival, full capacity, weather or parking issue.
+   - AI coordinates alternatives and sends clear LINE updates.
+
+## Demo Boundaries
+
+- Demo payment proves state transition and notification contract, not real production settlement.
+- Demo parking spot hold shows product direction, not confirmed operator-side parking reservation.
+- Parking availability depends on upstream/cache update cadence.
+- Recommendation is advisory; store announcements and real venue policies remain the source of truth.
+
+---
+
+## Historical Planning Notes
+
+The section below preserves earlier planning context. Some items have already been completed or superseded by the current demo baseline above.
 
 ---
 
 ## v1.0 — 主線（進行中，預計 2026 年 10 月完成）
 
-> 目標：完成一個可投履歷、可上線 demo、可作為成大期末作品的完整版本。
+> 目標：完成一個可投履歷、可公開展示、可作為 portfolio-grade product demo 的完整版本。
 
 ### 工程基礎建設
 - ✅ Spring Boot 2.7 → 3.2.5 升級
