@@ -109,6 +109,7 @@ export function BookingButton({
   const holdExpired = Boolean(
     holdExpiresAt && new Date(holdExpiresAt).getTime() <= nowMs,
   );
+  const loginRequired = mounted && !isAuthLoading && !isLoggedIn;
 
   // 開啟 form 時查訂金政策（只查一次）
   useEffect(() => {
@@ -390,8 +391,8 @@ export function BookingButton({
         size="lg"
         onClick={() => {
           if (mounted && isAuthLoading) return;
-          if (mounted && !isLoggedIn) {
-            setError("請先用 LINE 登入，再建立訂位。");
+          if (loginRequired) {
+            setError("");
             setStep("form");
             return;
           }
@@ -399,7 +400,7 @@ export function BookingButton({
         }}
         className="flex-1 sm:flex-none"
       >
-        立即訂位
+        {loginRequired ? "登入後訂位" : "立即訂位"}
       </Button>
     );
   }
@@ -413,18 +414,18 @@ export function BookingButton({
           <p className="text-base font-medium mb-1">訂位資訊</p>
           <p className="text-xs text-muted-foreground mb-4">{shop.name}</p>
 
-          {mounted && !isAuthLoading && !isLoggedIn ? (
+          {loginRequired ? (
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
-              <p className="font-semibold">請先用 LINE 登入</p>
+              <p className="font-semibold">登入後即可訂位</p>
               <p className="mt-1 text-xs leading-5 text-amber-800">
-                訂位、付款、取消通知會綁定你的 LINE 帳號，登入後才能同步到「我的訂位」。
+                你可以先查看完整餐廳資料；建立訂位、付款、取消與 LINE 通知需要登入。
               </p>
               <button
                 type="button"
                 onClick={login}
                 className="mt-3 w-full rounded-md bg-emerald-700 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-800"
               >
-                用 LINE 登入
+                用 LINE 登入並繼續訂位
               </button>
             </div>
           ) : null}

@@ -780,6 +780,9 @@ export default async function ShopDetailPage({
               {shop.address ? (
                 <p className={`text-sm mt-2 ${coverPhoto ? "text-white/85" : "text-foreground/70"}`}>{shop.address}</p>
               ) : null}
+              <p className={`mt-3 text-xs ${coverPhoto ? "text-white/75" : "text-muted-foreground"}`}>
+                免登入可查看完整餐廳資料；訂位、收藏與通知會在操作時要求 LINE 登入。
+              </p>
             </div>
           </div>
         </div>

@@ -380,7 +380,10 @@ function ShopsPageContent() {
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-normal">餐廳探索</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {options?.totalShops ?? "—"} 家台北餐廳資料，依料理、區域、捷運、評價與訂位訊號快速縮小範圍
+            {options?.totalShops ?? "—"} 家台北餐廳資料，依料理、區域、捷運、評價與訂位訊號快速縮小範圍。
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground/80">
+            免登入可瀏覽完整店家資訊；訂位、收藏與候補通知會在操作時要求 LINE 登入。
           </p>
         </div>
 
@@ -868,7 +871,7 @@ function ShopsPageContent() {
                       )}
 
                       <div className="mt-4 border-t border-[rgb(222_216_203_/_0.72)] pt-3 text-xs font-medium text-muted-foreground transition-colors group-hover:text-[var(--bb-gold)]">
-                        查看資料與訂位
+                        查看完整資料
                       </div>
                     </div>
                   </div>

@@ -67,6 +67,9 @@ export function FavoriteShopButton({ shopId, compact = false, inverted = false }
   const base = compact
     ? "inline-flex h-10 w-10 items-center justify-center rounded-full border"
     : "inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-black";
+  const loginRequired = mounted && !isAuthLoading && !isLoggedIn;
+  const label = loginRequired ? "登入收藏" : favorited ? "已收藏" : "收藏餐廳";
+  const ariaLabel = loginRequired ? "登入後收藏餐廳" : favorited ? "取消收藏餐廳" : "收藏餐廳";
   const tone = favorited
     ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
     : inverted
@@ -79,11 +82,12 @@ export function FavoriteShopButton({ shopId, compact = false, inverted = false }
       onClick={toggle}
       disabled={loading || busy}
       aria-pressed={favorited}
-      aria-label={favorited ? "取消收藏餐廳" : "收藏餐廳"}
+      aria-label={ariaLabel}
+      title={ariaLabel}
       className={`${base} ${tone} disabled:cursor-not-allowed disabled:opacity-60`}
     >
       <Heart className={`h-4 w-4 ${favorited ? "fill-current" : ""}`} />
-      {compact ? null : <span>{favorited ? "已收藏" : "收藏餐廳"}</span>}
+      {compact ? null : <span>{label}</span>}
     </button>
   );
 }
