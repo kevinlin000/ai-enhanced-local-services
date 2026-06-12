@@ -5,5 +5,7 @@
 {"id":"line_exact_recommended_shop_booking_draft","surface":"line","query":"我要訂位 辛殿麻辣鍋｜信義店 明天 2人 晚上19:00","quality_gate":"LINE 推薦後使用完整店名訂位，必須產生確認卡"}
 {"id":"line_booking_draft_edit_time","surface":"line","query":"改成 20:00","quality_gate":"LINE 已有草稿時，改時間必須更新草稿並重新回確認卡"}
 {"id":"line_negative_selection_more_results","surface":"line","query":"不要第二間，換一家","quality_gate":"負向選擇必須找更多候選，不可誤判成訂第二間或換到第二間"}
+{"id":"demo_story_department_group_recommends_with_reasons","surface":"web","query":"明天晚上 7 點，7 個人部門聚餐，想找大安區適合聊天、不會太吵的餐廳。","quality_gate":"部門聚餐 demo 必須推薦並說出多人、聊天/不吵、可訂位/候位的理由"}
+{"id":"demo_story_family_driving_recommends_with_parking","surface":"web","query":"週六晚上要帶爸媽吃飯，想找信義區附近適合家庭聚餐、方便開車的餐廳。","quality_gate":"開車家庭聚餐 demo 必須推薦並說出家庭/長輩與停車提醒/車位保留展示"}
 {"id":"hard_constraint_business_taiwanese","surface":"ranking","query":"適合商務請客的台菜","quality_gate":"台菜/商務意圖必須壓過向量相似度，排除韓式誤分類與餐酒館填充"}
 {"id":"hard_constraint_korean_cuisine","surface":"ranking","query":"韓式料理","quality_gate":"韓式料理必須能命中韓式語意，不可被中式/日式燒肉分類吞掉"}

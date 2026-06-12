@@ -646,6 +646,10 @@ def _line_recommendation_intro(count: int) -> str:
 
 
 def _recommendation_reason_for_shop(shop: dict, answer: str) -> str:
+    match_reason = str(shop.get("match_reason") or "").strip()
+    if match_reason:
+        return _truncate(_plain_line_text(match_reason), 140)
+
     summary = str(shop.get("ai_summary") or "").strip()
     if summary and not _is_generic_line_summary(summary):
         return _truncate(_plain_line_text(summary), 140)

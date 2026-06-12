@@ -2758,6 +2758,83 @@ def _agent_query_basis_label(query: str) -> str:
     return " / ".join(parts[:4]) if parts else "地點、料理與用餐情境"
 
 
+def _agent_query_context_labels(query: str) -> list[str]:
+    normalized = str(query or "")
+    labels: list[str] = []
+    if re.search(r"(部門|公司|團隊|同事).{0,8}聚餐|聚餐.{0,8}(部門|公司|團隊|同事)", normalized):
+        labels.append("部門聚餐")
+    elif re.search(r"多人|[五六七八九十\d]+人", normalized):
+        labels.append("多人聚餐")
+    if re.search(r"家庭|爸媽|父母|長輩|親子|小孩", normalized):
+        labels.append("家庭聚餐")
+    if re.search(r"聊天|不會太吵|不要太吵|安靜|好聊|久坐", normalized):
+        labels.append("安靜聊天")
+    if re.search(r"開車|停車|車位|導航", normalized):
+        labels.append("開車用餐")
+    if re.search(r"商務|請客|宴客|正式", normalized):
+        labels.append("商務請客")
+    deduped: list[str] = []
+    for label in labels:
+        if label not in deduped:
+            deduped.append(label)
+    return deduped
+
+
+def _agent_story_frame(query: str) -> str:
+    labels = _agent_query_context_labels(query)
+    if "部門聚餐" in labels:
+        return "我會優先看三件事：多人座位是否合適、環境是否適合聊天、熱門時段能不能接訂位或候位。"
+    if "家庭聚餐" in labels and "開車用餐" in labels:
+        return "我會優先看三件事：是否適合長輩同行、地點是否方便抵達、訂位後能不能接停車提醒與車位保留展示。"
+    if "開車用餐" in labels:
+        return "我會把開車抵達一起納入考量，推薦後可接店家詳情的附近停車與車位保留展示。"
+    if "安靜聊天" in labels:
+        return "我會優先避開太吵、太像酒吧或桌距偏近的選項，先看適合聊天的餐廳。"
+    return ""
+
+
+def _agent_shop_match_reason(query: str, shop: dict) -> str:
+    labels = _agent_query_context_labels(query)
+    prefill = _line_booking_prefill_from_text(query)
+    if not labels and not (prefill.get("date") or prefill.get("time") or prefill.get("people")):
+        return ""
+
+    constraints = _extract_query_constraints(query)
+    reasons: list[str] = []
+    districts = constraints.get("districts") or []
+    if districts and _district_matches(constraints, shop):
+        reasons.append(f"符合{districts[0]}區")
+    stations = constraints.get("stations") or []
+    if stations and _station_proximity_score(constraints, shop) > 0:
+        reasons.append(f"靠近{stations[0]}站")
+
+    text = _payload_text(shop)
+    tags = "、".join(_parse_json_list(shop.get("atmosphere_tags")))
+    evidence = f"{text} {tags}"
+    if "部門聚餐" in labels:
+        reasons.append("適合部門聚餐")
+    elif "多人聚餐" in labels:
+        reasons.append("適合多人聚餐")
+    if "家庭聚餐" in labels:
+        reasons.append("適合家庭與長輩同行")
+    if "安靜聊天" in labels:
+        if any(token in evidence for token in ("安靜", "聊天", "舒適", "寬敞", "包廂", "桌距")):
+            reasons.append("有聊天與舒適度線索")
+        else:
+            reasons.append("已避開明顯吵雜類型")
+    if "開車用餐" in labels:
+        reasons.append("訂位後可接停車提醒")
+
+    if prefill.get("date") or prefill.get("time") or prefill.get("people"):
+        reasons.append("可接訂位或額滿候位")
+
+    deduped: list[str] = []
+    for reason in reasons:
+        if reason and reason not in deduped:
+            deduped.append(reason)
+    return "、".join(deduped[:3])
+
+
 def _agent_display_shop_name(shop: dict, index: int) -> str:
     name = str(shop.get("name") or f"店家 {index}").strip()
     for separator in ("（", "(", "/", "｜", "|"):
@@ -2795,10 +2872,14 @@ def _agent_context_best_for_label(query: str, shop: dict) -> str:
 
 
 def _agent_shop_best_for(shop: dict, query: str) -> str:
+    query_labels = _agent_query_context_labels(query)
     contextual = _agent_context_best_for_label(query, shop)
     base_items = [item for item in _agent_comparison_best_for(shop).split("、") if item]
     merged: list[str] = []
-    if contextual:
+    for label in query_labels:
+        if label not in merged:
+            merged.append(label)
+    if contextual and contextual not in merged:
         merged.append(contextual)
     if "聚餐" in str(query or "") and "聚餐" in _payload_text(shop) and "聚餐" not in merged:
         merged.append("聚餐")
@@ -2807,15 +2888,29 @@ def _agent_shop_best_for(shop: dict, query: str) -> str:
             continue
         if item not in merged:
             merged.append(item)
-    return "、".join(merged[:2])
+    return "、".join(merged[:3])
+
+
+def _agent_booking_status_for_query(shop: dict, query: str) -> str:
+    status = _agent_comparison_booking_status(shop)
+    prefill = _line_booking_prefill_from_text(query)
+    if prefill.get("date") or prefill.get("time") or prefill.get("people"):
+        if "候位" not in status and "空位通知" not in status:
+            status = f"{status}；額滿可候位通知"
+    if "開車用餐" in _agent_query_context_labels(query) and "停車" not in status:
+        status = f"{status}；訂位後可開停車提醒"
+    return status
 
 
 def _agent_shop_line(shop: dict, index: int, query: str = "") -> str:
     name = _agent_display_shop_name(shop, index)
     feature = _agent_shop_feature(shop)
+    match_reason = _agent_shop_match_reason(query, shop)
     best_for = _agent_shop_best_for(shop, query)
-    booking = _agent_comparison_booking_status(shop)
+    booking = _agent_booking_status_for_query(shop, query)
     parts = [feature]
+    if match_reason:
+        parts.append(match_reason)
     if best_for:
         parts.append(f"適合 {best_for}")
     if booking:
@@ -2825,10 +2920,16 @@ def _agent_shop_line(shop: dict, index: int, query: str = "") -> str:
 
 def _agent_recommendation_cta(query: str) -> str:
     prefill = _line_booking_prefill_from_text(query)
+    labels = _agent_query_context_labels(query)
+    suffix = ""
+    if "開車用餐" in labels:
+        suffix = "訂位完成後也能接停車提醒與車位保留展示。"
+    elif prefill.get("date") or prefill.get("time") or prefill.get("people"):
+        suffix = "如果該時段額滿，可以改設定候位 / 空位通知，不用自己重刷。"
     if prefill.get("date") and prefill.get("time") and prefill.get("people"):
-        return "下一步：如果你要其中一間，我可以接著幫你建立訂位。"
+        return f"下一步：如果你要其中一間，我可以接著幫你建立訂位。{suffix}"
     if prefill.get("date") or prefill.get("time") or prefill.get("people"):
-        return "下一步：再補齊日期、時間與人數，我就能把訂位流程接上。"
+        return f"下一步：再補齊日期、時間與人數，我就能把訂位流程接上。{suffix}"
     return "下一步：告訴我日期、時間與人數，我可以直接幫你查可訂並接到訂位流程。"
 
 
@@ -2849,6 +2950,9 @@ def _agent_concierge_narrative(
     else:
         lead = f"我先用「{basis}」幫你篩，優先看這 {count} 家。"
     lines = [lead]
+    frame = _agent_story_frame(query)
+    if frame:
+        lines.append(frame)
     lines.extend(_agent_shop_line(shop, index, query) for index, shop in enumerate(selected, start=1))
     lines.append(_agent_recommendation_cta(query))
     return "\n".join(lines)
@@ -2964,19 +3068,20 @@ def _selected_agent_response_shops(tool_result: dict) -> list[dict]:
     return shops[: min(3, len(shops))]
 
 
-def _agent_comparison_rows(shops: list[dict]) -> list[dict]:
+def _agent_comparison_rows(shops: list[dict], query: str = "") -> list[dict]:
     rows: list[dict] = []
     for shop in shops:
         shop_id = _shop_id(shop)
         if shop_id is None:
             continue
+        match_reason = _agent_shop_match_reason(query, shop)
         rows.append(
             {
                 "shop_id": shop_id,
                 "name": shop.get("name"),
-                "feature_highlight": _agent_comparison_feature(shop),
-                "best_for": _agent_comparison_best_for(shop),
-                "booking_status": _agent_comparison_booking_status(shop),
+                "feature_highlight": match_reason or _agent_comparison_feature(shop),
+                "best_for": _agent_shop_best_for(shop, query) or _agent_comparison_best_for(shop),
+                "booking_status": _agent_booking_status_for_query(shop, query),
                 "meta": _agent_comparison_meta(shop),
             }
         )
@@ -2993,7 +3098,7 @@ def _agent_response_contract(tool_result: dict) -> dict:
     shops = _selected_agent_response_shops(tool_result) if isinstance(tool_result, dict) else []
     if shops:
         contract["shops"] = shops
-        contract["comparison_rows"] = _agent_comparison_rows(shops)
+        contract["comparison_rows"] = _agent_comparison_rows(shops, str(tool_result.get("query") or ""))
     return contract
 
 
@@ -6631,7 +6736,7 @@ async def _build_agent_search_result(
     shops: list[dict],
     recommended_shop_ids: list[int] | None = None,
 ) -> dict:
-    result = {"shops": shops}
+    result = {"query": query, "shops": shops}
     return await _enrich_agent_search_result(query, result, recommended_shop_ids)
 
 
@@ -6658,7 +6763,13 @@ async def _enrich_agent_search_result(
             if (sid := _shop_id(shop)) is not None
         ]
 
+    tool_result["query"] = query
     tool_result["shops"] = await _hydrate_agent_search_shops(shops, selected_ids)
+    for shop in tool_result["shops"]:
+        if isinstance(shop, dict):
+            reason = _agent_shop_match_reason(query, shop)
+            if reason:
+                shop["match_reason"] = reason
     selected_shops = _shops_for_ids(tool_result["shops"], selected_ids)
     scope_note = _search_scope_note(query, selected_shops)
     if scope_note:

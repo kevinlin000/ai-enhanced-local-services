@@ -14,6 +14,8 @@ EXPECTED_CASE_IDS = {
     "line_exact_recommended_shop_booking_draft",
     "line_booking_draft_edit_time",
     "line_negative_selection_more_results",
+    "demo_story_department_group_recommends_with_reasons",
+    "demo_story_family_driving_recommends_with_parking",
     "hard_constraint_business_taiwanese",
     "hard_constraint_korean_cuisine",
 }
@@ -267,6 +269,134 @@ async def test_eval_line_draft_update_and_negative_selection(monkeypatch):
     assert captured_search["query"] == "中山區適合聚餐"
     assert any(message.get("type") == "flex" for message in more_messages)
     assert saved_draft["shop_id"] == 10103
+
+
+@pytest.mark.anyio
+async def test_eval_demo_story_department_group_recommendation(monkeypatch):
+    class FakeResponse:
+        text = json.dumps(
+            {
+                "recommended_shop_ids": [201, 202],
+                "narrative": "我會優先看這兩家。",
+                "rejected_shop_ids": [203],
+            },
+            ensure_ascii=False,
+        )
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        assert "部門聚餐" in query
+        return [
+            {
+                "shop_id": 201,
+                "name": "大安會館",
+                "district": "大安",
+                "mrt_station": "大安",
+                "category_slug": "chinese",
+                "avg_price": 900,
+                "ai_summary": "桌距寬敞，適合多人合菜與聊天。",
+                "signature_dishes": ["砂鍋雞湯", "合菜"],
+                "atmosphere_tags": ["聚餐", "安靜", "包廂"],
+                "booking_difficulty": "預約困難",
+            },
+            {
+                "shop_id": 202,
+                "name": "仁愛聚餐廳",
+                "district": "大安",
+                "mrt_station": "信義安和",
+                "category_slug": "japanese",
+                "avg_price": 1100,
+                "ai_summary": "座位舒適，適合公司聚餐。",
+                "signature_dishes": ["套餐", "烤物"],
+                "atmosphere_tags": ["聚餐", "舒適"],
+                "booking_difficulty": "建議提前預約",
+            },
+            {
+                "shop_id": 203,
+                "name": "深夜餐酒館",
+                "district": "大安",
+                "category_slug": "izakaya",
+                "ai_summary": "小酌熱鬧，尖峰音量較高。",
+                "signature_dishes": ["調酒"],
+                "atmosphere_tags": ["餐酒館", "熱鬧"],
+                "booking_difficulty": "未提及",
+            },
+        ]
+
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(main.session_store, "load_history", lambda session_id: [])
+    monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: None)
+
+    query = "明天晚上 7 點，7 個人部門聚餐，想找大安區適合聊天、不會太吵的餐廳。"
+    done = await _collect_web_done(query, "eval-demo-story-department")
+
+    assert done["tools_used"] == ["semantic_shop_search"]
+    assert "部門聚餐" in done["answer"]
+    assert "聊天" in done["answer"]
+    assert "候位" in done["answer"] or "空位通知" in done["answer"]
+    assert done["recommended_shop_ids"] == [201, 202]
+    assert done["comparison_rows"][0]["feature_highlight"].startswith("符合大安區")
+    assert "部門聚餐" in done["comparison_rows"][0]["best_for"]
+    assert "額滿可候位通知" in done["comparison_rows"][0]["booking_status"]
+
+
+@pytest.mark.anyio
+async def test_eval_demo_story_family_driving_recommendation(monkeypatch):
+    class FakeResponse:
+        text = json.dumps(
+            {
+                "recommended_shop_ids": [301, 302],
+                "narrative": "我會優先看這兩家。",
+                "rejected_shop_ids": [],
+            },
+            ensure_ascii=False,
+        )
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        assert "方便開車" in query
+        return [
+            {
+                "shop_id": 301,
+                "name": "信義家庭小館",
+                "district": "信義",
+                "mrt_station": "市政府",
+                "category_slug": "chinese",
+                "avg_price": 700,
+                "ai_summary": "空間舒適，適合家庭與長輩同行。",
+                "signature_dishes": ["雞湯", "合菜"],
+                "atmosphere_tags": ["家庭", "舒適", "聚餐"],
+                "booking_difficulty": "可線上訂位",
+            },
+            {
+                "shop_id": 302,
+                "name": "松壽長輩聚餐",
+                "district": "信義",
+                "mrt_station": "象山",
+                "category_slug": "japanese",
+                "avg_price": 950,
+                "ai_summary": "座位安靜，適合長輩聚餐。",
+                "signature_dishes": ["定食", "鍋物"],
+                "atmosphere_tags": ["長輩", "安靜"],
+                "booking_difficulty": "建議提前預約",
+            },
+        ]
+
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(main.session_store, "load_history", lambda session_id: [])
+    monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: None)
+
+    query = "週六晚上要帶爸媽吃飯，想找信義區附近適合家庭聚餐、方便開車的餐廳。"
+    done = await _collect_web_done(query, "eval-demo-story-family-driving")
+
+    assert done["tools_used"] == ["semantic_shop_search"]
+    assert "家庭" in done["answer"]
+    assert "停車提醒" in done["answer"]
+    assert "車位保留展示" in done["answer"]
+    assert done["recommended_shop_ids"] == [301, 302]
+    assert "家庭聚餐" in done["comparison_rows"][0]["best_for"]
+    assert "開車用餐" in done["comparison_rows"][0]["best_for"]
+    assert "停車" in done["comparison_rows"][0]["booking_status"]
 
 
 def test_eval_hard_constraints_for_business_taiwanese_and_korean():
