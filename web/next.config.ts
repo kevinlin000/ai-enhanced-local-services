@@ -28,6 +28,16 @@ const nextConfig: NextConfig = {
         source: "/api/ai/:path*",
         destination: `${aiApiProxyTarget}/api/ai/:path*`,
       },
+      {
+        // LINE webhook endpoints exposed through the public ngrok web domain.
+        source: "/api/line/:path*",
+        destination: `${aiApiProxyTarget}/api/line/:path*`,
+      },
+      {
+        // LINE rich-menu / Flex card actions such as /line/book/* live in AI service.
+        source: "/line/:path*",
+        destination: `${aiApiProxyTarget}/line/:path*`,
+      },
     ];
   },
 };

@@ -144,6 +144,27 @@ def test_agent_recommendation_cta_lists_only_missing_booking_fields(monkeypatch)
     assert "停車提醒與車位保留展示" in cta
 
 
+def test_demo_story_recommended_shop_ids_aligns_line_cards_with_web():
+    shops = [
+        {"shop_id": 10113, "name": "KiKi餐廳（ATT 4 FUN信義店）"},
+        {"shop_id": 10598, "name": "香旬 日式料理"},
+        {"shop_id": 10225, "name": "吟鮮熱炒食堂"},
+        {"shop_id": 10111, "name": "鼎泰豐 A4店"},
+        {"shop_id": 10673, "name": "光司DATE 義大利麵 大安店"},
+        {"shop_id": 10610, "name": "Lazy Pasta 慵懶義式廚房大安國館店"},
+        {"shop_id": 10709, "name": "知初植物系永續廚房"},
+    ]
+
+    assert main._demo_story_recommended_shop_ids(
+        "週六晚上要帶爸媽吃飯，想找信義區附近適合家庭聚餐、方便開車的餐廳。",
+        shops,
+    ) == [10598, 10225, 10111]
+    assert main._demo_story_recommended_shop_ids(
+        "明天晚上 7 點，部門 7 個人聚餐，想找大安區適合聊天、不會太吵的義式餐廳。",
+        shops,
+    ) == [10673, 10610, 10709]
+
+
 def test_agent_comparison_rows_use_short_display_names():
     rows = main._agent_comparison_rows(
         [

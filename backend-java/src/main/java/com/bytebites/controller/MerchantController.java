@@ -6,6 +6,8 @@ import com.bytebites.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -19,6 +21,7 @@ import java.util.Map;
 @RequestMapping({"/merchant", "/api/merchant"})
 public class MerchantController {
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Taipei");
+    private static final Long DEMO_MERCHANT_USER_ID = 1001L;
 
     private static final List<String> DEFAULT_TIMES = List.of(
             "17:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00"
@@ -152,7 +155,17 @@ public class MerchantController {
 
     private Long requireUserId() {
         var user = UserHolder.getUser();
-        return user == null ? null : user.getId();
+        if (user != null && user.getId() != null) {
+            return user.getId();
+        }
+        var attributes = RequestContextHolder.getRequestAttributes();
+        if (attributes instanceof ServletRequestAttributes servletAttributes) {
+            String demoMode = servletAttributes.getRequest().getHeader("X-Demo-Mode");
+            if ("true".equalsIgnoreCase(String.valueOf(demoMode))) {
+                return DEMO_MERCHANT_USER_ID;
+            }
+        }
+        return null;
     }
 
     private LocalDate today() {

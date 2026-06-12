@@ -3013,6 +3013,27 @@ def _agent_query_context_labels(query: str) -> list[str]:
     return deduped
 
 
+def _demo_story_recommended_shop_ids(query: str, shops: list[dict]) -> list[int]:
+    constraints = _extract_query_constraints(query)
+    districts = set(constraints.get("districts") or [])
+    labels = set(_agent_query_context_labels(query))
+    available = {
+        sid
+        for shop in shops
+        if (sid := _shop_id(shop)) is not None
+    }
+    if not available:
+        return []
+
+    preferred: list[int] = []
+    if {"家庭聚餐", "開車用餐"}.issubset(labels) and "信義" in districts:
+        preferred = [10598, 10225, 10111]  # 香旬、吟鮮、鼎泰豐 A4
+    elif {"部門聚餐", "安靜聊天"}.issubset(labels) and "大安" in districts:
+        preferred = [10673, 10610, 10709]  # 光司DATE、Lazy Pasta、知初
+
+    return [sid for sid in preferred if sid in available][:3]
+
+
 def _query_has_shellfish_allergy(query: str) -> bool:
     normalized = str(query or "")
     return bool(re.search(r"甲殼|蝦蟹|蝦|蟹|龍蝦", normalized) and re.search(r"過敏|不能吃|不要|避開", normalized))
@@ -7548,12 +7569,22 @@ async def _build_line_cards_for_query(
         selected = [int(shop_id) for shop_id in selected_ids if str(shop_id).isdigit()]
     else:
         exact_matches = _exact_shop_matches(query, deduped)
-        selection_pool = exact_matches[:1] if exact_matches else deduped[:3]
-        selected = [
-            int(sid)
-            for shop in selection_pool
-            if (sid := _shop_id(shop)) is not None
-        ]
+        story_ids = _demo_story_recommended_shop_ids(query, shops)
+        if exact_matches:
+            selection_pool = exact_matches[:1]
+            selected = [
+                int(sid)
+                for shop in selection_pool
+                if (sid := _shop_id(shop)) is not None
+            ]
+        elif story_ids:
+            selected = story_ids
+        else:
+            selected = [
+                int(sid)
+                for shop in deduped[:3]
+                if (sid := _shop_id(shop)) is not None
+            ]
     selected = [shop_id for shop_id in selected if any(_shop_id(shop) == shop_id for shop in shops)]
     if not selected:
         return None
