@@ -27,6 +27,28 @@ function addDaysIso(days: number) {
 
 const MIN_BOOKING_DATE = addDaysIso(1);
 
+const DEFAULT_DEMO_SHOP_PRIORITY = [10673, 10709, 10113, 10108, 10115, 10102, 10116];
+
+const DEMO_STORY_BY_SHOP_ID: Record<number, { label: string; detail: string }> = {
+  10673: { label: "Story 1", detail: "大安部門聚餐" },
+  10709: { label: "Story 1", detail: "大安部門聚餐" },
+  10404: { label: "Story 1", detail: "大安候位測試" },
+  10610: { label: "Story 1", detail: "大安聚餐" },
+  10701: { label: "Story 1", detail: "大安熱門候位" },
+  10113: { label: "Story 2", detail: "信義家庭開車" },
+  10108: { label: "Story 2", detail: "信義家庭聚餐" },
+  10598: { label: "Story 2", detail: "信義家庭用餐" },
+  10225: { label: "Story 2", detail: "信義親子聚餐" },
+  10111: { label: "Story 2", detail: "信義家庭聚餐" },
+  10115: { label: "訂位 Demo", detail: "信義火鍋" },
+  10102: { label: "停車 Demo", detail: "信義火鍋" },
+  10116: { label: "候位 Demo", detail: "酸菜魚" },
+};
+
+function demoStoryForShop(shop: MerchantShop) {
+  return DEMO_STORY_BY_SHOP_ID[shop.id] ?? null;
+}
+
 function slotHealth(slot: MerchantSlot) {
   if (slot.capacity === 0) return { label: "關閉", tone: "bg-stone-100 text-stone-600" };
   if (slot.remaining === 0) return { label: "額滿", tone: "bg-red-50 text-red-700" };
@@ -76,7 +98,11 @@ export default function MerchantPage() {
         if (!response.success) throw new Error("無法載入店家權限");
         if (cancelled) return;
         setShops(response.data);
-        setSelectedShopId(response.data[0]?.id ?? null);
+        const preferredShop =
+          DEFAULT_DEMO_SHOP_PRIORITY.map((shopId) => response.data.find((shop) => shop.id === shopId)).find(
+            Boolean,
+          ) ?? response.data[0] ?? null;
+        setSelectedShopId(preferredShop?.id ?? null);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "載入店家失敗");
       } finally {
@@ -146,7 +172,7 @@ export default function MerchantPage() {
       setCapacities(
         Object.fromEntries(response.data.slots.map((slot) => [slot.time, Number(slot.capacity ?? 0)])),
       );
-      setMessage("容量已更新。之後 Agent 訂位會用這份庫存判斷是否有位。");
+      setMessage("容量已更新。新的剩餘位子會立刻影響 Web / LINE 訂位與空位通知。");
     } catch (err) {
       setError(err instanceof Error ? err.message : "儲存失敗");
     } finally {
@@ -160,16 +186,18 @@ export default function MerchantPage() {
         <header className="overflow-hidden rounded-[32px] border border-emerald-900/10 bg-[#092d21] text-white shadow-2xl">
           <div className="grid gap-8 p-8 lg:grid-cols-[1.1fr_0.9fr] lg:p-10">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-normal text-emerald-200">
-                ByteBites Merchant Console
-              </p>
+              <p className="text-sm font-semibold uppercase tracking-normal text-emerald-200">營運後台</p>
               <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-normal lg:text-6xl">
-                管理店家真實可訂容量，而不是假裝有位。
+                把每個時段的可訂位子管清楚。
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-emerald-50/85">
-                店家在這裡設定每個時段的 capacity。使用者或 Agent 建立訂位時，後端會用交易鎖檢查
-                remaining，避免超訂。
+                店家調整各時段可接待人數；使用者訂位時，系統會即時計算已訂與剩餘位子，額滿時可接空位通知。
               </p>
+              <div className="mt-7 grid gap-3 text-sm text-emerald-50/80 sm:grid-cols-3">
+                <DemoNote title="Story 1" detail="部門聚餐、熱門時段、候位通知" />
+                <DemoNote title="Story 2" detail="家庭用餐、開車抵達、停車提醒" />
+                <DemoNote title="現場測試" detail="調低 19:00 容量即可模擬額滿" />
+              </div>
             </div>
 
             <div className="rounded-[28px] border border-white/10 bg-white/10 p-6 backdrop-blur">
@@ -186,7 +214,7 @@ export default function MerchantPage() {
                 <Metric label="剩餘" value={totals.remaining} />
               </div>
               <p className="mt-5 text-sm leading-6 text-emerald-50/75">
-                Demo mode 使用 `user_id=1001` 的 merchant ownership。登入後會改用 JWT 對應的店家權限。
+                展示環境已開放一組示範店家，方便直接測試容量、訂位、空位通知與停車提醒。正式上線時會依店家帳號顯示自己的分店。
               </p>
             </div>
           </div>
@@ -195,34 +223,52 @@ export default function MerchantPage() {
         <section className="grid gap-5 lg:grid-cols-[320px_1fr]">
           <aside className="rounded-[28px] border border-stone-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-black">管理範圍</h2>
+              <h2 className="text-lg font-black">示範店家</h2>
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                {token ? "登入帳號" : "Demo"}
+                {token ? "登入帳號" : "展示環境"}
               </span>
             </div>
+            <p className="mt-2 text-sm leading-6 text-stone-500">
+              已對齊明天報告的兩段 Demo Story。選一間店後，調整明天或週末熱門時段即可測試訂位與候位流程。
+            </p>
 
             <div className="mt-5 space-y-3">
-              {shops.map((shop) => (
-                <button
-                  key={shop.id}
-                  type="button"
-                  onClick={() => setSelectedShopId(shop.id)}
-                  className={`w-full rounded-2xl border p-4 text-left transition ${
-                    shop.id === selectedShopId
-                      ? "border-emerald-600 bg-emerald-50 shadow-sm"
-                      : "border-stone-200 bg-white hover:border-stone-300"
-                  }`}
-                >
-                  <p className="font-black">{shop.name}</p>
-                  <p className="mt-1 text-sm text-stone-500">{shop.district ?? "未標示行政區"}</p>
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-normal text-emerald-700">
-                    {shop.role}
-                  </p>
-                </button>
-              ))}
+              {shops.map((shop) => {
+                const demoStory = demoStoryForShop(shop);
+                return (
+                  <button
+                    key={shop.id}
+                    type="button"
+                    onClick={() => setSelectedShopId(shop.id)}
+                    className={`w-full rounded-2xl border p-4 text-left transition ${
+                      shop.id === selectedShopId
+                        ? "border-emerald-600 bg-emerald-50 shadow-sm"
+                        : "border-stone-200 bg-white hover:border-stone-300"
+                    }`}
+                  >
+                    <p className="font-black">{shop.name}</p>
+                    <p className="mt-1 text-sm text-stone-500">{shop.district ?? "未標示行政區"}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {demoStory ? (
+                        <>
+                          <span className="rounded-full bg-stone-950 px-2.5 py-1 text-xs font-bold text-white">
+                            {demoStory.label}
+                          </span>
+                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                            {demoStory.detail}
+                          </span>
+                        </>
+                      ) : null}
+                      <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-600">
+                        可管理
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
               {!loading && shops.length === 0 && (
                 <p className="rounded-2xl bg-stone-50 p-4 text-sm text-stone-600">
-                  目前帳號沒有可管理店家。
+                  展示環境目前沒有可管理店家，請先確認資料庫 migration 已套用。
                 </p>
               )}
             </div>
@@ -231,9 +277,9 @@ export default function MerchantPage() {
           <section className="rounded-[28px] border border-stone-200 bg-white shadow-sm">
             <div className="flex flex-col gap-4 border-b border-stone-200 p-5 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <h2 className="text-2xl font-black">時段容量</h2>
+                <h2 className="text-2xl font-black">可訂時段</h2>
                 <p className="mt-1 text-sm text-stone-500">
-                  只修改 capacity；booked / remaining 由訂位交易自動計算。
+                  只調整可接待人數；已訂與剩餘位子由訂位流程自動計算。
                 </p>
               </div>
 
@@ -294,7 +340,7 @@ export default function MerchantPage() {
                     </div>
 
                     <label className="flex flex-col gap-1 text-sm font-semibold text-stone-600">
-                      設定 capacity
+                      設定可接待人數
                       <input
                         type="number"
                         min={slot.bookedCount}
@@ -323,14 +369,14 @@ export default function MerchantPage() {
 
             <div className="flex flex-col gap-3 border-t border-stone-200 p-5 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-stone-500">
-                儲存後，AI Agent 和手動訂位會共用同一份 slot inventory。
+                儲存後，Web / LINE 訂位與空位通知會讀同一份時段庫存。
               </p>
               <div className="flex gap-3">
                 <Link
                   href="/ai"
                   className="rounded-full border border-stone-300 px-5 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50"
                 >
-                  去測 Agent 訂位
+                  去測 AI 訂位
                 </Link>
                 <button
                   type="button"
@@ -354,6 +400,15 @@ function Metric({ label, value }: { label: string; value: number }) {
     <div className="rounded-2xl bg-white/10 p-4">
       <p className="text-xs font-semibold text-emerald-100/70">{label}</p>
       <p className="mt-2 text-3xl font-black">{value}</p>
+    </div>
+  );
+}
+
+function DemoNote({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+      <p className="font-black text-white">{title}</p>
+      <p className="mt-1 leading-6 text-emerald-50/75">{detail}</p>
     </div>
   );
 }
