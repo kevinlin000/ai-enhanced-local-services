@@ -3183,6 +3183,12 @@ def _agent_concierge_narrative(
     if frame:
         lines.append(frame)
     lines.extend(_agent_shop_line(shop, index, query) for index, shop in enumerate(selected, start=1))
+    if (
+        decision.rejection_summary
+        and len(selected) < 3
+        and (_query_has_shellfish_allergy(query) or _query_has_meat_lovers(query) or _query_budget_range(query)[0])
+    ):
+        lines.append(f"我不硬湊第三家：{_short_agent_text(decision.rejection_summary, limit=92)}。")
     lines.append(_agent_recommendation_cta(query))
     return "\n".join(lines)
 

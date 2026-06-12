@@ -417,9 +417,10 @@ async def test_eval_demo_story_complex_department_briefing(monkeypatch):
     class FakeResponse:
         text = json.dumps(
             {
-                "recommended_shop_ids": [401, 402, 403],
-                "narrative": "我會優先看這三家。",
-                "rejected_shop_ids": [],
+                "recommended_shop_ids": [401, 403],
+                "narrative": "我會優先看這兩家。",
+                "rejected_shop_ids": [402],
+                "rejection_summary": "Lazy Pasta 招牌含蝦蟹，先保留作備案比較。",
             },
             ensure_ascii=False,
         )
@@ -438,16 +439,16 @@ async def test_eval_demo_story_complex_department_briefing(monkeypatch):
                 "atmosphere_tags": ["聚餐"],
                 "booking_difficulty": "未提及",
             },
-            {
-                "shop_id": 402,
-                "name": "Lazy Pasta 慵懶義式廚房大安國館店",
-                "district": "大安",
-                "category_slug": "euro",
-                "ai_summary": "明亮簡潔，適合聚餐。",
-                "signature_dishes": ["北海道干貝鮮蝦啵啵麵", "紅白醬雞肉菌菇寬麵", "奶油培根蛋黃麵"],
-                "atmosphere_tags": ["聚餐"],
-                "booking_difficulty": "現場可入",
-            },
+                {
+                    "shop_id": 402,
+                    "name": "Lazy Pasta 慵懶義式廚房大安國館店",
+                    "district": "大安",
+                    "category_slug": "euro",
+                    "ai_summary": "招牌含蝦蟹，尖峰時段偏熱鬧。",
+                    "signature_dishes": ["北海道干貝鮮蝦啵啵麵", "紅白醬雞肉菌菇寬麵", "奶油培根蛋黃麵"],
+                    "atmosphere_tags": ["熱鬧"],
+                    "booking_difficulty": "現場可入",
+                },
             {
                 "shop_id": 403,
                 "name": "知初植物系永續廚房",
@@ -476,6 +477,7 @@ async def test_eval_demo_story_complex_department_briefing(monkeypatch):
     assert "甲殼類過敏先避開蝦蟹" in done["answer"]
     assert "預算抓 NT$ 500-700/人" in done["answer"]
     assert "可先看非蝦蟹選項" in done["answer"]
+    assert "我不硬湊第三家" in done["answer"]
     assert "北海道干貝鮮蝦啵啵麵" not in done["answer"]
     assert all("鮮蝦" not in row["feature_highlight"] for row in done["comparison_rows"])
 
