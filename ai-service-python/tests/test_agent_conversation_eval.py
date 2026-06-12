@@ -662,6 +662,78 @@ async def test_eval_recommendation_advice_handles_allergy_meat_budget_and_execut
 
 
 @pytest.mark.anyio
+async def test_eval_fresh_complex_request_ignores_previous_advice_context(monkeypatch):
+    class FakeResponse:
+        text = json.dumps(
+            {
+                "recommended_shop_ids": [501, 502],
+                "narrative": "模型原文不應直接使用。",
+                "rejected_shop_ids": [],
+            },
+            ensure_ascii=False,
+        )
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        assert "燒肉" in query
+        return [
+            {
+                "shop_id": 501,
+                "name": "初樂燒肉",
+                "district": "大安",
+                "category_slug": "yakiniku",
+                "price_per_person": "$700-1000",
+                "ai_summary": "日系裝潢搭配柔和燈光，適合朋友聚餐。",
+                "signature_dishes": ["厚切牛舌", "松阪豬", "牛五花"],
+                "atmosphere_tags": ["聚餐", "舒適"],
+                "booking_difficulty": "可線上訂位",
+            },
+            {
+                "shop_id": 502,
+                "name": "肉你好燒肉-延吉店",
+                "district": "大安",
+                "category_slug": "yakiniku",
+                "price_per_person": "$800-1200",
+                "ai_summary": "多人聚餐可共享肉盤，桌距舒適。",
+                "signature_dishes": ["牛小排", "松阪豬", "雞腿肉"],
+                "atmosphere_tags": ["聚餐", "舒適"],
+                "booking_difficulty": "可線上訂位",
+            },
+        ]
+
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {
+                "role": "model",
+                "content": "舊的一輪推薦",
+                "recommendation": {
+                    "query": "明天晚上 7 點，7 個人部門聚餐，想找大安區適合聊天的義式餐廳。",
+                    "shops": [
+                        {"shop_id": 401, "name": "光司DATE 義大利麵 大安店", "district": "大安"},
+                    ],
+                },
+            }
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 12))
+
+    done = await _collect_web_done(
+        "明天晚上七點，我們部門 7 個人要聚餐。想找大安區適合聊天、不用講話用吼的燒肉或肉類餐廳。有一位同事對甲殼類過敏，不能吃蝦蟹，兩位無肉不歡，預算一人 700 到 1200。",
+        "eval-fresh-complex-ignores-advice-history",
+    )
+
+    assert done["tools_used"] == ["semantic_shop_search"]
+    assert done["answer"].startswith("**結論：我先用")
+    assert "**精選推薦**" in done["answer"]
+    assert "初樂燒肉" in done["answer"]
+    assert "光司DATE" not in done["answer"]
+
+
+@pytest.mark.anyio
 async def test_eval_demo_story_family_driving_recommendation(monkeypatch):
     class FakeResponse:
         text = json.dumps(

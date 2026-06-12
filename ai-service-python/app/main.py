@@ -3860,6 +3860,30 @@ def _recommendation_advice_intent(query: str) -> bool:
     )
 
 
+def _recommendation_followup_reference(query: str) -> bool:
+    normalized = str(query or "").strip()
+    return bool(
+        re.search(r"這[三兩二幾0-9一二三四五六七八九十]+家|這些|上述|剛剛|上一輪|前面", normalized)
+        or any(
+            phrase in normalized
+            for phrase in (
+                "主管",
+                "老闆",
+                "大老闆",
+                "最後決策",
+                "幫我看",
+                "幫我選",
+                "幫我挑",
+                "怎麼選",
+                "怎麼幫我選",
+                "哪間",
+                "哪家",
+                "哪個",
+            )
+        )
+    )
+
+
 def _recommendation_dimension(query: str) -> str:
     normalized = str(query or "")
     if any(token in normalized for token in ("聊天", "安靜", "久坐")):
@@ -4218,6 +4242,8 @@ def _recommendation_advice_answer(query: str, shops: list[dict], context_query: 
 
 def _agent_recommendation_advice_from_history(query: str, history: list[dict]) -> ToolGuardResult | None:
     if not _recommendation_advice_intent(query):
+        return None
+    if _fresh_restaurant_recommendation_request(query) and not _recommendation_followup_reference(query):
         return None
     recommendation = _latest_recommendation_context(history)
     shops = recommendation.get("shops") if isinstance(recommendation, dict) else []
