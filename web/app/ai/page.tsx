@@ -381,7 +381,9 @@ function bookingResponseToAgentTransaction(booking: MyBooking): AgentTransaction
 function AgentBookingDraftCard({ draft }: { draft: AgentBookingDraft }) {
   const { isLoggedIn, isAuthLoading, login, mounted } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [watchSubmitting, setWatchSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [watchMessage, setWatchMessage] = useState<string | null>(null);
   const [transaction, setTransaction] = useState<AgentTransaction | null>(null);
   const idempotencyNonce = useRef(
     typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -390,6 +392,7 @@ function AgentBookingDraftCard({ draft }: { draft: AgentBookingDraft }) {
   );
   const complete = Boolean(draft.shop_id && draft.date && draft.time && draft.people);
   const tableLabel = draft.table_type === "window" ? "靠窗" : draft.table_type === "box" ? "包廂" : "一般座位";
+  const soldOut = Boolean(error?.includes("額滿"));
 
   async function handleConfirm() {
     if (!complete || submitting || transaction) return;
@@ -399,6 +402,7 @@ function AgentBookingDraftCard({ draft }: { draft: AgentBookingDraft }) {
     }
     setSubmitting(true);
     setError(null);
+    setWatchMessage(null);
     try {
       const response = await javaApi.reserveBooking({
         shopId: Number(draft.shop_id),
@@ -418,6 +422,36 @@ function AgentBookingDraftCard({ draft }: { draft: AgentBookingDraft }) {
       }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleCreateAvailabilityWatch() {
+    if (!complete || watchSubmitting) return;
+    if (mounted && !isLoggedIn) {
+      setError("請先用 LINE 登入，再設定空位通知。");
+      return;
+    }
+    setWatchSubmitting(true);
+    setWatchMessage(null);
+    try {
+      const response = await javaApi.createAvailabilityWatch({
+        shopId: Number(draft.shop_id),
+        people: Number(draft.people),
+        date: String(draft.date),
+        time: String(draft.time),
+        tableType: draft.table_type ?? "normal",
+      });
+      if (!response.success) throw new Error(response.errorMsg ?? "建立空位通知失敗");
+      setError(null);
+      setWatchMessage("已設定空位通知。有人取消或店家釋出容量時，系統會通知你回來訂位。");
+    } catch (err) {
+      if (err instanceof AuthRequiredError) {
+        setError("請先用 LINE 登入，再設定空位通知。");
+      } else {
+        setError(err instanceof Error ? err.message : "建立空位通知失敗，請再試一次");
+      }
+    } finally {
+      setWatchSubmitting(false);
     }
   }
 
@@ -464,6 +498,34 @@ function AgentBookingDraftCard({ draft }: { draft: AgentBookingDraft }) {
         {error ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-800">
             {error}
+          </div>
+        ) : null}
+        {soldOut ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-xs leading-5 text-amber-950">
+            <p className="font-semibold">此時段目前額滿。</p>
+            <p className="mt-1">可先設定空位通知；有人取消或店家釋出容量時，系統會通知你回來訂位。</p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <Button
+                type="button"
+                onClick={handleCreateAvailabilityWatch}
+                disabled={!complete || watchSubmitting || isAuthLoading}
+                className="rounded-full bg-amber-700 px-4 text-white hover:bg-amber-800 disabled:bg-zinc-300"
+              >
+                {watchSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bell className="mr-2 h-4 w-4" />}
+                通知我有空位
+              </Button>
+              <Link
+                href="/notifications"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-input bg-white px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
+              >
+                查看空位通知
+              </Link>
+            </div>
+          </div>
+        ) : null}
+        {watchMessage ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-medium text-emerald-800">
+            {watchMessage}
           </div>
         ) : null}
 

@@ -2851,6 +2851,57 @@ def _prioritize_contextual_recommended_ids(
     )
 
 
+def _should_expand_initial_recommendations(query: str, recommended: list[int], shops: list[dict]) -> bool:
+    if len(recommended) >= 2 or len(shops) < 2:
+        return False
+    if not _fresh_restaurant_recommendation_request(query) or _recommendation_followup_reference(query):
+        return False
+    return bool(
+        _query_has_shellfish_allergy(query)
+        or _query_has_meat_lovers(query)
+        or _query_budget_range(query)[0]
+        or len(_agent_query_context_labels(query)) >= 2
+    )
+
+
+def _agent_initial_backup_viable(query: str, shop: dict) -> bool:
+    if _query_has_shellfish_allergy(query):
+        name = str(shop.get("name") or "")
+        if any(token in name for token in ("龍蝦", "蝦蟹")):
+            return False
+        dishes = [dish for dish in _parse_json_list(shop.get("signature_dishes")) if dish]
+        if dishes and not any(not _dish_has_obvious_shellfish(dish) for dish in dishes):
+            return False
+    budget_low, budget_high = _query_budget_range(query)
+    if budget_low and budget_high:
+        shop_low, shop_high = _shop_price_bounds(shop)
+        if shop_low and shop_low > budget_high:
+            return False
+        if shop_high and shop_high < budget_low:
+            return False
+    return True
+
+
+def _expand_initial_recommendations(
+    query: str,
+    recommended: list[int],
+    rejected: list[int],
+    shops: list[dict],
+) -> tuple[list[int], list[int]]:
+    if not _should_expand_initial_recommendations(query, recommended, shops):
+        return recommended, rejected
+    by_id = {sid: shop for shop in shops if (sid := _shop_id(shop)) is not None}
+    candidates = [
+        sid
+        for sid in rejected
+        if sid in by_id and _agent_initial_backup_viable(query, by_id[sid])
+    ]
+    if not candidates:
+        return recommended, rejected
+    best_backup = max(candidates, key=lambda sid: _contextual_shop_choice_score(query, by_id.get(sid, {})))
+    return [*recommended, best_backup], [sid for sid in rejected if sid != best_backup]
+
+
 def _validate_agent_decision(
     decision: AgentRecommendationDecision,
     tool_result: dict,
@@ -2876,6 +2927,7 @@ def _validate_agent_decision(
     for sid in available_ids:
         if sid is not None and sid not in recommended and sid not in rejected:
             rejected.append(sid)
+    recommended, rejected = _expand_initial_recommendations(query, recommended, rejected, shops)
     rejection_summary = decision.rejection_summary
     if rejection_summary:
         recommended_aliases: list[str] = []

@@ -481,6 +481,56 @@ async def test_eval_demo_story_complex_department_briefing(monkeypatch):
     assert all("鮮蝦" not in row["feature_highlight"] for row in done["comparison_rows"])
 
 
+def test_eval_initial_complex_recommendation_keeps_two_options():
+    query = "明天晚上7點，部門7個人聚餐，想找大安區適合聊天、不會太吵的義式餐廳。有人不能吃蝦蟹，有兩位偏愛肉類，預算一人200到400，有什麼選擇？"
+    shops = [
+        {
+            "shop_id": 401,
+            "name": "光司DATE 義大利麵 大安店",
+            "district": "大安",
+            "category_slug": "euro",
+            "price_per_person": "$200-400",
+            "ai_summary": "桌距充裕，適合部門聚餐慢慢聊天。",
+            "signature_dishes": ["煙燻培根白醬", "粉紅醬雞肉麵", "松露燉飯"],
+            "atmosphere_tags": ["部門聚餐", "安靜聊天"],
+        },
+        {
+            "shop_id": 402,
+            "name": "Lazy Pasta 慵懶義式廚房大安國館店",
+            "district": "大安",
+            "category_slug": "euro",
+            "price_per_person": "$200-400",
+            "ai_summary": "多人分食方便，也有雞肉與培根類主餐。",
+            "signature_dishes": ["北海道干貝鮮蝦啵啵麵", "紅白醬雞肉菌菇寬麵", "奶油培根蛋黃麵"],
+            "atmosphere_tags": ["部門聚餐", "安靜聊天"],
+        },
+        {
+            "shop_id": 403,
+            "name": "不二煮藝",
+            "district": "大安",
+            "category_slug": "euro",
+            "price_per_person": "$400-600",
+            "ai_summary": "菜色偏正式，價格略高。",
+            "signature_dishes": ["嫩煎豬腰內菲力", "香煎辣味骰子牛"],
+            "atmosphere_tags": ["部門聚餐"],
+        },
+    ]
+
+    decision = main._validate_agent_decision(
+        main.AgentRecommendationDecision(
+            recommended_shop_ids=[401],
+            rejected_shop_ids=[402, 403],
+            rejection_summary="Lazy Pasta 有蝦蟹招牌，先保留作備案比較。",
+        ),
+        {"shops": shops},
+        query,
+    )
+
+    assert decision.recommended_shop_ids[:2] == [401, 402]
+    assert 402 not in decision.rejected_shop_ids
+    assert "Lazy Pasta" not in (decision.rejection_summary or "")
+
+
 def test_eval_demo_story_meat_budget_rerank_avoids_premium_outlier():
     query = (
         "明天晚上七點，我們部門 7 個人要聚餐。想找大安區適合聊天、"
