@@ -3183,10 +3183,52 @@ def _recommendation_context_for_selection(query: str, history: list[dict]) -> di
 
 def _latest_booking_draft(history: list[dict]) -> dict:
     for turn in reversed(history):
+        recommendation = turn.get("recommendation") if isinstance(turn, dict) else None
         booking_draft = turn.get("booking_draft") if isinstance(turn, dict) else None
         if isinstance(booking_draft, dict) and booking_draft:
             return booking_draft
+        if isinstance(recommendation, dict):
+            shops = recommendation.get("shops")
+            if isinstance(shops, list) and shops:
+                return {}
     return {}
+
+
+def _fresh_restaurant_recommendation_request(query: str) -> bool:
+    normalized = re.sub(r"\s+", "", str(query or "").strip())
+    if not normalized or _payment_intent(normalized) or _line_more_recommendation_intent(normalized):
+        return False
+    if _booking_confirm_intent(normalized) or _booking_draft_edit_intent(normalized):
+        return False
+    explicit_booking_phrases = (
+        "我要訂",
+        "我想訂",
+        "想訂",
+        "幫我訂",
+        "幫我預約",
+        "我要預約",
+        "我想預約",
+        "確認訂位",
+        "送出訂位",
+        "就訂",
+    )
+    if any(phrase in normalized for phrase in explicit_booking_phrases):
+        return False
+    return any(
+        phrase in normalized
+        for phrase in (
+            "推薦",
+            "想找",
+            "找",
+            "想吃",
+            "適合",
+            "附近",
+            "餐廳",
+            "聚餐",
+            "吃飯",
+            "用餐",
+        )
+    )
 
 
 def _compact_booking_prefill(prefill: dict | None) -> dict:
@@ -3541,6 +3583,8 @@ def _agent_recommendation_advice_from_history(query: str, history: list[dict]) -
 
 def _agent_booking_followup_from_history(query: str, history: list[dict]) -> ToolGuardResult | None:
     if _payment_intent(query):
+        return None
+    if _fresh_restaurant_recommendation_request(query):
         return None
     prefill = _line_booking_prefill_from_text(query)
     has_prefill = bool(prefill.get("date") or prefill.get("time") or prefill.get("people"))

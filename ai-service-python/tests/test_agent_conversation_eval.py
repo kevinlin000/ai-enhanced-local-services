@@ -399,6 +399,108 @@ async def test_eval_demo_story_family_driving_recommendation(monkeypatch):
     assert "停車" in done["comparison_rows"][0]["booking_status"]
 
 
+@pytest.mark.anyio
+async def test_eval_fresh_recommendation_ignores_stale_booking_draft(monkeypatch):
+    class FakeResponse:
+        text = json.dumps(
+            {
+                "recommended_shop_ids": [301, 302],
+                "narrative": "我改以這次家庭聚餐與開車需求重新篩選。",
+                "rejected_shop_ids": [],
+            },
+            ensure_ascii=False,
+        )
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        assert "信義" in query
+        assert "方便開車" in query
+        return [
+            {
+                "shop_id": 301,
+                "name": "信義家庭小館",
+                "district": "信義",
+                "mrt_station": "市政府",
+                "category_slug": "chinese",
+                "avg_price": 700,
+                "ai_summary": "空間舒適，適合家庭與長輩同行。",
+                "signature_dishes": ["雞湯", "合菜"],
+                "atmosphere_tags": ["家庭", "舒適", "聚餐"],
+                "booking_difficulty": "可線上訂位",
+            },
+            {
+                "shop_id": 302,
+                "name": "松壽長輩聚餐",
+                "district": "信義",
+                "mrt_station": "象山",
+                "category_slug": "japanese",
+                "avg_price": 950,
+                "ai_summary": "座位安靜，適合長輩聚餐。",
+                "signature_dishes": ["定食", "鍋物"],
+                "atmosphere_tags": ["長輩", "安靜"],
+                "booking_difficulty": "建議提前預約",
+            },
+        ]
+
+    saved = {}
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {
+                "role": "model",
+                "content": "我幫你整理好訂位內容了。",
+                "booking_draft": {
+                    "shop_id": 10673,
+                    "shop_name": "光司DATE 義大利麵 大安店",
+                    "date": "2026-06-13",
+                    "time": "19:00",
+                    "people": 7,
+                },
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
+
+    query = "週六晚上要帶爸媽吃飯，想找信義區附近適合家庭聚餐、方便開車的餐廳。"
+    done = await _collect_web_done(query, "eval-stale-draft-new-family-search")
+
+    assert done["tools_used"] == ["semantic_shop_search"]
+    assert done["booking_draft"] is None
+    assert done["recommended_shop_ids"] == [301, 302]
+    assert "光司DATE" not in done["answer"]
+    assert "家庭" in done["answer"]
+    assert saved["history"][-1]["recommendation"]["shops"][0]["shop_id"] == 301
+    assert "booking_draft" not in saved["history"][-1]
+
+
+def test_eval_new_recommendation_context_expires_older_booking_draft():
+    history = [
+        {
+            "role": "model",
+            "content": "我幫你整理好訂位內容了。",
+            "booking_draft": {
+                "shop_id": 10673,
+                "shop_name": "光司DATE 義大利麵 大安店",
+                "date": "2026-06-13",
+                "time": "19:00",
+                "people": 7,
+            },
+        },
+        {
+            "role": "model",
+            "content": "我重新整理信義區家庭聚餐餐廳。",
+            "recommendation": {
+                "query": "信義區家庭聚餐",
+                "shops": [{"shop_id": 301, "name": "信義家庭小館"}],
+            },
+        },
+    ]
+
+    assert main._latest_booking_draft(history) == {}
+
+
 def test_eval_hard_constraints_for_business_taiwanese_and_korean():
     taiwanese_constraints = main._extract_query_constraints("適合商務請客的台菜")
     assert taiwanese_constraints["wants_taiwanese_cuisine"]
