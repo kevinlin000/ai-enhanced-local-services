@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Bell,
   CalendarCheck,
+  Car,
   CheckCircle2,
   CircleDashed,
   CreditCard,
@@ -375,6 +376,9 @@ function bookingResponseToAgentTransaction(booking: MyBooking): AgentTransaction
     hold_expires_at: booking.holdExpiresAt ?? null,
     hold_minutes: booking.holdMinutes ?? null,
     rec_trade_id: booking.paymentTransId ?? null,
+    driving_to_booking: booking.drivingToBooking ?? false,
+    parking_reminder_enabled: booking.parkingReminderEnabled ?? false,
+    parking_reminder_sent_at: booking.parkingReminderSentAt ?? null,
   };
 }
 
@@ -557,6 +561,9 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
   const [current, setCurrent] = useState(transaction);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [parkingSaving, setParkingSaving] = useState(false);
+  const [parkingMessage, setParkingMessage] = useState<string | null>(null);
+  const [parkingError, setParkingError] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<(typeof DEMO_PAYMENT_METHODS)[number]["id"]>("card");
@@ -569,6 +576,7 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
   const selectedPayment = DEMO_PAYMENT_METHODS.find((method) => method.id === selectedPaymentMethod);
   const holdCountdown = formatHoldCountdown(current.hold_expires_at, nowMs);
   const holdExpired = current.status === "PENDING_PAYMENT" && holdCountdown === "已逾期";
+  const parkingEnabled = Boolean(current.driving_to_booking || current.parking_reminder_enabled);
 
   useEffect(() => {
     if (current.status !== "PENDING_PAYMENT" || !current.hold_expires_at) return;
@@ -607,6 +615,38 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
       setPayError(err instanceof Error ? err.message : "付款失敗，請再試一次");
     } finally {
       setPaying(false);
+    }
+  }
+
+  async function handleParkingPreference(driving: boolean) {
+    if (!current.booking_code || parkingSaving) return;
+    setParkingSaving(true);
+    setParkingError(null);
+    setParkingMessage(null);
+    try {
+      const response = await javaApi.updateParkingPreference(current.booking_code, {
+        drivingToBooking: driving,
+        parkingReminderEnabled: driving,
+      });
+      if (!response.success) throw new Error(response.errorMsg ?? "停車偏好更新失敗");
+      setCurrent({
+        ...current,
+        driving_to_booking: response.data.drivingToBooking ?? driving,
+        parking_reminder_enabled: response.data.parkingReminderEnabled ?? driving,
+      });
+      setParkingMessage(
+        driving
+          ? "已開啟停車提醒。LINE 會顯示附近停車場、剩餘車位、導航與保留車位入口。"
+          : "已關閉這筆訂位的停車提醒。",
+      );
+    } catch (err) {
+      if (err instanceof AuthRequiredError) {
+        setParkingError("請先用 LINE 登入，再設定停車提醒。");
+      } else {
+        setParkingError(err instanceof Error ? err.message : "停車偏好更新失敗，請再試一次");
+      }
+    } finally {
+      setParkingSaving(false);
     }
   }
 
@@ -868,6 +908,44 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
             此店家免訂金，已直接確認訂位。
           </div>
         )}
+
+        {confirmed ? (
+          <div className="rounded-xl border border-sky-100 bg-sky-50/80 p-4 text-xs text-sky-950">
+            <div className="flex items-start gap-3">
+              <Car className="mt-0.5 h-5 w-5 shrink-0 text-sky-700" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">會開車嗎？我可以接停車提醒與車位保留展示。</p>
+                <p className="mt-1 leading-5 text-sky-900/80">
+                  開啟後，LINE 會整理附近停車場名稱、剩餘車位、導航入口；抵達前也能示範保留車位，顯示樓層、區域、車格號碼與保留時間。
+                </p>
+                {parkingMessage ? <p className="mt-2 font-semibold text-emerald-700">{parkingMessage}</p> : null}
+                {parkingError ? <p className="mt-2 font-semibold text-rose-700">{parkingError}</p> : null}
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={parkingSaving || !current.booking_code}
+                    onClick={() => handleParkingPreference(true)}
+                    className="rounded-full bg-sky-700 px-4 text-white hover:bg-sky-800 disabled:bg-zinc-300"
+                  >
+                    {parkingSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Car className="mr-2 h-4 w-4" />}
+                    {parkingEnabled ? "已開啟停車提醒" : "我會開車，提醒停車"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={parkingSaving || !current.booking_code}
+                    onClick={() => handleParkingPreference(false)}
+                    className="rounded-full bg-white"
+                  >
+                    不用停車提醒
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {current.shop_id ? (
           <Link href={`/shops/${current.shop_id}`}>

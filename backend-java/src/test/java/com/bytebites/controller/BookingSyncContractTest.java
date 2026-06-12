@@ -12,6 +12,7 @@ import com.bytebites.service.BookingLineNotificationService;
 import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.IShopService;
 import com.bytebites.service.LineActionTokenService;
+import com.bytebites.service.ParkingService;
 import com.bytebites.service.jpa.UserJpaService;
 import com.bytebites.utils.UserHolder;
 import org.junit.jupiter.api.AfterEach;
@@ -59,6 +60,8 @@ class BookingSyncContractTest {
     @Mock
     private BookingLineNotificationService bookingLineNotificationService;
     @Mock
+    private ParkingService parkingService;
+    @Mock
     private UserJpaService userJpaService;
     @Mock
     private LineActionTokenService lineActionTokenService;
@@ -76,6 +79,7 @@ class BookingSyncContractTest {
                 bookingHoldService,
                 availabilityNotificationService,
                 bookingLineNotificationService,
+                parkingService,
                 userJpaService,
                 lineActionTokenService,
                 jdbcTemplate,
@@ -205,15 +209,16 @@ class BookingSyncContractTest {
         assertThat(result.getSuccess()).isTrue();
         assertThat(booking.getDrivingToBooking()).isTrue();
         assertThat(booking.getParkingReminderEnabled()).isTrue();
-        assertThat(booking.getParkingReminderSentAt()).isNull();
+        assertThat(booking.getParkingReminderSentAt()).isNotNull();
         verify(bookingRepo).save(booking);
+        verify(bookingLineNotificationService).pushParkingReminder(booking, List.of());
         @SuppressWarnings("unchecked")
         Map<String, Object> data = (Map<String, Object>) result.getData();
         assertThat(data)
                 .containsEntry("bookingCode", "BK-SYNC-PARK")
                 .containsEntry("drivingToBooking", true)
-                .containsEntry("parkingReminderEnabled", true)
-                .containsEntry("parkingReminderSentAt", null);
+                .containsEntry("parkingReminderEnabled", true);
+        assertThat(data.get("parkingReminderSentAt")).isNotNull();
     }
 
     @SuppressWarnings("unchecked")

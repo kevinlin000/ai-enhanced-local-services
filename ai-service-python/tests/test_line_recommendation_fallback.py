@@ -3451,8 +3451,8 @@ def test_line_booking_flex_pending_payment_has_pay_action(monkeypatch):
     assert "lineUserId=" not in footer[0]["action"]["uri"]
     assert "lt=v1." in footer[0]["action"]["uri"]
     labels = [button["action"]["label"] for button in footer]
-    assert "我會開車" in labels
-    parking_uri = next(button["action"]["uri"] for button in footer if button["action"]["label"] == "我會開車")
+    assert "我會開車，提醒停車" in labels
+    parking_uri = next(button["action"]["uri"] for button in footer if button["action"]["label"] == "我會開車，提醒停車")
     assert "/line/book/10009/parking?" in parking_uri
     assert "driving=true" in parking_uri
 

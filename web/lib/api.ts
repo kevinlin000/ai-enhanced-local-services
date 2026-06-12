@@ -160,6 +160,9 @@ export type MyBooking = {
   paymentTransId?: string | null;
   holdExpiresAt?: string | null;
   holdMinutes?: number | null;
+  drivingToBooking?: boolean;
+  parkingReminderEnabled?: boolean;
+  parkingReminderSentAt?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   idempotentReplay?: boolean;
@@ -358,6 +361,18 @@ export const javaApi = {
       {
         method: "POST",
         headers: authHeaders(true),
+      },
+    ),
+  updateParkingPreference: (bookingCode: string, body: { drivingToBooking: boolean; parkingReminderEnabled?: boolean }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking }>(
+      `${CLIENT_JAVA_API}/api/booking/${encodeURIComponent(bookingCode)}/parking-preference`,
+      {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({
+          drivingToBooking: body.drivingToBooking,
+          parkingReminderEnabled: body.parkingReminderEnabled ?? body.drivingToBooking,
+        }),
       },
     ),
   createAvailabilityWatch: (body: {

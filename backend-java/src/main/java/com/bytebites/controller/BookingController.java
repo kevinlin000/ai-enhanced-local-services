@@ -10,6 +10,7 @@ import com.bytebites.service.BookingLineNotificationService;
 import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.IShopService;
 import com.bytebites.service.LineActionTokenService;
+import com.bytebites.service.ParkingService;
 import com.bytebites.service.jpa.UserJpaService;
 import com.bytebites.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
@@ -55,6 +57,7 @@ public class BookingController {
     private final BookingHoldService bookingHoldService;
     private final AvailabilityNotificationService availabilityNotificationService;
     private final BookingLineNotificationService bookingLineNotificationService;
+    private final ParkingService parkingService;
     private final UserJpaService userJpaService;
     private final LineActionTokenService lineActionTokenService;
     private final JdbcTemplate jdbcTemplate;
@@ -187,6 +190,7 @@ public class BookingController {
 
         bookingRepo.saveAndFlush(booking);
         bookingLineNotificationService.pushBookingUpdated(booking, "reserved");
+        pushParkingReminderNow(booking);
 
         log.info("[Booking] code={} shop={} people={} date={} time={} table={} needsDeposit={} status={}",
                 booking.getBookingCode(), shopId, people, bookingDate, time, table,
@@ -340,7 +344,11 @@ public class BookingController {
         if (reminderEnabled) {
             booking.setParkingReminderSentAt(null);
         }
-        bookingRepo.save(booking);
+        if (reminderEnabled) {
+            pushParkingReminderNow(booking);
+        } else {
+            bookingRepo.save(booking);
+        }
         var shop = shopService.getById(booking.getShopId());
         String shopName = shop != null ? shop.getName() : null;
         return Result.ok(bookingResponse(booking, shopName, false));
@@ -428,6 +436,20 @@ public class BookingController {
         return out;
     }
 
+    private void pushParkingReminderNow(BookingJpa booking) {
+        if (booking == null || !Boolean.TRUE.equals(booking.getParkingReminderEnabled())) {
+            return;
+        }
+        var shop = booking.getShopId() == null ? null : shopService.getById(booking.getShopId());
+        List<ParkingService.NearbyParkingLotView> parkingLots = List.of();
+        if (shop != null && shop.getX() != null && shop.getY() != null) {
+            parkingLots = parkingService.nearby(shop.getX(), shop.getY(), 900, 3);
+        }
+        bookingLineNotificationService.pushParkingReminder(booking, parkingLots);
+        booking.setParkingReminderSentAt(LocalDateTime.now(BUSINESS_ZONE));
+        bookingRepo.save(booking);
+    }
+
     private Long currentUserIdOrNull() {
         UserDTO user = UserHolder.getUser();
         return user != null ? user.getId() : null;
@@ -464,7 +486,8 @@ public class BookingController {
         return text.equalsIgnoreCase("true")
                 || text.equalsIgnoreCase("yes")
                 || text.equals("1")
-                || text.equals("會開車");
+                || text.equals("會開車")
+                || text.equals("我會開車，提醒停車");
     }
 
     private void ensureSlotInventory(Long shopId, LocalDate bookingDate, String time, String tableType) {

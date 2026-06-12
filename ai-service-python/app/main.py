@@ -9359,7 +9359,7 @@ def _line_booking_flex_message(booking: dict, phase: str, line_user_id: str = ""
                 "type": "button",
                 "style": "secondary",
                 "height": "sm",
-                "action": {"type": "uri", "label": "我會開車", "uri": parking_uri},
+                "action": {"type": "uri", "label": "我會開車，提醒停車", "uri": parking_uri},
             }
         )
         buttons.append(

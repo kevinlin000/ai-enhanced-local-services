@@ -16,6 +16,9 @@ export type AgentTransaction = {
   rec_trade_id?: string | null;
   payment_amount?: number | null;
   payment_note?: string | null;
+  driving_to_booking?: boolean;
+  parking_reminder_enabled?: boolean;
+  parking_reminder_sent_at?: string | null;
   error?: string | null;
 };
 
