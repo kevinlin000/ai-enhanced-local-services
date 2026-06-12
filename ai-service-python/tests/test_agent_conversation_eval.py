@@ -335,8 +335,9 @@ async def test_eval_demo_story_department_group_recommendation(monkeypatch):
     assert "聊天" in done["answer"]
     assert "候位" in done["answer"] or "空位通知" in done["answer"]
     assert done["recommended_shop_ids"] == [201, 202]
-    assert done["comparison_rows"][0]["feature_highlight"].startswith("符合大安區")
+    assert done["comparison_rows"][0]["feature_highlight"] == "招牌：砂鍋雞湯、合菜"
     assert "部門聚餐" in done["comparison_rows"][0]["best_for"]
+    assert "中式合菜" in done["comparison_rows"][0]["best_for"]
     assert "額滿可候位通知" in done["comparison_rows"][0]["booking_status"]
 
 
@@ -468,6 +469,9 @@ async def test_eval_recommendation_advice_uses_previous_demo_context(monkeypatch
     assert "煙燻培根白醬" in done["answer"]
     assert "訂位備註可寫希望安排較不吵的位置" in done["answer"]
     assert "未提及" not in done["answer"]
+    assert "符合大安區" not in done["answer"]
+    assert "適合 部門聚餐" not in done["answer"]
+    assert len(done["answer"]) < 620
 
 
 @pytest.mark.anyio
