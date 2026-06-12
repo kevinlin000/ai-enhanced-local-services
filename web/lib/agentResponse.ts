@@ -41,8 +41,11 @@ export function normalizeAgentShop(shop: AgentShop): AgentShop | null {
     mrt_station: shop.mrt_station ?? raw.mrtStation ?? null,
     avg_price: shop.avg_price ?? raw.avgPrice ?? null,
     price_per_person:
-      shop.price_per_person ??
-      (raw.avgPrice != null ? `NT$ ${raw.avgPrice}` : null),
+      shop.price_per_person && !shop.price_per_person.includes("未提及")
+        ? shop.price_per_person
+        : raw.avgPrice != null
+          ? `NT$ ${raw.avgPrice}`
+          : null,
   };
 }
 

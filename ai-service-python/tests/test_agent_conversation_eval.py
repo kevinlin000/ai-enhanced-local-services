@@ -341,6 +341,136 @@ async def test_eval_demo_story_department_group_recommendation(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_eval_demo_story_department_prefers_koji_for_chat(monkeypatch):
+    class FakeResponse:
+        text = json.dumps(
+            {
+                "recommended_shop_ids": [403, 401, 402],
+                "narrative": "我會優先看這三家。",
+                "rejected_shop_ids": [],
+            },
+            ensure_ascii=False,
+        )
+
+    async def fake_semantic_hits(query: str, top_k: int):
+        assert "部門聚餐" in query
+        return [
+            {
+                "shop_id": 401,
+                "name": "光司DATE 義大利麵 大安店",
+                "district": "大安",
+                "category_slug": "euro",
+                "avg_price": 520,
+                "price_per_person": "未提及",
+                "ai_summary": "二樓座位區採光良好，桌距充裕，氛圍溫馨自在，適合朋友聚餐慢慢聊天。",
+                "signature_dishes": ["煙燻培根白醬", "松露燉飯", "粉紅醬雞肉麵"],
+                "atmosphere_tags": ["約會", "聚餐", "一人"],
+                "booking_difficulty": "未提及",
+            },
+            {
+                "shop_id": 402,
+                "name": "Lazy Pasta 慵懶義式廚房大安國館店",
+                "district": "大安",
+                "category_slug": "euro",
+                "avg_price": None,
+                "price_per_person": "未提及",
+                "ai_summary": "明亮簡潔，適合聚餐，但離場時間與節奏掌控較明確。",
+                "signature_dishes": ["北海道干貝鮮蝦啵啵麵", "奶油培根蛋黃麵"],
+                "atmosphere_tags": ["聚餐", "親子"],
+                "booking_difficulty": "現場可入",
+            },
+            {
+                "shop_id": 403,
+                "name": "知初植物系永續廚房",
+                "district": "大安",
+                "category_slug": "vegetarian",
+                "avg_price": 400,
+                "price_per_person": "$400以上",
+                "ai_summary": "光線柔和且座位間距寬敞，強調無麩質與蔬食。",
+                "signature_dishes": ["佛陀碗", "青檸檬塔"],
+                "atmosphere_tags": ["聚餐"],
+                "booking_difficulty": "預約困難",
+            },
+        ]
+
+    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(main.session_store, "load_history", lambda session_id: [])
+    monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: None)
+
+    query = "明天晚上 7 點，7 個人部門聚餐，想找大安區適合聊天、不會太吵的餐廳。"
+    done = await _collect_web_done(query, "eval-demo-story-koji-chat")
+
+    assert done["recommended_shop_ids"][0] == 401
+    assert done["shops"][0]["name"] == "光司DATE 義大利麵 大安店"
+    assert done["shops"][0]["price_per_person"] == "NT$ 520"
+    assert done["comparison_rows"][0]["meta"].startswith("NT$ 520")
+    assert "部門聚餐" in done["comparison_rows"][0]["best_for"]
+    assert "安靜聊天" in done["comparison_rows"][0]["best_for"]
+
+
+@pytest.mark.anyio
+async def test_eval_recommendation_advice_uses_previous_demo_context(monkeypatch):
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {"role": "user", "content": "明天晚上 7 點，7 個人部門聚餐，想找大安區適合聊天、不會太吵的餐廳。"},
+            {
+                "role": "model",
+                "content": "我整理了三間。",
+                "recommendation": {
+                    "query": "明天晚上 7 點，7 個人部門聚餐，想找大安區適合聊天、不會太吵的餐廳。",
+                    "shops": [
+                        {
+                            "shop_id": 401,
+                            "name": "光司DATE 義大利麵 大安店",
+                            "district": "大安",
+                            "avg_price": 520,
+                            "price_per_person": "未提及",
+                            "ai_summary": "二樓座位區採光良好，桌距充裕，氛圍溫馨自在，適合朋友聚餐慢慢聊天。",
+                            "signature_dishes": ["煙燻培根白醬", "松露燉飯", "粉紅醬雞肉麵"],
+                            "atmosphere_tags": ["約會", "聚餐", "一人"],
+                            "booking_difficulty": "未提及",
+                        },
+                        {
+                            "shop_id": 402,
+                            "name": "Lazy Pasta 慵懶義式廚房大安國館店",
+                            "district": "大安",
+                            "price_per_person": "未提及",
+                            "ai_summary": "明亮簡潔，適合聚餐，但離場時間與節奏掌控較明確。",
+                            "signature_dishes": ["北海道干貝鮮蝦啵啵麵", "奶油培根蛋黃麵"],
+                            "atmosphere_tags": ["聚餐", "親子"],
+                            "booking_difficulty": "現場可入",
+                        },
+                        {
+                            "shop_id": 403,
+                            "name": "知初植物系永續廚房",
+                            "district": "大安",
+                            "price_per_person": "$400以上",
+                            "ai_summary": "光線柔和且座位間距寬敞，強調無麩質與蔬食。",
+                            "signature_dishes": ["佛陀碗", "青檸檬塔"],
+                            "atmosphere_tags": ["聚餐"],
+                            "booking_difficulty": "預約困難",
+                        },
+                    ],
+                },
+            },
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("advice should bypass model")))
+
+    done = await _collect_web_done("這三家你會怎麼幫我選？推薦什麼菜，有什麼要避雷？", "eval-demo-advice-koji")
+
+    assert done["tools_used"] == []
+    assert "優先選「光司DATE 義大利麵 大安店」" in done["answer"]
+    assert "煙燻培根白醬" in done["answer"]
+    assert "訂位備註可寫希望安排較不吵的位置" in done["answer"]
+    assert "未提及" not in done["answer"]
+
+
+@pytest.mark.anyio
 async def test_eval_demo_story_family_driving_recommendation(monkeypatch):
     class FakeResponse:
         text = json.dumps(

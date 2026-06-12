@@ -779,7 +779,7 @@ def _restaurant_need_clarification(query: str) -> bool:
         return True
     if constraints["categories"] or constraints.get("wants_burger") or constraints.get("specific_cuisines"):
         return False
-    has_people = bool(re.search(r"[一二三四五六七八九十\d]+人", normalized))
+    has_people = bool(re.search(r"[一二三四五六七八九十\d]+\s*(個)?人", normalized))
     has_datetime = bool(re.search(r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|早午餐|下午|[0-2]?\d[:：點時])", normalized))
     has_specific_context = bool(re.search(r"(聊天|約會|請客|慶生|商務|安靜|家庭|長輩|包廂)", normalized))
     if has_location and (has_people or has_datetime or has_specific_context):
@@ -788,7 +788,7 @@ def _restaurant_need_clarification(query: str) -> bool:
         phrase in normalized
         for phrase in ("推薦", "找", "想吃", "想找", "餐廳", "店", "聚餐", "吃飯", "用餐", "約會", "請客", "聊天", "慶生")
     )
-    has_people_or_context = bool(re.search(r"[一二三四五六七八九十\d]+人|聚餐|聊天|約會|請客|慶生|商務|安靜", normalized))
+    has_people_or_context = bool(re.search(r"[一二三四五六七八九十\d]+\s*(個)?人|聚餐|聊天|約會|請客|慶生|商務|安靜", normalized))
     has_location_only = bool(constraints["districts"] or constraints["stations"]) and has_people_or_context
     return has_restaurant_phrase or has_location_only
 
@@ -804,7 +804,7 @@ def _restaurant_clarification_gaps(query: str) -> list[str]:
         or constraints.get("wants_burger")
         or constraints.get("specific_cuisines")
     )
-    has_people = bool(re.search(r"[一二三四五六七八九十\d]+人", normalized))
+    has_people = bool(re.search(r"[一二三四五六七八九十\d]+\s*(個)?人", normalized))
     has_datetime = bool(re.search(r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|早午餐|下午|[0-2]?\d[:：點時])", normalized))
     has_specific_context = bool(re.search(r"(聊天|約會|請客|慶生|商務|安靜|家庭|長輩|包廂)", normalized))
     if constraints.get("wants_nearby") and not (has_location or has_explicit_location_text):
@@ -834,7 +834,7 @@ def _restaurant_clarification_known_context(query: str) -> str:
         known.append("、".join(f"{district}區" for district in constraints["districts"][:2]))
     elif constraints.get("stations"):
         known.append("、".join(f"{station}站附近" for station in constraints["stations"][:2]))
-    people_match = re.search(r"([一二三四五六七八九十\d]+)人", normalized)
+    people_match = re.search(r"([一二三四五六七八九十\d]+)\s*(個)?人", normalized)
     if people_match:
         known.append(f"{people_match.group(1)}人")
     category_label = _category_label_for_constraints(constraints)
@@ -1048,7 +1048,7 @@ def _query_is_clarification_followup(query: str) -> bool:
         or re.search(
             r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|早午餐|下午|"
             r"[0-2]?\d[:：點時]|聊天|約會|請客|慶生|商務|安靜|家庭|長輩|包廂|"
-            r"[一二三四五六七八九十\d]+人)",
+            r"[一二三四五六七八九十\d]+\s*(個)?人)",
             normalized,
         )
     )
@@ -2731,9 +2731,101 @@ def _fallback_agent_decision(answer: str, tool_result: dict) -> AgentRecommendat
     )
 
 
+def _contextual_shop_choice_score(query: str, shop: dict, dimension: str = "整體") -> tuple[int, int, int, float]:
+    text = _payload_text(shop)
+    labels = _agent_query_context_labels(query)
+    category_slug = _semantic_category_slug(shop)
+    booking = str(shop.get("booking_difficulty") or "")
+    score = 0
+
+    if _district_matches(_extract_query_constraints(query), shop):
+        score += 4
+    if "部門聚餐" in labels or "多人聚餐" in labels:
+        if any(token in text for token in ("聚餐", "多人", "團體", "寬敞", "桌距", "二樓", "座位區", "舒適")):
+            score += 5
+        if any(token in text for token in ("站立", "吧台", "外帶")):
+            score -= 2
+        if any(token in text for token in ("小吃", "消夜", "米粉湯", "凌晨")):
+            score -= 6
+        if any(token in text for token in ("電話預約", "預點", "階梯", "廁所空間較為侷促", "動線涉及階梯")):
+            score -= 5
+        if category_slug == "vegetarian" and not re.search(r"素食|蔬食|植物|無麩質|健康", str(query or "")):
+            score -= 2
+    if "安靜聊天" in labels or dimension == "聊天":
+        if any(token in text for token in ("聊天", "安靜", "舒適", "寬敞", "桌距", "自在", "放鬆", "良好採光", "溫馨")):
+            score += 5
+        if any(token in text for token in ("安靜", "包廂", "桌距")):
+            score += 4
+        if any(token in text for token in ("熱鬧", "人聲鼎沸", "酒吧", "餐酒館", "深夜", "尖峰音量")):
+            score -= 4
+        if any(token in text for token in ("離場時間", "時間掌控", "節奏掌控")):
+            score -= 3
+    if "家庭聚餐" in labels or dimension == "家庭":
+        if any(token in text for token in ("家庭", "長輩", "親子", "舒適", "寬敞")):
+            score += 4
+    if "開車用餐" in labels:
+        score += 2
+
+    if booking and "未提及" not in booking:
+        if any(token in booking for token in ("可線上", "現場可入")):
+            score += 2
+        if "預約困難" in booking:
+            score -= 3
+        elif "提前" in booking:
+            score -= 1
+    else:
+        score += 1
+
+    try:
+        avg_price = int(shop.get("avg_price") or 0)
+    except (TypeError, ValueError):
+        avg_price = 0
+    if dimension == "預算" and avg_price and avg_price <= 700:
+        score += 3
+
+    return (
+        score,
+        1 if _shop_has_rich_context(shop) else 0,
+        int(shop.get("comments") or 0),
+        float(shop.get("rerank_score") or shop.get("score") or 0.0),
+    )
+
+
+def _prioritize_contextual_recommended_ids(
+    query: str,
+    recommended_ids: list[int],
+    shops: list[dict],
+) -> list[int]:
+    if not recommended_ids or not _agent_query_context_labels(query):
+        return recommended_ids
+    by_id = {
+        sid: shop
+        for shop in shops
+        if (sid := _shop_id(shop)) is not None
+    }
+    target_count = min(3, len(recommended_ids))
+    candidate_ids = [
+        sid
+        for sid in by_id
+        if sid in recommended_ids or _contextual_shop_choice_score(query, by_id[sid])[0] > 8
+    ]
+    if len(candidate_ids) >= target_count:
+        return sorted(
+            candidate_ids,
+            key=lambda sid: _contextual_shop_choice_score(query, by_id.get(sid, {})),
+            reverse=True,
+        )[:target_count]
+    return sorted(
+        recommended_ids,
+        key=lambda sid: _contextual_shop_choice_score(query, by_id.get(sid, {})),
+        reverse=True,
+    )
+
+
 def _validate_agent_decision(
     decision: AgentRecommendationDecision,
     tool_result: dict,
+    query: str = "",
 ) -> AgentRecommendationDecision:
     shops = tool_result.get("shops", []) if isinstance(tool_result, dict) else []
     available_ids = [_shop_id(shop) for shop in shops]
@@ -2750,12 +2842,32 @@ def _validate_agent_decision(
     for sid in available_ids:
         if sid is not None and sid not in recommended and sid not in rejected:
             rejected.append(sid)
+    recommended = _prioritize_contextual_recommended_ids(query, recommended, shops)
+    rejected = [sid for sid in rejected if sid not in recommended]
+    for sid in available_ids:
+        if sid is not None and sid not in recommended and sid not in rejected:
+            rejected.append(sid)
+    rejection_summary = decision.rejection_summary
+    if rejection_summary:
+        recommended_aliases: list[str] = []
+        for shop in shops:
+            sid = _shop_id(shop)
+            if sid is None or sid not in recommended:
+                continue
+            display_name = _agent_display_shop_name(shop, 0)
+            raw_name = str(shop.get("name") or "")
+            recommended_aliases.append(display_name)
+            first_token = re.split(r"[\s（(|｜/]+", raw_name.strip(), maxsplit=1)[0]
+            if len(first_token) >= 3:
+                recommended_aliases.append(first_token)
+        if any(alias and alias in rejection_summary for alias in recommended_aliases):
+            rejection_summary = None
 
     return AgentRecommendationDecision(
         recommended_shop_ids=recommended,
         narrative=filter_output(decision.narrative),
         rejected_shop_ids=rejected,
-        rejection_summary=decision.rejection_summary,
+        rejection_summary=rejection_summary,
     )
 
 
@@ -2867,6 +2979,7 @@ def _agent_display_shop_name(shop: dict, index: int) -> str:
     for separator in ("（", "(", "/", "｜", "|"):
         if separator in name:
             name = name.split(separator, 1)[0].strip()
+    name = re.sub(r"[.。．…·]{3,}.*$", "", name).strip()
     return _short_agent_text(name, 34) or f"店家 {index}"
 
 
@@ -3057,8 +3170,20 @@ def _agent_comparison_booking_status(shop: dict) -> str:
     return "可線上訂位，建議確認"
 
 
+def _agent_price_label(shop: dict) -> str:
+    price = str(shop.get("price_per_person") or "").strip()
+    if price and "未提及" not in price and "未知" not in price:
+        return price
+    if shop.get("avg_price"):
+        return f"NT$ {shop.get('avg_price')}"
+    text = _payload_text(shop)
+    if any(token in text for token in ("性價比", "價格", "cp值", "划算", "份量")):
+        return "價格口碑可參考"
+    return ""
+
+
 def _agent_comparison_meta(shop: dict) -> str:
-    price = shop.get("price_per_person") or (f"NT$ {shop.get('avg_price')}" if shop.get("avg_price") else "")
+    price = _agent_price_label(shop)
     location = " · ".join(
         part
         for part in (
@@ -3143,7 +3268,7 @@ def _recommendation_context_from_tool_result(query: str, tool_result: dict) -> d
                 "district": shop.get("district"),
                 "category": shop.get("category") or shop.get("category_slug"),
                 "avg_price": shop.get("avg_price"),
-                "price_per_person": shop.get("price_per_person"),
+                "price_per_person": _agent_price_label(shop) or None,
                 "ai_summary": shop.get("ai_summary"),
                 "signature_dishes": _parse_json_list(shop.get("signature_dishes"))[:5],
                 "atmosphere_tags": _parse_json_list(shop.get("atmosphere_tags"))[:5],
@@ -3469,6 +3594,22 @@ def _recommendation_advice_intent(query: str) -> bool:
             "適合商務",
             "適合約會",
             "適合聚餐",
+            "推薦什麼",
+            "推薦菜",
+            "菜色",
+            "招牌",
+            "必點",
+            "避雷",
+            "注意",
+            "預算",
+            "價位",
+            "多少錢",
+            "划算",
+            "搭配",
+            "捷運",
+            "交通",
+            "特定",
+            "想吃",
         )
     )
 
@@ -3485,6 +3626,12 @@ def _recommendation_dimension(query: str) -> str:
         return "多人聚餐"
     if any(token in normalized for token in ("家庭", "長輩", "小孩", "親子")):
         return "家庭"
+    if any(token in normalized for token in ("菜色", "推薦菜", "招牌", "必點", "吃什麼", "特定")):
+        return "菜色"
+    if any(token in normalized for token in ("避雷", "注意", "缺點", "雷")):
+        return "避雷"
+    if any(token in normalized for token in ("捷運", "交通", "附近", "距離")):
+        return "交通"
     if any(token in normalized for token in ("便宜", "平價", "預算", "划算")):
         return "預算"
     return "整體"
@@ -3540,31 +3687,99 @@ def _shop_dimension_score(shop: dict, dimension: str) -> int:
     return score
 
 
-def _recommendation_advice_answer(query: str, shops: list[dict]) -> str:
+def _shop_menu_suggestion(shop: dict) -> str:
+    dishes = [dish for dish in _parse_json_list(shop.get("signature_dishes")) if dish][:3]
+    if dishes:
+        return f"可先看 {'、'.join(dishes)}"
+    summary = str(shop.get("ai_summary") or "")
+    if "義大利麵" in summary:
+        return "可優先看義大利麵與燉飯類"
+    if "合菜" in summary:
+        return "適合點合菜或多人分享品項"
+    return "建議進詳情頁確認菜單與熱門評論"
+
+
+def _shop_watchout_text(shop: dict, query: str = "") -> str:
+    text = _payload_text(shop)
+    booking = _agent_comparison_booking_status(shop)
+    warnings: list[str] = []
+    if "預約困難" in booking:
+        warnings.append("熱門時段建議先訂，額滿就開候位通知")
+    elif "現場可入" in booking:
+        warnings.append("可訂位但現場彈性較高，7 人仍建議先鎖位")
+    if any(token in text for token in ("熱鬧", "人聲鼎沸", "尖峰音量")):
+        warnings.append("尖峰可能偏熱鬧")
+    if any(token in text for token in ("離場時間", "時間掌控", "用餐時間")):
+        warnings.append("用餐節奏可能較明確")
+    if any(token in text for token in ("服務人員在忙碌", "人力", "漏單", "出餐節奏")):
+        warnings.append("尖峰服務節奏要預留彈性")
+    if "安靜聊天" in _agent_query_context_labels(query) and "熱鬧" not in text:
+        warnings.append("訂位備註可寫希望安排較不吵的位置")
+    deduped: list[str] = []
+    for warning in warnings:
+        if warning not in deduped:
+            deduped.append(warning)
+    return "；".join(deduped[:2]) or "目前沒有明顯避雷點，建議確認營業時間與訂位規則"
+
+
+def _shop_budget_text(shop: dict) -> str:
+    price = _agent_price_label(shop)
+    if price:
+        return price
+    return "目前沒有結構化人均，先以詳情頁評論與訂金規則確認"
+
+
+def _shop_choice_reason(shop: dict, query: str) -> str:
+    reason = _agent_shop_match_reason(query, shop)
+    best_for = _agent_shop_best_for(shop, query)
+    summary = _short_agent_text(str(shop.get("ai_summary") or ""), limit=56)
+    menu = _shop_menu_suggestion(shop)
+    watchout = _shop_watchout_text(shop, query)
+    parts = []
+    if reason:
+        parts.append(reason)
+    if best_for:
+        parts.append(f"適合 {best_for}")
+    if summary:
+        parts.append(summary)
+    parts.append(menu)
+    parts.append(f"提醒：{watchout}")
+    return "；".join(parts[:5])
+
+
+def _recommendation_advice_answer(query: str, shops: list[dict], context_query: str = "") -> str:
     valid_shops = [shop for shop in shops if isinstance(shop, dict) and _shop_id(shop) is not None]
     if not valid_shops:
         return ""
+    combined_query = " ".join(part for part in (context_query, query) if part).strip()
     selected = _recommended_shop_from_text(query, valid_shops)
     if selected is not None:
         name = str(selected.get("name") or f"店家 {_shop_id(selected)}")
         return (
-            f"關於「{name}」：{_shop_advice_text(selected)}。"
-            f"我會再留意：{_agent_comparison_booking_status(selected)}。"
+            f"關於「{name}」，我會這樣看：{_shop_choice_reason(selected, combined_query)}。\n"
+            f"預算資訊：{_shop_budget_text(selected)}。"
         )
 
     dimension = _recommendation_dimension(query)
     ranked = sorted(
         valid_shops,
-        key=lambda shop: (_shop_dimension_score(shop, dimension), _shop_has_rich_context(shop)),
+        key=lambda shop: (
+            _contextual_shop_choice_score(combined_query, shop, dimension),
+            _shop_dimension_score(shop, dimension),
+            _shop_has_rich_context(shop),
+        ),
         reverse=True,
     )
     best = ranked[0]
     best_name = str(best.get("name") or f"店家 {_shop_id(best)}")
-    lines = [f"如果以「{dimension}」來看，我會優先選「{best_name}」。"]
+    basis = _agent_query_basis_label(combined_query) if combined_query else dimension
+    lines = [f"如果以「{basis}」來看，我會優先選「{best_name}」。"]
+    lines.append(f"原因：{_shop_choice_reason(best, combined_query)}。")
     for shop in ranked[:3]:
         name = str(shop.get("name") or f"店家 {_shop_id(shop)}")
-        lines.append(f"- {name}：{_shop_advice_text(shop)}；{_agent_comparison_meta(shop) or '資料未標示價位/地點'}")
-    lines.append("如果你要，我可以接著幫你鎖定其中一間並帶入日期、人數。")
+        meta = _agent_comparison_meta(shop) or _shop_budget_text(shop)
+        lines.append(f"- {name}：{_shop_choice_reason(shop, combined_query)}；{meta}")
+    lines.append("如果你要訂，我可以接著幫你鎖定店家並沿用上一輪的日期、時間與人數；如果額滿，就改開候位 / 空位通知。")
     return "\n".join(lines)
 
 
@@ -3575,10 +3790,14 @@ def _agent_recommendation_advice_from_history(query: str, history: list[dict]) -
     shops = recommendation.get("shops") if isinstance(recommendation, dict) else []
     if not isinstance(shops, list) or not shops:
         return None
-    answer = _recommendation_advice_answer(query, shops)
+    answer = _recommendation_advice_answer(query, shops, str(recommendation.get("query") or ""))
     if not answer:
         return None
-    return ToolGuardResult(action="direct", direct_answer=answer, last_tool_result={"shops": shops})
+    return ToolGuardResult(
+        action="direct",
+        direct_answer=answer,
+        last_tool_result={"query": str(recommendation.get("query") or query), "shops": shops},
+    )
 
 
 def _agent_booking_followup_from_history(query: str, history: list[dict]) -> ToolGuardResult | None:
@@ -4165,7 +4384,7 @@ JSON schema:
             logger.exception("agent_decision_fallback_failed")
         decision = _fallback_agent_decision(fallback_answer, tool_result)
 
-    validated = _validate_agent_decision(decision, tool_result)
+    validated = _validate_agent_decision(decision, tool_result, query)
     return AgentRecommendationDecision(
         recommended_shop_ids=validated.recommended_shop_ids,
         narrative=_agent_concierge_narrative(query, tool_result, validated),
@@ -6845,6 +7064,11 @@ async def _enrich_agent_search_result(
     tool_result["shops"] = await _hydrate_agent_search_shops(shops, selected_ids)
     for shop in tool_result["shops"]:
         if isinstance(shop, dict):
+            price_label = _agent_price_label(shop)
+            if price_label:
+                shop["price_per_person"] = price_label
+            elif str(shop.get("price_per_person") or "").strip():
+                shop.pop("price_per_person", None)
             reason = _agent_shop_match_reason(query, shop)
             if reason:
                 shop["match_reason"] = reason
@@ -7002,7 +7226,7 @@ async def _build_line_recommendation_advice(user_text: str, user_id: str) -> lis
     selected_shops = _shops_for_ids(shops, shown_ids)
     if not selected_shops:
         return None
-    answer = _recommendation_advice_answer(user_text, selected_shops)
+    answer = _recommendation_advice_answer(user_text, selected_shops, previous_query)
     return [build_text_message(answer)] if answer else None
 
 
@@ -7711,7 +7935,7 @@ def _line_booking_prefill_from_text(text: str) -> dict:
             booking_time = "12:00"
 
     people = None
-    people_match = re.search(r"([一二兩三四五六七八九十\d]{1,3})\s*人", normalized)
+    people_match = re.search(r"([一二兩三四五六七八九十\d]{1,3})\s*(個)?人", normalized)
     if people_match:
         people = _zh_number_to_int(people_match.group(1))
         if people is not None:
