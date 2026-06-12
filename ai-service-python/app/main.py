@@ -879,6 +879,8 @@ def _strip_specific_shop_keyword(text: str) -> str:
         "",
         normalized,
     )
+    normalized = re.sub(r"20\d{2}\s*[年/\-.]\s*(1[0-2]|0?[1-9])\s*[月/\-.]\s*(3[01]|[12]\d|0?[1-9])\s*日?", "", normalized)
+    normalized = re.sub(r"(1[0-2]|0?[1-9])\s*月\s*(3[01]|[12]\d|0?[1-9])\s*日?", "", normalized)
     normalized = re.sub(r"[0-2]?\d[:：點時](半|[0-5]?\d分?)?", "", normalized)
     normalized = re.sub(r"\s+[一二兩三四五六七八九十\d]{1,3}\s*人", "", normalized)
     normalized = re.sub(r"\d{1,3}\s*人", "", normalized)
@@ -929,6 +931,31 @@ def _specific_shop_keyword(text: str) -> str:
         value.replace("站", "") for values in STATION_HINTS.values() for value in values
     }
     if keyword in station_values:
+        return ""
+    return keyword
+
+
+def _booking_shop_keyword(text: str) -> str:
+    keyword = _strip_specific_shop_keyword(text)
+    if len(keyword) < 2 or len(keyword) > 32:
+        return ""
+    if re.fullmatch(r"(今天|明天|後天|今晚|晚上|晚餐|午餐|中午|下午|早午餐|[0-2]?\d[:：點時]?)", keyword):
+        return ""
+    if keyword in {"推薦", "找", "餐廳", "聚餐", "吃飯", "用餐", "聊天", "約會", "請客", "附近", "圖卡", "卡片"}:
+        return ""
+    if any(keyword in values or keyword == district for district, values in DISTRICT_HINTS.items()):
+        return ""
+    station_values = {station.replace("站", "") for station in STATION_HINTS} | {
+        value.replace("站", "") for values in STATION_HINTS.values() for value in values
+    }
+    if keyword in station_values:
+        return ""
+    constraints = _extract_query_constraints(keyword)
+    if (
+        constraints["categories"]
+        or constraints.get("wants_burger")
+        or constraints.get("specific_cuisines")
+    ) and len(keyword) <= 5:
         return ""
     return keyword
 
@@ -3345,8 +3372,7 @@ def _booking_selection_intent(query: str) -> bool:
     )
 
 
-def _exact_shop_matches(query: str, shops: list[dict]) -> list[dict]:
-    keyword = _specific_shop_keyword(query)
+def _exact_shop_matches_for_keyword(keyword: str, shops: list[dict]) -> list[dict]:
     normalized_keyword = _normalized_name(keyword)
     if not normalized_keyword:
         return []
@@ -3356,7 +3382,11 @@ def _exact_shop_matches(query: str, shops: list[dict]) -> list[dict]:
         normalized_name = _normalized_name(str(shop.get("name") or ""))
         if not normalized_name:
             continue
-        if normalized_keyword in normalized_name or normalized_name in normalized_keyword:
+        if (
+            normalized_keyword in normalized_name
+            or normalized_name in normalized_keyword
+            or _recommended_shop_name_score(keyword, shop) > 0
+        ):
             matches.append(shop)
 
     return sorted(
@@ -3366,6 +3396,10 @@ def _exact_shop_matches(query: str, shops: list[dict]) -> list[dict]:
             not _normalized_name(str(shop.get("name") or "")).startswith(normalized_keyword),
         ),
     )
+
+
+def _exact_shop_matches(query: str, shops: list[dict]) -> list[dict]:
+    return _exact_shop_matches_for_keyword(_specific_shop_keyword(query), shops)
 
 
 def _recommendation_advice_intent(query: str) -> bool:
@@ -4165,7 +4199,7 @@ async def _agent_exact_shop_from_query(query: str) -> ToolGuardResult | None:
         return None
 
     hits = await _semantic_hits(keyword, top_k=30)
-    selected_shops = _exact_shop_matches(keyword, hits)
+    selected_shops = _exact_shop_matches_for_keyword(keyword, hits)
     if not selected_shops:
         return None
 
@@ -4206,12 +4240,12 @@ async def _agent_exact_booking_from_query(query: str) -> ToolGuardResult | None:
     if not _booking_intent(query) or _payment_intent(query):
         return None
 
-    keyword = _specific_shop_keyword(query)
+    keyword = _booking_shop_keyword(query)
     if not keyword:
         return None
 
     hits = await _semantic_hits(keyword, top_k=30)
-    selected_shops = _exact_shop_matches(keyword, hits)
+    selected_shops = _exact_shop_matches_for_keyword(keyword, hits)
     if not selected_shops:
         return None
 
@@ -7571,6 +7605,35 @@ def _weekday_booking_date_from_text(text: str, today: date_cls) -> str:
     return (today + timedelta(days=days_until)).isoformat()
 
 
+def _explicit_booking_date_from_text(text: str, today: date_cls) -> str:
+    normalized = str(text or "").strip()
+    full_date = re.search(
+        r"(?P<year>20\d{2})\s*[年/\-.]\s*(?P<month>1[0-2]|0?[1-9])\s*[月/\-.]\s*(?P<day>3[01]|[12]\d|0?[1-9])\s*日?",
+        normalized,
+    )
+    if full_date:
+        try:
+            return date_cls(
+                int(full_date.group("year")),
+                int(full_date.group("month")),
+                int(full_date.group("day")),
+            ).isoformat()
+        except ValueError:
+            return ""
+
+    month_day = re.search(r"(?P<month>1[0-2]|0?[1-9])\s*月\s*(?P<day>3[01]|[12]\d|0?[1-9])\s*日?", normalized)
+    if not month_day:
+        return ""
+
+    try:
+        parsed = date_cls(today.year, int(month_day.group("month")), int(month_day.group("day")))
+    except ValueError:
+        return ""
+    if parsed <= today:
+        parsed = date_cls(today.year + 1, parsed.month, parsed.day)
+    return parsed.isoformat()
+
+
 def _line_booking_prefill_from_text(text: str) -> dict:
     normalized = str(text or "").strip()
     today = taipei_today()
@@ -7581,6 +7644,8 @@ def _line_booking_prefill_from_text(text: str) -> dict:
         booking_date = (today + timedelta(days=1)).isoformat()
     else:
         booking_date = _weekday_booking_date_from_text(normalized, today)
+        if not booking_date:
+            booking_date = _explicit_booking_date_from_text(normalized, today)
 
     booking_time = ""
     explicit_time = re.search(r"([0-2]?\d)[:：]([0-5]\d)", normalized)

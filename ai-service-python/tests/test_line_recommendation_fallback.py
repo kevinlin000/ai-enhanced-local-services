@@ -511,6 +511,15 @@ def test_specific_shop_keyword_ignores_vague_or_time_only_followups():
     assert main._selection_index_from_text("第3個 4人") == 2
 
 
+def test_booking_shop_keyword_allows_full_name_with_cuisine_terms():
+    assert (
+        main._booking_shop_keyword("我要訂光司DATE 義大利麵 大安店，2026-06-13 晚上 19:00，7 人。")
+        == "光司DATE義大利麵大安店"
+    )
+    assert main._booking_shop_keyword("我要訂 KiKi餐廳 ATT 4 FUN信義店，2026/06/13 晚上7點 4人") == "KiKiATT4FUN信義店"
+    assert main._booking_shop_keyword("我要訂火鍋明天晚上7點4人") == ""
+
+
 def test_booking_prefill_parses_weekday_dates(monkeypatch):
     monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
@@ -525,6 +534,26 @@ def test_booking_prefill_parses_weekday_dates(monkeypatch):
         "people": 4,
     }
     assert main._line_booking_prefill_from_text("星期六中午 兩人") == {
+        "date": "2026-06-13",
+        "time": "12:00",
+        "people": 2,
+    }
+
+
+def test_booking_prefill_parses_explicit_dates(monkeypatch):
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 12))
+
+    assert main._line_booking_prefill_from_text("2026-06-13 晚上19:00 7人") == {
+        "date": "2026-06-13",
+        "time": "19:00",
+        "people": 7,
+    }
+    assert main._line_booking_prefill_from_text("2026/06/13 晚上7點 4人") == {
+        "date": "2026-06-13",
+        "time": "19:00",
+        "people": 4,
+    }
+    assert main._line_booking_prefill_from_text("6月13日 中午 兩人") == {
         "date": "2026-06-13",
         "time": "12:00",
         "people": 2,
