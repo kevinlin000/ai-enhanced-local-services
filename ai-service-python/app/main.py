@@ -3313,10 +3313,17 @@ def _agent_concierge_narrative(
 
     basis = _agent_query_basis_label(query)
     count = len(selected)
+    display_count = min(3, len(shops))
     if count == 1:
-        lead = f"**結論：我先用「{basis}」篩，最值得先看這 1 家。**"
+        if display_count > count:
+            lead = f"**結論：我先用「{basis}」篩，主推這 1 家，另保留 {display_count - count} 家備案比較。**"
+        else:
+            lead = f"**結論：我先用「{basis}」篩，最值得先看這 1 家。**"
     else:
-        lead = f"**結論：我先用「{basis}」篩，優先看這 {count} 家。**"
+        if display_count > count:
+            lead = f"**結論：我先用「{basis}」篩，主推這 {count} 家，另保留 {display_count - count} 家備案比較。**"
+        else:
+            lead = f"**結論：我先用「{basis}」篩，優先看這 {count} 家。**"
     lines = [lead]
     frame = _agent_story_frame(query)
     if frame:
@@ -3332,7 +3339,8 @@ def _agent_concierge_narrative(
             tradeoff = _short_agent_text(decision.rejection_summary, limit=92)
         else:
             tradeoff = "其餘選項不是預算、座位型態，就是過敏備註穩定性不夠適合這次聚餐"
-        lines.extend(["", f"**取捨**：我不硬湊第三家，{tradeoff}。"])
+        backup_note = "下方其他卡片只作備案比較。" if display_count > len(selected) else ""
+        lines.extend(["", f"**取捨**：主推名單先收斂，{tradeoff}。{backup_note}"])
     lines.extend(["", f"**下一步**：{_agent_recommendation_cta(query).removeprefix('下一步：')}"])
     return "\n".join(lines)
 
@@ -3415,10 +3423,39 @@ def _agent_price_label(shop: dict) -> str:
         return price
     if shop.get("avg_price"):
         return f"NT$ {shop.get('avg_price')}"
+    manifest_price = _agent_manifest_price_label(shop)
+    if manifest_price:
+        return manifest_price
     text = _payload_text(shop)
+    explicit = _explicit_price_label_from_text(text)
+    if explicit:
+        return explicit
     if any(token in text for token in ("性價比", "價格", "cp值", "划算", "份量")):
         return "價格口碑可參考"
     return ""
+
+
+def _agent_manifest_price_label(shop: dict) -> str:
+    shop_id = _shop_id(shop)
+    if shop_id is None:
+        return ""
+    manifest_shop = _line_media_shop(int(shop_id))
+    overview = manifest_shop.get("overview") if isinstance(manifest_shop, dict) else {}
+    raw = str((overview or {}).get("price_overview") or "").strip()
+    if not raw or any(token in raw for token in ("未提及", "未知")):
+        return ""
+    explicit = _explicit_price_label_from_text(raw)
+    return explicit or raw
+
+
+def _explicit_price_label_from_text(text: str) -> str:
+    normalized = str(text or "").replace(",", "")
+    match = re.search(r"(?:\$|nt\$?\s*)\s*(\d{2,5})\s*(?:到|至|-|~|～)\s*(\d{2,5})", normalized, flags=re.IGNORECASE)
+    if not match:
+        return ""
+    low = int(match.group(1))
+    high = int(match.group(2))
+    return f"${min(low, high)}-{max(low, high)}"
 
 
 def _agent_comparison_meta(shop: dict) -> str:
@@ -6440,7 +6477,7 @@ async def internal_line_availability_released(request: Request):
         user_id=line_user_id,
         messages=[_line_availability_flex_message(payload)],
         channel_access_token=settings.line_channel_access_token,
-        enabled=settings.line_reply_enabled,
+        enabled=settings.line_reply_enabled or settings.line_background_push_enabled,
     )
     return {"ok": bool(result.get("ok")), "line_result": result}
 
@@ -6459,7 +6496,7 @@ async def internal_line_booking_updated(request: Request):
         user_id=line_user_id,
         messages=[_line_booking_flex_message(booking, phase, line_user_id=line_user_id)],
         channel_access_token=settings.line_channel_access_token,
-        enabled=settings.line_reply_enabled,
+        enabled=settings.line_reply_enabled or settings.line_background_push_enabled,
     )
     return {"ok": bool(result.get("ok")), "line_result": result}
 
@@ -6475,7 +6512,7 @@ async def internal_line_parking_reminder(request: Request):
         user_id=line_user_id,
         messages=[_line_parking_reminder_flex_message(payload)],
         channel_access_token=settings.line_channel_access_token,
-        enabled=settings.line_reply_enabled,
+        enabled=settings.line_reply_enabled or settings.line_background_push_enabled,
     )
     return {"ok": bool(result.get("ok")), "line_result": result}
 
@@ -7563,7 +7600,10 @@ async def _hydrate_agent_search_shops(shops: list[dict], selected_ids: list[int]
     hydrated: list[dict] = []
     for shop in shops:
         shop_id = _shop_id(shop)
-        if shop_id not in selected_set or _line_card_has_rich_context(shop):
+        if shop_id not in selected_set:
+            hydrated.append(shop)
+            continue
+        if _line_card_has_rich_context(shop) and _agent_price_label(shop):
             hydrated.append(shop)
             continue
 

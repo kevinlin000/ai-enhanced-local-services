@@ -3623,6 +3623,45 @@ async def test_internal_booking_updated_pushes_cancel_card(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_internal_booking_updated_uses_background_push_switch(monkeypatch):
+    pushed = {}
+
+    async def fake_push_messages(user_id, messages, channel_access_token, enabled):
+        pushed["enabled"] = enabled
+        return {"ok": True}
+
+    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    monkeypatch.setattr(main, "_save_line_booking_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
+    monkeypatch.setattr(main.settings, "line_reply_enabled", False)
+    monkeypatch.setattr(main.settings, "line_background_push_enabled", True)
+
+    class FakeRequest:
+        async def json(self):
+            return {
+                "secret": "secret",
+                "lineUserId": "Uabc123",
+                "phase": "reserved",
+                "booking": {
+                    "bookingCode": "BK-PUSH",
+                    "shopId": 10009,
+                    "shopName": "橘色涮涮屋 信義館",
+                    "date": "2026-06-08",
+                    "time": "19:00",
+                    "people": 2,
+                    "status": "CONFIRMED",
+                    "needsDeposit": False,
+                    "depositTotal": 0,
+                },
+            }
+
+    response = await main.internal_line_booking_updated(FakeRequest())
+
+    assert response["ok"] is True
+    assert pushed["enabled"] is True
+
+
+@pytest.mark.anyio
 async def test_internal_parking_reminder_pushes_line_card(monkeypatch):
     pushed = {}
 

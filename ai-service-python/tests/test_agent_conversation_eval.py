@@ -530,6 +530,28 @@ def test_eval_demo_story_meat_budget_rerank_avoids_premium_outlier():
     assert "大安義式" not in main._agent_story_frame(query)
 
 
+def test_eval_agent_price_label_extracts_review_price_range():
+    shop = {
+        "name": "光司DATE 義大利麵 大安店",
+        "district": "大安",
+        "ai_summary": "Google 平均每人 $200-400，份量充足，適合聚餐。",
+        "price_per_person": "未提及",
+    }
+
+    assert main._agent_price_label(shop) == "$200-400"
+
+
+def test_eval_agent_price_label_uses_media_manifest_price():
+    shop = {
+        "shop_id": 10673,
+        "name": "光司DATE 義大利麵 大安店",
+        "district": "大安",
+        "price_per_person": "未提及",
+    }
+
+    assert main._agent_price_label(shop) == "$200-400"
+
+
 @pytest.mark.anyio
 async def test_eval_recommendation_advice_uses_previous_demo_context(monkeypatch):
     monkeypatch.setattr(

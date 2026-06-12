@@ -3,6 +3,7 @@ package com.bytebites.service;
 import com.bytebites.entity.Shop;
 import com.bytebites.entity.jpa.BookingJpa;
 import com.bytebites.service.jpa.UserJpaService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Service
+@Slf4j
 public class BookingLineNotificationService {
 
     private final IShopService shopService;
@@ -33,8 +35,14 @@ public class BookingLineNotificationService {
         Shop shop = booking.getShopId() == null ? null : shopService.getById(booking.getShopId());
         String shopName = shop != null ? shop.getName() : null;
         Map<String, Object> payload = bookingPayload(booking, shopName);
-        userJpaService.findLineNotificationUserId(booking.getUserId())
-                .ifPresent(lineUserId -> lineNotificationClient.pushBookingUpdated(lineUserId, payload, phase));
+        userJpaService.findLineNotificationUserId(booking.getUserId()).ifPresentOrElse(
+                lineUserId -> lineNotificationClient.pushBookingUpdated(lineUserId, payload, phase),
+                () -> log.info(
+                        "[LINE booking push] skipped bookingCode={} userId={} reason=no_linked_line_user",
+                        booking.getBookingCode(),
+                        booking.getUserId()
+                )
+        );
     }
 
     public void pushParkingReminder(BookingJpa booking, List<ParkingService.NearbyParkingLotView> parkingLots) {
@@ -47,8 +55,14 @@ public class BookingLineNotificationService {
         payload.put("parkingLots", parkingPayload(parkingLots));
         payload.put("parkingDataSource", "台北市停車場即時剩餘車位資料");
         payload.put("parkingDataNote", "車位會快速變動，請以到場狀況為準。");
-        userJpaService.findLineNotificationUserId(booking.getUserId())
-                .ifPresent(lineUserId -> lineNotificationClient.pushParkingReminder(lineUserId, payload));
+        userJpaService.findLineNotificationUserId(booking.getUserId()).ifPresentOrElse(
+                lineUserId -> lineNotificationClient.pushParkingReminder(lineUserId, payload),
+                () -> log.info(
+                        "[LINE parking push] skipped bookingCode={} userId={} reason=no_linked_line_user",
+                        booking.getBookingCode(),
+                        booking.getUserId()
+                )
+        );
     }
 
     private Map<String, Object> bookingPayload(BookingJpa booking, String shopName) {
