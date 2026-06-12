@@ -439,16 +439,16 @@ async def test_eval_demo_story_complex_department_briefing(monkeypatch):
                 "atmosphere_tags": ["聚餐"],
                 "booking_difficulty": "未提及",
             },
-                {
-                    "shop_id": 402,
-                    "name": "Lazy Pasta 慵懶義式廚房大安國館店",
-                    "district": "大安",
-                    "category_slug": "euro",
-                    "ai_summary": "招牌含蝦蟹，尖峰時段偏熱鬧。",
-                    "signature_dishes": ["北海道干貝鮮蝦啵啵麵", "紅白醬雞肉菌菇寬麵", "奶油培根蛋黃麵"],
-                    "atmosphere_tags": ["熱鬧"],
-                    "booking_difficulty": "現場可入",
-                },
+            {
+                "shop_id": 402,
+                "name": "Lazy Pasta 慵懶義式廚房大安國館店",
+                "district": "大安",
+                "category_slug": "euro",
+                "ai_summary": "招牌含蝦蟹，尖峰時段偏熱鬧。",
+                "signature_dishes": ["北海道干貝鮮蝦啵啵麵", "紅白醬雞肉菌菇寬麵", "奶油培根蛋黃麵"],
+                "atmosphere_tags": ["熱鬧"],
+                "booking_difficulty": "現場可入",
+            },
             {
                 "shop_id": 403,
                 "name": "知初植物系永續廚房",
@@ -476,10 +476,58 @@ async def test_eval_demo_story_complex_department_briefing(monkeypatch):
     assert "我先把條件拆開" in done["answer"]
     assert "甲殼類過敏先避開蝦蟹" in done["answer"]
     assert "預算抓 NT$ 500-700/人" in done["answer"]
-    assert "可先看非蝦蟹選項" in done["answer"]
-    assert "我不硬湊第三家" in done["answer"]
+    assert "安全點餐" in done["answer"]
     assert "北海道干貝鮮蝦啵啵麵" not in done["answer"]
     assert all("鮮蝦" not in row["feature_highlight"] for row in done["comparison_rows"])
+
+
+def test_eval_demo_story_meat_budget_rerank_avoids_premium_outlier():
+    query = (
+        "明天晚上七點，我們部門 7 個人要聚餐。想找大安區適合聊天、"
+        "不用講話用吼的燒肉或肉類餐廳。有人不能吃蝦蟹，預算一人 700 到 1200。"
+    )
+    shops = [
+        {
+            "shop_id": 501,
+            "name": "初樂燒肉",
+            "district": "大安",
+            "category_slug": "yakiniku",
+            "price_per_person": "$700-1000",
+            "ai_summary": "環境乾淨，適合朋友聚餐，出餐速度穩定。",
+            "signature_dishes": ["牛五花套餐", "豬霜降套餐", "牛舌"],
+            "atmosphere_tags": ["聚餐", "舒適"],
+            "booking_difficulty": "可線上訂位",
+        },
+        {
+            "shop_id": 502,
+            "name": "樂軒和牛專門店",
+            "district": "大安",
+            "category_slug": "yakiniku",
+            "price_per_person": "$3180-8800",
+            "ai_summary": "高級和牛燒肉，適合請客。",
+            "signature_dishes": ["和牛套餐", "牛舌"],
+            "atmosphere_tags": ["聚餐", "舒適"],
+            "booking_difficulty": "可線上訂位",
+        },
+        {
+            "shop_id": 503,
+            "name": "肉你好燒肉-延吉店",
+            "district": "大安",
+            "category_slug": "yakiniku",
+            "price_per_person": "$800-1200",
+            "ai_summary": "多人聚餐可共享肉盤，桌距舒適。",
+            "signature_dishes": ["牛小排", "松阪豬", "雞腿肉"],
+            "atmosphere_tags": ["聚餐", "舒適"],
+            "booking_difficulty": "可線上訂位",
+        },
+    ]
+
+    ordered = main._prioritize_contextual_recommended_ids(query, [501, 502, 503], shops)
+
+    assert ordered[:2] == [503, 501]
+    assert ordered[-1] == 502
+    assert "燒肉" in main._agent_story_frame(query)
+    assert "大安義式" not in main._agent_story_frame(query)
 
 
 @pytest.mark.anyio

@@ -2734,17 +2734,23 @@ def _fallback_agent_decision(answer: str, tool_result: dict) -> AgentRecommendat
 def _contextual_shop_choice_score(query: str, shop: dict, dimension: str = "整體") -> tuple[int, int, int, float]:
     text = _payload_text(shop)
     labels = _agent_query_context_labels(query)
+    constraints = _extract_query_constraints(query)
     category_slug = _semantic_category_slug(shop)
     booking = str(shop.get("booking_difficulty") or "")
     score = 0
 
-    if _district_matches(_extract_query_constraints(query), shop):
+    if _district_matches(constraints, shop):
         score += 4
+    categories = constraints.get("categories") or []
+    if categories and category_slug in categories:
+        score += 5
+    if "yakiniku" in categories and category_slug != "yakiniku":
+        score -= 4
     if "部門聚餐" in labels or "多人聚餐" in labels:
         if any(token in text for token in ("聚餐", "多人", "團體", "寬敞", "桌距", "二樓", "座位區", "舒適")):
             score += 5
         if any(token in text for token in ("站立", "吧台", "外帶")):
-            score -= 2
+            score -= 6
         if any(token in text for token in ("小吃", "消夜", "米粉湯", "凌晨")):
             score -= 6
         if any(token in text for token in ("電話預約", "預點", "階梯", "廁所空間較為侷促", "動線涉及階梯")):
@@ -2765,6 +2771,18 @@ def _contextual_shop_choice_score(query: str, shop: dict, dimension: str = "整�
             score += 4
     if "開車用餐" in labels:
         score += 2
+    if _query_has_meat_lovers(query):
+        if category_slug == "yakiniku" or any(token in text for token in ("燒肉", "牛排", "和牛", "牛舌", "肉類主餐", "培根", "雞肉", "豬")):
+            score += 4
+        if category_slug == "vegetarian":
+            score -= 5
+    if _query_has_shellfish_allergy(query):
+        dishes = [dish for dish in _parse_json_list(shop.get("signature_dishes")) if dish]
+        safe_dishes = [dish for dish in dishes if not _dish_has_obvious_shellfish(dish)]
+        if dishes and not safe_dishes:
+            score -= 5
+        if any(token in str(shop.get("name") or "") for token in ("龍蝦", "蝦蟹", "海鮮")):
+            score -= 3
 
     if booking and "未提及" not in booking:
         if any(token in booking for token in ("可線上", "現場可入")):
@@ -2782,6 +2800,17 @@ def _contextual_shop_choice_score(query: str, shop: dict, dimension: str = "整�
         avg_price = 0
     if dimension == "預算" and avg_price and avg_price <= 700:
         score += 3
+    budget_low, budget_high = _query_budget_range(query)
+    shop_low, shop_high = _shop_price_bounds(shop)
+    if budget_low and budget_high and (shop_low or shop_high):
+        effective_low = shop_low or shop_high or 0
+        effective_high = shop_high or shop_low or 0
+        if effective_low and effective_low > budget_high:
+            score -= 10
+        elif effective_high and effective_high < budget_low:
+            score -= 1
+        elif effective_low <= budget_high and effective_high >= budget_low:
+            score += 3
 
     return (
         score,
@@ -2857,6 +2886,16 @@ def _validate_agent_decision(
             display_name = _agent_display_shop_name(shop, 0)
             raw_name = str(shop.get("name") or "")
             recommended_aliases.append(display_name)
+            display_token = re.split(r"[\s（(|｜/]+", display_name.strip(), maxsplit=1)[0]
+            if len(display_token) >= 3:
+                recommended_aliases.append(display_token)
+            if "｜" in raw_name:
+                right = raw_name.split("｜", 1)[1].strip()
+                if right:
+                    recommended_aliases.append(right)
+                    right_token = re.split(r"[\s（(|｜/]+", right, maxsplit=1)[0]
+                    if len(right_token) >= 3:
+                        recommended_aliases.append(right_token)
             first_token = re.split(r"[\s（(|｜/]+", raw_name.strip(), maxsplit=1)[0]
             if len(first_token) >= 3:
                 recommended_aliases.append(first_token)
@@ -2947,6 +2986,82 @@ def _query_budget_range(query: str) -> tuple[int | None, int | None]:
     return (min(low, high), max(low, high))
 
 
+def _shop_price_bounds(shop: dict) -> tuple[int | None, int | None]:
+    try:
+        avg_price = int(shop.get("avg_price") or 0)
+    except (TypeError, ValueError):
+        avg_price = 0
+    if avg_price:
+        return (avg_price, avg_price)
+
+    raw = " ".join(
+        str(value or "")
+        for value in (
+            shop.get("price_per_person"),
+            shop.get("price_range"),
+            shop.get("price"),
+        )
+    ).replace(",", "")
+    if not raw or "未提及" in raw:
+        return (None, None)
+    range_match = re.search(r"(\d{2,5})\s*(?:到|至|-|~|～)\s*(\d{2,5})", raw)
+    if range_match:
+        low = int(range_match.group(1))
+        high = int(range_match.group(2))
+        return (min(low, high), max(low, high))
+    floor_match = re.search(r"(\d{2,5})\s*(?:以上|\+)", raw)
+    if floor_match:
+        return (int(floor_match.group(1)), None)
+    numbers = [int(item) for item in re.findall(r"\d{2,5}", raw)]
+    if numbers:
+        return (numbers[0], numbers[0])
+    return (None, None)
+
+
+def _agent_sorting_label(query: str) -> str:
+    basis = _agent_query_basis_label(query)
+    if basis != "地點、料理與用餐情境":
+        return basis
+    labels = _agent_query_context_labels(query)
+    parts = labels[:2]
+    if _query_has_shellfish_allergy(query):
+        parts.append("過敏避雷")
+    if _query_has_meat_lovers(query):
+        parts.append("肉類偏好")
+    return " / ".join(parts[:4]) or "地點、料理與用餐情境"
+
+
+def _agent_constraint_bullets(query: str) -> list[str]:
+    prefill = _line_booking_prefill_from_text(query)
+    low, high = _query_budget_range(query)
+    labels = _agent_query_context_labels(query)
+    lines: list[str] = []
+    when_parts = []
+    if prefill.get("date"):
+        when_parts.append(str(prefill["date"]))
+    if prefill.get("time"):
+        when_parts.append(str(prefill["time"]))
+    if prefill.get("people"):
+        when_parts.append(f"{prefill['people']} 人")
+    if when_parts:
+        lines.append(f"時間人數：{'、'.join(when_parts)}")
+    basis = _agent_sorting_label(query)
+    if basis:
+        lines.append(f"地點情境：{basis}")
+    dining_rules: list[str] = []
+    if _query_has_shellfish_allergy(query):
+        dining_rules.append("甲殼類過敏，先避開蝦蟹與龍蝦")
+    if _query_has_meat_lovers(query):
+        dining_rules.append("需要照顧吃肉需求")
+    if dining_rules:
+        lines.append(f"飲食限制：{'；'.join(dining_rules)}")
+    if low and high:
+        lines.append(f"預算：NT$ {low}-{high}/人")
+    elif "安靜聊天" in labels:
+        lines.append("座位偏好：能正常聊天、避免太吵")
+    return lines[:5]
+
+
 def _agent_story_frame(query: str) -> str:
     labels = _agent_query_context_labels(query)
     prefill = _line_booking_prefill_from_text(query)
@@ -2963,7 +3078,7 @@ def _agent_story_frame(query: str) -> str:
     if low and high:
         constraints.append(f"預算抓 NT$ {low}-{high}/人")
     if constraints and "部門聚餐" in labels:
-        return "我先把條件拆開：" + "、".join(constraints[:5]) + "；再用大安義式、安靜聊天與可接訂位來排序。"
+        return f"我先把條件拆開：" + "、".join(constraints[:5]) + f"；再用{_agent_sorting_label(query)}與可接訂位來排序。"
     if "部門聚餐" in labels:
         return "我會優先看三件事：多人座位是否合適、環境是否適合聊天、熱門時段能不能接訂位或候位。"
     if "家庭聚餐" in labels and "開車用餐" in labels:
@@ -3019,6 +3134,10 @@ def _agent_shop_match_reason(query: str, shop: dict) -> str:
 
 def _agent_display_shop_name(shop: dict, index: int) -> str:
     name = str(shop.get("name") or f"店家 {index}").strip()
+    if "｜" in name:
+        left, right = [part.strip() for part in name.split("｜", 1)]
+        if right and re.fullmatch(r"[\u4e00-\u9fff]{2,4}", left):
+            name = right
     for separator in ("（", "(", "/", "｜", "|"):
         if separator in name:
             name = name.split(separator, 1)[0].strip()
@@ -3066,6 +3185,8 @@ def _agent_distinct_context_label(shop: dict) -> str:
         return "中式合菜"
     if re.search(r"火鍋|鍋物|麻辣鍋|hotpot", combined):
         return "鍋物聚餐"
+    if re.search(r"燒肉|烤肉|和牛|牛舌|yakiniku", combined):
+        return "燒肉聚餐"
     if re.search(r"鼎泰豐|小籠包|炒飯", combined):
         return "長輩接受度高"
     if re.search(r"日式|定食|丼|japanese", combined):
@@ -3087,9 +3208,10 @@ def _agent_shop_best_for(shop: dict, query: str) -> str:
     for label in query_labels:
         if label not in merged:
             merged.append(label)
-    if contextual and contextual not in merged:
-        merged.append(contextual)
     has_specific_gathering = any(label.endswith("聚餐") for label in merged)
+    if contextual and contextual not in merged:
+        if contextual != "聚餐" or not has_specific_gathering:
+            merged.append(contextual)
     if "聚餐" in str(query or "") and "聚餐" in _payload_text(shop) and "聚餐" not in merged and not has_specific_gathering:
         merged.append("聚餐")
     if query_labels:
@@ -3135,6 +3257,23 @@ def _agent_shop_line(shop: dict, index: int, query: str = "") -> str:
     return f"{index}. {name}：{'；'.join(part for part in parts[:3] if part)}。"
 
 
+def _agent_shop_markdown_line(shop: dict, index: int, query: str = "") -> str:
+    name = _agent_display_shop_name(shop, index)
+    feature = _agent_shop_feature(shop)
+    if _query_has_shellfish_allergy(query):
+        safe_menu = _shop_menu_items(shop, query)
+        if safe_menu:
+            feature = f"安全點餐：{safe_menu}"
+    best_for = _agent_shop_best_for(shop, query)
+    booking = _agent_booking_status_for_query(shop, query)
+    details = [feature]
+    if best_for:
+        details.append(f"適合：{best_for}")
+    if booking:
+        details.append(f"訂位：{booking}")
+    return f"{index}. **{name}**\n   - " + "\n   - ".join(item for item in details if item)
+
+
 def _agent_missing_booking_fields(prefill: dict) -> list[str]:
     missing: list[str] = []
     if not prefill.get("date"):
@@ -3175,21 +3314,26 @@ def _agent_concierge_narrative(
     basis = _agent_query_basis_label(query)
     count = len(selected)
     if count == 1:
-        lead = f"我先用「{basis}」幫你篩，最值得先看這 1 家。"
+        lead = f"**結論：我先用「{basis}」篩，最值得先看這 1 家。**"
     else:
-        lead = f"我先用「{basis}」幫你篩，優先看這 {count} 家。"
+        lead = f"**結論：我先用「{basis}」篩，優先看這 {count} 家。**"
     lines = [lead]
     frame = _agent_story_frame(query)
     if frame:
-        lines.append(frame)
-    lines.extend(_agent_shop_line(shop, index, query) for index, shop in enumerate(selected, start=1))
-    if (
-        decision.rejection_summary
-        and len(selected) < 3
-        and (_query_has_shellfish_allergy(query) or _query_has_meat_lovers(query) or _query_budget_range(query)[0])
-    ):
-        lines.append(f"我不硬湊第三家：{_short_agent_text(decision.rejection_summary, limit=92)}。")
-    lines.append(_agent_recommendation_cta(query))
+        lines.extend(["", frame])
+    bullets = _agent_constraint_bullets(query)
+    if bullets:
+        lines.extend(["", "**我抓到的條件**"])
+        lines.extend(f"- {bullet}" for bullet in bullets)
+    lines.extend(["", "**精選推薦**"])
+    lines.extend(_agent_shop_markdown_line(shop, index, query) for index, shop in enumerate(selected, start=1))
+    if len(selected) < 3 and (_query_has_shellfish_allergy(query) or _query_has_meat_lovers(query) or _query_budget_range(query)[0]):
+        if decision.rejection_summary:
+            tradeoff = _short_agent_text(decision.rejection_summary, limit=92)
+        else:
+            tradeoff = "其餘選項不是預算、座位型態，就是過敏備註穩定性不夠適合這次聚餐"
+        lines.extend(["", f"**取捨**：我不硬湊第三家，{tradeoff}。"])
+    lines.extend(["", f"**下一步**：{_agent_recommendation_cta(query).removeprefix('下一步：')}"])
     return "\n".join(lines)
 
 
@@ -4010,10 +4154,10 @@ def _recommendation_advice_answer(query: str, shops: list[dict], context_query: 
     if selected is not None:
         name = _agent_display_shop_name(selected, int(_shop_id(selected) or 0))
         return (
-            f"我會把「{name}」放第一順位。\n"
-            f"理由：{_shop_concierge_fit(selected, combined_query, primary=True)}。\n"
-            f"注意：{_shop_watchout_text(selected, combined_query)}。\n"
-            f"預算：{_shop_budget_text(selected)}。"
+            f"**最後決策：我會把「{name}」放第一順位。**\n\n"
+            f"**理由**\n- {_shop_concierge_fit(selected, combined_query, primary=True)}\n\n"
+            f"**避雷**\n- {_shop_watchout_text(selected, combined_query)}\n\n"
+            f"**預算**\n- {_shop_budget_text(selected)}"
         )
 
     dimension = _recommendation_dimension(query)
@@ -4037,38 +4181,38 @@ def _recommendation_advice_answer(query: str, shops: list[dict], context_query: 
     if has_complex_constraints:
         strategy = _constraint_strategy_line(best, combined_query)
         lines = [
-            f"結論：我會選「{best_name}」。",
-            f"原因：{_shop_concierge_fit(best, combined_query, primary=True)}。",
+            f"**結論：我會選「{best_name}」。**",
+            "",
+            "**為什麼是它**",
+            f"- {_shop_concierge_fit(best, combined_query, primary=True)}",
         ]
         if strategy:
-            lines.append(strategy + "。")
-        lines.extend(
-            [
-                f"避雷：{_shop_watchout_text(best, combined_query)}。",
-                f"預算：{_budget_summary_for_query(ranked, combined_query)}。",
-                "三家分工：",
-            ]
-        )
+            lines.extend(["", "**點餐策略**", f"- {strategy}"])
+        lines.extend(["", "**避雷**", f"- {_shop_watchout_text(best, combined_query)}"])
+        lines.extend(["", "**預算判斷**", f"- {_budget_summary_for_query(ranked, combined_query)}"])
+        lines.extend(["", "**三家分工**"])
         for index, shop in enumerate(ranked[:3]):
             name = _agent_display_shop_name(shop, int(_shop_id(shop) or index + 1))
             role = _shop_role_for_advice(index, shop, combined_query)
-            lines.append(f"- {name}：{role}，{_shop_concierge_fit(shop, combined_query)}。")
-        lines.append(_booking_followup_cta_from_context(combined_query))
+            lines.append(f"- **{name}**：{role}，{_shop_concierge_fit(shop, combined_query)}。")
+        lines.extend(["", f"**下一步**：{_booking_followup_cta_from_context(combined_query)}"])
         return "\n".join(lines)
 
     lines = [
-        f"我會優先選「{best_name}」。",
-        f"理由：{_shop_concierge_fit(best, combined_query, primary=True)}。",
-        f"注意：{_shop_watchout_text(best, combined_query)}。",
+        f"**最後決策：我會優先選「{best_name}」。**",
         "",
-        "三家分工：",
+        f"**理由**：{_shop_concierge_fit(best, combined_query, primary=True)}。",
+        "",
+        f"**注意**：{_shop_watchout_text(best, combined_query)}。",
+        "",
+        "**三家分工**",
     ]
     for index, shop in enumerate(ranked[:3]):
         name = _agent_display_shop_name(shop, int(_shop_id(shop) or index + 1))
         role = _shop_role_for_advice(index, shop, combined_query)
-        lines.append(f"- {name}：{role}。{_shop_concierge_fit(shop, combined_query)}。")
-    lines.append(f"預算：{_budget_summary_for_query(ranked, combined_query)}。")
-    lines.append(_booking_followup_cta_from_context(combined_query))
+        lines.append(f"- **{name}**：{role}。{_shop_concierge_fit(shop, combined_query)}。")
+    lines.extend(["", f"**預算**：{_budget_summary_for_query(ranked, combined_query)}。"])
+    lines.append(f"**下一步**：{_booking_followup_cta_from_context(combined_query)}")
     return "\n".join(lines)
 
 
@@ -7474,12 +7618,24 @@ def _category_label_for_constraints(constraints: dict) -> str:
         return "火鍋"
     if "yakiniku" in categories:
         return "燒肉"
+    if "euro" in categories:
+        return "義式餐廳"
+    if "japanese" in categories:
+        return "日式餐廳"
+    if "izakaya" in categories:
+        return "居酒屋"
+    if "omakase" in categories:
+        return "無菜單料理"
     if "chinese" in categories:
         return "中式餐廳"
     if "american" in categories:
         return "美式餐廳"
     if "korean" in categories:
         return "韓式餐廳"
+    if "vegetarian" in categories:
+        return "蔬食餐廳"
+    if "cafe" in categories:
+        return "咖啡甜點"
     if "international" in categories:
         return "異國料理餐廳"
     return "餐廳"
