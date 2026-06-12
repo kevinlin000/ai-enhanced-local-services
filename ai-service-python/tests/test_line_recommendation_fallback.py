@@ -121,12 +121,38 @@ def test_agent_concierge_narrative_uses_stable_decision_format():
     )
 
     assert narrative.startswith("我先用「大安區 / 漢堡店」幫你篩，優先看這 3 家。")
-    assert "1. Fa Burger：招牌 巧巴達粉嫩牛；適合 聚餐；訂位：預約困難。" in narrative
-    assert "2. 樂漢堡美式餐廳 台北大安店：招牌 風味起司漢堡；適合 親子；訂位：可線上訂位，建議確認。" in narrative
-    assert "3. Takeout Burger&Cafe 延吉店：招牌 蒜味乳酪漢堡、塔塔醬炸魚堡；適合 聚餐、寵物友善；訂位：可線上訂位，建議確認。" in narrative
+    assert "1. Fa Burger：招牌 巧巴達粉嫩牛；適合聚餐；訂位：預約困難。" in narrative
+    assert "2. 樂漢堡美式餐廳 台北大安店：招牌 風味起司漢堡；適合親子；訂位：可線上訂位，建議確認。" in narrative
+    assert "3. Takeout Burger&Cafe 延吉店：招牌 蒜味乳酪漢堡、塔塔醬炸魚堡；適合聚餐、寵物友善；訂位：可線上訂位，建議確認。" in narrative
     assert "最後點餐" not in narrative
     assert "大安區美食" not in narrative
     assert "下一步：告訴我日期、時間與人數" in narrative
+
+
+def test_agent_recommendation_cta_lists_only_missing_booking_fields(monkeypatch):
+    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 12))
+
+    cta = main._agent_recommendation_cta("週六晚上要帶爸媽吃飯，想找信義區附近適合家庭聚餐、方便開車的餐廳。")
+
+    assert "再補齊人數" in cta
+    assert "日期、時間與人數" not in cta
+    assert "停車提醒與車位保留展示" in cta
+
+
+def test_agent_comparison_rows_use_short_display_names():
+    rows = main._agent_comparison_rows(
+        [
+            {
+                "shop_id": 10638,
+                "name": "Takeout Burger&Cafe 延吉店 （最後點餐21：30）/美式漢堡/寵物友善/大安區美食",
+                "district": "大安",
+                "signature_dishes": ["蒜味乳酪漢堡"],
+            }
+        ],
+        "推薦大安區美式漢堡",
+    )
+
+    assert rows[0]["name"] == "Takeout Burger&Cafe 延吉店"
 
 
 def test_session_history_compacts_recommendation_context():
@@ -365,7 +391,7 @@ def test_context_intent_bonus_prefers_quiet_chat_fit():
     assert main._context_intent_bonus(query, quiet_shop) > 0
     assert main._context_intent_bonus(query, noisy_shop) < 0
     assert main._metadata_bonus(query, quiet_shop) > main._metadata_bonus(query, noisy_shop)
-    assert "適合 安靜聊天、聚餐" in main._agent_shop_line(quiet_shop, 1, query)
+    assert "適合安靜聊天" in main._agent_shop_line(quiet_shop, 1, query)
 
 
 def test_explicit_chinese_query_rejects_conflicting_cuisine_identity():

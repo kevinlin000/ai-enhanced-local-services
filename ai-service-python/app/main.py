@@ -2883,6 +2883,9 @@ def _agent_query_basis_label(query: str) -> str:
         parts.append(category_label)
     intent_labels = []
     for label, pattern in (
+        ("部門聚餐", r"(部門|公司|團隊|同事).{0,8}聚餐|聚餐.{0,8}(部門|公司|團隊|同事)"),
+        ("家庭聚餐", r"家庭|爸媽|父母|長輩|親子|小孩"),
+        ("方便開車", r"開車|停車|車位|導航"),
         ("商務請客", r"商務|請客|宴客"),
         ("安靜聊天", r"安靜|聊天"),
         ("約會", r"約會"),
@@ -3021,10 +3024,15 @@ def _agent_shop_best_for(shop: dict, query: str) -> str:
             merged.append(label)
     if contextual and contextual not in merged:
         merged.append(contextual)
-    if "聚餐" in str(query or "") and "聚餐" in _payload_text(shop) and "聚餐" not in merged:
+    has_specific_gathering = any(label.endswith("聚餐") for label in merged)
+    if "聚餐" in str(query or "") and "聚餐" in _payload_text(shop) and "聚餐" not in merged and not has_specific_gathering:
         merged.append("聚餐")
+    if query_labels:
+        return "、".join(merged[:3])
     for item in base_items:
         if contextual and item in contextual:
+            continue
+        if item == "聚餐" and any(label.endswith("聚餐") for label in merged):
             continue
         if item not in merged:
             merged.append(item)
@@ -3052,24 +3060,36 @@ def _agent_shop_line(shop: dict, index: int, query: str = "") -> str:
     if match_reason:
         parts.append(match_reason)
     if best_for:
-        parts.append(f"適合 {best_for}")
+        parts.append(f"適合{best_for}")
     if booking:
         parts.append(f"訂位：{booking}")
     return f"{index}. {name}：{'；'.join(parts[:3])}。"
 
 
+def _agent_missing_booking_fields(prefill: dict) -> list[str]:
+    missing: list[str] = []
+    if not prefill.get("date"):
+        missing.append("日期")
+    if not prefill.get("time"):
+        missing.append("時間")
+    if not prefill.get("people"):
+        missing.append("人數")
+    return missing
+
+
 def _agent_recommendation_cta(query: str) -> str:
     prefill = _line_booking_prefill_from_text(query)
     labels = _agent_query_context_labels(query)
+    missing = _agent_missing_booking_fields(prefill)
     suffix = ""
     if "開車用餐" in labels:
         suffix = "訂位完成後也能接停車提醒與車位保留展示。"
     elif prefill.get("date") or prefill.get("time") or prefill.get("people"):
         suffix = "如果該時段額滿，可以改設定候位 / 空位通知，不用自己重刷。"
-    if prefill.get("date") and prefill.get("time") and prefill.get("people"):
+    if not missing:
         return f"下一步：如果你要其中一間，我可以接著幫你建立訂位。{suffix}"
     if prefill.get("date") or prefill.get("time") or prefill.get("people"):
-        return f"下一步：再補齊日期、時間與人數，我就能把訂位流程接上。{suffix}"
+        return f"下一步：再補齊{'、'.join(missing)}，我就能把訂位流程接上。{suffix}"
     return "下一步：告訴我日期、時間與人數，我可以直接幫你查可訂並接到訂位流程。"
 
 
@@ -3230,7 +3250,7 @@ def _agent_comparison_rows(shops: list[dict], query: str = "") -> list[dict]:
         rows.append(
             {
                 "shop_id": shop_id,
-                "name": shop.get("name"),
+                "name": _agent_display_shop_name(shop, int(shop_id)),
                 "feature_highlight": match_reason or _agent_comparison_feature(shop),
                 "best_for": _agent_shop_best_for(shop, query) or _agent_comparison_best_for(shop),
                 "booking_status": _agent_booking_status_for_query(shop, query),
