@@ -383,6 +383,11 @@ function AgentBookingDraftCard({ draft }: { draft: AgentBookingDraft }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transaction, setTransaction] = useState<AgentTransaction | null>(null);
+  const idempotencyNonce = useRef(
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
   const complete = Boolean(draft.shop_id && draft.date && draft.time && draft.people);
   const tableLabel = draft.table_type === "window" ? "靠窗" : draft.table_type === "box" ? "包廂" : "一般座位";
 
@@ -401,7 +406,7 @@ function AgentBookingDraftCard({ draft }: { draft: AgentBookingDraft }) {
         date: String(draft.date),
         time: String(draft.time),
         tableType: draft.table_type ?? "normal",
-        idempotencyKey: `ai-${draft.shop_id}-${draft.date}-${draft.time}-${draft.people}`,
+        idempotencyKey: `ai-${draft.shop_id}-${draft.date}-${draft.time}-${draft.people}-${idempotencyNonce.current}`,
       });
       if (!response.success) throw new Error(response.errorMsg ?? "訂位失敗");
       setTransaction(bookingResponseToAgentTransaction(response.data));
