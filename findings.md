@@ -91,6 +91,9 @@
 - 使用者目標是「每一樣都達到 100 分」；需要先定義評分邊界，否則容易把 portfolio readiness 和 production SaaS readiness 混在一起。
 - Portfolio 100 可以在 repo 內完成：架構圖、證據包、截圖/影片、CI/verification、清楚的 production-gap answer。
 - Production SaaS 100 不能只靠本機 repo 宣稱完成：還需要真實 PSP refund provider contract、managed secrets、cloud runtime、observability、backup/restore、merchant operations process。
+- 使用者詢問是否應自己錄影與是否要上雲；最佳順序是先由作者親自錄製 3-5 分鐘 voiceover walkthrough，再考慮 stable demo cloud。
+- 上雲應拆成三層：local verified demo 是 portfolio 必要；stable portfolio demo cloud 是加分但不應阻塞錄影；production SaaS cloud 是另一個完整 rollout project。
+- managed secrets、PSP refund provider、備份、觀測、營運制度都應好好完成，但不應一次全部塞進 portfolio 前置條件；應先文件化 production expectation，再選最高訊號切片實作。
 
 ## 技術決策
 | 決策 | 理由 |
@@ -158,6 +161,7 @@
 | Portfolio readiness 評分採 88/100 | 作品已具備產品差異、Java source-of-truth、AI workflow、資料品質、Web/LINE 協調與 CI；扣分主要來自 presentation packaging 與 production rollout gaps |
 | 下一步做 evidence package 而非 feature | 新功能會增加說明成本；目前最大槓桿是讓現有深度更容易被面試官看見 |
 | Phase 34 先建立 100 分路線圖與架構證據 | 這能把「做到很棒」變成可驗證交付物：Portfolio 100 的缺口是證據和敘事，不是再加產品分支 |
+| Phase 35 採 recorded walkthrough first | 錄影能降低 live demo 風險並展示作者的架構判斷；cloud deployment 應作為錄影後的加分項，而不是目前最高風險阻塞點 |
 
 ## 遇到的問題
 | 問題 | 解決方案 |

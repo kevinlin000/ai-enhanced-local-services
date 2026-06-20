@@ -28,6 +28,7 @@ The path from the current score toward portfolio 100 is tracked in:
 
 - `docs/portfolio-100-roadmap.md`
 - `docs/demo-evidence-package.md`
+- `docs/demo-recording-cloud-plan.md`
 - `docs/architecture-overview.md`
 
 ## Verification Ladder
@@ -75,7 +76,7 @@ The current work should be reviewed or committed in coherent groups:
 | Deployment boundary | Nginx template, Compose overlay, demo readiness, public-proxy smoke |
 | Migration reliability | V16 clean-schema fix, clean MySQL migration smoke, manual GitHub Actions smoke |
 | Evidence and docs | README, roadmap, portfolio evidence map, case studies, release boundary |
-| Scorecard and 100-point path | portfolio readiness score, role-specific framing, remaining gaps, evidence package, architecture overview, next plan |
+| Scorecard and 100-point path | portfolio readiness score, role-specific framing, remaining gaps, evidence package, recording/cloud plan, architecture overview, next plan |
 
 Do not squash these into one anonymous "final update" commit if the goal is reviewer clarity.
 

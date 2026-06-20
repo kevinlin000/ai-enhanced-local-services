@@ -48,6 +48,8 @@ Suggested order:
 
 Keep it under 5 minutes. The video should prove the workflow, not explain every feature.
 
+The author should record the voiceover personally. See `docs/demo-recording-cloud-plan.md` for the recording and cloud-deployment decision.
+
 ## Live Demo Fallback
 
 If the app is running locally with the Nginx public proxy, use:

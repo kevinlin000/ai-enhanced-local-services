@@ -11,6 +11,7 @@ DOC = ROOT / "docs" / "release-boundary.md"
 SCORECARD = ROOT / "docs" / "portfolio-readiness-scorecard.md"
 ROADMAP_100 = ROOT / "docs" / "portfolio-100-roadmap.md"
 EVIDENCE_PACKAGE = ROOT / "docs" / "demo-evidence-package.md"
+RECORDING_CLOUD_PLAN = ROOT / "docs" / "demo-recording-cloud-plan.md"
 ARCHITECTURE_OVERVIEW = ROOT / "docs" / "architecture-overview.md"
 SCRIPT = ROOT / "scripts" / "release-readiness.sh"
 
@@ -52,6 +53,11 @@ def main() -> None:
         fail(f"missing demo evidence package: {EVIDENCE_PACKAGE.relative_to(ROOT)}")
 
     try:
+        recording_cloud_plan = RECORDING_CLOUD_PLAN.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing recording and cloud plan: {RECORDING_CLOUD_PLAN.relative_to(ROOT)}")
+
+    try:
         architecture_overview = ARCHITECTURE_OVERVIEW.read_text(encoding="utf-8")
     except FileNotFoundError:
         fail(f"missing architecture overview: {ARCHITECTURE_OVERVIEW.relative_to(ROOT)}")
@@ -66,6 +72,7 @@ def main() -> None:
         "readiness scorecard": "docs/portfolio-readiness-scorecard.md",
         "portfolio 100 roadmap": "docs/portfolio-100-roadmap.md",
         "demo evidence package": "docs/demo-evidence-package.md",
+        "recording cloud plan": "docs/demo-recording-cloud-plan.md",
         "architecture overview": "docs/architecture-overview.md",
         "readiness score": "88 / 100",
         "clean mysql smoke": "scripts/smoke-clean-mysql-migrations.sh --timeout 180",
@@ -88,6 +95,7 @@ def main() -> None:
         "100-point path": "Step 0: Define The 100-Point Path",
         "portfolio 100 roadmap": "docs/portfolio-100-roadmap.md",
         "demo evidence package": "docs/demo-evidence-package.md",
+        "recording cloud plan": "docs/demo-recording-cloud-plan.md",
         "architecture overview": "docs/architecture-overview.md",
         "stop feature creep": "Stop Adding Features For Now",
     }
@@ -100,6 +108,7 @@ def main() -> None:
         "production saas 100": "Production SaaS 100",
         "current score": "88 / 100",
         "evidence package": "docs/demo-evidence-package.md",
+        "recording cloud plan": "docs/demo-recording-cloud-plan.md",
         "architecture overview": "docs/architecture-overview.md",
         "production roadmap": "Production 100 Roadmap",
     }
@@ -114,9 +123,24 @@ def main() -> None:
         "architecture screenshot": "09-architecture-overview.png",
         "live fallback": "scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict",
         "production gap answer": "Production Gap Answer",
+        "recording cloud plan": "docs/demo-recording-cloud-plan.md",
     }
     for label, snippet in required_evidence_package_snippets.items():
         require(evidence_package, snippet, label)
+
+    required_recording_cloud_snippets = {
+        "recommended order": "recorded walkthrough first",
+        "personal voiceover": "Record it personally with voiceover.",
+        "cloud decision": "Cloud Decision",
+        "stable portfolio cloud": "Stable portfolio demo cloud",
+        "production saas cloud": "Production SaaS cloud",
+        "managed secrets": "Managed secrets",
+        "observability": "Observability",
+        "psp refund": "PSP refund provider",
+        "interview answer": "I treated portfolio readiness and production rollout as separate gates.",
+    }
+    for label, snippet in required_recording_cloud_snippets.items():
+        require(recording_cloud_plan, snippet, label)
 
     required_architecture_snippets = {
         "state boundary": "AI orchestrates the dining workflow.",

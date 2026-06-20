@@ -4,7 +4,7 @@
 評估 real-time incident handling 完成後的下一個最高價值產品能力，並完成一個可驗證、可面試展示的最小縱切。
 
 ## 目前階段
-階段 34 完成
+階段 35 完成
 
 ## 各階段
 
@@ -285,6 +285,14 @@
 - [x] 執行 release verifier、release offline gate、portfolio verification、CI
 - **狀態：** complete
 
+### 階段 35：Recording and cloud rollout decision
+- [x] 評估是否應由作者親自錄製 portfolio walkthrough
+- [x] 評估上雲應放在錄影前或錄影後
+- [x] 將 managed secrets、PSP refund、備份、觀測、營運制度拆成 portfolio vs production expectations
+- [x] 新增 recording/cloud plan 並接進 README / roadmap / release verifier
+- [x] 執行 release verifier、release offline gate、portfolio verification、CI
+- **狀態：** complete
+
 ## 關鍵問題
 1. incident 完成後，下一個能力應強化「營運閉環」、「AI 個人化」還是「可觀測/後台」？
 2. 哪個最小縱切能增加面試敘事價值，而不把系統帶進過大重構？
@@ -354,6 +362,7 @@
 | Java proposal expiry tests 使用 business zone | Runtime 以台北時間判斷提案是否逾期；測試也必須用同一個 business zone，避免 UTC hosted runner 誤判 |
 | Phase 33 先做 scorecard，不再加新功能 | 作品已足夠面試展示；下一個價值是把評分、證據、扣分點與後續計畫集中，讓面試官快速理解成熟度 |
 | 100 分分成 Portfolio 100 與 Production SaaS 100 | 前者可在 repo 內靠證據包、架構圖、驗證與講稿達成；後者需要真實雲端、PSP、secrets、備份、觀測與營運制度 |
+| Phase 35 先錄影再上雲 | 親自 voiceover 的短 walkthrough 最能展示工程判斷；上雲有價值但不應在證據包完成前阻塞 portfolio 100 |
 
 ## 遇到的錯誤
 | 錯誤 | 嘗試次數 | 解決方案 |

@@ -2,6 +2,22 @@
 
 ## 會話：2026-06-20
 
+### 階段 35：Recording and cloud rollout decision
+- **狀態：** complete
+- 執行的操作：
+  - 回應使用者是否應自己錄影、是否需要上雲、以及 managed secrets / PSP refund provider / backups / observability / operations 是否都要完成的問題。
+  - 決策：先錄製作者親自 voiceover 的 3-5 分鐘 walkthrough，再做 screenshots evidence package；stable demo cloud 是加分項，不應阻塞 portfolio packaging。
+  - 新增 `docs/demo-recording-cloud-plan.md`，把錄影、上雲、production hardening 拆成 recommended order、cloud levels、production hardening triage 與 interview answer。
+  - 更新 `docs/portfolio-100-roadmap.md`，將 recording/cloud plan 放進 Path To Portfolio 100。
+  - 更新 `docs/demo-evidence-package.md`，明確指出作者應親自錄製 voiceover，並連到 recording/cloud plan。
+  - 更新 README、`docs/portfolio-readiness-scorecard.md`、`docs/release-boundary.md`、`scripts/verify-release-boundary.py`、`task_plan.md`、`findings.md`。
+  - `python3 scripts/verify-release-boundary.py` 通過。
+  - `git diff --check` 通過。
+  - `scripts/release-readiness.sh --offline` 通過，包含 whitespace、Nginx contract、clean migration workflow、release boundary、data-quality evidence、smoke script syntax/dry-runs；Markdown reviewer-facing links 43 passed。
+  - `scripts/verify-portfolio.sh` 通過：Java 96 tests / 0 failures / 3 skipped，AI 174 passed，ETL 43 passed，data-quality gate passed，Nginx deployment template contract passed，clean MySQL migration smoke/workflow contracts passed，release boundary contract passed，Web tests 19 passed，Web production build passed。
+- 後續規劃評估：
+  - 下一步應依 `docs/demo-recording-cloud-plan.md` 先完成錄影與截圖；若還要繼續做工程，才進入 stable demo cloud，不直接跳 production SaaS rollout。
+
 ### 階段 34：Portfolio 100 roadmap, evidence package, architecture overview
 - **狀態：** complete
 - 執行的操作：

@@ -34,15 +34,19 @@ The current scorecard stays at `88 / 100` until the evidence package is filled w
    - Required artifact: `docs/demo-evidence-package.md`.
    - Acceptance: every screenshot/video/CI proof item has a filename, purpose, and pass criteria.
 
-3. Record or capture the evidence.
+3. Decide the recording and cloud order.
+   - Required artifact: `docs/demo-recording-cloud-plan.md`.
+   - Acceptance: the project has a clear answer for personal voiceover, stable demo cloud, and production hardening scope.
+
+4. Record or capture the evidence.
    - Required artifacts: screenshots, a 3-5 minute video, and CI run links.
    - Acceptance: the evidence package can be reviewed without running the app live.
 
-4. Prepare interview scripts.
+5. Prepare interview scripts.
    - Required artifact: 5-minute and 12-minute speaking order.
    - Acceptance: both scripts reinforce the same thesis: AI orchestrates; Java owns state.
 
-5. Run final verification.
+6. Run final verification.
    - Required command: `scripts/release-readiness.sh --full`.
    - Optional rehearsal: `scripts/release-readiness.sh --live-local --base-url http://localhost:8088`.
    - Acceptance: local full verification and GitHub Portfolio CI are green.
@@ -69,6 +73,7 @@ The next score lift is evidence packaging:
 ```text
 architecture overview
   -> demo evidence package
+  -> recording and cloud plan
   -> screenshots/video
   -> final verification result
   -> interview walkthrough
