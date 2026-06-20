@@ -3,7 +3,7 @@
 ## 會話：2026-06-20
 
 ### 階段 32：Portfolio CI taxonomy fixture stabilization
-- **狀態：** in_progress
+- **狀態：** complete
 - 執行的操作：
   - 重新接回 planning files 與 GitHub Actions 狀態，確認手動 `Clean MySQL Migration Smoke` workflow 已成功，但 push-triggered `Portfolio CI` 仍失敗。
   - 定位最新失敗 run `27864782092` 的失敗點在 ETL Pipeline：`tests/test_taxonomy.py` 因 `load_shops()[...]` 對多個 shop id 丟 `KeyError`。
@@ -21,9 +21,10 @@
   - 更新 `BookingSyncContractTest`，讓 proposal future/expired fixtures 與 booking date 都使用 `ZoneId.of("Asia/Taipei")`。
   - `TAPPAY_PARTNER_KEY=test TAPPAY_MERCHANT_CREDITCARD=test mvn -Dtest=BookingSyncContractTest test` 通過：12 tests / 0 failures。
   - `TAPPAY_PARTNER_KEY=test TAPPAY_MERCHANT_CREDITCARD=test mvn test` 通過：96 tests / 0 failures / 3 skipped。
-- 下一步：
-  - commit / push Java timezone fixture fix。
-  - 監看新的 GitHub Portfolio CI run，確認所有 jobs 回綠。
+  - commit `f2a8956 fix: use business timezone in booking tests` 推上 `main` 後，Portfolio CI run `27867984528` 通過：Backend Java、AI Service Python、ETL Pipeline、Data Quality Gate、Web 全部成功。
+- 後續規劃評估：
+  - 短期優先保持 release boundary，不再立即堆新功能；下一步適合做 demo evidence packaging，例如固定 demo script、截圖、面試講稿與 production-gap checklist。
+  - 中期若要繼續深化產品，優先做「production observability / release operations」而不是新餐廳推薦功能，因為目前作品已經有完整 incident、付款、退款、LINE、Nginx、CI 敘事，缺的是公開展示時的可操作證據包。
 
 ### 階段 31：Release boundary and final handoff
 - **狀態：** complete

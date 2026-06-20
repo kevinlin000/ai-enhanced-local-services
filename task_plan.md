@@ -4,7 +4,7 @@
 評估 real-time incident handling 完成後的下一個最高價值產品能力，並完成一個可驗證、可面試展示的最小縱切。
 
 ## 目前階段
-階段 32 進行中
+階段 32 完成
 
 ## 各階段
 
@@ -266,8 +266,8 @@
 - [x] 將完整 103 筆 approval test 限定在 full raw corpus 存在時執行
 - [x] 模擬沒有 raw corpus 的 CI checkout 並跑完整 ETL tests
 - [x] 執行 release offline gate 與完整 portfolio verification
-- [ ] commit / push 並確認 GitHub Portfolio CI 回綠
-- **狀態：** in_progress
+- [x] commit / push 並確認 GitHub Portfolio CI 回綠
+- **狀態：** complete
 
 ## 關鍵問題
 1. incident 完成後，下一個能力應強化「營運閉環」、「AI 個人化」還是「可觀測/後台」？
