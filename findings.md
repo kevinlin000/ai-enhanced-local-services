@@ -81,6 +81,10 @@
 - 新增 `scripts/verify-clean-migration-workflow.py` 作為離線 contract verifier，避免手動 workflow 的 infra/service/image/timeout/script invocation 漂移後等到 demo 前才發現。
 - Phase 31 release boundary 第一版已完成：`docs/release-boundary.md` 把 verification ladder、commit grouping、demo script 與 production gaps 收成單一發表交付邊界。
 - `scripts/release-readiness.sh` 採 dry-run / offline / full / live-local 四模式，避免一條命令同時混合離線 contract、full portfolio build 和 live service smoke。
+- push-triggered Portfolio CI 在 release boundary 後仍紅燈，失敗點不是 clean migration workflow，而是 ETL taxonomy tests 對 ignored `etl-pipeline/data/raw/` 有隱性依賴。
+- 本機 `scripts/verify-portfolio.sh` 會因本機存在 62MB ignored raw corpus 而通過；GitHub checkout 沒有該 corpus，因此 `load_shops()[10099]` 等存取丟 `KeyError`。
+- ETL taxonomy 測試應分成兩層：committed minimal fixture 永遠在 CI 跑核心分類回歸；完整 103 筆 approval map 只在 full raw corpus 存在時跑。
+- Phase 32 完成 fixture stabilization 後，本機完整 raw 模式 ETL 為 43 passed；模擬 CI 無 raw 模式為 42 passed, 1 skipped。
 
 ## 技術決策
 | 決策 | 理由 |
@@ -142,6 +146,8 @@
 | workflow 使用 named MySQL container | GitHub service container 的 runtime 名稱不適合拿來給腳本 `docker exec`；顯式 `docker run --name bytebites-ci-mysql` 讓 smoke script 可直接重用 |
 | Phase 31 不直接切 commit | 工作樹跨多個完整縱切且尚未由使用者確認 commit 策略；先建立 release boundary 和 commit grouping，避免把大量變更壓成不可審查的單一提交 |
 | release readiness 分四種模式 | dry-run/offline/full/live-local 對應不同成本與依賴；這比一條命令自動啟 live smoke 更可控，也更符合 demo 前 checklist |
+| Phase 32 先修 CI red gate，不加新功能 | Portfolio CI 紅燈會直接削弱作品可信度；在 CI 回綠前，新增功能的展示價值低於修正可重現性 |
+| taxonomy fixture 不提交完整 raw corpus | `etl-pipeline/data/raw/` 是 crawler output 且已被忽略；提交少量 critical fixture 可保留回歸保障，同時避免把 62MB raw data 變成 repo contract |
 
 ## 遇到的問題
 | 問題 | 解決方案 |
@@ -150,6 +156,7 @@
 | Java live start: `Unknown database 'hmdp'` | 本機 MySQL container 只有 `local_fresh`，建立 `hmdp` schema 後讓 Flyway 自動套 migration |
 | Java live start: V16 FK failure on `tb_shop_badge` | 將 V16 badge/tag allowlist insert 改成 join `tb_shop`，並新增 migration resource test |
 | strict readiness sandbox false negative | 直接 curl 成功但腳本內 curl 失敗；改用 escalated script execution 後通過 |
+| Portfolio CI ETL taxonomy tests 缺 ignored raw corpus | 新增 committed taxonomy fixture，並讓完整 approval map 在缺 full raw corpus 時明確 skip |
 
 ## 資源
 - README.md

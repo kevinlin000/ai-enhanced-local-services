@@ -4,7 +4,7 @@
 評估 real-time incident handling 完成後的下一個最高價值產品能力，並完成一個可驗證、可面試展示的最小縱切。
 
 ## 目前階段
-階段 29 進行中
+階段 32 進行中
 
 ## 各階段
 
@@ -259,6 +259,16 @@
 - [x] 執行 release verifier、release dry-run/offline、portfolio verification、diff check
 - **狀態：** complete
 
+### 階段 32：Portfolio CI taxonomy fixture stabilization
+- [x] 盤點最新 GitHub Portfolio CI failure 與本機 verification 差異
+- [x] 確認 ETL taxonomy tests 依賴被 `.gitignore` 排除的 `etl-pipeline/data/raw/`
+- [x] 新增 committed minimal taxonomy fixture，讓 CI 有穩定分類回歸資料
+- [x] 將完整 103 筆 approval test 限定在 full raw corpus 存在時執行
+- [x] 模擬沒有 raw corpus 的 CI checkout 並跑完整 ETL tests
+- [x] 執行 release offline gate 與完整 portfolio verification
+- [ ] commit / push 並確認 GitHub Portfolio CI 回綠
+- **狀態：** in_progress
+
 ## 關鍵問題
 1. incident 完成後，下一個能力應強化「營運閉環」、「AI 個人化」還是「可觀測/後台」？
 2. 哪個最小縱切能增加面試敘事價值，而不把系統帶進過大重構？
@@ -323,6 +333,8 @@
 | Clean MySQL migration smoke workflow 第一版完成 | `.github/workflows/clean-mysql-migration-smoke.yml` 啟 Redis/RabbitMQ services 與 named MySQL container，再呼叫同一支 smoke script；`verify-clean-migration-workflow.py` 保護 workflow contract |
 | Phase 31 選 release boundary/handoff | 目前功能與驗證已足夠展示，下一個風險是 reviewer 或發表前找不到正確 gate；應把命令、commit grouping、live smoke 與 production gaps 收斂成一個 release boundary |
 | Release boundary 第一版完成 | `docs/release-boundary.md` 與 `scripts/release-readiness.sh` 定義 dry-run/offline/full/live-local 四層檢查，並由 `verify-release-boundary.py` 接進 portfolio gate |
+| Phase 32 選 CI fixture stabilization | Release boundary 已完成但 push gate 仍紅；下一步最高價值不是加新功能，而是消除 CI 與本機資料狀態不一致，讓 portfolio 證據可被第三方重現 |
+| ETL taxonomy tests 分成 committed fixture 與 full corpus | CI checkout 不包含 ignored raw data；核心 fixture 必須提交，完整 103 筆 approval 只在完整 raw corpus 存在時執行 |
 
 ## 遇到的錯誤
 | 錯誤 | 嘗試次數 | 解決方案 |
@@ -335,6 +347,7 @@
 | `demo-readiness.sh --live-smoke --strict` sandbox 執行 false negative | 1 | 直接 curl 成功後確認是腳本內 curl 被 sandbox 限制；改用 escalated live rehearsal 執行並通過 |
 | `smoke-clean-mysql-migrations.sh` sandbox 無法連 Docker socket | 1 | 一般 sandbox 對 Docker daemon socket 回 operation not permitted；live migration smoke 改用 escalated execution，dry-run 保持離線 |
 | macOS `mktemp` 不替換含 `.log` suffix 的模板 | 1 | 將模板從 `bytebites-clean-migration.XXXXXX.log` 改為 `bytebites-clean-migration.XXXXXX`，確保 BSD/macOS 可攜 |
+| Portfolio CI ETL taxonomy tests 對缺失 raw corpus 丟 KeyError | 1 | 新增 committed taxonomy fixture，CI 固定跑核心分類 smoke；完整 approval map 缺 raw corpus 時明確 skip |
 
 ## 備註
 - 不回退使用者或前序工作留下的修改。

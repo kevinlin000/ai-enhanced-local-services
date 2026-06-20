@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import sys
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 
@@ -12,6 +14,7 @@ from scripts.generate_taxonomy_audit import build_audit_rows
 
 
 RAW_DIR = ROOT / "data" / "raw"
+FIXTURE_SHOPS_PATH = ROOT / "tests" / "fixtures" / "taxonomy_shops.json"
 MANUAL_OVERRIDES_PATH = ROOT / "data" / "taxonomy" / "manual_overrides.json"
 SHARED_TAXONOMY_PATH = ROOT.parent / "shared" / "taxonomy.json"
 
@@ -39,6 +42,13 @@ APPROVED_PRIMARY_TYPE_IDS = {
 
 def load_shops() -> dict[int, dict]:
     shops: dict[int, dict] = {}
+    if FIXTURE_SHOPS_PATH.exists():
+        payload = json.loads(FIXTURE_SHOPS_PATH.read_text(encoding="utf-8"))
+        for shop in payload.get("shops", []):
+            shop_id = shop.get("shop_id")
+            if shop_id:
+                shops[shop_id] = shop
+
     for path in sorted(RAW_DIR.glob("places_extracted_*.json")):
         payload = json.loads(path.read_text())
         for shop in payload.get("shops", []):
@@ -107,6 +117,13 @@ def test_manual_audit_overrides_are_loaded_before_legacy_name_rules():
 
 def test_classifier_matches_approved_primary_type_ids():
     shops = load_shops()
+    missing_ids = sorted(set(APPROVED_PRIMARY_TYPE_IDS) - set(shops))
+    if missing_ids:
+        pytest.skip(
+            "full raw taxonomy corpus is unavailable; "
+            f"missing approved shop ids: {missing_ids[:8]}"
+        )
+
     mismatches = []
 
     for shop_id, expected_type_id in sorted(APPROVED_PRIMARY_TYPE_IDS.items()):
@@ -117,6 +134,24 @@ def test_classifier_matches_approved_primary_type_ids():
             )
 
     assert not mismatches, "classifier diff vs approved remap:\n" + "\n".join(mismatches)
+
+
+def test_committed_taxonomy_fixture_matches_approved_primary_type_ids():
+    shops = load_shops()
+    fixture_payload = json.loads(FIXTURE_SHOPS_PATH.read_text(encoding="utf-8"))
+    fixture_ids = sorted(shop["shop_id"] for shop in fixture_payload["shops"])
+    assert fixture_ids == [10099, 10104, 10171, 10181, 10183, 10190]
+
+    mismatches = []
+    for shop_id in fixture_ids:
+        expected_type_id = APPROVED_PRIMARY_TYPE_IDS[shop_id]
+        actual_type_id = classify_shop(shops[shop_id])["primary_type_id"]
+        if actual_type_id != expected_type_id:
+            mismatches.append(
+                f"{shop_id} {shops[shop_id]['display_name']}: expected {expected_type_id}, got {actual_type_id}"
+            )
+
+    assert not mismatches, "classifier diff vs committed fixtures:\n" + "\n".join(mismatches)
 
 
 def test_classifier_fixture_10171_yakiniku():

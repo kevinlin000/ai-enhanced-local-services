@@ -1,0 +1,183 @@
+{
+  "shops": [
+    {
+      "shop_id": 10099,
+      "display_name": "一蘭拉麵台灣台北本店",
+      "primary_type": "ramen_restaurant",
+      "types": [
+        "ramen_restaurant",
+        "noodle_shop",
+        "japanese_restaurant",
+        "restaurant",
+        "point_of_interest",
+        "food",
+        "establishment"
+      ],
+      "ai_extracted": {
+        "ai_summary": "作為台北指標性的豚骨拉麵店，一蘭以高度客製化的用餐體驗著稱。從湯頭濃度、蒜泥比例到麵條軟硬度，皆能依照喜好調整。其天然豚骨湯頭口感溫潤，若加入赤紅秘製醬汁，則能帶出層次分明的微辣與鮮甜感，讓細麵在吸附湯汁後顯得更為飽滿。店內空間維持標誌性的「味集中座位」，將空間劃分為一人一格的半隱密席位，適合不受干擾的專注用餐。雖然整體節奏受限於高人氣帶來的候位流程，但透過官方 App 線上取號，可有效節省現場滯留時間。服務方面，從排隊導引至點餐流程均有條不紊，為確保湯頭餘韻，建議入座後善用座位區提供的飲水機隨時解膩。",
+        "highlight_review": "豚骨湯頭香氣濃郁、口感圓潤，搭配特製辣醬後層次更明顯。",
+        "signature_dishes": [
+          "天然豚骨拉麵",
+          "半熟鹽味蛋",
+          "越光米飯"
+        ],
+        "atmosphere_tags": [
+          "一人"
+        ],
+        "booking_difficulty": "預約困難",
+        "price_per_person": "$300-500"
+      }
+    },
+    {
+      "shop_id": 10104,
+      "display_name": "INPARADISE 饗饗 微風信義店",
+      "primary_type": "buffet_restaurant",
+      "types": [
+        "buffet_restaurant",
+        "cafeteria",
+        "restaurant",
+        "point_of_interest",
+        "food",
+        "establishment"
+      ],
+      "ai_extracted": {
+        "ai_summary": "位處微風信義 46 樓的饗饗，用餐亮點在於開闊的信義區天際線與近距離俯瞰 101 大樓的震撼視角。餐廳空間規劃採大長方形設計，動線比常見的長條型配置更具流動性。菜色方面，現煎干貝帶有軟嫩鮮甜的焦香，深受食客青睞；蛤蜊湯以清澈鮮美的暖意著稱，而現烤香魚則展現了皮脆肉細的火候。服務團隊在收盤與環境維護上展現專業度，帶位流程順暢且具備親切感。不過，餐期熱門時段如煎台與湯品區常需排隊等待，建議入座後可先評估取餐節奏，亦或是避開尖峰時段，更能從容享受這場高空饗宴。",
+        "highlight_review": "坐擁信義區絕美景觀，現煎干貝鮮嫩多汁，是值得細細品味的饗宴。",
+        "signature_dishes": [
+          "現煎干貝",
+          "蛤蜊湯",
+          "現烤香魚",
+          "蝦鬆",
+          "烤鴨捲餅"
+        ],
+        "atmosphere_tags": [
+          "約會",
+          "聚餐"
+        ],
+        "booking_difficulty": "預約困難",
+        "price_per_person": "$1390-1800"
+      }
+    },
+    {
+      "shop_id": 10171,
+      "display_name": "肉執事台北松山門市",
+      "primary_type": "yakiniku_restaurant",
+      "types": [
+        "yakiniku_restaurant",
+        "japanese_restaurant",
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "ai_extracted": {
+        "ai_summary": "位於松山車站CITYLINK的肉執事，主打個人專屬的燒肉體驗。店內設有半自動送餐列車，將餐點直接滑送至座位，趣味十足的輸送帶設計讓用餐過程更顯俐落。空間規劃以吧台式座位為主，具備隔板屏風，即使單人用餐也能自在享受炭火燒炙的樂趣，適合想要快速解決一餐的消費者。餐點採套餐形式供應，雞腿肉表現亮眼，肉質滑嫩且富有肉汁；牛五花油花豐富，烤製時會產生明顯香氣。自助區提供雞湯、冰品與多種醬料，白飯亦可依食量選擇份量。唯需注意店內用餐時間限制為60分鐘，烤爐火力需自行掌控，且由於店內未設置洗手間，用餐期間若有需求需前往鄰近車站使用。",
+        "highlight_review": "送餐小火車會從眼前把肉送過來，自己動手烤肉很有趣。",
+        "signature_dishes": [
+          "牛五花",
+          "雞腿",
+          "牛橫膈膜",
+          "豬霜降"
+        ],
+        "atmosphere_tags": [
+          "一人"
+        ],
+        "booking_difficulty": "現場可入",
+        "price_per_person": "$400-500"
+      }
+    },
+    {
+      "shop_id": 10181,
+      "display_name": "Bogart's Smokehouse Taipei (美式木柴煙燻屋) OPEN til SOLDOUT",
+      "primary_type": "barbecue_restaurant",
+      "types": [
+        "barbecue_restaurant",
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ],
+      "ai_extracted": {
+        "ai_summary": "這是一家走入店內便能聞到濃郁碳燻香氣的道地美式烤肉屋。店內嚴守各項內用規矩，從排隊動線到點餐程序皆講求效率，建議初次到訪者先研究菜單，把握熱門品項以免向隅。招牌牛胸肉處理得宜，肉質軟嫩且保有飽滿肉汁；豬肋排則是帶有焦香的豪邁風味，若喜歡口感豐富者，可嘗試搭配桌上提供的四款特製醬料，體驗酸、甜、辣不同層次的變化。空間氛圍粗獷率性，雖用餐人潮眾多時難免帶點壓力，但熱情的服務節奏與純粹的煙燻肉食，仍是聚餐時大口吃肉的理想選擇。",
+        "highlight_review": "牛胸肉軟嫩多汁，搭配四種特製醬料風味極佳，絕對是回訪必點。",
+        "signature_dishes": [
+          "牛胸肉",
+          "豬肋排",
+          "醬燒牛胸肉漢堡",
+          "手撕豬漢堡",
+          "烤雞"
+        ],
+        "atmosphere_tags": [
+          "聚餐",
+          "一人"
+        ],
+        "booking_difficulty": "未提及",
+        "price_per_person": "$600-1000"
+      }
+    },
+    {
+      "shop_id": 10183,
+      "display_name": "呼嚕小酒館 Purrson Bistro",
+      "primary_type": "bistro",
+      "types": [
+        "bistro",
+        "pub",
+        "hookah_bar",
+        "bar",
+        "food_store",
+        "store",
+        "restaurant",
+        "point_of_interest",
+        "food",
+        "establishment"
+      ],
+      "ai_extracted": {
+        "ai_summary": "隱身於木柵巷弄的呼嚕小酒館，營造出一種探索靜謐角落的驚喜感。店內以暖心裝潢與貓咪元素點綴，提供適合與朋友小酌或獨自放鬆的環境。餐點選擇廣泛，從義大利麵、燉飯到漢堡皆有涵蓋；其中墨西哥鮮蝦義大利麵以香氣十足且夠勁的辣度著稱，而炸雞翅則以極具水準的酥脆感獲得好評。部分餐點調味雖略顯油潤，但分量誠意十足。需留意廚房供餐時間至晚間八點半，且建議提前訂位。服務上，團隊對於慶生等用餐需求表現細膩，整體用餐節奏節奏感強，是當地頗具特色的餐酒休憩點。",
+        "highlight_review": "隱身在靜謐巷弄裡，藏著一間適合放鬆的好地方。",
+        "signature_dishes": [
+          "墨西哥鮮蝦義大利麵",
+          "紐奧良炸雞翅",
+          "紹興軟殼蟹燉飯",
+          "桂花弄調酒"
+        ],
+        "atmosphere_tags": [
+          "約會",
+          "聚餐",
+          "一人",
+          "寵物友善"
+        ],
+        "booking_difficulty": "預約困難",
+        "price_per_person": "$600-1000"
+      }
+    },
+    {
+      "shop_id": 10190,
+      "display_name": "弘大一號出口",
+      "primary_type": "korean_restaurant",
+      "types": [
+        "korean_restaurant",
+        "restaurant",
+        "point_of_interest",
+        "food",
+        "establishment"
+      ],
+      "ai_extracted": {
+        "ai_summary": "走進「弘大一號出口」，最先迎接食客的是琳瑯滿目的韓式自助小菜區，多樣化的涼拌菜、醃漬物與泡菜整齊排列，提供自由取用的用餐節奏，適合作為多人聚餐的開端。這裡採用自助點餐機流程，節奏快速且明確，適合追求效率的用餐者。招牌烤肉由服務人員提供貼心的代烤服務，杏鮑菇透過奶油燒烤後散發濃郁香氣，口感多汁。馬鈴薯排骨湯則展現出燉煮至骨肉分離的火候。雖然餐點調味風格多元，從清爽的韓式冷麵到重口味的鍋物選擇豐富，但因現場生意火熱，用餐時段節奏緊湊，建議提前安排預訂，以確保擁有寬敞舒適的座位體驗。",
+        "highlight_review": "小菜自助吃到飽種類多樣，烤肉還有貼心的代烤服務。",
+        "signature_dishes": [
+          "烤醃牛肉",
+          "馬鈴薯排骨湯",
+          "韓式冷麵",
+          "泡菜煎餅",
+          "炒碼麵"
+        ],
+        "atmosphere_tags": [
+          "聚餐",
+          "一人"
+        ],
+        "booking_difficulty": "預約困難",
+        "price_per_person": "未提及"
+      }
+    }
+  ]
+}

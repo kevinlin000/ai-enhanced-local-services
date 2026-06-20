@@ -2,6 +2,24 @@
 
 ## 會話：2026-06-20
 
+### 階段 32：Portfolio CI taxonomy fixture stabilization
+- **狀態：** in_progress
+- 執行的操作：
+  - 重新接回 planning files 與 GitHub Actions 狀態，確認手動 `Clean MySQL Migration Smoke` workflow 已成功，但 push-triggered `Portfolio CI` 仍失敗。
+  - 定位最新失敗 run `27864782092` 的失敗點在 ETL Pipeline：`tests/test_taxonomy.py` 因 `load_shops()[...]` 對多個 shop id 丟 `KeyError`。
+  - 盤點 `.gitignore` 與 `etl-pipeline/data/raw/`，確認本機有 62MB ignored raw corpus，CI checkout 不包含，因此本機 `scripts/verify-portfolio.sh` 和 GitHub Portfolio CI 看到的測試資料不同。
+  - 新增 `etl-pipeline/tests/fixtures/taxonomy_shops.json`，提交 6 個 taxonomy critical fixture：10099、10104、10171、10181、10183、10190。
+  - 更新 `etl-pipeline/tests/test_taxonomy.py`：`load_shops()` 先載入 committed fixture，再用 raw corpus 覆寫；完整 103 筆 approval map 若缺 raw corpus 會明確 skip；新增 committed fixture smoke test 永遠在 CI 跑。
+  - `cd etl-pipeline && uv run pytest tests/test_taxonomy.py -q` 通過：33 passed。
+  - 暫時隱藏 ignored raw corpus 模擬 CI checkout，`uv run pytest tests/test_taxonomy.py -q` 通過：32 passed, 1 skipped。
+  - `cd etl-pipeline && UV_CACHE_DIR=../.uv-cache uv run pytest tests -q` 通過：43 passed。
+  - 暫時隱藏 ignored raw corpus 模擬 CI checkout，`uv run pytest tests -q` 通過：42 passed, 1 skipped。
+  - `scripts/release-readiness.sh --offline` 通過。
+  - `scripts/verify-portfolio.sh` 通過：Java 96 tests / 0 failures / 3 skipped，AI 174 passed，ETL 43 passed，data-quality gate passed，Nginx deployment template contract passed，clean MySQL migration smoke/workflow contracts passed，release boundary contract passed，Web tests 19 passed，Web production build passed。
+- 下一步：
+  - commit / push 本輪 fixture stabilization。
+  - 監看新的 GitHub Portfolio CI run，確認 ETL Pipeline 不再因 missing raw corpus 失敗。
+
 ### 階段 31：Release boundary and final handoff
 - **狀態：** complete
 - 執行的操作：
