@@ -8,15 +8,21 @@
 |---|---|
 | Data | 600 active Taipei shops, crawler coverage reports, Qdrant payload sync, legacy seed cleanup |
 | Web | Premium app shell, discovery, AI chat, shop detail, booking/payment, favorites, notifications, merchant console |
-| LINE | Messaging bot, LINE Login, recommendation cards, booking/payment/cancel notifications |
-| AI | Semantic search, hard constraints, dialogue state, clarification policy, response contract, regression tests |
-| Booking | Web/LINE booking lifecycle, demo payment, cancellation, availability release |
+| LINE | Messaging bot, LINE Login, recommendation cards, booking/payment/cancel/incident notifications |
+| AI | Semantic search, hard constraints, dialogue state, private preference memory, private AI-matched offers, incident routing, clarification policy, response contract, regression tests |
+| Booking | Web/LINE booking lifecycle, demo payment, conversational reschedule, incident handling, cancellation, availability release |
 | Parking | Nearby parking data, driving preference, scheduled reminders, demo spot hold concept |
-| Deployment | Docker Compose infra, ngrok public demo, health checks for Java and AI |
+| Deployment | Docker Compose infra, ngrok local tunnel for temporary demos, Nginx stable public reverse-proxy blueprint with Compose public-proxy overlay, demo readiness preflight, public-proxy smoke runner, clean MySQL migration smoke runner, and manual GitHub Actions clean-schema smoke |
 
 ## Highest-CP Work Before Presentation
 
 - ✅ Keep demo URL, Java, AI, and Web health stable.
+- ✅ Keep ngrok and Nginx responsibilities explicit: ngrok for local temporary tunnels, Nginx for stable public routing and proxy headers.
+- ✅ Keep the Nginx route contract runnable through Docker Compose on `localhost:8088`.
+- ✅ Keep demo readiness executable through `scripts/demo-readiness.sh`.
+- ✅ Keep Nginx public-proxy smoke checks executable through `scripts/smoke-nginx-public-proxy.sh`.
+- ✅ Keep fresh-schema Java/Flyway startup verifiable through `scripts/smoke-clean-mysql-migrations.sh`.
+- ✅ Keep fresh-schema Java/Flyway startup reproducible in GitHub Actions through `.github/workflows/clean-mysql-migration-smoke.yml`.
 - ✅ Use the public presentation guide and case studies as the core story.
 - ✅ Demo AI with one clear query, one vague query, and one context-heavy query.
 - 🚧 Tighten security boundaries where possible without breaking the public demo.
@@ -26,33 +32,71 @@
 
 These are the highest-value next steps after the presentation.
 
-1. **Private Preference Memory**
-   - Remember quiet-seat preference, disliked ingredients, "do not recommend again", favorite cuisines, and previous booking patterns.
-   - Use it to make Web AI and LINE AI feel like the same concierge over time.
+1. **Private Preference Memory — first slice completed**
+   - ✅ Remember post-meal tags, 1-3 rating, notes, and "do not recommend again" from My Bookings.
+   - ✅ Persist in Java and let AI recommendation validation avoid user-marked shops.
+   - Next: add ingredient dislikes, seat preferences, and group-level shared memories.
 
-2. **Conversational Booking Changes**
-   - Support "改 8 點，同樣 4 位" and "換成明天晚上".
-   - AI should check availability, confirm the new state, and notify LINE.
+2. **Conversational Booking Changes — first slice completed**
+   - ✅ Support "改 8 點，同樣 4 位" and "換成明天晚上" from the latest valid booking.
+   - ✅ Java checks availability transactionally, confirms the new state, and notifies LINE.
+   - ✅ Guard paid-booking reschedules that would require deposit top-up or refund, instead of silently changing payment obligations.
+   - ✅ Create merchant manual deposit-adjustment tasks and apply the reschedule only after external top-up/refund handling is confirmed.
+   - ✅ Track PSP settlement status, provider, transaction id, amount, and completion time before applying a deposit-delta reschedule.
+   - ✅ Let customers complete TOP_UP adjustments from My Bookings through the TapPay iframe checkout.
+   - ✅ Connect REFUND adjustments to a request -> reconciliation success/failure state machine.
+   - ✅ Add refund reconciliation event-key idempotency and audit events.
+   - ✅ Add optional HMAC signature verification for refund reconciliation callbacks.
+   - ✅ Support current/previous webhook secrets for refund callback rotation.
+   - ✅ Surface merchant refund SLA reporting for FAILED or stale PROCESSING refunds.
+   - ✅ Let merchants mark failed/stuck refunds as escalated, with note and audit event.
+   - ✅ Add merchant refund operations digest for pending escalation and escalated follow-up.
+   - ✅ Let merchants trigger LINE refund operations digest notifications from the report.
+   - ✅ Add scheduler-ready refund operations digest due policy with cooldown and dispatch audit.
+   - ✅ Add optional source allowlist validation for production refund callbacks.
+   - Next: add merchant notification preferences and provider-specific refund operations.
 
-3. **Private AI-Matched Offers**
-   - Avoid public coupon pages.
-   - Trigger private offers only for high-intent users, off-peak capacity, or likely churn.
+3. **Private AI-Matched Offers — first slice completed**
+   - ✅ Avoid public coupon pages by storing offers in `tb_private_ai_offer`, separate from public voucher/Hot Seat tables.
+   - ✅ Trigger private offers only for explicit discount/save-money/off-peak intent from AI recommendation flow.
+   - ✅ Reuse active per-user/per-shop offers instead of creating duplicates.
+   - Next: add restaurant-side quota controls, redemption at checkout, and merchant analytics for off-peak fill rate.
 
-4. **Group Dining Decision Flow**
+4. **Incident Handling — first slice completed**
+   - ✅ Persist booking incidents in `tb_booking_incident` with OPEN/RESOLVED status.
+   - ✅ Support user late arrival and restaurant delay messages from My Bookings.
+   - ✅ Route "我會晚到 20 分鐘" through AI deterministic booking action and push LINE rescue cards.
+   - ✅ Add merchant-side open incident console and resolve action under `/merchant`.
+   - ✅ Suggest same-day alternative slots from Java slot inventory in the merchant incident console.
+   - ✅ Let merchants send a pending alternative-time proposal and let customers accept it from My Bookings.
+   - ✅ Add customer decline and proposal expiry handling so `PENDING` proposals can become `ACCEPTED`, `DECLINED`, or `EXPIRED`.
+   - ✅ Push LINE proposal cards with accept/decline links that call back into Java.
+   - ✅ Reuse the Java reschedule contract to block paid proposal acceptance when it would create deposit top-up or refund work.
+   - ✅ Surface merchant-facing manual deposit adjustment notes and apply approved changes from the merchant console.
+   - ✅ Require PSP settlement tracking before merchant adjustment resolution can apply the booking change.
+   - ✅ Add customer top-up payment from My Bookings while keeping merchant-side apply as the final booking mutation.
+   - ✅ Add refund settlement reconciliation so failed refunds cannot be applied as completed booking changes.
+   - ✅ Store refund request/reconciliation audit events and ignore duplicate PSP event keys.
+   - ✅ Add merchant SLA reporting for stuck refunds.
+   - ✅ Add escalation tracking for failed or stuck refunds.
+   - ✅ Add merchant operations digest for refund escalation follow-up.
+   - ✅ Add triggerable LINE digest notification for refund operations.
+   - ✅ Add scheduled notification policy contract for repeated failed refunds.
+   - ✅ Add provider callback source validation with allowlist and trusted proxy handling.
+   - Next: add merchant notification preferences and provider-specific refund operations.
+
+5. **Group Dining Decision Flow**
    - Share link in group chat.
    - Members vote on time, budget, district, dietary restrictions.
    - AI returns top options and one-click booking.
 
-5. **Incident Handling**
-   - Restaurant delay, user late arrival, full capacity, weather or parking issue.
-   - AI coordinates alternatives and sends clear LINE updates.
-
 ## Demo Boundaries
 
-- Demo payment proves state transition and notification contract, not real production settlement.
+- Demo payment proves state transition and notification contract; deposit-delta TOP_UP now has customer checkout, and REFUND has demo/internal reconciliation with idempotency/audit, optional HMAC signature verification with secret rotation and source allowlist, merchant SLA visibility, manual escalation tracking, operations digest, triggerable LINE digest notification, and scheduler-ready due policy with cooldown dispatch audit. Production refund rollout still needs merchant notification preferences and provider-specific refund operations.
 - Demo parking spot hold shows product direction, not confirmed operator-side parking reservation.
 - Parking availability depends on upstream/cache update cadence.
 - Recommendation is advisory; store announcements and real venue policies remain the source of truth.
+- Stable public deployment should use the Nginx route contract rather than a long-lived ngrok URL; ngrok remains useful for local LINE webhook/Login testing.
 
 ---
 
@@ -178,7 +222,7 @@ The section below preserves earlier planning context. Some items have already be
 
 ## 設計取捨說明
 
-幾個關鍵的「為什麼不做」決策，這裡簡要說明（詳細討論見 [docs/architecture.md](docs/architecture.md)）：
+幾個關鍵的「為什麼不做」決策，這裡簡要說明；完整演進脈絡見 [Project Journey](project-journey.md)，跨服務責任分工見 [ADR 0001](adr/0001-java-python-frontend-split.md)：
 
 **為什麼用 RabbitMQ 不用 Kafka？**
 本專案的消息使用場景是業務消息（訂單狀態、通知、補償），不是高吞吐量資料流。Kafka 的核心優勢（partition、stream）在本場景發揮不出來，RabbitMQ + Outbox 模式更適合。
@@ -189,5 +233,5 @@ The section below preserves earlier planning context. Some items have already be
 **為什麼 AI 部分用 Python 不用 Spring AI？**
 業界 AI 應用 95% 在 Python 生態（LangChain、LlamaIndex、Hugging Face）。本專案採用 Java 後端 + Python AI 服務的微服務拆分，符合業界實際分工。
 
-**為什麼種子資料只做 2 個區域？**
-RAG 與向量檢索的效果展示不需要大量資料覆蓋，深度（每家店完整評論、菜單、營業時間）比廣度（150+ 家店但每家資訊不全）對 demo 更有幫助。
+**為什麼先聚焦台北 600 家，而不是全台店家？**
+AI 推薦 demo 的關鍵不是把地圖鋪滿，而是讓每一家進入推薦池的店有足夠 metadata：分類、行政區、捷運、照片、評論、AI summary、ABSA、價格訊號與 Qdrant payload。先把台北資料做深，能比全台淺資料更穩定地展示 grounded recommendation。

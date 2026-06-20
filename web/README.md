@@ -64,6 +64,22 @@ FRONTEND_URL=https://your-web-demo.example.com
 LINE_REDIRECT_URI=https://your-java-url.ngrok-free.app/api/auth/line/callback
 ```
 
+For a stable public demo or production-like environment, keep ngrok as a local tunnel and put Nginx in front of Web, Java, and AI. Use [Nginx Public Deployment Boundary](../docs/deployment-nginx.md) and keep the browser-facing API paths unchanged:
+
+```bash
+NEXT_PUBLIC_JAVA_API=/api/java
+LINE_REDIRECT_URI=https://your-domain.example.com/api/java/api/auth/line/callback
+LINE_OAUTH_COOKIE_PATH=/api/java/api/auth/line
+LINE_PUBLIC_WEB_URL=https://your-domain.example.com
+```
+
+For local route rehearsal, run the Nginx Compose overlay and open `http://localhost:8088` after Web, Java, and AI are already running. Then run:
+
+```bash
+scripts/demo-readiness.sh --base-url http://localhost:8088
+scripts/smoke-nginx-public-proxy.sh --base-url http://localhost:8088
+```
+
 ## Validation
 
 ```bash

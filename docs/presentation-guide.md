@@ -6,11 +6,11 @@
 
 **中文**
 
-ByteBites 想解決的不是「找一家餐廳」而已，而是整個用餐安排流程。使用者用自然語言說出需求，AI 先判斷地點、料理、人數、場合與時間，再整理候選餐廳，接著把訂位、訂金付款、LINE 通知、候補、取消與停車提醒串在同一條流程裡。這個專案累積 493 次 commit，包含資料爬蟲、語意搜尋、評論分析、Web/LINE 身份同步、交易狀態 contract、商家後台與公開 demo 部署。
+ByteBites 想解決的不是「找一家餐廳」而已，而是整個用餐安排流程。使用者用自然語言說出需求，AI 先判斷地點、料理、人數、場合與時間，再整理候選餐廳，接著把訂位、訂金付款、LINE 通知、候補、取消與停車提醒串在同一條流程裡。這個專案累積 522 次 commit，包含資料爬蟲、語意搜尋、評論分析、Web/LINE 身份同步、交易狀態 contract、商家後台與公開 demo 部署。
 
 **English**
 
-ByteBites is not just a restaurant finder. It connects the dining journey from natural-language intent to recommendation, booking, demo deposit payment, LINE notifications, waitlist, cancellation, and parking reminders. Across 493 commits, the project evolved into a full-stack AI dining operations platform with data pipelines, semantic search, review intelligence, identity sync, transaction contracts, merchant tooling, and public demo deployment.
+ByteBites is not just a restaurant finder. It connects the dining journey from natural-language intent to recommendation, booking, demo deposit payment, LINE notifications, waitlist, cancellation, and parking reminders. Across 522 commits, the project evolved into a full-stack AI dining operations platform with data pipelines, semantic search, review intelligence, identity sync, transaction contracts, merchant tooling, and public demo deployment.
 
 ## 2. Suggested 7-Minute Flow
 
@@ -178,6 +178,7 @@ Then show:
 | Web/LINE are synchronized | `docs/case-studies/07-web-line-booking-sync.md` |
 | Deployment was made testable | `docs/case-studies/11-demo-deployment.md` |
 | Design has product judgment | `docs/case-studies/05-recommendation-ux.md`, `12-premium-ui-positioning.md` |
+| Claims are reviewable | `docs/portfolio-evidence-map.md`, `scripts/verify-portfolio.sh`, `.github/workflows/portfolio-ci.yml` |
 
 ## 5. What to Say If Asked About Limits
 

@@ -4,7 +4,7 @@
 
 ## 0. 一句話版本
 
-ByteBites 從一個本地生活服務後端，演進成完整 AI 用餐營運平台：台灣化資料模型、LINE Login、捷運 GEO、多層快取、RabbitMQ/Outbox、Google Maps 爬蟲、ABSA 評論分析、Qdrant 語意搜尋、Web/LINE AI agent、訂位付款同步、候補通知、停車提醒、商家後台與公開 demo 部署。到目前為止，專案已累積 493 次 commit，重點不是 commit 數字本身，而是每一輪都把「能跑」往「可靠、可展示、可解釋」推進。
+ByteBites 從一個本地生活服務後端，演進成完整 AI 用餐營運平台：台灣化資料模型、LINE Login、捷運 GEO、多層快取、RabbitMQ/Outbox、Google Maps 爬蟲、ABSA 評論分析、Qdrant 語意搜尋、Web/LINE AI agent、訂位付款同步、候補通知、停車提醒、商家後台與公開 demo 部署。到目前為止，專案已累積 522 次 commit，重點不是 commit 數字本身，而是每一輪都把「能跑」往「可靠、可展示、可解釋」推進。
 
 ## 1. Stage 0 — 接手、體檢、現代化
 
@@ -190,6 +190,10 @@ ByteBites 不是 inline clone，也不是普通 chatbot。它是：
 - 強化 AI dining intent routing：明確餐飲需求先查資料，模糊需求先追問。
 - 強化情境 rerank：聊天、商務、家庭、聚餐等場景不被一般熱門度覆蓋。
 - 更新 README、Case Studies、Presentation Guide，讓專案故事能被快速理解。
+- 建立 `scripts/verify-portfolio.sh`，把 Java、AI、ETL、data gate、Web tests 和 production build 收斂成單一作品驗證入口。
+- 新增 GitHub Actions portfolio CI matrix，讓 reviewer 能用熟悉的方式確認每個子系統。
+- 新增 `docs/portfolio-evidence-map.md`，把 Java backend、AI application、full-stack 三種職缺的 code anchors 和測試證據整理成面試入口。
+- 將訂位庫存與 booking payload 抽成更深的 Module，讓交易流程的 Locality 和 test surface 更清楚。
 
 ### 為什麼重要
 
@@ -201,7 +205,7 @@ ByteBites 不是 inline clone，也不是普通 chatbot。它是：
 - 評審聽不出工程深度；
 - Demo 功能和真實邊界沒有說清楚。
 
-這一階段把產品從「功能很多」整理成「現場可被理解、可被相信」。
+這一階段把產品從「功能很多」整理成「現場可被理解、可被相信、可被驗證」。
 
 ## 10. 最值得在報告裡講的抉擇
 
@@ -211,6 +215,7 @@ ByteBites 不是 inline clone，也不是普通 chatbot。它是：
 4. **交易狀態以後端為準**：Web / LINE 只是入口。
 5. **停車提醒採負責任 demo**：展示產品願景，但不誇大即時車位能力。
 6. **不做 inline clone**：吸收質感，但主張 ByteBites 自己的 AI operations 定位。
+7. **作品要有證據鏈**：README、case studies、code anchors、tests、CI 和 data gate 要能互相指向。
 
 ## 11. What This Project Proves
 
