@@ -45,7 +45,7 @@ def main() -> None:
         "rabbitmq admin password": "RABBITMQ_DEFAULT_PASS: admin",
         "mysql container name": "--name bytebites-ci-mysql",
         "mysql root password": "-e MYSQL_ROOT_PASSWORD=password",
-        "mysql health": "mysqladmin ping -uroot -ppassword --silent",
+        "mysql health": "mysqladmin ping -h127.0.0.1 -P3306 -uroot -ppassword --silent",
         "mysql image": "mysql:8.0",
         "wait mysql": "docker inspect -f '{{.State.Health.Status}}' bytebites-ci-mysql",
         "smoke invocation": "scripts/smoke-clean-mysql-migrations.sh",

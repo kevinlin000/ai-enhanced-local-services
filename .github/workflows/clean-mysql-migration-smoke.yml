@@ -52,7 +52,7 @@ jobs:
             --name bytebites-ci-mysql \
             -e MYSQL_ROOT_PASSWORD=password \
             -p 3306:3306 \
-            --health-cmd "mysqladmin ping -uroot -ppassword --silent" \
+            --health-cmd "mysqladmin ping -h127.0.0.1 -P3306 -uroot -ppassword --silent" \
             --health-interval 5s \
             --health-timeout 5s \
             --health-retries 40 \
