@@ -24,6 +24,12 @@ AI can orchestrate the dining workflow, but Java remains the source of truth for
 
 The portfolio readiness scorecard is maintained at `docs/portfolio-readiness-scorecard.md`. Current recommendation: portfolio-ready at **88 / 100**, demo-ready for interviews, not yet a production SaaS rollout.
 
+The path from the current score toward portfolio 100 is tracked in:
+
+- `docs/portfolio-100-roadmap.md`
+- `docs/demo-evidence-package.md`
+- `docs/architecture-overview.md`
+
 ## Verification Ladder
 
 Run the checks in this order when preparing a release or presentation.
@@ -69,7 +75,7 @@ The current work should be reviewed or committed in coherent groups:
 | Deployment boundary | Nginx template, Compose overlay, demo readiness, public-proxy smoke |
 | Migration reliability | V16 clean-schema fix, clean MySQL migration smoke, manual GitHub Actions smoke |
 | Evidence and docs | README, roadmap, portfolio evidence map, case studies, release boundary |
-| Scorecard | portfolio readiness score, role-specific framing, remaining gaps, next plan |
+| Scorecard and 100-point path | portfolio readiness score, role-specific framing, remaining gaps, evidence package, architecture overview, next plan |
 
 Do not squash these into one anonymous "final update" commit if the goal is reviewer clarity.
 

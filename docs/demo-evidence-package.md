@@ -1,0 +1,107 @@
+# ByteBites Demo Evidence Package
+
+This is the capture checklist for turning ByteBites from a working system into reviewer-visible proof.
+
+Use this document before interviews, portfolio submission, or a recorded walkthrough.
+
+## Evidence Folder
+
+Recommended local folder:
+
+```text
+docs/demo-evidence/
+```
+
+The folder may contain screenshots, short clips, and exported slides. The repo does not need to commit large binary captures unless they are intentionally small and stable.
+
+## Required Evidence
+
+| File | Proof | Pass criteria |
+|---|---|---|
+| `01-ai-recommendation.png` | AI understands a realistic dining request and returns grounded cards. | Shows query, recommendation reasons, and restaurant cards using the same result set. |
+| `02-booking-payment-state.png` | Booking is real application state, not a static mock. | Shows booking id, status, date/time, party size, and payment state. |
+| `03-realtime-incident.png` | Real-time rescue flow exists. | Shows latest open incident from My Bookings or merchant incident queue. |
+| `04-merchant-proposal.png` | Merchant can operate on incidents. | Shows alternative slot proposal or incident resolution controls. |
+| `05-line-rescue-card.png` | LINE channel is integrated. | Shows rescue/proposal Flex card with action path. |
+| `06-refund-operations-digest.png` | Refund operations are visible. | Shows failed/stale refund summary, digest, or escalation state. |
+| `07-ci-portfolio-green.png` | Verification is reviewer-checkable. | Shows GitHub Portfolio CI or terminal output from `scripts/verify-portfolio.sh`. |
+| `08-clean-migration-smoke.png` | Fresh-schema startup is protected. | Shows clean MySQL migration smoke workflow or local smoke success. |
+| `09-architecture-overview.png` | Architecture is understandable at a glance. | Shows Web, Java, AI, LINE, ETL, Qdrant, data stores, and Nginx boundary. |
+
+## Optional Short Video
+
+Recommended filename:
+
+```text
+bytebites-portfolio-walkthrough-3min.mp4
+```
+
+Suggested order:
+
+1. State the thesis: ByteBites is AI dining operations, not just restaurant discovery.
+2. Show AI recommendation.
+3. Show booking and payment state.
+4. Trigger or show late-arrival incident.
+5. Show merchant proposal and LINE card.
+6. Show refund operations digest.
+7. Close with CI and architecture.
+
+Keep it under 5 minutes. The video should prove the workflow, not explain every feature.
+
+## Live Demo Fallback
+
+If the app is running locally with the Nginx public proxy, use:
+
+```bash
+scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict
+```
+
+For a full local verification pass:
+
+```bash
+scripts/release-readiness.sh --full
+```
+
+For production-like clean-schema proof:
+
+```bash
+scripts/smoke-clean-mysql-migrations.sh --timeout 180
+```
+
+## Interview Narrative
+
+Use the same evidence order every time.
+
+5-minute version:
+
+```text
+product thesis
+  -> AI recommendation
+  -> Java-owned booking/payment/incident state
+  -> Web/LINE/Merchant coordination
+  -> verification and production gaps
+```
+
+12-minute version:
+
+```text
+product thesis
+  -> data pipeline and retrieval
+  -> AI orchestration boundaries
+  -> booking/payment/incident lifecycle
+  -> deposit/refund operations
+  -> Nginx deployment boundary
+  -> CI, migration smoke, and next production hardening
+```
+
+## Production Gap Answer
+
+Do not overclaim production readiness.
+
+Use this concise answer:
+
+```text
+The portfolio release is demo-ready and contract-tested.
+Production rollout would focus on managed secrets, real PSP refund provider integration,
+observability, backups, merchant notification preferences, and cloud deployment.
+```

@@ -88,6 +88,9 @@
 - Portfolio CI 的 ETL 修正推上後，Backend Java 暴露另一個 hosted-runner-only failure：proposal expiry 測試用系統預設時區，production code 用 `Asia/Taipei` business zone，UTC runner 會把未來 20 分鐘誤判成已逾期。
 - 目前作品以 portfolio interview 標準可評 88/100：足夠展示且高於一般 CRUD / chatbot demo，但尚未是 production SaaS rollout。
 - 目前不應繼續堆新功能；更高價值是把 evidence package 收斂成 scorecard、截圖、短 demo script、production-gap answer 與 architecture diagram。
+- 使用者目標是「每一樣都達到 100 分」；需要先定義評分邊界，否則容易把 portfolio readiness 和 production SaaS readiness 混在一起。
+- Portfolio 100 可以在 repo 內完成：架構圖、證據包、截圖/影片、CI/verification、清楚的 production-gap answer。
+- Production SaaS 100 不能只靠本機 repo 宣稱完成：還需要真實 PSP refund provider contract、managed secrets、cloud runtime、observability、backup/restore、merchant operations process。
 
 ## 技術決策
 | 決策 | 理由 |
@@ -154,6 +157,7 @@
 | Java proposal expiry tests 使用 business zone | Runtime 以台北時間判斷提案是否逾期；測試也必須用同一個 business zone，避免 CI runner 時區影響結果 |
 | Portfolio readiness 評分採 88/100 | 作品已具備產品差異、Java source-of-truth、AI workflow、資料品質、Web/LINE 協調與 CI；扣分主要來自 presentation packaging 與 production rollout gaps |
 | 下一步做 evidence package 而非 feature | 新功能會增加說明成本；目前最大槓桿是讓現有深度更容易被面試官看見 |
+| Phase 34 先建立 100 分路線圖與架構證據 | 這能把「做到很棒」變成可驗證交付物：Portfolio 100 的缺口是證據和敘事，不是再加產品分支 |
 
 ## 遇到的問題
 | 問題 | 解決方案 |

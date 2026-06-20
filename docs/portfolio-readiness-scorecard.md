@@ -75,6 +75,14 @@ These are the real remaining deductions:
 
 ## Recommended Next Plan
 
+### Step 0: Define The 100-Point Path
+
+Use these companion docs to turn "100 / 100" into a concrete checklist:
+
+- `docs/portfolio-100-roadmap.md`: separates Portfolio 100 from Production SaaS 100.
+- `docs/demo-evidence-package.md`: defines the screenshot, video, CI, and live fallback evidence.
+- `docs/architecture-overview.md`: gives the one-glance architecture and state-ownership explanation.
+
 ### Step 1: Evidence Package
 
 Create a demo evidence folder or slide deck with:

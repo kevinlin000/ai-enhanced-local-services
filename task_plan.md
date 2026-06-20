@@ -4,7 +4,7 @@
 評估 real-time incident handling 完成後的下一個最高價值產品能力，並完成一個可驗證、可面試展示的最小縱切。
 
 ## 目前階段
-階段 33 完成
+階段 34 完成
 
 ## 各階段
 
@@ -277,6 +277,14 @@
 - [x] 執行 release verifier、portfolio verification、CI
 - **狀態：** complete
 
+### 階段 34：Portfolio 100 roadmap, evidence package, architecture overview
+- [x] 將 100 分拆成 Portfolio 100 與 Production SaaS 100
+- [x] 新增 reviewer-facing demo evidence checklist
+- [x] 新增一頁式 architecture overview 與狀態權責圖
+- [x] 將三份文件接進 README / release boundary / verifier
+- [x] 執行 release verifier、release offline gate、portfolio verification、CI
+- **狀態：** complete
+
 ## 關鍵問題
 1. incident 完成後，下一個能力應強化「營運閉環」、「AI 個人化」還是「可觀測/後台」？
 2. 哪個最小縱切能增加面試敘事價值，而不把系統帶進過大重構？
@@ -345,6 +353,7 @@
 | ETL taxonomy tests 分成 committed fixture 與 full corpus | CI checkout 不包含 ignored raw data；核心 fixture 必須提交，完整 103 筆 approval 只在完整 raw corpus 存在時執行 |
 | Java proposal expiry tests 使用 business zone | Runtime 以台北時間判斷提案是否逾期；測試也必須用同一個 business zone，避免 UTC hosted runner 誤判 |
 | Phase 33 先做 scorecard，不再加新功能 | 作品已足夠面試展示；下一個價值是把評分、證據、扣分點與後續計畫集中，讓面試官快速理解成熟度 |
+| 100 分分成 Portfolio 100 與 Production SaaS 100 | 前者可在 repo 內靠證據包、架構圖、驗證與講稿達成；後者需要真實雲端、PSP、secrets、備份、觀測與營運制度 |
 
 ## 遇到的錯誤
 | 錯誤 | 嘗試次數 | 解決方案 |

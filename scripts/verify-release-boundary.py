@@ -9,6 +9,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DOC = ROOT / "docs" / "release-boundary.md"
 SCORECARD = ROOT / "docs" / "portfolio-readiness-scorecard.md"
+ROADMAP_100 = ROOT / "docs" / "portfolio-100-roadmap.md"
+EVIDENCE_PACKAGE = ROOT / "docs" / "demo-evidence-package.md"
+ARCHITECTURE_OVERVIEW = ROOT / "docs" / "architecture-overview.md"
 SCRIPT = ROOT / "scripts" / "release-readiness.sh"
 
 
@@ -38,6 +41,21 @@ def main() -> None:
     except FileNotFoundError:
         fail(f"missing portfolio readiness scorecard: {SCORECARD.relative_to(ROOT)}")
 
+    try:
+        roadmap_100 = ROADMAP_100.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing portfolio 100 roadmap: {ROADMAP_100.relative_to(ROOT)}")
+
+    try:
+        evidence_package = EVIDENCE_PACKAGE.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing demo evidence package: {EVIDENCE_PACKAGE.relative_to(ROOT)}")
+
+    try:
+        architecture_overview = ARCHITECTURE_OVERVIEW.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing architecture overview: {ARCHITECTURE_OVERVIEW.relative_to(ROOT)}")
+
     required_doc_snippets = {
         "release thesis": "AI can orchestrate the dining workflow, but Java remains the source of truth",
         "dry run": "scripts/release-readiness.sh --dry-run",
@@ -46,6 +64,9 @@ def main() -> None:
         "live local": "scripts/release-readiness.sh --live-local --base-url http://localhost:8088",
         "portfolio verifier": "scripts/verify-portfolio.sh",
         "readiness scorecard": "docs/portfolio-readiness-scorecard.md",
+        "portfolio 100 roadmap": "docs/portfolio-100-roadmap.md",
+        "demo evidence package": "docs/demo-evidence-package.md",
+        "architecture overview": "docs/architecture-overview.md",
         "readiness score": "88 / 100",
         "clean mysql smoke": "scripts/smoke-clean-mysql-migrations.sh --timeout 180",
         "demo readiness": "scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict",
@@ -64,10 +85,50 @@ def main() -> None:
         "ai score": "AI application engineer",
         "full stack score": "Full-stack engineer",
         "evidence package": "Step 1: Evidence Package",
+        "100-point path": "Step 0: Define The 100-Point Path",
+        "portfolio 100 roadmap": "docs/portfolio-100-roadmap.md",
+        "demo evidence package": "docs/demo-evidence-package.md",
+        "architecture overview": "docs/architecture-overview.md",
         "stop feature creep": "Stop Adding Features For Now",
     }
     for label, snippet in required_scorecard_snippets.items():
         require(scorecard, snippet, label)
+
+    required_roadmap_100_snippets = {
+        "two 100s": "Two Different 100s",
+        "portfolio 100": "Portfolio 100",
+        "production saas 100": "Production SaaS 100",
+        "current score": "88 / 100",
+        "evidence package": "docs/demo-evidence-package.md",
+        "architecture overview": "docs/architecture-overview.md",
+        "production roadmap": "Production 100 Roadmap",
+    }
+    for label, snippet in required_roadmap_100_snippets.items():
+        require(roadmap_100, snippet, label)
+
+    required_evidence_package_snippets = {
+        "ai screenshot": "01-ai-recommendation.png",
+        "incident screenshot": "03-realtime-incident.png",
+        "line screenshot": "05-line-rescue-card.png",
+        "ci screenshot": "07-ci-portfolio-green.png",
+        "architecture screenshot": "09-architecture-overview.png",
+        "live fallback": "scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict",
+        "production gap answer": "Production Gap Answer",
+    }
+    for label, snippet in required_evidence_package_snippets.items():
+        require(evidence_package, snippet, label)
+
+    required_architecture_snippets = {
+        "state boundary": "AI orchestrates the dining workflow.",
+        "java owns state": "Java owns business state.",
+        "mermaid": "flowchart LR",
+        "nginx": "Nginx public boundary",
+        "java source of truth": "Spring Boot Java",
+        "critical flow": "Real-time incident handling is the best single architecture example",
+        "verification": "scripts/verify-portfolio.sh",
+    }
+    for label, snippet in required_architecture_snippets.items():
+        require(architecture_overview, snippet, label)
 
     required_script_snippets = {
         "dry run option": "--dry-run",

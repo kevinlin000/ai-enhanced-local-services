@@ -2,6 +2,21 @@
 
 ## 會話：2026-06-20
 
+### 階段 34：Portfolio 100 roadmap, evidence package, architecture overview
+- **狀態：** complete
+- 執行的操作：
+  - 回應使用者「每一樣都達到 100 分」的目標，先把 100 分拆成可在 repo 內完成的 Portfolio 100，以及需要外部服務和部署制度的 Production SaaS 100。
+  - 新增 `docs/portfolio-100-roadmap.md`，定義目前 88/100 到 portfolio 100 的缺口與 production 100 的真實後續路線。
+  - 新增 `docs/demo-evidence-package.md`，列出 AI recommendation、booking/payment、incident、merchant proposal、LINE card、refund digest、CI、clean migration smoke、architecture overview 的截圖/影片證據標準。
+  - 新增 `docs/architecture-overview.md`，用 Mermaid 架構圖與 ownership table 說明 AI orchestration、Java source of truth、Web/LINE channel、ETL/Qdrant、Nginx public boundary。
+  - 將三份文件接進 README fast links、`docs/release-boundary.md`、`docs/portfolio-readiness-scorecard.md` 與 `scripts/verify-release-boundary.py`。
+  - `python3 scripts/verify-release-boundary.py` 通過。
+  - `git diff --check` 通過。
+  - `scripts/release-readiness.sh --offline` 通過，包含 whitespace、Nginx contract、clean migration workflow、release boundary、data-quality evidence、smoke script syntax/dry-runs。
+  - `scripts/verify-portfolio.sh` 通過：Java 96 tests / 0 failures / 3 skipped，AI 174 passed，ETL 43 passed，data-quality gate passed，markdown links 42 passed，Nginx deployment template contract passed，clean MySQL migration smoke/workflow contracts passed，release boundary contract passed，Web tests 19 passed，Web production build passed。
+- 後續規劃評估：
+  - 本輪完成的是「100 分路線與證據 contract」；真正把分數從 88 往 95-100 拉升，下一步要照 `docs/demo-evidence-package.md` 捕捉實際截圖、短影片與最新 CI 結果。
+
 ### 階段 33：Portfolio readiness scorecard and next plan
 - **狀態：** complete
 - 執行的操作：
