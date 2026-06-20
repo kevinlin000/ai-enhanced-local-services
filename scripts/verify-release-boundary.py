@@ -11,6 +11,7 @@ DOC = ROOT / "docs" / "release-boundary.md"
 SCORECARD = ROOT / "docs" / "portfolio-readiness-scorecard.md"
 ROADMAP_100 = ROOT / "docs" / "portfolio-100-roadmap.md"
 EVIDENCE_PACKAGE = ROOT / "docs" / "demo-evidence-package.md"
+RECORDING_SCRIPT = ROOT / "docs" / "demo-recording-script.md"
 RECORDING_CLOUD_PLAN = ROOT / "docs" / "demo-recording-cloud-plan.md"
 ARCHITECTURE_OVERVIEW = ROOT / "docs" / "architecture-overview.md"
 SCRIPT = ROOT / "scripts" / "release-readiness.sh"
@@ -53,6 +54,11 @@ def main() -> None:
         fail(f"missing demo evidence package: {EVIDENCE_PACKAGE.relative_to(ROOT)}")
 
     try:
+        recording_script = RECORDING_SCRIPT.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing recording script: {RECORDING_SCRIPT.relative_to(ROOT)}")
+
+    try:
         recording_cloud_plan = RECORDING_CLOUD_PLAN.read_text(encoding="utf-8")
     except FileNotFoundError:
         fail(f"missing recording and cloud plan: {RECORDING_CLOUD_PLAN.relative_to(ROOT)}")
@@ -72,6 +78,7 @@ def main() -> None:
         "readiness scorecard": "docs/portfolio-readiness-scorecard.md",
         "portfolio 100 roadmap": "docs/portfolio-100-roadmap.md",
         "demo evidence package": "docs/demo-evidence-package.md",
+        "recording script": "docs/demo-recording-script.md",
         "recording cloud plan": "docs/demo-recording-cloud-plan.md",
         "architecture overview": "docs/architecture-overview.md",
         "readiness score": "88 / 100",
@@ -95,6 +102,7 @@ def main() -> None:
         "100-point path": "Step 0: Define The 100-Point Path",
         "portfolio 100 roadmap": "docs/portfolio-100-roadmap.md",
         "demo evidence package": "docs/demo-evidence-package.md",
+        "recording script": "docs/demo-recording-script.md",
         "recording cloud plan": "docs/demo-recording-cloud-plan.md",
         "architecture overview": "docs/architecture-overview.md",
         "stop feature creep": "Stop Adding Features For Now",
@@ -123,10 +131,25 @@ def main() -> None:
         "architecture screenshot": "09-architecture-overview.png",
         "live fallback": "scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict",
         "production gap answer": "Production Gap Answer",
+        "recording script": "docs/demo-recording-script.md",
         "recording cloud plan": "docs/demo-recording-cloud-plan.md",
     }
     for label, snippet in required_evidence_package_snippets.items():
         require(evidence_package, snippet, label)
+
+    required_recording_script_snippets = {
+        "recording goal": "AI orchestrates the workflow, while Java owns booking, payment, incident, and refund state.",
+        "5 minute walkthrough": "5-Minute Walkthrough",
+        "3 minute cut": "3-Minute Cut",
+        "12 minute interview": "12-Minute Interview Version",
+        "screenshot order": "Screenshot Capture Order",
+        "recording checklist": "Recording Checklist",
+        "opening lines": "Opening Lines",
+        "closing lines": "Closing Lines",
+        "live smoke": "scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict",
+    }
+    for label, snippet in required_recording_script_snippets.items():
+        require(recording_script, snippet, label)
 
     required_recording_cloud_snippets = {
         "recommended order": "recorded walkthrough first",

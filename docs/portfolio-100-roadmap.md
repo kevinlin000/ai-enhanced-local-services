@@ -43,7 +43,7 @@ The current scorecard stays at `88 / 100` until the evidence package is filled w
    - Acceptance: the evidence package can be reviewed without running the app live.
 
 5. Prepare interview scripts.
-   - Required artifact: 5-minute and 12-minute speaking order.
+   - Required artifact: `docs/demo-recording-script.md`.
    - Acceptance: both scripts reinforce the same thesis: AI orchestrates; Java owns state.
 
 6. Run final verification.

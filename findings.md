@@ -94,6 +94,8 @@
 - 使用者詢問是否應自己錄影與是否要上雲；最佳順序是先由作者親自錄製 3-5 分鐘 voiceover walkthrough，再考慮 stable demo cloud。
 - 上雲應拆成三層：local verified demo 是 portfolio 必要；stable portfolio demo cloud 是加分但不應阻塞錄影；production SaaS cloud 是另一個完整 rollout project。
 - managed secrets、PSP refund provider、備份、觀測、營運制度都應好好完成，但不應一次全部塞進 portfolio 前置條件；應先文件化 production expectation，再選最高訊號切片實作。
+- 錄影素材目前缺口不是「要不要錄」，而是可以直接照著錄的逐段講稿、畫面順序與結尾 production-gap 答法。
+- 錄影講稿應有三層：3 分鐘短版、5 分鐘主版、12 分鐘面試版；三者都維持同一主軸「AI orchestrates, Java owns state」。
 
 ## 技術決策
 | 決策 | 理由 |
@@ -162,6 +164,7 @@
 | 下一步做 evidence package 而非 feature | 新功能會增加說明成本；目前最大槓桿是讓現有深度更容易被面試官看見 |
 | Phase 34 先建立 100 分路線圖與架構證據 | 這能把「做到很棒」變成可驗證交付物：Portfolio 100 的缺口是證據和敘事，不是再加產品分支 |
 | Phase 35 採 recorded walkthrough first | 錄影能降低 live demo 風險並展示作者的架構判斷；cloud deployment 應作為錄影後的加分項，而不是目前最高風險阻塞點 |
+| Phase 36 講稿要直接可錄 | 不只列大綱，而是給出逐段 narration、對應畫面、截圖順序、opening/closing lines，降低錄影時臨場組織成本 |
 
 ## 遇到的問題
 | 問題 | 解決方案 |

@@ -50,6 +50,8 @@ Keep it under 5 minutes. The video should prove the workflow, not explain every 
 
 The author should record the voiceover personally. See `docs/demo-recording-cloud-plan.md` for the recording and cloud-deployment decision.
 
+Use `docs/demo-recording-script.md` for the exact 3-minute cut, 5-minute walkthrough, and 12-minute interview version.
+
 ## Live Demo Fallback
 
 If the app is running locally with the Nginx public proxy, use:

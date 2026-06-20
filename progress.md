@@ -2,6 +2,20 @@
 
 ## 會話：2026-06-20
 
+### 階段 36：Recording script and shot plan
+- **狀態：** complete
+- 執行的操作：
+  - 回應使用者要求開始做錄影素材與講稿。
+  - 新增 `docs/demo-recording-script.md`，提供錄影目標、5 分鐘 walkthrough、3 分鐘短版、12 分鐘面試版、截圖拍攝順序、錄影 checklist、opening lines、closing lines。
+  - 將 recording script 接進 README fast links、`docs/demo-evidence-package.md`、`docs/demo-recording-cloud-plan.md`、`docs/portfolio-100-roadmap.md`、`docs/portfolio-readiness-scorecard.md`、`docs/release-boundary.md`。
+  - 擴充 `scripts/verify-release-boundary.py`，檢查 recording script 的講稿版本、截圖順序、錄影 checklist 和 live smoke command。
+  - `python3 scripts/verify-release-boundary.py` 通過。
+  - `git diff --check` 通過。
+  - `scripts/release-readiness.sh --offline` 通過，包含 whitespace、Nginx contract、clean migration workflow、release boundary、data-quality evidence、smoke script syntax/dry-runs；Markdown reviewer-facing links 44 passed。
+  - `scripts/verify-portfolio.sh` 通過：Java 96 tests / 0 failures / 3 skipped，AI 174 passed，ETL 43 passed，data-quality gate passed，Nginx deployment template contract passed，clean MySQL migration smoke/workflow contracts passed，release boundary contract passed，Web tests 19 passed，Web production build passed。
+- 後續規劃評估：
+  - 完成這輪後，下一步才是實際啟動 local demo stack，依講稿拍攝 screenshots 與錄製 walkthrough。
+
 ### 階段 35：Recording and cloud rollout decision
 - **狀態：** complete
 - 執行的操作：

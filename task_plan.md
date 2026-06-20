@@ -4,7 +4,7 @@
 評估 real-time incident handling 完成後的下一個最高價值產品能力，並完成一個可驗證、可面試展示的最小縱切。
 
 ## 目前階段
-階段 35 完成
+階段 36 完成
 
 ## 各階段
 
@@ -293,6 +293,14 @@
 - [x] 執行 release verifier、release offline gate、portfolio verification、CI
 - **狀態：** complete
 
+### 階段 36：Recording script and shot plan
+- [x] 產出 3-5 分鐘錄影講稿與逐段分鏡
+- [x] 補 3 分鐘短版、5 分鐘主版、12 分鐘面試版
+- [x] 對齊 evidence screenshots 的拍攝順序與檔名
+- [x] 將 recording script 接進 README / evidence package / scorecard / roadmap / release verifier
+- [x] 執行 release verifier、release offline gate、portfolio verification、CI
+- **狀態：** complete
+
 ## 關鍵問題
 1. incident 完成後，下一個能力應強化「營運閉環」、「AI 個人化」還是「可觀測/後台」？
 2. 哪個最小縱切能增加面試敘事價值，而不把系統帶進過大重構？
@@ -363,6 +371,7 @@
 | Phase 33 先做 scorecard，不再加新功能 | 作品已足夠面試展示；下一個價值是把評分、證據、扣分點與後續計畫集中，讓面試官快速理解成熟度 |
 | 100 分分成 Portfolio 100 與 Production SaaS 100 | 前者可在 repo 內靠證據包、架構圖、驗證與講稿達成；後者需要真實雲端、PSP、secrets、備份、觀測與營運制度 |
 | Phase 35 先錄影再上雲 | 親自 voiceover 的短 walkthrough 最能展示工程判斷；上雲有價值但不應在證據包完成前阻塞 portfolio 100 |
+| Phase 36 講稿採三層版本 | 3 分鐘短版適合履歷/作品集；5 分鐘主版適合正式錄影；12 分鐘版適合面試追問時展開 |
 
 ## 遇到的錯誤
 | 錯誤 | 嘗試次數 | 解決方案 |

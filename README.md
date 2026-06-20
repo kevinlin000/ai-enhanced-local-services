@@ -25,6 +25,7 @@ Fast links:
 - [Portfolio Readiness Scorecard / 作品成熟度評分](docs/portfolio-readiness-scorecard.md)
 - [Portfolio 100 Roadmap / 100 分路線圖](docs/portfolio-100-roadmap.md)
 - [Demo Evidence Package / 展示證據包](docs/demo-evidence-package.md)
+- [Recording Script / 錄影講稿](docs/demo-recording-script.md)
 - [Recording And Cloud Plan / 錄影與上雲策略](docs/demo-recording-cloud-plan.md)
 - [Architecture Overview / 架構總覽](docs/architecture-overview.md)
 - [Release Boundary / 發表交付邊界](docs/release-boundary.md)
