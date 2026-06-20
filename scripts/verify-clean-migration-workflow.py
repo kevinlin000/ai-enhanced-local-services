@@ -68,6 +68,7 @@ def main() -> None:
         "temp db prefix": "bytebites_migration_smoke_",
         "health wait": "/actuator/health",
         "cleanup drop": "DROP DATABASE IF EXISTS",
+        "tcp mysql client": "mysql -h127.0.0.1 -P3306",
     }
     for label, snippet in required_smoke_snippets.items():
         require(smoke, snippet, label)

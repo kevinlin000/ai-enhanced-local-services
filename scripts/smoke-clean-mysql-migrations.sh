@@ -119,7 +119,7 @@ fi
 mysql_exec() {
   local sql="$1"
   docker exec -e SQL="$sql" "$MYSQL_CONTAINER" sh -c \
-    'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "$SQL"'
+    'mysql -h127.0.0.1 -P3306 -uroot -p"$MYSQL_ROOT_PASSWORD" -e "$SQL"'
 }
 
 cleanup() {
