@@ -33,6 +33,7 @@ import org.springframework.transaction.support.DefaultTransactionStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,7 @@ class BookingSyncContractTest {
     private static final Long USER_ID = 1012L;
     private static final Long SHOP_ID = 10009L;
     private static final String LINE_USER_ID = "Udemo-sync";
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Taipei");
 
     @Mock
     private BookingJpaRepository bookingRepo;
@@ -386,7 +388,7 @@ class BookingSyncContractTest {
                 "proposedTableType", "normal",
                 "proposedPeople", 2,
                 "proposalMessage", "店家建議改到 19:30，請確認是否接受。",
-                "proposalExpiresAt", LocalDateTime.now().plusMinutes(20)
+                "proposalExpiresAt", futureProposalExpiry()
         );
         when(bookingRepo.findByBookingCode("BK-SYNC-PROPOSAL")).thenReturn(Optional.of(booking));
         when(bookingHoldService.expireIfDue(booking)).thenReturn(false);
@@ -427,7 +429,7 @@ class BookingSyncContractTest {
                 "proposedTableType", "normal",
                 "proposedPeople", 4,
                 "proposalMessage", "店家建議改到 19:30，請確認是否接受。",
-                "proposalExpiresAt", LocalDateTime.now().plusMinutes(20)
+                "proposalExpiresAt", futureProposalExpiry()
         );
         when(bookingRepo.findByBookingCode("BK-SYNC-PROPOSAL-DEPOSIT")).thenReturn(Optional.of(booking));
         when(bookingHoldService.expireIfDue(booking)).thenReturn(false);
@@ -468,7 +470,7 @@ class BookingSyncContractTest {
                 "proposedTableType", "normal",
                 "proposedPeople", 2,
                 "proposalMessage", "店家建議改到 19:30，請確認是否接受。",
-                "proposalExpiresAt", LocalDateTime.now().plusMinutes(20)
+                "proposalExpiresAt", futureProposalExpiry()
         );
         when(bookingRepo.findByBookingCode("BK-SYNC-DECLINE")).thenReturn(Optional.of(booking));
         when(bookingHoldService.expireIfDue(booking)).thenReturn(false);
@@ -502,7 +504,7 @@ class BookingSyncContractTest {
                 "proposedTableType", "normal",
                 "proposedPeople", 2,
                 "proposalMessage", "店家建議改到 19:30，請確認是否接受。",
-                "proposalExpiresAt", LocalDateTime.now().minusMinutes(1)
+                "proposalExpiresAt", expiredProposalTime()
         );
         when(bookingRepo.findByBookingCode("BK-SYNC-EXPIRED")).thenReturn(Optional.of(booking));
         when(bookingHoldService.expireIfDue(booking)).thenReturn(false);
@@ -557,6 +559,14 @@ class BookingSyncContractTest {
         return (List<Map<String, Object>>) result.getData();
     }
 
+    private LocalDateTime futureProposalExpiry() {
+        return LocalDateTime.now(BUSINESS_ZONE).plusMinutes(20);
+    }
+
+    private LocalDateTime expiredProposalTime() {
+        return LocalDateTime.now(BUSINESS_ZONE).minusMinutes(1);
+    }
+
     private UserDTO webUser() {
         UserDTO user = new UserDTO();
         user.setId(USER_ID);
@@ -588,7 +598,7 @@ class BookingSyncContractTest {
         booking.setBookingCode(bookingCode);
         booking.setShopId(SHOP_ID);
         booking.setPeople(2);
-        booking.setBookingDate(LocalDate.now().plusDays(3));
+        booking.setBookingDate(LocalDate.now(BUSINESS_ZONE).plusDays(3));
         booking.setBookingTime("19:00");
         booking.setTableType("normal");
         booking.setStatus(BookingHoldService.STATUS_PAID);

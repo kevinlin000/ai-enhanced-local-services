@@ -85,6 +85,7 @@
 - 本機 `scripts/verify-portfolio.sh` 會因本機存在 62MB ignored raw corpus 而通過；GitHub checkout 沒有該 corpus，因此 `load_shops()[10099]` 等存取丟 `KeyError`。
 - ETL taxonomy 測試應分成兩層：committed minimal fixture 永遠在 CI 跑核心分類回歸；完整 103 筆 approval map 只在 full raw corpus 存在時跑。
 - Phase 32 完成 fixture stabilization 後，本機完整 raw 模式 ETL 為 43 passed；模擬 CI 無 raw 模式為 42 passed, 1 skipped。
+- Portfolio CI 的 ETL 修正推上後，Backend Java 暴露另一個 hosted-runner-only failure：proposal expiry 測試用系統預設時區，production code 用 `Asia/Taipei` business zone，UTC runner 會把未來 20 分鐘誤判成已逾期。
 
 ## 技術決策
 | 決策 | 理由 |
@@ -148,6 +149,7 @@
 | release readiness 分四種模式 | dry-run/offline/full/live-local 對應不同成本與依賴；這比一條命令自動啟 live smoke 更可控，也更符合 demo 前 checklist |
 | Phase 32 先修 CI red gate，不加新功能 | Portfolio CI 紅燈會直接削弱作品可信度；在 CI 回綠前，新增功能的展示價值低於修正可重現性 |
 | taxonomy fixture 不提交完整 raw corpus | `etl-pipeline/data/raw/` 是 crawler output 且已被忽略；提交少量 critical fixture 可保留回歸保障，同時避免把 62MB raw data 變成 repo contract |
+| Java proposal expiry tests 使用 business zone | Runtime 以台北時間判斷提案是否逾期；測試也必須用同一個 business zone，避免 CI runner 時區影響結果 |
 
 ## 遇到的問題
 | 問題 | 解決方案 |
@@ -157,6 +159,7 @@
 | Java live start: V16 FK failure on `tb_shop_badge` | 將 V16 badge/tag allowlist insert 改成 join `tb_shop`，並新增 migration resource test |
 | strict readiness sandbox false negative | 直接 curl 成功但腳本內 curl 失敗；改用 escalated script execution 後通過 |
 | Portfolio CI ETL taxonomy tests 缺 ignored raw corpus | 新增 committed taxonomy fixture，並讓完整 approval map 在缺 full raw corpus 時明確 skip |
+| Portfolio CI Backend Java proposal tests 在 UTC runner 誤判逾期 | 將 proposal expiry fixture 改成 `Asia/Taipei` business zone，與 production 判斷一致 |
 
 ## 資源
 - README.md

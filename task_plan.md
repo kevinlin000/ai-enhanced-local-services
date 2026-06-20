@@ -335,6 +335,7 @@
 | Release boundary 第一版完成 | `docs/release-boundary.md` 與 `scripts/release-readiness.sh` 定義 dry-run/offline/full/live-local 四層檢查，並由 `verify-release-boundary.py` 接進 portfolio gate |
 | Phase 32 選 CI fixture stabilization | Release boundary 已完成但 push gate 仍紅；下一步最高價值不是加新功能，而是消除 CI 與本機資料狀態不一致，讓 portfolio 證據可被第三方重現 |
 | ETL taxonomy tests 分成 committed fixture 與 full corpus | CI checkout 不包含 ignored raw data；核心 fixture 必須提交，完整 103 筆 approval 只在完整 raw corpus 存在時執行 |
+| Java proposal expiry tests 使用 business zone | Runtime 以台北時間判斷提案是否逾期；測試也必須用同一個 business zone，避免 UTC hosted runner 誤判 |
 
 ## 遇到的錯誤
 | 錯誤 | 嘗試次數 | 解決方案 |
@@ -348,6 +349,7 @@
 | `smoke-clean-mysql-migrations.sh` sandbox 無法連 Docker socket | 1 | 一般 sandbox 對 Docker daemon socket 回 operation not permitted；live migration smoke 改用 escalated execution，dry-run 保持離線 |
 | macOS `mktemp` 不替換含 `.log` suffix 的模板 | 1 | 將模板從 `bytebites-clean-migration.XXXXXX.log` 改為 `bytebites-clean-migration.XXXXXX`，確保 BSD/macOS 可攜 |
 | Portfolio CI ETL taxonomy tests 對缺失 raw corpus 丟 KeyError | 1 | 新增 committed taxonomy fixture，CI 固定跑核心分類 smoke；完整 approval map 缺 raw corpus 時明確 skip |
+| Portfolio CI Backend Java proposal tests 在 UTC runner 誤判逾期 | 1 | 將 proposal expiry fixture 改成 `Asia/Taipei` business zone，與 production 判斷一致 |
 
 ## 備註
 - 不回退使用者或前序工作留下的修改。

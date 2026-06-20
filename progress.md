@@ -16,9 +16,14 @@
   - 暫時隱藏 ignored raw corpus 模擬 CI checkout，`uv run pytest tests -q` 通過：42 passed, 1 skipped。
   - `scripts/release-readiness.sh --offline` 通過。
   - `scripts/verify-portfolio.sh` 通過：Java 96 tests / 0 failures / 3 skipped，AI 174 passed，ETL 43 passed，data-quality gate passed，Nginx deployment template contract passed，clean MySQL migration smoke/workflow contracts passed，release boundary contract passed，Web tests 19 passed，Web production build passed。
+  - commit `252f44c fix: stabilize taxonomy tests in ci` 推上 `main` 後，新的 Portfolio CI run `27867881647` 顯示 ETL / AI / Data Gate / Web 全部通過，taxonomy fixture 修正有效。
+  - 同一輪 CI 轉為 Backend Java failure，根因是 `BookingSyncContractTest` 的 proposal expiry fixture 使用無時區 `LocalDateTime.now()`，在 UTC hosted runner 上會被 production `Asia/Taipei` business clock 判定已逾期。
+  - 更新 `BookingSyncContractTest`，讓 proposal future/expired fixtures 與 booking date 都使用 `ZoneId.of("Asia/Taipei")`。
+  - `TAPPAY_PARTNER_KEY=test TAPPAY_MERCHANT_CREDITCARD=test mvn -Dtest=BookingSyncContractTest test` 通過：12 tests / 0 failures。
+  - `TAPPAY_PARTNER_KEY=test TAPPAY_MERCHANT_CREDITCARD=test mvn test` 通過：96 tests / 0 failures / 3 skipped。
 - 下一步：
-  - commit / push 本輪 fixture stabilization。
-  - 監看新的 GitHub Portfolio CI run，確認 ETL Pipeline 不再因 missing raw corpus 失敗。
+  - commit / push Java timezone fixture fix。
+  - 監看新的 GitHub Portfolio CI run，確認所有 jobs 回綠。
 
 ### 階段 31：Release boundary and final handoff
 - **狀態：** complete
