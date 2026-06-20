@@ -4,7 +4,7 @@
 評估 real-time incident handling 完成後的下一個最高價值產品能力，並完成一個可驗證、可面試展示的最小縱切。
 
 ## 目前階段
-階段 36 完成
+階段 43 完成
 
 ## 各階段
 
@@ -301,6 +301,62 @@
 - [x] 執行 release verifier、release offline gate、portfolio verification、CI
 - **狀態：** complete
 
+### 階段 37：Screenshot evidence capture
+- [x] 評估截圖與 GIF 的取捨
+- [x] 啟動可截圖的本機 Web / Java / AI stack
+- [x] 依 recording script / evidence package 捕捉高訊號畫面
+- [x] 檢查截圖是否可讀、無 secrets、無明顯空白或錯誤狀態
+- [x] 記錄截圖位置、缺口與下一步是否需要 GIF
+- **狀態：** complete
+
+### 階段 38：Remaining evidence screenshots
+- [x] 補 LINE rescue/proposal card evidence
+- [x] 補 refund operations digest evidence
+- [x] 補 architecture overview evidence
+- [x] 補 CI / verification evidence
+- [x] 更新截圖索引與後續錄影建議
+- **狀態：** complete
+
+### 階段 39：Recording script polish and GIF preview
+- [x] 重新審稿 3 分鐘 / 5 分鐘錄影講稿
+- [x] 補繁中 3 分鐘逐字稿，讓使用者可直接照念
+- [x] 產出 evidence walkthrough GIF preview
+- [x] 更新 evidence package 與 recording checklist
+- [x] 執行 release offline gate
+- **狀態：** complete
+
+### 階段 40：ER model evidence
+- [x] 評估是否需要 ER model 面試圖
+- [x] 盤點 booking / incident / deposit adjustment / refund audit 核心 schema
+- [x] 新增 booking operations ER model 文件
+- [x] 輸出 ER model PNG evidence
+- [x] 更新 demo evidence package、錄影順序、release verifier 與 GIF preview
+- **狀態：** complete
+
+### 階段 41：Internal top-company readiness planning
+- [x] 以大廠標準重新評估 Java / 全端 / AI 應用三條投遞方向
+- [x] 定義內部 95-100 分補強路線
+- [x] 移除不適合 reviewer-facing 的公開 top-company plan 文件
+- [x] 將殘酷評分與投遞策略改記在 planning files
+- [x] 確立對外文件只放成熟、正向、可驗證 artifacts
+- **狀態：** complete
+
+### 階段 42：System design interview pack
+- [x] 避開錄影，選擇下一個高價值 reviewer-facing artifact
+- [x] 新增 system design interview pack
+- [x] 覆蓋架構邊界、一致性、失敗模式、AI reliability、production rollout
+- [x] 接入 README / release boundary / evidence map / 100 roadmap / evidence package
+- [x] 接入 release boundary verifier
+- **狀態：** complete
+
+### 階段 43：Performance/query evidence
+- [x] 盤點 hot operational query paths 與既有 migration indexes
+- [x] 新增 performance/query evidence 文件
+- [x] 新增 verifier 檢查文件、索引與程式碼錨點
+- [x] 將 verifier 接入 release readiness 與 portfolio verification
+- [x] 同步 README / release boundary / evidence map / scorecard / roadmap
+- **狀態：** complete
+
 ## 關鍵問題
 1. incident 完成後，下一個能力應強化「營運閉環」、「AI 個人化」還是「可觀測/後台」？
 2. 哪個最小縱切能增加面試敘事價值，而不把系統帶進過大重構？
@@ -372,6 +428,14 @@
 | 100 分分成 Portfolio 100 與 Production SaaS 100 | 前者可在 repo 內靠證據包、架構圖、驗證與講稿達成；後者需要真實雲端、PSP、secrets、備份、觀測與營運制度 |
 | Phase 35 先錄影再上雲 | 親自 voiceover 的短 walkthrough 最能展示工程判斷；上雲有價值但不應在證據包完成前阻塞 portfolio 100 |
 | Phase 36 講稿採三層版本 | 3 分鐘短版適合履歷/作品集；5 分鐘主版適合正式錄影；12 分鐘版適合面試追問時展開 |
+| Phase 37 先截圖再決定 GIF | 靜態截圖是作品集 evidence 的主體；GIF 只適合少數互動流程，避免產生大型低訊號檔案 |
+| Phase 38 補齊剩餘 evidence | LINE card、refund digest、architecture、CI、clean migration smoke 都已輸出成可放作品集的 PNG；下一步應進入使用者親自 voiceover 錄影 |
+| V52 collation migration 必須保留 | 製作 refund digest 證據時發現 `tb_booking_deposit_adjustment.booking_code` 與 `tb_booking.booking_code` collation 不一致會讓 adjustment join runtime 失敗；V52 將 schema 修回可乾淨啟動 |
+| Phase 39 補繁中逐字稿與 GIF | 使用者錄影時最需要的是可直接照念的短稿；GIF 只作作品集預覽，正式展示仍以親自 voiceover 影片為主 |
+| Phase 40 補核心 ER model 而非全庫大圖 | 面試官常問 ER 設計；最有價值的是 booking operations 模型，能解釋 Java source-of-truth、booking_code workflow key、incident proposal、deposit adjustment 與 refund audit |
+| Phase 41 大廠評分只作內部策略 | Google/Binance/Shopee 等投遞評分和缺口很有用，但不應出現在 README / release boundary / scorecard；對外文件只呈現作品成熟證據 |
+| Phase 42 補 system design interview pack | 使用者晚點才錄影；錄影之外最高價值是把架構追問答辯變成 reviewer-facing artifact，且不包含內部自評或投遞策略 |
+| Phase 43 補 performance/query evidence | 大廠面試會問查詢與效能，但目前沒有 production-like benchmark；先把 hot path、索引與 code anchors 做成可驗證 evidence，不假裝已有 QPS/p95 數據 |
 
 ## 遇到的錯誤
 | 錯誤 | 嘗試次數 | 解決方案 |

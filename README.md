@@ -28,6 +28,8 @@ Fast links:
 - [Recording Script / 錄影講稿](docs/demo-recording-script.md)
 - [Recording And Cloud Plan / 錄影與上雲策略](docs/demo-recording-cloud-plan.md)
 - [Architecture Overview / 架構總覽](docs/architecture-overview.md)
+- [System Design Interview Pack / 系統設計面試包](docs/system-design-interview-pack.md)
+- [Performance And Query Evidence / 效能與查詢證據](docs/performance-query-evidence.md)
 - [Release Boundary / 發表交付邊界](docs/release-boundary.md)
 - [Nginx Public Deployment Boundary](docs/deployment-nginx.md)
 - [Portfolio Evidence Map / 面試證據地圖](docs/portfolio-evidence-map.md)
@@ -54,6 +56,7 @@ It runs the same core checks protected by CI:
 | Clean MySQL migration smoke contract | `bash -n scripts/smoke-clean-mysql-migrations.sh && scripts/smoke-clean-mysql-migrations.sh --dry-run` | Offline syntax/dry-run guard for the live clean-schema Flyway smoke runner |
 | Clean MySQL migration workflow contract | `python3 scripts/verify-clean-migration-workflow.py` | Offline contract check for the manual GitHub Actions clean-schema smoke workflow |
 | Release boundary contract | `python3 scripts/verify-release-boundary.py` | Offline contract check for the release handoff, readiness script, verification ladder, and production-gap framing |
+| Performance/query evidence | `python3 scripts/verify-performance-query-evidence.py` | Offline contract check for hot query paths, supporting indexes, and operational code anchors |
 | Web | `pnpm test` | UI contract and design guard tests |
 | Web build | `pnpm build:ci` | Offline-friendly production build using Next.js webpack mode |
 

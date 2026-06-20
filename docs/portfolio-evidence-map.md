@@ -40,6 +40,8 @@ Data quality -> AI reliability -> transaction consistency -> product differentia
 | Is Web and LINE state consistent? | `BookingSyncContractTest`, `BookingLineNotificationServiceTest`, `docs/case-studies/07-web-line-booking-sync.md` |
 | Is the frontend production-minded? | `web/tests/`, `web/package.json`, `docs/case-studies/12-premium-ui-positioning.md` |
 | Can the public demo move beyond a temporary tunnel? | `docs/deployment-nginx.md`, `docs/release-boundary.md`, `deploy/nginx/bytebites.conf.template`, `deploy/docker-compose.nginx.yml`, `scripts/demo-readiness.sh`, `scripts/smoke-nginx-public-proxy.sh`, `scripts/smoke-clean-mysql-migrations.sh`, `.github/workflows/clean-mysql-migration-smoke.yml`, `scripts/verify-nginx-template.py`, `docs/case-studies/11-demo-deployment.md` |
+| Can the design stand up to system-design questions? | `docs/system-design-interview-pack.md`, `docs/architecture-overview.md`, `docs/er-model-booking-operations.md`, `docs/demo-evidence-package.md` |
+| Are hot operational queries indexed and explainable? | `docs/performance-query-evidence.md`, `scripts/verify-performance-query-evidence.py`, booking/incident/deposit/refund migrations |
 | Can a reviewer verify the repo quickly? | `docs/release-boundary.md`, `scripts/release-readiness.sh`, `scripts/verify-portfolio.sh`, `.github/workflows/portfolio-ci.yml`, `.github/workflows/clean-mysql-migration-smoke.yml` |
 
 ## 3. Java Backend Track

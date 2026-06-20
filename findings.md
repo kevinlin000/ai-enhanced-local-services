@@ -96,6 +96,17 @@
 - managed secrets、PSP refund provider、備份、觀測、營運制度都應好好完成，但不應一次全部塞進 portfolio 前置條件；應先文件化 production expectation，再選最高訊號切片實作。
 - 錄影素材目前缺口不是「要不要錄」，而是可以直接照著錄的逐段講稿、畫面順序與結尾 production-gap 答法。
 - 錄影講稿應有三層：3 分鐘短版、5 分鐘主版、12 分鐘面試版；三者都維持同一主軸「AI orchestrates, Java owns state」。
+- 截圖與 GIF 的角色不同：截圖適合作為 portfolio evidence 的穩定證據；GIF 適合補充 1-2 個短互動流程，但不應取代使用者親自錄 voiceover。
+- 截圖應優先捕捉高訊號畫面且避免 secrets、空白 state、localhost error、瀏覽器通知與個人帳號資訊。
+- Phase 38 已補齊剩餘 portfolio evidence：LINE rescue/proposal card、refund operations digest、architecture overview、Portfolio CI 綠燈、clean MySQL migration smoke。
+- 製作 refund operations digest 證據時暴露真實 schema 問題：`tb_booking_deposit_adjustment.booking_code` collation 與 `tb_booking.booking_code` 不一致，會讓 refund adjustment join 在 MySQL runtime 失敗。
+- V52 migration 已將 deposit adjustment booking code collation 對齊，並用 clean MySQL migration smoke 驗證 fresh schema 可啟動。
+- 面試證據包應加入 ER model，但應聚焦 booking operations 核心模型；全資料庫 ER 會把 crawler/taxonomy/review/cache 表全部攤開，反而降低面試溝通效率。
+- ER model 最該講的設計點是 `booking_code` 作為跨 Web/LINE/payment/incident 的穩定 workflow key、incident 內嵌單一 pending proposal 的 portfolio tradeoff、booking mutation 與 money movement 分離、refund reconciliation event 作為 append-only audit。
+- 大廠投遞評分與 100 分差距屬於內部作戰策略，不應放進 README、release boundary、scorecard 等 reviewer-facing 文件；面試官看到「Google/Binance 打幾分」會降低專業感。
+- 內部嚴格評分暫定：Java backend 86/100、AI application 84/100、Full-stack 82/100。要往 95+，優先補 performance/query evidence、E2E browser flows、AI eval/observability、system design interview pack。
+- 錄影之外的下一個最高價值 artifact 是 system design interview pack；這可以公開，因為它回答架構邊界、一致性、失敗模式、AI reliability、production gap，不包含自評分數或投遞策略。
+- Performance/query evidence 應先做 query shape + index coverage + verifier，不應宣稱未量測的 QPS 或 p95 latency；這比假 benchmark 更專業。
 
 ## 技術決策
 | 決策 | 理由 |
@@ -165,6 +176,15 @@
 | Phase 34 先建立 100 分路線圖與架構證據 | 這能把「做到很棒」變成可驗證交付物：Portfolio 100 的缺口是證據和敘事，不是再加產品分支 |
 | Phase 35 採 recorded walkthrough first | 錄影能降低 live demo 風險並展示作者的架構判斷；cloud deployment 應作為錄影後的加分項，而不是目前最高風險阻塞點 |
 | Phase 36 講稿要直接可錄 | 不只列大綱，而是給出逐段 narration、對應畫面、截圖順序、opening/closing lines，降低錄影時臨場組織成本 |
+| Phase 37 截圖先用 Playwright 真實瀏覽器 | 需要確認畫面實際可讀與無錯誤；單純用文件清單不能證明 UI 截圖品質 |
+| Phase 37 GIF 暫不優先 | 目前三張高訊號截圖已能支撐作品集 evidence；GIF 只建議補 AI prompt -> recommendation 或 incident proposal accept/decline 其中一段，避免取代使用者親自 voiceover 的主影片 |
+| Phase 37 截圖用真實 Java 狀態，不用靜態 mock | 本輪用本機 demo user、booking API、pay-test、incident API、merchant proposal API 建立畫面狀態；截圖能說成 Java source-of-truth，而不是前端假資料 |
+| Phase 38 evidence 分成真實 UI 與誠實生成圖 | Web/My Bookings/Merchant/refund digest 用真實本機 UI；LINE card、architecture、CI、clean migration 用可審查來源渲染成 PNG，最終敘事要說清楚來源 |
+| V52 採 migration 修正而不是只改本機 DB | 本機 ALTER 只讓截圖流程繼續；真正可交付修正必須進 Flyway migration，並用 clean schema smoke 驗證 |
+| Phase 40 ER model 採核心營運模型 | 面試官問 ER 時通常想看 tradeoff 和狀態邊界；booking operations ER 比全 schema 更能展示 Java source-of-truth 與金流/救場狀態設計 |
+| 大廠 100 分計畫不放對外文件 | 這是使用者自己的投遞策略與殘酷評分，不是作品集證據；對外只呈現成熟、正向、可驗證的 artifacts |
+| Phase 42 補 system design interview pack | 這是 reviewer-facing artifact，因為它不是自評，而是可審查的工程設計答辯：state ownership、consistency、failure modes、verification、production rollout |
+| Phase 43 補 performance/query evidence verifier | 目前沒有 production-like load test，不應誇大效能；先把 hot query paths、索引與程式碼錨點接進 release gate，讓查詢證據不漂移 |
 
 ## 遇到的問題
 | 問題 | 解決方案 |
@@ -175,6 +195,8 @@
 | strict readiness sandbox false negative | 直接 curl 成功但腳本內 curl 失敗；改用 escalated script execution 後通過 |
 | Portfolio CI ETL taxonomy tests 缺 ignored raw corpus | 新增 committed taxonomy fixture，並讓完整 approval map 在缺 full raw corpus 時明確 skip |
 | Portfolio CI Backend Java proposal tests 在 UTC runner 誤判逾期 | 將 proposal expiry fixture 改成 `Asia/Taipei` business zone，與 production 判斷一致 |
+| Refund adjustment endpoint runtime collation error | 新增 `V52__align_deposit_adjustment_booking_code_collation.sql`，並在本機 DB 套用同等 ALTER 後完成 evidence capture；clean migration smoke 通過 |
+| Chromium 在 macOS sandbox 內啟動失敗 | 產圖 renderer 改用 sandbox 外執行；這只影響截圖工具，不影響 Web/Java/AI runtime |
 
 ## 資源
 - README.md
@@ -183,7 +205,16 @@
 - docs/case-studies/14-portfolio-verification.md
 
 ## 視覺/瀏覽器發現
-- 未使用瀏覽器或視覺檢查。
+- `01-ai-recommendation-cards.png` 可作為 AI recommendation 主證據：畫面含 prompt、推薦卡、評論摘要與查看詳情/訂位入口。
+- `02-booking-payment-incident.png` 可作為 booking/payment/incident 主證據：同一張圖含 booking code、PAID、demo transaction id、latest incident、店家替代時段與接受/拒絕按鈕。
+- `04-merchant-proposal.png` 可作為 merchant proposal 主證據：畫面含商家後台、1 件待處理、booking code、顧客晚到、已送出顧客確認的替代時段。
+- `05-line-rescue-card.png` 可作為 LINE rescue/proposal 證據：由 Java incident proposal payload 渲染 Flex card preview；錄影時要說這是 LINE card preview，不是假裝手機實機截圖。
+- `06-refund-operations-digest.png` 可作為 refund operations 證據：畫面含退款 SLA、failed refund、升級處理狀態與 adjustment 明細。
+- `07-ci-portfolio-green.png` 可作為 CI 證據：根據 `gh run list` 的最新 Portfolio CI success 結果渲染。
+- `08-clean-migration-smoke.png` 可作為 fresh-schema 證據：根據 live `scripts/smoke-clean-mysql-migrations.sh --timeout 180` 通過結果渲染。
+- `09-architecture-overview.png` 可作為架構總覽證據：適合錄影開頭或結尾用來統整 Web / Java / AI / LINE / ETL / Nginx 邊界。
+- `10-er-model-booking-operations.png` 可作為 ER 設計證據：適合接在 architecture 後面，支撐 `booking_code`、incident proposal、deposit adjustment、refund audit 的資料模型追問。
+- `01-ai-recommendation.png` 可作為 AI narrative 輔助圖，但主圖應用 cards 版；`02-my-bookings-current.png` 和 `04-merchant-current.png` 是空狀態/未 seeded 畫面，不建議放入正式 evidence package。
 
 ---
 *每執行2次查看/瀏覽器/搜尋操作後更新此檔案*

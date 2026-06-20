@@ -84,6 +84,8 @@ Use these companion docs to turn "100 / 100" into a concrete checklist:
 - `docs/demo-recording-script.md`: provides the exact 3-minute, 5-minute, and 12-minute recording/interview narration.
 - `docs/demo-recording-cloud-plan.md`: explains why the recorded walkthrough comes before stable demo cloud and production hardening.
 - `docs/architecture-overview.md`: gives the one-glance architecture and state-ownership explanation.
+- `docs/system-design-interview-pack.md`: prepares architecture tradeoffs, consistency, failure modes, AI reliability boundaries, and production rollout answers.
+- `docs/performance-query-evidence.md`: documents hot operational query paths, index coverage, and the boundary between query evidence and real production load testing.
 
 ### Step 1: Evidence Package
 

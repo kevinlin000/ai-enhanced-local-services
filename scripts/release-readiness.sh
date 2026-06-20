@@ -114,6 +114,7 @@ case "$MODE" in
     run_step "Nginx deployment contract" python3 scripts/verify-nginx-template.py
     run_step "Clean migration workflow contract" python3 scripts/verify-clean-migration-workflow.py
     run_step "Release boundary contract" python3 scripts/verify-release-boundary.py
+    run_step "Performance/query evidence contract" python3 scripts/verify-performance-query-evidence.py
     run_step "Data-quality evidence contract" python3 scripts/verify-data-quality.py
     run_step "Smoke script syntax" bash -c "bash -n scripts/demo-readiness.sh && bash -n scripts/smoke-nginx-public-proxy.sh && bash -n scripts/smoke-clean-mysql-migrations.sh && bash -n scripts/release-readiness.sh"
     run_step "Smoke script dry-runs" bash -c "scripts/demo-readiness.sh --dry-run >/dev/null && scripts/smoke-nginx-public-proxy.sh --dry-run >/dev/null && scripts/smoke-clean-mysql-migrations.sh --dry-run >/dev/null && scripts/release-readiness.sh --dry-run >/dev/null"

@@ -2,6 +2,147 @@
 
 ## 會話：2026-06-20
 
+### 階段 43：Performance/query evidence
+- **狀態：** complete
+- **完成時間：** 2026-06-21T01:10:00+08:00
+- 執行的操作：
+  - 使用者要求繼續完成錄影外的高價值項目後，選擇 performance/query evidence。
+  - 盤點 booking、slot inventory、incident、deposit adjustment、refund reconciliation、merchant notification dispatch 的 migration indexes 與 Java query paths。
+  - 新增 `docs/performance-query-evidence.md`，用 reviewer-facing 方式說明 hot operational query paths、支援索引、state transition performance choices、未證明的 production throughput 邊界與下一步 EXPLAIN/load-test artifact。
+  - 新增 `scripts/verify-performance-query-evidence.py`，檢查文件、migration index snippets、Java operational code anchors 是否仍存在。
+  - 將 verifier 接入 `scripts/release-readiness.sh --offline` 與 `scripts/verify-portfolio.sh`。
+  - 將文件接入 README、release boundary、portfolio evidence map、scorecard、100 roadmap、system design pack、demo evidence package。
+- 後續規劃評估：
+  - 下一個工程證據應是 E2E seeded browser flows，或進一步做 seeded EXPLAIN runner。
+  - 若要談真正 production performance，應補 production-like seed volume、EXPLAIN plan gate、slow query review 與 latency SLO，而不是在文件中寫未量測數字。
+
+### 階段 42：System design interview pack
+- **狀態：** complete
+- **完成時間：** 2026-06-21T00:45:00+08:00
+- 執行的操作：
+  - 使用者表示錄影晚點再做，因此先處理錄影之外的高價值補強。
+  - 新增 reviewer-facing `docs/system-design-interview-pack.md`，聚焦架構邊界、booking/incident flow、一致性模型、資料模型答辯、AI reliability、失敗模式、驗證故事與 production rollout answer。
+  - 將 system design pack 接入 README fast links、release boundary、portfolio evidence map、portfolio 100 roadmap、demo evidence package。
+  - 更新 `scripts/verify-release-boundary.py`，把 system design interview pack 納入 release boundary contract，避免文件漂移。
+- 後續規劃評估：
+  - 這份文件適合給面試官或面試時打開講，不是內部自評。
+  - 下一步若還不錄影，最高價值會是 performance/query evidence 或 E2E seeded browser flows；兩者都應做成可驗證 artifact，不應再新增大功能。
+
+### 階段 41：Internal top-company readiness planning
+- **狀態：** complete
+- **完成時間：** 2026-06-21T00:20:00+08:00
+- 執行的操作：
+  - 回應使用者希望作品達到「頂級 / 100 分」的要求，先用內部標準重新評估 Java backend、full-stack、AI application 三條投遞方向。
+  - 初步新增過 reviewer-facing 的 top-company readiness doc 後，使用者指出這是寫給本人看的，不應讓面試官看到。
+  - 接受修正：移除 README、release boundary、scorecard 的公開引用，並刪除 `docs/top-company-readiness-plan.md`，避免把內部投遞策略放進對外作品文件。
+  - 將大廠 100 分差距改記在 `findings.md` 作為內部作戰策略。
+- 內部嚴格評分：
+  - Java backend：86 / 100。
+  - AI application：84 / 100。
+  - Full-stack：82 / 100。
+- 內部下一步路線：
+  - Java backend 最高槓桿：performance/query evidence、concurrency/failure-mode proof、transaction sequence diagrams。
+  - Full-stack 最高槓桿：Playwright E2E seeded demo flows、accessibility/responsive checks、frontend API/data-flow writeup。
+  - AI application 最高槓桿：AI eval summary、failure taxonomy、latency/cost/observability notes、retrieval quality report。
+- 對外文件原則：
+  - README / release boundary / scorecard 只放成熟、正向、可驗證的 reviewer-facing artifacts。
+  - 內部打分、投遞策略、殘酷缺口評估只留在 planning files，不放作品集入口。
+
+### 階段 40：ER model evidence
+- **狀態：** complete
+- **完成時間：** 2026-06-21T00:10:00+08:00
+- 執行的操作：
+  - 回應使用者詢問是否應放 ER model 設計圖。
+  - 決策：放，但只放面試高訊號的 booking operations ER，不畫全資料庫大圖。
+  - 盤點 `tb_booking`、`tb_booking_incident`、`tb_booking_deposit_adjustment`、`tb_booking_refund_reconciliation_event`、`tb_merchant_shop`、`tb_booking_slot_inventory`、`tb_merchant_notification_dispatch` schema。
+  - 新增 `docs/er-model-booking-operations.md`，包含 Mermaid ER diagram 與面試 talking points。
+  - 輸出 ER model PNG，並用視覺檢查修正表名截斷與 label 重疊。
+  - 更新 demo evidence package、recording script、release verifier，並重產 GIF preview 讓 ER model 也出現在預覽中。
+- 產出：
+  - `/Users/kevinlintingwei/projects/output/playwright/demo-evidence/10-er-model-booking-operations.png`
+  - `/Users/kevinlintingwei/projects/output/playwright/demo-evidence/00-bytebites-evidence-walkthrough.gif`，約 11.01 秒、1.4MB，已包含 ER model。
+- 下一步評估：
+  - 錄影時 ER model 放在 architecture 後面，用 10-15 秒講清楚即可。
+  - 面試若追問，就展開 `booking_code` workflow key、incident single pending proposal tradeoff、deposit adjustment 與 refund audit 的分離。
+
+### 階段 39：Recording script polish and GIF preview
+- **狀態：** complete
+- **完成時間：** 2026-06-20T23:59:00+08:00
+- 執行的操作：
+  - 重新閱讀 `docs/demo-recording-script.md` 與 `docs/demo-evidence-package.md`。
+  - 判斷原稿方向正確，但較像大綱；補上可直接照念的繁中 3 分鐘逐字稿。
+  - 使用既有 evidence screenshots 產出短 GIF preview，不再為 GIF 重新啟動服務或改 demo state。
+  - 更新 evidence package，明確列出 GIF preview 檔名與用途。
+- 產出：
+  - `/Users/kevinlintingwei/projects/output/playwright/demo-evidence/00-bytebites-evidence-walkthrough.gif`，約 10.63 秒、1.2MB。
+- 驗證：
+  - `git diff --check` 通過。
+  - `scripts/release-readiness.sh --offline` 通過。
+- 建立/修改的檔案：
+  - `docs/demo-recording-script.md`
+  - `docs/demo-evidence-package.md`
+  - `task_plan.md`
+  - `progress.md`
+- 下一步評估：
+  - 進入實際錄影；建議先錄 3 分鐘版本，不要先追求 5 分鐘完美版。
+  - GIF 可放在作品集頁面或 README 外部展示，但正式面試仍以使用者親自講解的影片為主。
+
+### 階段 38：Remaining evidence screenshots
+- **狀態：** complete
+- **完成時間：** 2026-06-20T23:50:00+08:00
+- 執行的操作：
+  - 補齊 Phase 37 尚未完成的 evidence screenshots：LINE rescue/proposal card、refund operations digest、CI、clean migration smoke、architecture overview。
+  - 透過本機 Web / Java / AI stack 建立 refund failed adjustment demo state，讓商家後台顯示 refund operations digest。
+  - 製作 LINE card preview PNG，來源是 Java incident proposal payload；此圖應說成 LINE Flex card preview，不應說成手機實機截圖。
+  - 以 `gh run list --workflow "Portfolio CI" --limit 3` 記錄最新 Portfolio CI 綠燈。
+  - 執行 live `scripts/smoke-clean-mysql-migrations.sh --timeout 180`，確認空 MySQL schema 可跑 Flyway 並啟動 Java health UP。
+  - 在 refund digest evidence capture 過程中發現 MySQL collation mismatch，新增 V52 migration 修正 `tb_booking_deposit_adjustment.booking_code` collation。
+- 截圖輸出：
+  - `/Users/kevinlintingwei/projects/output/playwright/demo-evidence/05-line-rescue-card.png`：LINE rescue/proposal Flex card preview。
+  - `/Users/kevinlintingwei/projects/output/playwright/demo-evidence/06-refund-operations-digest.png`：Merchant refund operations digest 主證據。
+  - `/Users/kevinlintingwei/projects/output/playwright/demo-evidence/07-ci-portfolio-green.png`：Portfolio CI 綠燈證據。
+  - `/Users/kevinlintingwei/projects/output/playwright/demo-evidence/08-clean-migration-smoke.png`：clean MySQL migration smoke 通過證據。
+  - `/Users/kevinlintingwei/projects/output/playwright/demo-evidence/09-architecture-overview.png`：架構總覽證據。
+- 驗證：
+  - `scripts/smoke-clean-mysql-migrations.sh --timeout 180` 通過：`PASS Java booted from clean MySQL schema and health is UP.`
+  - `gh run list --workflow "Portfolio CI" --limit 3` 顯示最近三次 Portfolio CI 皆為 `completed success`。
+  - `scripts/release-readiness.sh --offline` 通過，包含 release boundary、data-quality、Nginx、clean migration workflow、smoke dry-runs。
+  - `scripts/verify-portfolio.sh` 通過：Java 96 tests / 0 failures / 3 skipped；AI 174 passed；ETL 43 passed；Web tests 19 passed；Next production build passed。
+- 建立/修改的檔案：
+  - `backend-java/src/main/resources/db/migration/V52__align_deposit_adjustment_booking_code_collation.sql`
+  - `scripts/verify-release-boundary.py`
+  - `task_plan.md`
+  - `findings.md`
+  - `progress.md`
+  - `docs/demo-evidence-package.md`
+  - `docs/demo-recording-script.md`
+- 下一步評估：
+  - 目前不建議再加新功能；應由使用者親自錄製 3-5 分鐘 voiceover walkthrough。
+  - GIF 仍是可選補充，最多做 1 個短片段：AI prompt -> recommendation cards，或 My Bookings accept/decline proposal。
+  - 若要繼續工程化，下一個大方向才是 stable demo cloud；production SaaS 仍需真實 PSP refund provider、managed secrets、observability、backup/restore、operations policy。
+
+### 階段 37：Screenshot evidence capture
+- **狀態：** complete
+- 執行的操作：
+  - 回應使用者詢問是否可以協助截圖、以及是否應做功能演示 GIF。
+  - 判斷：使用者自己錄影是正確分工；本輪先由 Codex 用真實瀏覽器協助截圖，GIF 只作為少數互動流程的可選補充。
+  - 讀取 `docs/demo-recording-script.md`、`docs/demo-evidence-package.md`、`docs/demo-recording-cloud-plan.md` 與 Web package scripts。
+  - 執行 `scripts/demo-readiness.sh --base-url http://localhost:8088`，確認目前 Web/Java/AI/Nginx 都未啟動，需要先啟動本機服務再截圖。
+  - 啟動 Web dev server、Java backend、AI service；Java sandbox 啟動因 MySQL socket 權限失敗後，改用 escalated `mvn spring-boot:run` 成功。
+  - 查明本機 `hmdp` schema 缺 demo merchant ownership、bookings、incidents、adjustments；用本機 capture seed 啟用 `10009` / `10022`，補 `tb_merchant_shop` demo ownership，並將 demo user 綁定本機 LINE identity。
+  - 透過 Java API 建立 booking `BK-5C93D20A-946`、demo pay-test 付款、customer late incident，以及 merchant proposal。
+  - 使用 Playwright 真實瀏覽器捕捉並人工檢查截圖品質。
+- 截圖輸出：
+  - `/Users/kevinlintingwei/projects/output/playwright/demo-evidence/01-ai-recommendation-cards.png`：AI 推薦卡主證據。
+  - `/Users/kevinlintingwei/projects/output/playwright/demo-evidence/02-booking-payment-incident.png`：My Bookings 已付款訂位、latest incident、pending proposal 主證據。
+  - `/Users/kevinlintingwei/projects/output/playwright/demo-evidence/04-merchant-proposal.png`：Merchant console incident proposal 主證據。
+  - `/Users/kevinlintingwei/projects/output/playwright/demo-evidence/00-homepage-product-thesis.png`、`01-ai-page-initial.png`、`01-ai-recommendation.png` 可作輔助素材。
+  - `02-my-bookings-current.png`、`04-merchant-current.png` 是未 seeded 空狀態，不建議放正式作品集。
+- 後續規劃評估：
+  - 使用者自己錄影是正確主線；截圖可放作品集或簡報。
+  - GIF 暫不優先。若要補，最多做 1-2 個短 GIF：`AI prompt -> recommendation cards` 或 `My Bookings 接受/拒絕 incident proposal`。
+  - 下一步應補 `05-line-rescue-card.png`、`06-refund-operations-digest.png`、`07-ci-portfolio-green.png`、`08-clean-migration-smoke.png`、`09-architecture-overview.png`，再開始正式錄影。
+
 ### 階段 36：Recording script and shot plan
 - **狀態：** complete
 - 執行的操作：
@@ -859,6 +1000,9 @@
 ## 錯誤日誌
 | 時間戳記 | 錯誤 | 嘗試次數 | 解決方案 |
 |----------|------|---------|---------|
+| 2026-06-20T23:10:00+08:00 | Java 在 sandbox 內啟動時連 MySQL socket 失敗 | 1 | 改用 escalated `mvn spring-boot:run` 啟動，後端 health UP |
+| 2026-06-20T23:23:00+08:00 | Playwright MCP screenshot 因即時倒數/元素穩定等待 timeout | 3 | 改用 terminal Playwright，在 sandbox 外啟動 Chromium 並直接輸出 PNG |
+| 2026-06-20T23:18:00+08:00 | My Bookings 顯示未登入 | 3 | 確認 runtime JWT secret 與 LINE identity，補 demo user line identity 並用正確 secret 產生 token |
 | 2026-06-19T21:31:00+08:00 | task_plan.md 首次 patch 因預期表格文字不完全相符失敗 | 1 | 重新讀取相關行號後改用更小範圍 patch 成功更新 |
 | 2026-06-19T00:00:00+08:00 | BookingDepositAdjustmentService 大範圍 patch 因上下文不完全相符失敗 | 1 | 重新讀取檔案後改用小範圍 patch 分段更新 |
 

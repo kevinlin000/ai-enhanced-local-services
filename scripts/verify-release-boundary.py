@@ -14,6 +14,9 @@ EVIDENCE_PACKAGE = ROOT / "docs" / "demo-evidence-package.md"
 RECORDING_SCRIPT = ROOT / "docs" / "demo-recording-script.md"
 RECORDING_CLOUD_PLAN = ROOT / "docs" / "demo-recording-cloud-plan.md"
 ARCHITECTURE_OVERVIEW = ROOT / "docs" / "architecture-overview.md"
+SYSTEM_DESIGN_PACK = ROOT / "docs" / "system-design-interview-pack.md"
+PERFORMANCE_QUERY_EVIDENCE = ROOT / "docs" / "performance-query-evidence.md"
+ER_MODEL = ROOT / "docs" / "er-model-booking-operations.md"
 SCRIPT = ROOT / "scripts" / "release-readiness.sh"
 
 
@@ -68,6 +71,21 @@ def main() -> None:
     except FileNotFoundError:
         fail(f"missing architecture overview: {ARCHITECTURE_OVERVIEW.relative_to(ROOT)}")
 
+    try:
+        system_design_pack = SYSTEM_DESIGN_PACK.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing system design interview pack: {SYSTEM_DESIGN_PACK.relative_to(ROOT)}")
+
+    try:
+        performance_query_evidence = PERFORMANCE_QUERY_EVIDENCE.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing performance query evidence: {PERFORMANCE_QUERY_EVIDENCE.relative_to(ROOT)}")
+
+    try:
+        er_model = ER_MODEL.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing ER model doc: {ER_MODEL.relative_to(ROOT)}")
+
     required_doc_snippets = {
         "release thesis": "AI can orchestrate the dining workflow, but Java remains the source of truth",
         "dry run": "scripts/release-readiness.sh --dry-run",
@@ -81,6 +99,8 @@ def main() -> None:
         "recording script": "docs/demo-recording-script.md",
         "recording cloud plan": "docs/demo-recording-cloud-plan.md",
         "architecture overview": "docs/architecture-overview.md",
+        "system design interview pack": "docs/system-design-interview-pack.md",
+        "performance query evidence": "docs/performance-query-evidence.md",
         "readiness score": "88 / 100",
         "clean mysql smoke": "scripts/smoke-clean-mysql-migrations.sh --timeout 180",
         "demo readiness": "scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict",
@@ -105,6 +125,8 @@ def main() -> None:
         "recording script": "docs/demo-recording-script.md",
         "recording cloud plan": "docs/demo-recording-cloud-plan.md",
         "architecture overview": "docs/architecture-overview.md",
+        "system design interview pack": "docs/system-design-interview-pack.md",
+        "performance query evidence": "docs/performance-query-evidence.md",
         "stop feature creep": "Stop Adding Features For Now",
     }
     for label, snippet in required_scorecard_snippets.items():
@@ -118,21 +140,30 @@ def main() -> None:
         "evidence package": "docs/demo-evidence-package.md",
         "recording cloud plan": "docs/demo-recording-cloud-plan.md",
         "architecture overview": "docs/architecture-overview.md",
+        "system design interview pack": "docs/system-design-interview-pack.md",
+        "performance query evidence": "docs/performance-query-evidence.md",
         "production roadmap": "Production 100 Roadmap",
     }
     for label, snippet in required_roadmap_100_snippets.items():
         require(roadmap_100, snippet, label)
 
     required_evidence_package_snippets = {
-        "ai screenshot": "01-ai-recommendation.png",
-        "incident screenshot": "03-realtime-incident.png",
+        "homepage screenshot": "00-homepage-product-thesis.png",
+        "ai screenshot": "01-ai-recommendation-cards.png",
+        "booking incident screenshot": "02-booking-payment-incident.png",
         "line screenshot": "05-line-rescue-card.png",
+        "refund screenshot": "06-refund-operations-digest.png",
         "ci screenshot": "07-ci-portfolio-green.png",
+        "clean migration screenshot": "08-clean-migration-smoke.png",
         "architecture screenshot": "09-architecture-overview.png",
+        "er model screenshot": "10-er-model-booking-operations.png",
+        "er model doc": "docs/er-model-booking-operations.md",
         "live fallback": "scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict",
         "production gap answer": "Production Gap Answer",
         "recording script": "docs/demo-recording-script.md",
         "recording cloud plan": "docs/demo-recording-cloud-plan.md",
+        "system design interview pack": "docs/system-design-interview-pack.md",
+        "performance query evidence": "docs/performance-query-evidence.md",
     }
     for label, snippet in required_evidence_package_snippets.items():
         require(evidence_package, snippet, label)
@@ -177,6 +208,49 @@ def main() -> None:
     for label, snippet in required_architecture_snippets.items():
         require(architecture_overview, snippet, label)
 
+    required_system_design_snippets = {
+        "title": "ByteBites System Design Interview Pack",
+        "core thesis": "AI orchestrates the dining workflow.",
+        "java state": "Java owns booking, payment, incident, and refund state.",
+        "architecture boundary": "Architecture Boundary",
+        "booking incident flow": "Booking And Incident Flow",
+        "consistency model": "Consistency Model",
+        "data model defense": "Data Model Defense",
+        "ai reliability boundary": "AI Reliability Boundary",
+        "failure modes": "Failure Modes",
+        "verification story": "Verification Story",
+        "production rollout answer": "Production Rollout Answer",
+        "question bank": "Interview Question Bank",
+    }
+    for label, snippet in required_system_design_snippets.items():
+        require(system_design_pack, snippet, label)
+
+    required_performance_query_snippets = {
+        "title": "ByteBites Performance And Query Evidence",
+        "query path map": "Query Path Map",
+        "slot reservation": "Slot Reservation",
+        "refund operations": "Refund Operations",
+        "verifier": "python3 scripts/verify-performance-query-evidence.py",
+        "no overclaim": "This evidence does not prove production-scale throughput.",
+        "next performance work": "Next Performance Work",
+    }
+    for label, snippet in required_performance_query_snippets.items():
+        require(performance_query_evidence, snippet, label)
+
+    required_er_model_snippets = {
+        "er title": "ByteBites Booking Operations ER Model",
+        "booking table": "tb_booking",
+        "incident table": "tb_booking_incident",
+        "deposit adjustment table": "tb_booking_deposit_adjustment",
+        "refund audit table": "tb_booking_refund_reconciliation_event",
+        "merchant auth table": "tb_merchant_shop",
+        "booking code point": "booking_code",
+        "proposal tradeoff": "one incident, one pending proposal",
+        "money movement separation": "separates booking mutation from money movement",
+    }
+    for label, snippet in required_er_model_snippets.items():
+        require(er_model, snippet, label)
+
     required_script_snippets = {
         "dry run option": "--dry-run",
         "offline option": "--offline",
@@ -187,6 +261,7 @@ def main() -> None:
         "nginx verifier": "python3 scripts/verify-nginx-template.py",
         "clean workflow verifier": "python3 scripts/verify-clean-migration-workflow.py",
         "release verifier": "python3 scripts/verify-release-boundary.py",
+        "performance verifier": "python3 scripts/verify-performance-query-evidence.py",
         "data verifier": "python3 scripts/verify-data-quality.py",
         "clean mysql live": "scripts/smoke-clean-mysql-migrations.sh --timeout",
         "demo readiness live": "scripts/demo-readiness.sh --base-url",

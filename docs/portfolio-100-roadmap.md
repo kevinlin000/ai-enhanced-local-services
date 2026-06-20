@@ -46,7 +46,16 @@ The current scorecard stays at `88 / 100` until the evidence package is filled w
    - Required artifact: `docs/demo-recording-script.md`.
    - Acceptance: both scripts reinforce the same thesis: AI orchestrates; Java owns state.
 
-6. Run final verification.
+6. Prepare the system-design interview pack.
+   - Required artifact: `docs/system-design-interview-pack.md`.
+   - Acceptance: architecture boundaries, consistency model, failure modes, AI reliability constraints, and production rollout gaps are answerable without improvising.
+
+7. Prepare performance and query evidence.
+   - Required artifact: `docs/performance-query-evidence.md`.
+   - Required verifier: `scripts/verify-performance-query-evidence.py`.
+   - Acceptance: hot operational query paths, supporting indexes, and code anchors are reviewer-checkable without claiming unproven production throughput.
+
+8. Run final verification.
    - Required command: `scripts/release-readiness.sh --full`.
    - Optional rehearsal: `scripts/release-readiness.sh --live-local --base-url http://localhost:8088`.
    - Acceptance: local full verification and GitHub Portfolio CI are green.

@@ -35,6 +35,9 @@ run_step "Clean MySQL migration workflow contract" \
 run_step "Release boundary contract" \
   python3 "$ROOT_DIR/scripts/verify-release-boundary.py"
 
+run_step "Performance/query evidence contract" \
+  python3 "$ROOT_DIR/scripts/verify-performance-query-evidence.py"
+
 run_step "Web unit/design contract tests" \
   bash -c "cd '$ROOT_DIR/web' && pnpm test"
 
