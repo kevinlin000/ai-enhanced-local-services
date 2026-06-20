@@ -67,6 +67,8 @@ const TOOL_LABELS: Record<string, string> = {
   create_booking: "檢查並建立訂位",
   pay_booking_with_test_card: "確認訂金付款",
   cancel_booking: "取消訂位",
+  update_booking: "修改訂位",
+  create_booking_incident: "建立救場通知",
 };
 
 const STATUS_LABELS = {

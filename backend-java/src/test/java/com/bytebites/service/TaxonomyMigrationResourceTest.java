@@ -10,6 +10,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TaxonomyMigrationResourceTest {
 
     @Test
+    void v16BackfillOnlyAssignsBadgesAndTagsToExistingShops() throws Exception {
+        String sql = Files.readString(Path.of(
+                "src/main/resources/db/migration/V16__taxonomy_backfill.sql"
+        ));
+
+        assertThat(sql)
+                .contains("INSERT INTO tb_shop_badge")
+                .contains("JOIN tb_shop ON tb_shop.id = allowlist.shop_id")
+                .contains("INSERT IGNORE INTO tb_shop_tag");
+    }
+
+    @Test
     void v38RemovesMeatNCubesBadKoreanTagOnly() throws Exception {
         String sql = Files.readString(Path.of(
                 "src/main/resources/db/migration/V38__remove_meat_n_cubes_bad_korean_tag.sql"

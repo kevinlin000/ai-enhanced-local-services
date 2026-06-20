@@ -1,6 +1,7 @@
 """Redis-backed chat session store."""
 import json
 import os
+import time
 from typing import Any, List
 
 import redis
@@ -10,6 +11,7 @@ SESSION_TTL = 1800   # 30 分鐘
 MAX_TURNS = 10       # 保留最後 10 輪（20 條 message）
 
 _client = None
+_memory_store: dict[str, tuple[str, float]] = {}
 
 
 def client() -> redis.Redis:
@@ -23,11 +25,44 @@ def session_key(session_id: str) -> str:
     return f"chat:session:{session_id}"
 
 
+def _memory_get(key: str) -> str | None:
+    item = _memory_store.get(key)
+    if not item:
+        return None
+    raw, expires_at = item
+    if expires_at <= time.time():
+        _memory_store.pop(key, None)
+        return None
+    return raw
+
+
+def _load_raw(key: str) -> str | None:
+    try:
+        return client().get(key)
+    except (redis.RedisError, OSError):
+        return _memory_get(key)
+
+
+def _save_raw(key: str, raw: str) -> None:
+    try:
+        client().setex(key, SESSION_TTL, raw)
+    except (redis.RedisError, OSError):
+        _memory_store[key] = (raw, time.time() + SESSION_TTL)
+
+
+def _delete_raw(key: str) -> None:
+    try:
+        client().delete(key)
+    except (redis.RedisError, OSError):
+        pass
+    _memory_store.pop(key, None)
+
+
 def load_history(session_id: str) -> List[dict]:
     """從 Redis 讀對話歷史，回 [{"role": "user"|"model", "content": "..."}]。"""
     if not session_id:
         return []
-    raw = client().get(session_key(session_id))
+    raw = _load_raw(session_key(session_id))
     if not raw:
         return []
     try:
@@ -146,13 +181,9 @@ def save_history(session_id: str, history: List[dict]) -> None:
     if not session_id:
         return
     trimmed = compact_history(history)
-    client().setex(
-        session_key(session_id),
-        SESSION_TTL,
-        json.dumps(trimmed, ensure_ascii=False),
-    )
+    _save_raw(session_key(session_id), json.dumps(trimmed, ensure_ascii=False))
 
 
 def clear_session(session_id: str) -> None:
     if session_id:
-        client().delete(session_key(session_id))
+        _delete_raw(session_key(session_id))

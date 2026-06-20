@@ -118,4 +118,85 @@ public class LineNotificationClient {
                     reminder.get("bookingCode"), userId, ex);
         }
     }
+
+    public void pushBookingIncident(String lineUserId, Map<String, Object> incident) {
+        String userId = lineUserId == null ? "" : lineUserId.trim();
+        if (userId.isBlank() || "null".equals(userId) || incident == null || incident.isEmpty()) return;
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("lineUserId", userId);
+        payload.put("incident", incident);
+        if (!internalSecret.isBlank()) {
+            payload.put("secret", internalSecret);
+        }
+
+        try {
+            Map<?, ?> response = restTemplate.postForObject(
+                    aiServiceUrl.replaceAll("/+$", "") + "/internal/line/booking-incident",
+                    payload,
+                    Map.class
+            );
+            if (response != null && Boolean.FALSE.equals(response.get("ok"))) {
+                log.warn("[LINE incident push] not ok bookingCode={} incidentId={} lineUserId={} response={}",
+                        incident.get("bookingCode"), incident.get("id"), userId, response);
+            }
+        } catch (RestClientException ex) {
+            log.warn("[LINE incident push] failed bookingCode={} incidentId={} lineUserId={}",
+                    incident.get("bookingCode"), incident.get("id"), userId, ex);
+        }
+    }
+
+    public void pushBookingIncidentProposal(String lineUserId, Map<String, Object> incident) {
+        String userId = lineUserId == null ? "" : lineUserId.trim();
+        if (userId.isBlank() || "null".equals(userId) || incident == null || incident.isEmpty()) return;
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("lineUserId", userId);
+        payload.put("incident", incident);
+        if (!internalSecret.isBlank()) {
+            payload.put("secret", internalSecret);
+        }
+
+        try {
+            Map<?, ?> response = restTemplate.postForObject(
+                    aiServiceUrl.replaceAll("/+$", "") + "/internal/line/booking-incident-proposal",
+                    payload,
+                    Map.class
+            );
+            if (response != null && Boolean.FALSE.equals(response.get("ok"))) {
+                log.warn("[LINE incident proposal push] not ok bookingCode={} incidentId={} lineUserId={} response={}",
+                        incident.get("bookingCode"), incident.get("id"), userId, response);
+            }
+        } catch (RestClientException ex) {
+            log.warn("[LINE incident proposal push] failed bookingCode={} incidentId={} lineUserId={}",
+                    incident.get("bookingCode"), incident.get("id"), userId, ex);
+        }
+    }
+
+    public void pushRefundOperationsDigest(String lineUserId, Map<String, Object> report) {
+        String userId = lineUserId == null ? "" : lineUserId.trim();
+        if (userId.isBlank() || "null".equals(userId) || report == null || report.isEmpty()) return;
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("lineUserId", userId);
+        payload.put("report", report);
+        if (!internalSecret.isBlank()) {
+            payload.put("secret", internalSecret);
+        }
+
+        try {
+            Map<?, ?> response = restTemplate.postForObject(
+                    aiServiceUrl.replaceAll("/+$", "") + "/internal/line/refund-operations-digest",
+                    payload,
+                    Map.class
+            );
+            if (response != null && Boolean.FALSE.equals(response.get("ok"))) {
+                log.warn("[LINE refund operations push] not ok shopId={} lineUserId={} response={}",
+                        report.get("shopId"), userId, response);
+            }
+        } catch (RestClientException ex) {
+            log.warn("[LINE refund operations push] failed shopId={} lineUserId={}",
+                    report.get("shopId"), userId, ex);
+        }
+    }
 }

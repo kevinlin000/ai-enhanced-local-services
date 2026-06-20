@@ -145,6 +145,182 @@ export type MerchantSlot = {
   remaining: number;
 };
 
+export type MerchantAlternativeSlot = {
+  time: string;
+  tableType: string;
+  capacity: number;
+  bookedCount: number;
+  remaining: number;
+  label?: string;
+};
+
+export type IncidentProposedChange = {
+  status: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | string;
+  date: string;
+  time: string;
+  tableType: string;
+  people: number;
+  message?: string;
+  proposedAt?: string;
+  expiresAt?: string;
+  acceptedAt?: string;
+  declinedAt?: string;
+};
+
+export type MerchantIncident = {
+  id: number;
+  bookingCode: string;
+  userId?: number | null;
+  shopId: number;
+  shopName: string;
+  bookingDate: string;
+  bookingTime: string;
+  people: number;
+  tableType: string;
+  bookingStatus: "PENDING_PAYMENT" | "PAID" | "CONFIRMED" | "CANCELED" | "EXPIRED" | "UNKNOWN";
+  incidentType: "RESTAURANT_DELAY" | "CUSTOMER_LATE" | string;
+  status: "OPEN" | "RESOLVED" | string;
+  delayMinutes: number;
+  originalTime: string;
+  adjustedTime: string;
+  title: string;
+  customerMessage: string;
+  actionLabel: string;
+  source: string;
+  alternativeSlots?: MerchantAlternativeSlot[];
+  proposedChange?: IncidentProposedChange;
+  createdAt?: string;
+  updatedAt?: string;
+  resolvedAt?: string;
+};
+
+export type MerchantDepositAdjustment = {
+  id: number;
+  bookingCode: string;
+  incidentId?: number | null;
+  userId?: number | null;
+  shopId: number;
+  shopName: string;
+  bookingDate: string;
+  bookingTime: string;
+  bookingPeople: number;
+  bookingTableType: string;
+  bookingStatus: "PENDING_PAYMENT" | "PAID" | "CONFIRMED" | "CANCELED" | "EXPIRED" | "UNKNOWN";
+  status: "OPEN" | "RESOLVED" | string;
+  adjustmentType: "TOP_UP" | "REFUND" | string;
+  source: "CUSTOMER_RESCHEDULE" | "INCIDENT_PROPOSAL" | string;
+  currentDepositTotal: number;
+  proposedDepositTotal: number;
+  deltaAmount: number;
+  proposedDate: string;
+  proposedTime: string;
+  proposedTableType: string;
+  proposedPeople: number;
+  message: string;
+  handlingNote?: string;
+  handledByUserId?: number | null;
+  handledAt?: string;
+  appliedBookingUpdate: boolean;
+  settlementStatus: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | string;
+  settlementProvider?: string;
+  settlementTransId?: string;
+  settlementAmount: number;
+  settlementRequestedAt?: string;
+  settlementCompletedAt?: string;
+  settlementNote?: string;
+  settlementRecordedByUserId?: number | null;
+  refundEscalatedAt?: string;
+  refundEscalationNote?: string;
+  refundEscalatedByUserId?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type MerchantRefundSlaSummary = {
+  shopId: number;
+  stuckMinutes: number;
+  stuckProcessingCount: number;
+  failedCount: number;
+  escalatedCount: number;
+  pendingEscalationCount: number;
+  totalAttentionCount: number;
+  oldestRequestedAt?: string;
+  items: Array<MerchantDepositAdjustment & { slaReason?: "STUCK_PROCESSING" | "FAILED_REFUND" | string }>;
+};
+
+export type MerchantRefundOperationsReport = {
+  shopId: number;
+  stuckMinutes: number;
+  status: "ACTION_REQUIRED" | "FOLLOW_UP" | "CLEAR" | string;
+  recommendedAction:
+    | "ESCALATE_FAILED_REFUNDS"
+    | "ESCALATE_STUCK_REFUNDS"
+    | "FOLLOW_UP_ESCALATED_REFUNDS"
+    | "NO_REFUND_ACTION"
+    | string;
+  headline: string;
+  totalAttentionCount: number;
+  pendingEscalationCount: number;
+  escalatedCount: number;
+  failedCount: number;
+  stuckProcessingCount: number;
+  pendingFailedCount: number;
+  pendingStuckProcessingCount: number;
+  escalatedFailedCount: number;
+  escalatedStuckProcessingCount: number;
+  oldestPendingRequestedAt?: string;
+  oldestEscalatedAt?: string;
+  pendingEscalationItems: Array<MerchantDepositAdjustment & { slaReason?: "STUCK_PROCESSING" | "FAILED_REFUND" | string }>;
+  escalatedItems: Array<MerchantDepositAdjustment & { slaReason?: "STUCK_PROCESSING" | "FAILED_REFUND" | string }>;
+};
+
+export type MerchantRefundNotificationPolicy = {
+  notificationType: "REFUND_OPERATIONS_DIGEST" | string;
+  shopId: number;
+  cooldownMinutes: number;
+  reportStatus?: string;
+  headline?: string;
+  totalAttentionCount: number;
+  pendingEscalationCount: number;
+  escalatedCount: number;
+  shouldNotify: boolean;
+  reason: "ACTION_REQUIRED" | "NO_REFUND_ATTENTION" | "COOLDOWN_ACTIVE" | "MISSING_SHOP" | string;
+  lastSentAt?: string;
+  nextEligibleAt?: string;
+};
+
+export type MerchantRefundNotificationDispatchResponse = {
+  shopId: number;
+  lineNotification: "SENT" | "SKIPPED" | string;
+  skipped: boolean;
+  reason?: string;
+  report: MerchantRefundOperationsReport;
+  policy?: MerchantRefundNotificationPolicy;
+};
+
+export type CustomerTopUpAdjustment = MerchantDepositAdjustment;
+
+export type BookingIncident = {
+  id?: number;
+  bookingCode: string;
+  userId?: number | null;
+  shopId: number;
+  shopName: string;
+  incidentType: "RESTAURANT_DELAY" | "CUSTOMER_LATE" | string;
+  status: "OPEN" | "RESOLVED" | string;
+  delayMinutes: number;
+  originalTime: string;
+  adjustedTime: string;
+  title: string;
+  customerMessage: string;
+  actionLabel: string;
+  source: string;
+  proposedChange?: IncidentProposedChange;
+  createdAt?: string;
+  updatedAt?: string;
+  resolvedAt?: string;
+};
+
 export type MyBooking = {
   bookingCode: string;
   userId?: number | null;
@@ -166,6 +342,7 @@ export type MyBooking = {
   createdAt?: string | null;
   updatedAt?: string | null;
   idempotentReplay?: boolean;
+  latestIncident?: BookingIncident | null;
 };
 
 export type AvailabilityWatch = {
@@ -202,6 +379,49 @@ export type UserNotification = {
 export type FavoriteShop = Shop & {
   shopId: number;
   favoritedAt: string;
+};
+
+export type DiningMemory = {
+  bookingCode: string;
+  shopId: number;
+  shopName: string;
+  rating: 1 | 2 | 3;
+  tags: string[];
+  note?: string;
+  doNotRecommend: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type DiningMemorySummary = {
+  memories: DiningMemory[];
+  tagCounts: Record<string, number>;
+  avoidShopIds: number[];
+};
+
+export type PrivateAiOffer = {
+  id?: number;
+  shopId: number;
+  shopName: string;
+  offerCode: string;
+  title: string;
+  description: string;
+  triggerReason: "OFF_PEAK_FILL" | "REPEATED_SEARCH_NO_BOOKING" | "SAVE_MONEY_INTENT" | "AI_RECOMMENDATION" | string;
+  offerType: string;
+  discountPercent: number;
+  minPeople: number;
+  validUntil: string;
+  status: "ACTIVE" | "CLAIMED" | "EXPIRED" | string;
+  createdAt?: string;
+  updatedAt?: string;
+  claimedAt?: string;
+};
+
+export type PrivateAiOfferSummary = {
+  offers: PrivateAiOffer[];
+  created?: boolean;
+  triggerReason?: string;
+  reason?: string;
 };
 
 function merchantHeaders(): HeadersInit {
@@ -350,6 +570,41 @@ export const javaApi = {
         orderId: Math.floor(Math.random() * 100000000),
       }),
     }),
+  customerTopUpAdjustments: () =>
+    fetchJson<{
+      success: boolean;
+      errorMsg?: string;
+      data: {
+        adjustments: CustomerTopUpAdjustment[];
+      };
+    }>(`${CLIENT_JAVA_API}/api/payment/deposit-adjustments/top-ups`, {
+      headers: authHeaders(),
+    }),
+  payTopUpByPrime: (body: { prime: string; adjustmentId: number }) =>
+    fetchJson<{
+      success: boolean;
+      errorMsg?: string;
+      data: {
+        adjustmentId: number;
+        bookingCode: string;
+        rec_trade_id: string;
+        amount: number;
+        status: "PAID";
+        tappay_status: number;
+        adjustment: CustomerTopUpAdjustment;
+        msg?: string;
+      };
+    }>(
+      `${CLIENT_JAVA_API}/api/payment/tappay/deposit-adjustments/${body.adjustmentId}/top-up/pay-by-prime`,
+      {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({
+          prime: body.prime,
+          orderId: Math.floor(Math.random() * 100000000),
+        }),
+      },
+    ),
   myBookings: () =>
     fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking[] }>(
       `${CLIENT_JAVA_API}/api/booking/my`,
@@ -358,6 +613,64 @@ export const javaApi = {
   cancelBooking: (bookingCode: string) =>
     fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking }>(
       `${CLIENT_JAVA_API}/api/booking/${encodeURIComponent(bookingCode)}/cancel`,
+      {
+        method: "POST",
+        headers: authHeaders(true),
+      },
+    ),
+  rescheduleBooking: (
+    bookingCode: string,
+    body: { date: string; time: string; people: number; tableType?: string },
+  ) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking & { changed?: boolean } }>(
+      `${CLIENT_JAVA_API}/api/booking/${encodeURIComponent(bookingCode)}/reschedule`,
+      {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({
+          date: body.date,
+          time: body.time,
+          people: body.people,
+          tableType: body.tableType ?? "normal",
+        }),
+      },
+    ),
+  bookingIncidents: (bookingCode: string) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: BookingIncident[] }>(
+      `${CLIENT_JAVA_API}/api/booking/${encodeURIComponent(bookingCode)}/incidents`,
+      { headers: authHeaders() },
+    ),
+  createBookingIncident: (
+    bookingCode: string,
+    body: { incidentType: "RESTAURANT_DELAY" | "CUSTOMER_LATE"; delayMinutes?: number; message?: string },
+  ) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: BookingIncident }>(
+      `${CLIENT_JAVA_API}/api/booking/${encodeURIComponent(bookingCode)}/incidents`,
+      {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify(body),
+      },
+    ),
+  resolveBookingIncident: (bookingCode: string, incidentId: number) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: BookingIncident | { id: number; status: string } }>(
+      `${CLIENT_JAVA_API}/api/booking/${encodeURIComponent(bookingCode)}/incidents/${incidentId}/resolve`,
+      {
+        method: "POST",
+        headers: authHeaders(true),
+      },
+    ),
+  acceptBookingIncidentProposal: (bookingCode: string, incidentId: number) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking & { changed?: boolean; acceptedProposal?: unknown } }>(
+      `${CLIENT_JAVA_API}/api/booking/${encodeURIComponent(bookingCode)}/incidents/${incidentId}/proposal/accept`,
+      {
+        method: "POST",
+        headers: authHeaders(true),
+      },
+    ),
+  declineBookingIncidentProposal: (bookingCode: string, incidentId: number) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking & { declinedProposal?: unknown } }>(
+      `${CLIENT_JAVA_API}/api/booking/${encodeURIComponent(bookingCode)}/incidents/${incidentId}/proposal/decline`,
       {
         method: "POST",
         headers: authHeaders(true),
@@ -459,6 +772,50 @@ export const javaApi = {
         headers: authHeaders(true),
       },
     ),
+  myDiningMemory: () =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: DiningMemorySummary }>(
+      `${CLIENT_JAVA_API}/api/dining-memory/me`,
+      { headers: authHeaders() },
+    ),
+  saveDiningMemoryForBooking: (
+    bookingCode: string,
+    body: { rating: 1 | 2 | 3; tags: string[]; note?: string; doNotRecommend?: boolean },
+  ) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: DiningMemory }>(
+      `${CLIENT_JAVA_API}/api/dining-memory/bookings/${encodeURIComponent(bookingCode)}`,
+      {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({
+          rating: body.rating,
+          tags: body.tags,
+          note: body.note ?? "",
+          doNotRecommend: body.doNotRecommend ?? false,
+        }),
+      },
+    ),
+  myPrivateAiOffers: () =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: PrivateAiOfferSummary }>(
+      `${CLIENT_JAVA_API}/api/private-offers/me`,
+      { headers: authHeaders() },
+    ),
+  matchPrivateAiOffers: (body: { shopIds: number[]; trigger?: string; people?: number; targetTime?: string }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: PrivateAiOfferSummary }>(
+      `${CLIENT_JAVA_API}/api/private-offers/match`,
+      {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify(body),
+      },
+    ),
+  claimPrivateAiOffer: (offerCode: string) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: PrivateAiOffer }>(
+      `${CLIENT_JAVA_API}/api/private-offers/${encodeURIComponent(offerCode)}/claim`,
+      {
+        method: "POST",
+        headers: authHeaders(true),
+      },
+    ),
   tappayMockCallback: (body: { orderId: number; payType: number; amount: number }) =>
     fetchJson<{ success: boolean; data: { status: string; rec_trade_id: string; pay_type: number; label: string; amount: number } }>(
       `${JAVA_API}/api/payment/tappay/mock-callback`,
@@ -548,6 +905,188 @@ export const javaApi = {
         slots: params.slots,
       }),
     }),
+  merchantIncidents: (params: { shopId: number; status?: "OPEN" | "RESOLVED" | "ALL" }) =>
+    fetchJson<{
+      success: boolean;
+      errorMsg?: string;
+      data: {
+        shopId: number;
+        status: "OPEN" | "RESOLVED" | "ALL";
+        incidents: MerchantIncident[];
+      };
+    }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/incidents?status=${encodeURIComponent(params.status ?? "OPEN")}`,
+      { headers: merchantHeaders() },
+    ),
+  resolveMerchantIncident: (params: { shopId: number; incidentId: number }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MerchantIncident | { id: number; status: string } }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/incidents/${params.incidentId}/resolve`,
+      {
+        method: "POST",
+        headers: merchantHeaders(),
+      },
+    ),
+  proposeMerchantIncidentSlot: (params: {
+    shopId: number;
+    incidentId: number;
+    date?: string;
+    time: string;
+    tableType?: string;
+    people?: number;
+    message?: string;
+  }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MerchantIncident }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/incidents/${params.incidentId}/proposal`,
+      {
+        method: "POST",
+        headers: merchantHeaders(),
+        body: JSON.stringify({
+          date: params.date,
+          time: params.time,
+          tableType: params.tableType,
+          people: params.people,
+          message: params.message,
+        }),
+      },
+    ),
+  merchantDepositAdjustments: (params: { shopId: number; status?: "OPEN" | "RESOLVED" | "ALL" }) =>
+    fetchJson<{
+      success: boolean;
+      errorMsg?: string;
+      data: {
+        shopId: number;
+        status: "OPEN" | "RESOLVED" | "ALL";
+        adjustments: MerchantDepositAdjustment[];
+      };
+    }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/deposit-adjustments?status=${encodeURIComponent(params.status ?? "OPEN")}`,
+      { headers: merchantHeaders() },
+    ),
+  merchantRefundSla: (params: { shopId: number; stuckMinutes?: number }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MerchantRefundSlaSummary }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/deposit-adjustments/refund-sla?stuckMinutes=${encodeURIComponent(params.stuckMinutes ?? 30)}`,
+      { headers: merchantHeaders() },
+    ),
+  merchantRefundReport: (params: { shopId: number; stuckMinutes?: number }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MerchantRefundOperationsReport }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/deposit-adjustments/refund-report?stuckMinutes=${encodeURIComponent(params.stuckMinutes ?? 30)}`,
+      { headers: merchantHeaders() },
+    ),
+  notifyMerchantRefundReport: (params: { shopId: number; stuckMinutes?: number }) =>
+    fetchJson<{
+      success: boolean;
+      errorMsg?: string;
+      data: MerchantRefundNotificationDispatchResponse;
+    }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/deposit-adjustments/refund-report/notify?stuckMinutes=${encodeURIComponent(params.stuckMinutes ?? 30)}`,
+      {
+        method: "POST",
+        headers: merchantHeaders(),
+      },
+    ),
+  merchantRefundNotificationPolicy: (params: { shopId: number; stuckMinutes?: number; cooldownMinutes?: number }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MerchantRefundNotificationPolicy }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/deposit-adjustments/refund-report/notification-policy?stuckMinutes=${encodeURIComponent(params.stuckMinutes ?? 30)}&cooldownMinutes=${encodeURIComponent(params.cooldownMinutes ?? 120)}`,
+      { headers: merchantHeaders() },
+    ),
+  dispatchMerchantRefundReportIfDue: (params: { shopId: number; stuckMinutes?: number; cooldownMinutes?: number }) =>
+    fetchJson<{
+      success: boolean;
+      errorMsg?: string;
+      data: MerchantRefundNotificationDispatchResponse;
+    }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/deposit-adjustments/refund-report/dispatch-due?stuckMinutes=${encodeURIComponent(params.stuckMinutes ?? 30)}&cooldownMinutes=${encodeURIComponent(params.cooldownMinutes ?? 120)}`,
+      {
+        method: "POST",
+        headers: merchantHeaders(),
+      },
+    ),
+  resolveMerchantDepositAdjustment: (params: {
+    shopId: number;
+    adjustmentId: number;
+    handlingNote?: string;
+  }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MerchantDepositAdjustment }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/deposit-adjustments/${params.adjustmentId}/resolve`,
+      {
+        method: "POST",
+        headers: merchantHeaders(),
+        body: JSON.stringify({ handlingNote: params.handlingNote }),
+      },
+    ),
+  recordMerchantDepositAdjustmentSettlement: (params: {
+    shopId: number;
+    adjustmentId: number;
+    provider?: string;
+    settlementTransId: string;
+    settlementNote?: string;
+  }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MerchantDepositAdjustment }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/deposit-adjustments/${params.adjustmentId}/settlement`,
+      {
+        method: "POST",
+        headers: merchantHeaders(),
+        body: JSON.stringify({
+          provider: params.provider ?? "TAPPAY",
+          settlementTransId: params.settlementTransId,
+          settlementNote: params.settlementNote,
+        }),
+      },
+    ),
+  requestMerchantDepositAdjustmentRefund: (params: {
+    shopId: number;
+    adjustmentId: number;
+    settlementNote?: string;
+  }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MerchantDepositAdjustment }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/deposit-adjustments/${params.adjustmentId}/refund/request`,
+      {
+        method: "POST",
+        headers: merchantHeaders(),
+        body: JSON.stringify({
+          settlementNote: params.settlementNote,
+        }),
+      },
+    ),
+  escalateMerchantDepositAdjustmentRefund: (params: {
+    shopId: number;
+    adjustmentId: number;
+    escalationNote?: string;
+  }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MerchantDepositAdjustment }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${params.shopId}/deposit-adjustments/${params.adjustmentId}/refund/escalate`,
+      {
+        method: "POST",
+        headers: merchantHeaders(),
+        body: JSON.stringify({
+          escalationNote: params.escalationNote,
+        }),
+      },
+    ),
+  reconcileRefundAdjustment: (params: {
+    adjustmentId: number;
+    bookingCode: string;
+    amount: number;
+    status: "COMPLETED" | "FAILED";
+    settlementTransId?: string;
+    settlementNote?: string;
+    eventKey?: string;
+  }) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MerchantDepositAdjustment }>(
+      `${CLIENT_JAVA_API}/api/payment/tappay/deposit-adjustments/${params.adjustmentId}/refund/reconcile`,
+      {
+        method: "POST",
+        headers: merchantHeaders(),
+        body: JSON.stringify({
+          bookingCode: params.bookingCode,
+          amount: params.amount,
+          status: params.status,
+          settlementTransId: params.settlementTransId,
+          settlementNote: params.settlementNote,
+          eventKey: params.eventKey,
+        }),
+      },
+    ),
 };
 
 export const aiApi = {

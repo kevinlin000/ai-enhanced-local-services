@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, DollarSign, Flame, MapPin, Star, Utensils } from "lucide-react";
+import { BadgePercent, CalendarDays, ChevronLeft, ChevronRight, DollarSign, Flame, MapPin, Star, Utensils } from "lucide-react";
 import type { AbsaAspect } from "@/lib/api";
 import type { AgentShop } from "@/lib/agentTypes";
 import type { ShopReviewInsights } from "@/lib/reviewInsights";
@@ -175,6 +175,7 @@ export function AgentShopCard({ shop, rank }: Props) {
   );
   const mapsUrl = `https://maps.google.com/maps?q=${mapsQ}&output=embed&hl=zh-TW`;
   const hasHotSeat = (shop.hot_seat_vouchers?.length ?? 0) > 0;
+  const privateOffer = shop.private_ai_offers?.[0];
 
   return (
     <div data-testid="agent-shop-card" className="bb-premium-surface overflow-hidden rounded-lg">
@@ -184,11 +185,24 @@ export function AgentShopCard({ shop, rank }: Props) {
           {rank}
         </span>
         <span className="min-w-0 flex-1 truncate font-medium text-[var(--bb-ink)]">{shop.name}</span>
-        {hasHotSeat && (
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
-            <Flame className="h-3 w-3" />
-            Hot Seat 可搶
-          </span>
+        {(privateOffer || hasHotSeat) && (
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            {privateOffer && (
+              <span
+                title={privateOffer.description ?? "AI 依照你的需求配對，只在此帳號顯示"}
+                className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-800"
+              >
+                <BadgePercent className="h-3 w-3" />
+                AI 私密 offer
+              </span>
+            )}
+            {hasHotSeat && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+                <Flame className="h-3 w-3" />
+                Hot Seat 可搶
+              </span>
+            )}
+          </div>
         )}
       </div>
 
@@ -239,6 +253,20 @@ export function AgentShopCard({ shop, rank }: Props) {
               </div>
             )}
           </div>
+
+          {privateOffer && (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs text-emerald-900">
+              <div className="flex items-center gap-1 font-medium">
+                <BadgePercent className="h-3.5 w-3.5 shrink-0" />
+                <span className="min-w-0 truncate">{privateOffer.title}</span>
+              </div>
+              {privateOffer.description && (
+                <p className="mt-1 line-clamp-2 leading-relaxed text-emerald-800">
+                  {privateOffer.description}
+                </p>
+              )}
+            </div>
+          )}
 
           <Link href={`/shops/${shop.shop_id}`} className="mt-auto block">
             <span className="block w-full rounded-lg bg-[var(--bb-forest)] px-3 py-1.5 text-center text-xs font-medium text-white transition hover:bg-emerald-900">

@@ -5,8 +5,13 @@ import com.bytebites.dto.UserDTO;
 import com.bytebites.entity.jpa.BookingJpa;
 import com.bytebites.repository.BookingJpaRepository;
 import com.bytebites.service.AvailabilityNotificationService;
+import com.bytebites.service.BookingDepositAdjustmentService;
 import com.bytebites.service.BookingHoldService;
+import com.bytebites.service.BookingIncidentService;
 import com.bytebites.service.BookingLineNotificationService;
+import com.bytebites.service.BookingPayloadMapper;
+import com.bytebites.service.BookingRescheduleService;
+import com.bytebites.service.BookingSlotInventory;
 import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.IShopService;
 import com.bytebites.service.LineActionTokenService;
@@ -54,7 +59,12 @@ public class BookingController {
     private final BookingJpaRepository bookingRepo;
     private final IShopService shopService;
     private final DepositPolicy depositPolicy;
+    private final BookingPayloadMapper bookingPayloadMapper;
+    private final BookingRescheduleService bookingRescheduleService;
+    private final BookingDepositAdjustmentService bookingDepositAdjustmentService;
+    private final BookingIncidentService bookingIncidentService;
     private final BookingHoldService bookingHoldService;
+    private final BookingSlotInventory bookingSlotInventory;
     private final AvailabilityNotificationService availabilityNotificationService;
     private final BookingLineNotificationService bookingLineNotificationService;
     private final ParkingService parkingService;
@@ -162,8 +172,7 @@ public class BookingController {
         String  shopName = shop != null ? shop.getName() : null;
         DepositPolicy.Result pol = depositPolicy.evaluate(shopId, shopName, typeId, score, avgPrice);
 
-        ensureSlotInventory(shopId, bookingDate, time, table);
-        if (!reserveSlotCapacity(shopId, bookingDate, time, table, people)) {
+        if (!bookingSlotInventory.reserve(shopId, bookingDate, time, table, people)) {
             return Result.fail("該時段目前已額滿，請選擇其他時間");
         }
 
@@ -360,6 +369,324 @@ public class BookingController {
         return reserveTransactionTemplate().execute(status -> cancelInTransaction(bookingCode, requestBody));
     }
 
+    @PostMapping("/{bookingCode}/reschedule")
+    public Result reschedule(
+            @PathVariable String bookingCode,
+            @RequestBody(required = false) Map<String, Object> body
+    ) {
+        Map<String, Object> requestBody = body != null ? body : Map.of();
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                return reserveTransactionTemplate().execute(status -> rescheduleInTransaction(bookingCode, requestBody));
+            } catch (CannotAcquireLockException ex) {
+                if (attempt == 2) {
+                    log.warn("[Booking reschedule] slot lock contention after retry bookingCode={} body={}", bookingCode, body, ex);
+                    return Result.fail("該時段目前忙碌，請稍後再試");
+                }
+                try {
+                    Thread.sleep(30);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    return Result.fail("改單處理中斷，請再試一次");
+                }
+            }
+        }
+        return Result.fail("改單失敗，請再試一次");
+    }
+
+    @GetMapping("/{bookingCode}/incidents")
+    public Result bookingIncidents(
+            @PathVariable String bookingCode,
+            @RequestParam(required = false) String lineUserId,
+            @RequestParam(required = false) String lineActionToken
+    ) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        if (lineUserId != null) body.put("lineUserId", lineUserId);
+        if (lineActionToken != null) body.put("lineActionToken", lineActionToken);
+        return bookingIncidentService.listIncidents(bookingCode, body);
+    }
+
+    @PostMapping("/{bookingCode}/incidents")
+    public Result createBookingIncident(
+            @PathVariable String bookingCode,
+            @RequestBody(required = false) Map<String, Object> body
+    ) {
+        return bookingIncidentService.createIncident(bookingCode, body != null ? body : Map.of());
+    }
+
+    @PostMapping("/{bookingCode}/incidents/{incidentId}/resolve")
+    public Result resolveBookingIncident(
+            @PathVariable String bookingCode,
+            @PathVariable Long incidentId,
+            @RequestBody(required = false) Map<String, Object> body
+    ) {
+        return bookingIncidentService.resolveIncident(bookingCode, incidentId, body != null ? body : Map.of());
+    }
+
+    @PostMapping("/{bookingCode}/incidents/{incidentId}/proposal/accept")
+    public Result acceptIncidentProposal(
+            @PathVariable String bookingCode,
+            @PathVariable Long incidentId,
+            @RequestBody(required = false) Map<String, Object> body
+    ) {
+        Map<String, Object> requestBody = body != null ? body : Map.of();
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                return reserveTransactionTemplate().execute(status ->
+                        acceptIncidentProposalInTransaction(bookingCode, incidentId, requestBody)
+                );
+            } catch (CannotAcquireLockException ex) {
+                if (attempt == 2) {
+                    log.warn("[Booking incident proposal] slot lock contention after retry bookingCode={} incidentId={}",
+                            bookingCode, incidentId, ex);
+                    return Result.fail("該時段目前忙碌，請稍後再試");
+                }
+                try {
+                    Thread.sleep(30);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    return Result.fail("提案確認中斷，請再試一次");
+                }
+            }
+        }
+        return Result.fail("提案確認失敗，請再試一次");
+    }
+
+    @PostMapping("/{bookingCode}/incidents/{incidentId}/proposal/decline")
+    public Result declineIncidentProposal(
+            @PathVariable String bookingCode,
+            @PathVariable Long incidentId,
+            @RequestBody(required = false) Map<String, Object> body
+    ) {
+        Map<String, Object> requestBody = body != null ? body : Map.of();
+        try {
+            return reserveTransactionTemplate().execute(status ->
+                    declineIncidentProposalInTransaction(bookingCode, incidentId, requestBody)
+            );
+        } catch (CannotAcquireLockException ex) {
+            log.warn("[Booking incident proposal] decline lock contention bookingCode={} incidentId={}",
+                    bookingCode, incidentId, ex);
+            return Result.fail("提案回覆中忙碌，請稍後再試");
+        }
+    }
+
+    private Result rescheduleInTransaction(String bookingCode, Map<String, Object> body) {
+        if (bookingCode == null || bookingCode.isBlank()) return Result.fail("bookingCode 必填");
+
+        BookingJpa booking = bookingRepo.findByBookingCode(bookingCode).orElse(null);
+        if (booking == null) return Result.fail("訂位不存在");
+        if (!canAccessBooking(booking, body)) return Result.fail("無權操作此訂位");
+        if (booking.getStatus() == BookingHoldService.STATUS_CANCELED
+                || booking.getStatus() == BookingHoldService.STATUS_EXPIRED) {
+            return Result.fail("此訂位已取消或逾期，無法改期");
+        }
+        if (bookingHoldService.expireIfDue(booking)) {
+            return Result.fail("此保留已逾期，請重新建立訂位");
+        }
+
+        ParsedRescheduleRequest request = parseRescheduleRequest(booking, body);
+        if (!request.valid()) {
+            return Result.fail(request.error());
+        }
+
+        BookingRescheduleService.RescheduleResult result = bookingRescheduleService.reschedule(
+                booking,
+                request.date(),
+                request.time(),
+                request.tableType(),
+                request.people()
+        );
+        if (!result.success()) {
+            recordDepositAdjustmentIfRequired(
+                    booking,
+                    null,
+                    request.date(),
+                    request.time(),
+                    request.tableType(),
+                    request.people(),
+                    result.depositPolicy(),
+                    "CUSTOMER_RESCHEDULE"
+            );
+            return Result.fail(result.error());
+        }
+
+        var shop = shopService.getById(booking.getShopId());
+        String shopName = shop != null ? shop.getName() : null;
+        Map<String, Object> response = bookingResponse(result.booking(), shopName, false);
+        response.put("changed", result.changed());
+        if (result.depositPolicy() != null) {
+            response.put("depositPolicy", result.depositPolicy().toPayload());
+        }
+        log.info("[Booking reschedule] code={} shop={} people={} date={} time={} table={} changed={}",
+                booking.getBookingCode(), booking.getShopId(), booking.getPeople(),
+                booking.getBookingDate(), booking.getBookingTime(), booking.getTableType(), result.changed());
+        return Result.ok(response);
+    }
+
+    private Result acceptIncidentProposalInTransaction(String bookingCode, Long incidentId, Map<String, Object> body) {
+        if (bookingCode == null || bookingCode.isBlank()) return Result.fail("bookingCode 必填");
+        if (incidentId == null) return Result.fail("incidentId 必填");
+
+        BookingJpa booking = bookingRepo.findByBookingCode(bookingCode).orElse(null);
+        if (booking == null) return Result.fail("訂位不存在");
+        if (!canAccessBooking(booking, body)) return Result.fail("無權確認此救場提案");
+        if (booking.getStatus() == BookingHoldService.STATUS_CANCELED
+                || booking.getStatus() == BookingHoldService.STATUS_EXPIRED) {
+            return Result.fail("此訂位已取消或逾期，無法確認提案");
+        }
+        if (bookingHoldService.expireIfDue(booking)) {
+            return Result.fail("此保留已逾期，請重新建立訂位");
+        }
+
+        List<Map<String, Object>> rows = pendingIncidentProposalRows(incidentId, booking.getBookingCode());
+        if (rows.isEmpty()) return Result.fail("救場提案不存在或已處理");
+        Map<String, Object> proposal = rows.get(0);
+        if (isProposalExpired(proposal)) {
+            expireIncidentProposal(incidentId, booking.getBookingCode());
+            return Result.fail("救場提案已逾期，請等店家重新提出");
+        }
+
+        ParsedProposal parsedProposal = parseProposal(proposal);
+        if (!parsedProposal.valid()) return Result.fail(parsedProposal.error());
+
+        BookingRescheduleService.RescheduleResult result = bookingRescheduleService.reschedule(
+                booking,
+                parsedProposal.date(),
+                parsedProposal.time(),
+                parsedProposal.tableType(),
+                parsedProposal.people()
+        );
+        if (!result.success()) {
+            recordDepositAdjustmentIfRequired(
+                    booking,
+                    incidentId,
+                    parsedProposal.date(),
+                    parsedProposal.time(),
+                    parsedProposal.tableType(),
+                    parsedProposal.people(),
+                    result.depositPolicy(),
+                    "INCIDENT_PROPOSAL"
+            );
+            return Result.fail(result.error());
+        }
+
+        jdbcTemplate.update(
+                """
+                UPDATE tb_booking_incident
+                SET proposal_status = 'ACCEPTED',
+                    proposal_accepted_at = CURRENT_TIMESTAMP,
+                    status = 'RESOLVED',
+                    resolved_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                  AND booking_code = ?
+                  AND proposal_status = 'PENDING'
+                """,
+                incidentId,
+                booking.getBookingCode()
+        );
+
+        var shop = shopService.getById(booking.getShopId());
+        String shopName = shop != null ? shop.getName() : null;
+        Map<String, Object> response = bookingResponse(result.booking(), shopName, false);
+        response.put("changed", result.changed());
+        if (result.depositPolicy() != null) {
+            response.put("depositPolicy", result.depositPolicy().toPayload());
+        }
+        response.put("acceptedProposal", Map.of(
+                "incidentId", incidentId,
+                "date", parsedProposal.date().toString(),
+                "time", parsedProposal.time(),
+                "tableType", parsedProposal.tableType(),
+                "people", parsedProposal.people()
+        ));
+        log.info("[Booking incident proposal] accepted bookingCode={} incidentId={} date={} time={} people={}",
+                booking.getBookingCode(), incidentId, parsedProposal.date(), parsedProposal.time(), parsedProposal.people());
+        return Result.ok(response);
+    }
+
+    private Result declineIncidentProposalInTransaction(String bookingCode, Long incidentId, Map<String, Object> body) {
+        if (bookingCode == null || bookingCode.isBlank()) return Result.fail("bookingCode 必填");
+        if (incidentId == null) return Result.fail("incidentId 必填");
+
+        BookingJpa booking = bookingRepo.findByBookingCode(bookingCode).orElse(null);
+        if (booking == null) return Result.fail("訂位不存在");
+        if (!canAccessBooking(booking, body)) return Result.fail("無權回覆此救場提案");
+        if (booking.getStatus() == BookingHoldService.STATUS_CANCELED
+                || booking.getStatus() == BookingHoldService.STATUS_EXPIRED) {
+            return Result.fail("此訂位已取消或逾期，無法回覆提案");
+        }
+        if (bookingHoldService.expireIfDue(booking)) {
+            return Result.fail("此保留已逾期，請重新建立訂位");
+        }
+
+        List<Map<String, Object>> rows = pendingIncidentProposalRows(incidentId, booking.getBookingCode());
+        if (rows.isEmpty()) return Result.fail("救場提案不存在或已處理");
+        Map<String, Object> proposal = rows.get(0);
+        if (isProposalExpired(proposal)) {
+            expireIncidentProposal(incidentId, booking.getBookingCode());
+            return Result.fail("救場提案已逾期，請等店家重新提出");
+        }
+
+        int updated = jdbcTemplate.update(
+                """
+                UPDATE tb_booking_incident
+                SET proposal_status = 'DECLINED',
+                    proposal_declined_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                  AND booking_code = ?
+                  AND status = 'OPEN'
+                  AND proposal_status = 'PENDING'
+                """,
+                incidentId,
+                booking.getBookingCode()
+        );
+        if (updated == 0) return Result.fail("救場提案不存在或已處理");
+
+        var shop = shopService.getById(booking.getShopId());
+        String shopName = shop != null ? shop.getName() : null;
+        Map<String, Object> response = bookingResponse(booking, shopName, false);
+        response.put("declinedProposal", Map.of("incidentId", incidentId));
+        log.info("[Booking incident proposal] declined bookingCode={} incidentId={}",
+                booking.getBookingCode(), incidentId);
+        return Result.ok(response);
+    }
+
+    private List<Map<String, Object>> pendingIncidentProposalRows(Long incidentId, String bookingCode) {
+        return jdbcTemplate.queryForList(
+                """
+                SELECT proposal_status AS proposalStatus,
+                       proposed_date AS proposedDate,
+                       proposed_time AS proposedTime,
+                       proposed_table_type AS proposedTableType,
+                       proposed_people AS proposedPeople,
+                       proposal_message AS proposalMessage,
+                       proposal_expires_at AS proposalExpiresAt
+                FROM tb_booking_incident
+                WHERE id = ?
+                  AND booking_code = ?
+                  AND status = 'OPEN'
+                  AND proposal_status = 'PENDING'
+                FOR UPDATE
+                """,
+                incidentId,
+                bookingCode
+        );
+    }
+
+    private void expireIncidentProposal(Long incidentId, String bookingCode) {
+        jdbcTemplate.update(
+                """
+                UPDATE tb_booking_incident
+                SET proposal_status = 'EXPIRED'
+                WHERE id = ?
+                  AND booking_code = ?
+                  AND proposal_status = 'PENDING'
+                """,
+                incidentId,
+                bookingCode
+        );
+    }
+
     private Result cancelInTransaction(String bookingCode, Map<String, Object> body) {
         if (bookingCode == null || bookingCode.isBlank()) return Result.fail("bookingCode 必填");
 
@@ -377,7 +704,7 @@ public class BookingController {
             return Result.ok(bookingResponse(booking, shopName, true));
         }
 
-        releaseSlotCapacity(
+        bookingSlotInventory.release(
                 booking.getShopId(),
                 booking.getBookingDate(),
                 booking.getBookingTime(),
@@ -403,37 +730,116 @@ public class BookingController {
     }
 
     private Map<String, Object> bookingResponse(BookingJpa booking, String shopName, boolean idempotentReplay) {
-        Map<String, Object> out = new LinkedHashMap<>();
-        out.put("bookingCode", booking.getBookingCode());
-        out.put("userId", booking.getUserId());
-        out.put("shopId", booking.getShopId());
-        out.put("shopName", shopName != null ? shopName : "店家 " + booking.getShopId());
-        out.put("people", booking.getPeople());
-        out.put("date", booking.getBookingDate().toString());
-        out.put("time", booking.getBookingTime());
-        out.put("tableType", booking.getTableType());
-        out.put("needsDeposit", booking.getNeedsDeposit());
-        out.put("depositTotal", booking.getDepositTotal());
-        out.put(
-                "status",
-                booking.getStatus() == BookingHoldService.STATUS_PENDING_PAYMENT
-                        ? "PENDING_PAYMENT"
-                        : booking.getStatus() == BookingHoldService.STATUS_PAID
-                        ? "PAID"
-                        : booking.getStatus() == BookingHoldService.STATUS_CANCELED
-                        ? "CANCELED"
-                        : booking.getStatus() == BookingHoldService.STATUS_EXPIRED ? "EXPIRED" : "CONFIRMED"
+        Map<String, Object> payload = bookingPayloadMapper.toPayload(booking, shopName, idempotentReplay);
+        bookingIncidentService.latestIncidentForBookingCode(booking.getBookingCode())
+                .ifPresent(incident -> payload.put("latestIncident", incident));
+        return payload;
+    }
+
+    private void recordDepositAdjustmentIfRequired(
+            BookingJpa booking,
+            Long incidentId,
+            LocalDate proposedDate,
+            String proposedTime,
+            String proposedTableType,
+            int proposedPeople,
+            BookingRescheduleService.DepositAdjustment depositPolicy,
+            String source
+    ) {
+        bookingDepositAdjustmentService.recordRequired(
+                booking,
+                incidentId,
+                proposedDate,
+                proposedTime,
+                proposedTableType,
+                proposedPeople,
+                depositPolicy,
+                source
         );
-        out.put("paymentTransId", booking.getPaymentTransId());
-        out.put("holdExpiresAt", booking.getHoldExpiresAt() != null ? booking.getHoldExpiresAt().toString() : null);
-        out.put("holdMinutes", BookingHoldService.HOLD_MINUTES);
-        out.put("drivingToBooking", Boolean.TRUE.equals(booking.getDrivingToBooking()));
-        out.put("parkingReminderEnabled", Boolean.TRUE.equals(booking.getParkingReminderEnabled()));
-        out.put("parkingReminderSentAt", booking.getParkingReminderSentAt() != null ? booking.getParkingReminderSentAt().toString() : null);
-        out.put("createdAt", booking.getCreatedAt() != null ? booking.getCreatedAt().toString() : null);
-        out.put("updatedAt", booking.getUpdatedAt() != null ? booking.getUpdatedAt().toString() : null);
-        out.put("idempotentReplay", idempotentReplay);
-        return out;
+    }
+
+    private ParsedRescheduleRequest parseRescheduleRequest(BookingJpa booking, Map<String, Object> body) {
+        try {
+            LocalDate date = booking.getBookingDate();
+            Object dateValue = body.get("date");
+            if (dateValue != null && !dateValue.toString().isBlank()) {
+                date = LocalDate.parse(dateValue.toString().trim());
+            }
+
+            String time = booking.getBookingTime();
+            Object timeValue = body.get("time");
+            if (timeValue != null && !timeValue.toString().isBlank()) {
+                time = LocalTime.parse(timeValue.toString().trim()).toString();
+            }
+
+            int people = booking.getPeople() != null ? booking.getPeople() : 2;
+            Object peopleValue = body.get("people");
+            if (peopleValue != null && !peopleValue.toString().isBlank()) {
+                people = Integer.parseInt(peopleValue.toString());
+            }
+
+            String tableType = normalizeTableType(booking.getTableType());
+            Object tableValue = body.get("tableType");
+            if (tableValue != null && !tableValue.toString().isBlank()) {
+                tableType = normalizeTableType(tableValue.toString());
+            }
+
+            if (people < 1 || people > 12) {
+                return ParsedRescheduleRequest.fail("訂位人數需介於 1-12 人");
+            }
+            if (!date.isAfter(today())) {
+                return ParsedRescheduleRequest.fail("訂位日期需為明天或之後");
+            }
+            if (!tableType.equals("normal") && !tableType.equals("bar") && !tableType.equals("private")) {
+                return ParsedRescheduleRequest.fail("tableType 僅支援 normal/bar/private");
+            }
+
+            return ParsedRescheduleRequest.ok(date, time, tableType, people);
+        } catch (NumberFormatException | DateTimeParseException ex) {
+            return ParsedRescheduleRequest.fail("改單格式錯誤，請確認 people、date(YYYY-MM-DD)、time(HH:mm)");
+        }
+    }
+
+    private ParsedProposal parseProposal(Map<String, Object> proposal) {
+        try {
+            LocalDate date = LocalDate.parse(text(proposal.get("proposedDate")));
+            String time = LocalTime.parse(text(proposal.get("proposedTime"))).toString();
+            String tableType = normalizeTableType(text(proposal.get("proposedTableType")));
+            int people = Integer.parseInt(text(proposal.get("proposedPeople")));
+            if (people < 1 || people > 12) return ParsedProposal.fail("提案人數需介於 1-12 人");
+            if (!date.isAfter(today())) return ParsedProposal.fail("提案日期需為明天或之後");
+            if (!tableType.equals("normal") && !tableType.equals("bar") && !tableType.equals("private")) {
+                return ParsedProposal.fail("提案桌型僅支援 normal/bar/private");
+            }
+            return ParsedProposal.ok(date, time, tableType, people);
+        } catch (NumberFormatException | DateTimeParseException ex) {
+            return ParsedProposal.fail("救場提案格式錯誤");
+        }
+    }
+
+    private boolean isProposalExpired(Map<String, Object> proposal) {
+        LocalDateTime expiresAt = toLocalDateTime(proposal.get("proposalExpiresAt"));
+        return expiresAt != null && !expiresAt.isAfter(LocalDateTime.now(BUSINESS_ZONE));
+    }
+
+    private LocalDateTime toLocalDateTime(Object value) {
+        if (value == null) return null;
+        if (value instanceof LocalDateTime dateTime) return dateTime;
+        if (value instanceof java.sql.Timestamp timestamp) return timestamp.toLocalDateTime();
+        String raw = text(value);
+        if (raw.isBlank()) return null;
+        try {
+            return LocalDateTime.parse(raw.replace(" ", "T"));
+        } catch (DateTimeParseException ignored) {
+            return null;
+        }
+    }
+
+    private String normalizeTableType(String tableType) {
+        if (tableType == null || tableType.isBlank()) {
+            return "normal";
+        }
+        return tableType.trim();
     }
 
     private void pushParkingReminderNow(BookingJpa booking) {
@@ -490,50 +896,45 @@ public class BookingController {
                 || text.equals("我會開車，提醒停車");
     }
 
-    private void ensureSlotInventory(Long shopId, LocalDate bookingDate, String time, String tableType) {
-        jdbcTemplate.update(
-                """
-                INSERT IGNORE INTO tb_booking_slot_inventory
-                    (shop_id, booking_date, booking_time, table_type, capacity, booked_count)
-                VALUES (?, ?, ?, ?, ?, 0)
-                """,
-                shopId,
-                bookingDate,
-                time,
-                tableType,
-                defaultSlotCapacity(tableType)
-        );
+    private String text(Object value) {
+        return value == null ? "" : value.toString().trim();
     }
 
-    private boolean reserveSlotCapacity(Long shopId, LocalDate bookingDate, String time, String tableType, int people) {
-        int updated = jdbcTemplate.update(
-                """
-                UPDATE tb_booking_slot_inventory
-                SET booked_count = booked_count + ?
-                WHERE shop_id = ? AND booking_date = ? AND booking_time = ? AND table_type = ?
-                  AND booked_count + ? <= capacity
-                """,
-                people, shopId, bookingDate, time, tableType, people
-        );
-        return updated == 1;
+    private record ParsedRescheduleRequest(
+            LocalDate date,
+            String time,
+            String tableType,
+            int people,
+            String error
+    ) {
+        static ParsedRescheduleRequest ok(LocalDate date, String time, String tableType, int people) {
+            return new ParsedRescheduleRequest(date, time, tableType, people, null);
+        }
+
+        static ParsedRescheduleRequest fail(String error) {
+            return new ParsedRescheduleRequest(null, null, null, 0, error);
+        }
+
+        boolean valid() {
+            return error == null;
+        }
     }
 
-    private void releaseSlotCapacity(Long shopId, LocalDate bookingDate, String time, String tableType, int people) {
-        jdbcTemplate.update(
-                """
-                UPDATE tb_booking_slot_inventory
-                SET booked_count = GREATEST(booked_count - ?, 0)
-                WHERE shop_id = ? AND booking_date = ? AND booking_time = ? AND table_type = ?
-                """,
-                people, shopId, bookingDate, time, tableType
-        );
+    private record ParsedProposal(
+            boolean valid,
+            String error,
+            LocalDate date,
+            String time,
+            String tableType,
+            int people
+    ) {
+        static ParsedProposal ok(LocalDate date, String time, String tableType, int people) {
+            return new ParsedProposal(true, null, date, time, tableType, people);
+        }
+
+        static ParsedProposal fail(String error) {
+            return new ParsedProposal(false, error, null, null, null, 0);
+        }
     }
 
-    private int defaultSlotCapacity(String tableType) {
-        return switch (tableType) {
-            case "private" -> 4;
-            case "bar" -> 6;
-            default -> 8;
-        };
-    }
 }

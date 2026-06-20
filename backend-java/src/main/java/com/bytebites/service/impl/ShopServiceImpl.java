@@ -136,7 +136,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     }
 
     /**
-     * @deprecated TODO C1 後續清理：舊版邏輯過期 / 穿透回退流程保留作為對照，不再作為主查詢路徑。
+     * @deprecated Legacy cache warm-up fallback kept only as a comparison path; not used by the main query flow.
      */
     @Deprecated
     private Shop queryByIdWithLegacyCache(Long id) {

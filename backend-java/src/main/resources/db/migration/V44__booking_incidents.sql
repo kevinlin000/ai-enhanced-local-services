@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS tb_booking_incident (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    booking_code VARCHAR(50) NOT NULL,
+    user_id BIGINT NULL,
+    shop_id BIGINT UNSIGNED NOT NULL,
+    incident_type VARCHAR(32) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+    delay_minutes INT NOT NULL DEFAULT 0,
+    original_time VARCHAR(10) NOT NULL,
+    adjusted_time VARCHAR(10) NOT NULL,
+    title VARCHAR(120) NOT NULL,
+    customer_message VARCHAR(500) NOT NULL,
+    action_label VARCHAR(80) NOT NULL,
+    source VARCHAR(32) NOT NULL DEFAULT 'AI_RESCUE',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    resolved_at DATETIME NULL,
+    INDEX idx_booking_incident_booking_status (booking_code, status, created_at),
+    INDEX idx_booking_incident_user_status (user_id, status, created_at),
+    INDEX idx_booking_incident_shop_status (shop_id, status, created_at),
+    CONSTRAINT fk_booking_incident_shop FOREIGN KEY (shop_id) REFERENCES tb_shop(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Real-time booking rescue incidents and customer-facing recovery messages';

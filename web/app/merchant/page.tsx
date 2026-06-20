@@ -3,8 +3,27 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { CalendarDays, CheckCircle2, Clock, Store, UsersRound } from "lucide-react";
-import { javaApi, type MerchantShop, type MerchantSlot } from "@/lib/api";
+import {
+  AlertTriangle,
+  CalendarDays,
+  CheckCheck,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  ReceiptText,
+  Store,
+  UsersRound,
+} from "lucide-react";
+import {
+  javaApi,
+  type MerchantDepositAdjustment,
+  type MerchantIncident,
+  type MerchantRefundNotificationPolicy,
+  type MerchantRefundOperationsReport,
+  type MerchantRefundSlaSummary,
+  type MerchantShop,
+  type MerchantSlot,
+} from "@/lib/api";
 
 function addDaysIso(days: number) {
   const value = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
@@ -45,6 +64,44 @@ const DEMO_STORY_BY_SHOP_ID: Record<number, { label: string; detail: string }> =
   10116: { label: "候位 Demo", detail: "酸菜魚" },
 };
 
+const INCIDENT_TYPE_LABEL: Record<string, string> = {
+  CUSTOMER_LATE: "顧客晚到",
+  RESTAURANT_DELAY: "店家延誤",
+};
+
+const BOOKING_STATUS_LABEL: Record<string, string> = {
+  PENDING_PAYMENT: "待付款",
+  PAID: "已付款",
+  CONFIRMED: "已確認",
+  CANCELED: "已取消",
+  EXPIRED: "已逾期",
+  UNKNOWN: "未知",
+};
+
+const ADJUSTMENT_TYPE_LABEL: Record<string, string> = {
+  TOP_UP: "補收訂金",
+  REFUND: "退還訂金",
+};
+
+const ADJUSTMENT_SOURCE_LABEL: Record<string, string> = {
+  CUSTOMER_RESCHEDULE: "顧客改單",
+  INCIDENT_PROPOSAL: "救場提案",
+};
+
+const SETTLEMENT_STATUS_LABEL: Record<string, string> = {
+  PENDING: "等待 PSP 處理",
+  PROCESSING: "等待退款對帳",
+  COMPLETED: "PSP 已完成",
+  FAILED: "退款失敗",
+};
+
+const REFUND_REPORT_ACTION_LABEL: Record<string, string> = {
+  ESCALATE_FAILED_REFUNDS: "先升級失敗退款",
+  ESCALATE_STUCK_REFUNDS: "先升級逾時退款",
+  FOLLOW_UP_ESCALATED_REFUNDS: "追蹤已升級退款",
+  NO_REFUND_ACTION: "無需跟進",
+};
+
 function demoStoryForShop(shop: MerchantShop) {
   return DEMO_STORY_BY_SHOP_ID[shop.id] ?? null;
 }
@@ -56,6 +113,38 @@ function slotHealth(slot: MerchantSlot) {
   return { label: "開放", tone: "bg-emerald-50 text-emerald-700" };
 }
 
+function currency(value: number) {
+  return `NT$ ${Math.abs(Number(value ?? 0)).toLocaleString("zh-TW")}`;
+}
+
+function settlementTone(status: string) {
+  if (status === "COMPLETED") return "bg-emerald-100 text-emerald-800";
+  if (status === "FAILED") return "bg-red-100 text-red-700";
+  if (status === "PROCESSING") return "bg-amber-100 text-amber-800";
+  return "bg-white text-sky-800";
+}
+
+function refundReportTone(status: string) {
+  if (status === "ACTION_REQUIRED") return "border-red-100 bg-red-50 text-red-800";
+  if (status === "FOLLOW_UP") return "border-amber-100 bg-amber-50 text-amber-800";
+  return "border-emerald-100 bg-emerald-50 text-emerald-800";
+}
+
+function refundReasonLabel(reason?: string) {
+  if (reason === "FAILED_REFUND") return "退款失敗";
+  if (reason === "STUCK_PROCESSING") return "逾時未回寫";
+  return "退款注意";
+}
+
+function refundNotificationPolicyLabel(policy: MerchantRefundNotificationPolicy | null) {
+  if (!policy) return "";
+  if (policy.shouldNotify) return "排程可發送";
+  if (policy.reason === "COOLDOWN_ACTIVE") return "排程冷卻中";
+  if (policy.reason === "NO_REFUND_ATTENTION") return "無需排程通知";
+  if (policy.reason === "MISSING_SHOP") return "缺少店家資訊";
+  return policy.reason;
+}
+
 export default function MerchantPage() {
   const [token, setToken] = useState<string | null>(null);
   const [shops, setShops] = useState<MerchantShop[]>([]);
@@ -63,8 +152,25 @@ export default function MerchantPage() {
   const [date, setDate] = useState(MIN_BOOKING_DATE);
   const [tableType, setTableType] = useState("normal");
   const [slots, setSlots] = useState<MerchantSlot[]>([]);
+  const [incidents, setIncidents] = useState<MerchantIncident[]>([]);
+  const [depositAdjustments, setDepositAdjustments] = useState<MerchantDepositAdjustment[]>([]);
+  const [refundSla, setRefundSla] = useState<MerchantRefundSlaSummary | null>(null);
+  const [refundReport, setRefundReport] = useState<MerchantRefundOperationsReport | null>(null);
+  const [refundNotificationPolicy, setRefundNotificationPolicy] = useState<MerchantRefundNotificationPolicy | null>(
+    null,
+  );
   const [capacities, setCapacities] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [incidentLoading, setIncidentLoading] = useState(false);
+  const [adjustmentLoading, setAdjustmentLoading] = useState(false);
+  const [refundSlaLoading, setRefundSlaLoading] = useState(false);
+  const [incidentBusyId, setIncidentBusyId] = useState<number | null>(null);
+  const [adjustmentBusyId, setAdjustmentBusyId] = useState<number | null>(null);
+  const [settlementRefs, setSettlementRefs] = useState<Record<number, string>>({});
+  const [refundEscalationNotes, setRefundEscalationNotes] = useState<Record<number, string>>({});
+  const [refundNotifyBusy, setRefundNotifyBusy] = useState(false);
+  const [refundPolicyBusy, setRefundPolicyBusy] = useState(false);
+  const [proposalBusyKey, setProposalBusyKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -151,6 +257,179 @@ export default function MerchantPage() {
     };
   }, [selectedShopId, date, tableType, token]);
 
+  useEffect(() => {
+    if (!selectedShopId) {
+      setIncidents([]);
+      return;
+    }
+    const shopId = selectedShopId;
+
+    let cancelled = false;
+    async function loadIncidents() {
+      setIncidentLoading(true);
+      setError(null);
+      try {
+        const response = await javaApi.merchantIncidents({ shopId, status: "OPEN" });
+        if (!response.success) throw new Error(response.errorMsg ?? "無法載入救場事件");
+        if (!cancelled) setIncidents(response.data.incidents);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "載入救場事件失敗");
+      } finally {
+        if (!cancelled) setIncidentLoading(false);
+      }
+    }
+
+    loadIncidents();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedShopId]);
+
+  useEffect(() => {
+    if (!selectedShopId) {
+      setDepositAdjustments([]);
+      setRefundSla(null);
+      setRefundReport(null);
+      setRefundNotificationPolicy(null);
+      return;
+    }
+    const shopId = selectedShopId;
+
+    let cancelled = false;
+    async function loadDepositAdjustments() {
+      setAdjustmentLoading(true);
+      setRefundSlaLoading(true);
+      setError(null);
+      try {
+        const [adjustmentResponse, slaResponse, reportResponse, policyResponse] = await Promise.all([
+          javaApi.merchantDepositAdjustments({ shopId, status: "OPEN" }),
+          javaApi.merchantRefundSla({ shopId, stuckMinutes: 30 }),
+          javaApi.merchantRefundReport({ shopId, stuckMinutes: 30 }),
+          javaApi.merchantRefundNotificationPolicy({ shopId, stuckMinutes: 30, cooldownMinutes: 120 }),
+        ]);
+        if (!adjustmentResponse.success) {
+          throw new Error(adjustmentResponse.errorMsg ?? "無法載入訂金差額處理");
+        }
+        if (!slaResponse.success) {
+          throw new Error(slaResponse.errorMsg ?? "無法載入退款 SLA");
+        }
+        if (!reportResponse.success) {
+          throw new Error(reportResponse.errorMsg ?? "無法載入退款營運摘要");
+        }
+        if (!policyResponse.success) {
+          throw new Error(policyResponse.errorMsg ?? "無法載入退款排程通知政策");
+        }
+        if (!cancelled) {
+          setDepositAdjustments(adjustmentResponse.data.adjustments);
+          setRefundSla(slaResponse.data);
+          setRefundReport(reportResponse.data);
+          setRefundNotificationPolicy(policyResponse.data);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "載入訂金差額處理失敗");
+      } finally {
+        if (!cancelled) {
+          setAdjustmentLoading(false);
+          setRefundSlaLoading(false);
+        }
+      }
+    }
+
+    loadDepositAdjustments();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedShopId]);
+
+  async function refreshRefundSlaSummary(shopId: number) {
+    setRefundSlaLoading(true);
+    try {
+      const [slaResponse, reportResponse, policyResponse] = await Promise.all([
+        javaApi.merchantRefundSla({ shopId, stuckMinutes: 30 }),
+        javaApi.merchantRefundReport({ shopId, stuckMinutes: 30 }),
+        javaApi.merchantRefundNotificationPolicy({ shopId, stuckMinutes: 30, cooldownMinutes: 120 }),
+      ]);
+      if (!slaResponse.success) throw new Error(slaResponse.errorMsg ?? "無法載入退款 SLA");
+      if (!reportResponse.success) throw new Error(reportResponse.errorMsg ?? "無法載入退款營運摘要");
+      if (!policyResponse.success) throw new Error(policyResponse.errorMsg ?? "無法載入退款排程通知政策");
+      setRefundSla(slaResponse.data);
+      setRefundReport(reportResponse.data);
+      setRefundNotificationPolicy(policyResponse.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "載入退款 SLA 失敗");
+    } finally {
+      setRefundSlaLoading(false);
+    }
+  }
+
+  async function notifyRefundOperationsDigest() {
+    if (!selectedShopId) return;
+    setRefundNotifyBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await javaApi.notifyMerchantRefundReport({ shopId: selectedShopId, stuckMinutes: 30 });
+      if (!response.success) throw new Error(response.errorMsg ?? "退款摘要通知失敗");
+      if (response.data.report) {
+        setRefundReport(response.data.report);
+      }
+      const policyResponse = await javaApi.merchantRefundNotificationPolicy({
+        shopId: selectedShopId,
+        stuckMinutes: 30,
+        cooldownMinutes: 120,
+      });
+      if (policyResponse.success) {
+        setRefundNotificationPolicy(policyResponse.data);
+      }
+      if (response.data.skipped) {
+        setMessage(
+          response.data.reason === "NO_LINKED_LINE_USER"
+            ? "退款摘要已產生；目前商家帳號尚未綁定 LINE，未送出推播。"
+            : "目前沒有需要通知的退款異常。",
+        );
+      } else {
+        setMessage("退款營運摘要已送出 LINE 通知。");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "退款摘要通知失敗");
+    } finally {
+      setRefundNotifyBusy(false);
+    }
+  }
+
+  async function dispatchRefundOperationsDigestIfDue() {
+    if (!selectedShopId) return;
+    setRefundPolicyBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await javaApi.dispatchMerchantRefundReportIfDue({
+        shopId: selectedShopId,
+        stuckMinutes: 30,
+        cooldownMinutes: 120,
+      });
+      if (!response.success) throw new Error(response.errorMsg ?? "排程通知判斷失敗");
+      if (response.data.report) setRefundReport(response.data.report);
+      if (response.data.policy) setRefundNotificationPolicy(response.data.policy);
+      if (response.data.skipped) {
+        const reason = response.data.reason;
+        setMessage(
+          reason === "COOLDOWN_ACTIVE"
+            ? "排程通知仍在冷卻中，未重複推播。"
+            : reason === "NO_LINKED_LINE_USER"
+              ? "排程通知已判定需要發送；商家帳號尚未綁定 LINE，未送出。"
+              : "目前沒有需要排程通知的退款異常。",
+        );
+      } else {
+        setMessage("排程通知判定需要發送，LINE 摘要已送出。");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "排程通知判斷失敗");
+    } finally {
+      setRefundPolicyBusy(false);
+    }
+  }
+
   async function saveSlots() {
     if (!selectedShopId) return;
     setSaving(true);
@@ -179,6 +458,232 @@ export default function MerchantPage() {
       setSaving(false);
     }
   }
+
+  async function resolveIncident(incident: MerchantIncident) {
+    if (!selectedShopId) return;
+    setIncidentBusyId(incident.id);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await javaApi.resolveMerchantIncident({
+        shopId: selectedShopId,
+        incidentId: incident.id,
+      });
+      if (!response.success) throw new Error(response.errorMsg ?? "救場事件處理失敗");
+      setIncidents((current) => current.filter((item) => item.id !== incident.id));
+      setMessage("救場事件已標記為已處理；顧客端會在下次讀取訂位時看不到 open incident。");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "救場事件處理失敗");
+    } finally {
+      setIncidentBusyId(null);
+    }
+  }
+
+  async function proposeSlot(incident: MerchantIncident, slot: NonNullable<MerchantIncident["alternativeSlots"]>[number]) {
+    if (!selectedShopId) return;
+    const key = `${incident.id}-${slot.time}`;
+    setProposalBusyKey(key);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await javaApi.proposeMerchantIncidentSlot({
+        shopId: selectedShopId,
+        incidentId: incident.id,
+        date: incident.bookingDate,
+        time: slot.time,
+        tableType: slot.tableType,
+        people: incident.people,
+      });
+      if (!response.success) throw new Error(response.errorMsg ?? "替代時段提案送出失敗");
+      setIncidents((current) =>
+        current.map((item) => (item.id === incident.id ? response.data : item)),
+      );
+      setMessage("替代時段提案已送出，等待顧客在我的訂位確認。");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "替代時段提案送出失敗");
+    } finally {
+      setProposalBusyKey(null);
+    }
+  }
+
+  async function recordDepositSettlement(adjustment: MerchantDepositAdjustment) {
+    if (!selectedShopId) return;
+    if (adjustment.adjustmentType === "REFUND") {
+      setError("退款請先建立退款請求，並等待 PSP 對帳回寫");
+      return;
+    }
+    const settlementTransId = (settlementRefs[adjustment.id] ?? "").trim();
+    if (!settlementTransId) {
+      setError("請輸入 PSP 交易編號");
+      return;
+    }
+
+    setAdjustmentBusyId(adjustment.id);
+    setError(null);
+    setMessage(null);
+    try {
+      const actionLabel = adjustment.adjustmentType === "TOP_UP" ? "補款" : "退款";
+      const response = await javaApi.recordMerchantDepositAdjustmentSettlement({
+        shopId: selectedShopId,
+        adjustmentId: adjustment.id,
+        provider: "TAPPAY",
+        settlementTransId,
+        settlementNote: `${actionLabel} ${currency(adjustment.deltaAmount)} 已由 PSP 完成`,
+      });
+      if (!response.success) throw new Error(response.errorMsg ?? "PSP settlement 記錄失敗");
+      setDepositAdjustments((current) =>
+        current.map((item) => (item.id === adjustment.id ? response.data : item)),
+      );
+      setSettlementRefs((current) => {
+        const next = { ...current };
+        delete next[adjustment.id];
+        return next;
+      });
+      setMessage("PSP settlement 已記錄，現在可以套用改單。");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "PSP settlement 記錄失敗");
+    } finally {
+      setAdjustmentBusyId(null);
+    }
+  }
+
+  async function requestRefundSettlement(adjustment: MerchantDepositAdjustment) {
+    if (!selectedShopId) return;
+    setAdjustmentBusyId(adjustment.id);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await javaApi.requestMerchantDepositAdjustmentRefund({
+        shopId: selectedShopId,
+        adjustmentId: adjustment.id,
+        settlementNote: `退款請求已建立：${currency(adjustment.deltaAmount)}`,
+      });
+      if (!response.success) throw new Error(response.errorMsg ?? "退款請求建立失敗");
+      setDepositAdjustments((current) =>
+        current.map((item) => (item.id === adjustment.id ? response.data : item)),
+      );
+      await refreshRefundSlaSummary(selectedShopId);
+      setMessage("退款請求已建立，等待 PSP 對帳結果回寫。");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "退款請求建立失敗");
+    } finally {
+      setAdjustmentBusyId(null);
+    }
+  }
+
+  async function reconcileRefundSettlement(
+    adjustment: MerchantDepositAdjustment,
+    status: "COMPLETED" | "FAILED",
+  ) {
+    if (!selectedShopId) return;
+    const settlementTransId = (settlementRefs[adjustment.id] ?? "").trim();
+    if (status === "COMPLETED" && !settlementTransId) {
+      setError("退款對帳成功時請輸入 PSP 退款編號");
+      return;
+    }
+
+    setAdjustmentBusyId(adjustment.id);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await javaApi.reconcileRefundAdjustment({
+        adjustmentId: adjustment.id,
+        bookingCode: adjustment.bookingCode,
+        amount: Math.abs(Number(adjustment.deltaAmount ?? 0)),
+        status,
+        settlementTransId: settlementTransId || undefined,
+        settlementNote:
+          status === "COMPLETED"
+            ? `PSP 退款對帳完成：${currency(adjustment.deltaAmount)}`
+            : `PSP 退款失敗：${currency(adjustment.deltaAmount)}`,
+      });
+      if (!response.success) throw new Error(response.errorMsg ?? "退款對帳回寫失敗");
+      setDepositAdjustments((current) =>
+        current.map((item) => (item.id === adjustment.id ? response.data : item)),
+      );
+      setSettlementRefs((current) => {
+        const next = { ...current };
+        delete next[adjustment.id];
+        return next;
+      });
+      await refreshRefundSlaSummary(selectedShopId);
+      setMessage(status === "COMPLETED" ? "退款對帳已完成，現在可以套用改單。" : "退款對帳已標記失敗，可重新建立退款請求。");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "退款對帳回寫失敗");
+    } finally {
+      setAdjustmentBusyId(null);
+    }
+  }
+
+  async function escalateRefundAdjustment(adjustment: MerchantDepositAdjustment) {
+    if (!selectedShopId) return;
+    const note =
+      (refundEscalationNotes[adjustment.id] ?? "").trim() ||
+      `退款異常升級處理：${currency(adjustment.deltaAmount)}`;
+
+    setAdjustmentBusyId(adjustment.id);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await javaApi.escalateMerchantDepositAdjustmentRefund({
+        shopId: selectedShopId,
+        adjustmentId: adjustment.id,
+        escalationNote: note,
+      });
+      if (!response.success) throw new Error(response.errorMsg ?? "退款升級處理失敗");
+      setDepositAdjustments((current) =>
+        current.map((item) => (item.id === adjustment.id ? response.data : item)),
+      );
+      setRefundEscalationNotes((current) => {
+        const next = { ...current };
+        delete next[adjustment.id];
+        return next;
+      });
+      await refreshRefundSlaSummary(selectedShopId);
+      setMessage("退款異常已標記為升級處理，Java 已留下 audit event。");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "退款升級處理失敗");
+    } finally {
+      setAdjustmentBusyId(null);
+    }
+  }
+
+  async function resolveDepositAdjustment(adjustment: MerchantDepositAdjustment) {
+    if (!selectedShopId) return;
+    setAdjustmentBusyId(adjustment.id);
+    setError(null);
+    setMessage(null);
+    try {
+      const note =
+        adjustment.adjustmentType === "TOP_UP"
+          ? `PSP 補款已完成：${adjustment.settlementTransId ?? ""}`
+          : `PSP 退款已完成：${adjustment.settlementTransId ?? ""}`;
+      const response = await javaApi.resolveMerchantDepositAdjustment({
+        shopId: selectedShopId,
+        adjustmentId: adjustment.id,
+        handlingNote: note,
+      });
+      if (!response.success) throw new Error(response.errorMsg ?? "訂金差額處理失敗");
+      setDepositAdjustments((current) => current.filter((item) => item.id !== adjustment.id));
+      if (adjustment.incidentId) {
+        setIncidents((current) => current.filter((incident) => incident.id !== adjustment.incidentId));
+      }
+      await refreshRefundSlaSummary(selectedShopId);
+      setMessage("訂金差額 settlement 已完成，Java 已套用改單並同步訂位狀態。");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "訂金差額處理失敗");
+    } finally {
+      setAdjustmentBusyId(null);
+    }
+  }
+
+  const refundAttentionCount = Number(refundSla?.totalAttentionCount ?? 0);
+  const pendingRefundEscalationCount = Number(refundSla?.pendingEscalationCount ?? refundAttentionCount);
+  const pendingRefundReportItems = (refundReport?.pendingEscalationItems ?? []).slice(0, 2);
+  const escalatedRefundReportItems = (refundReport?.escalatedItems ?? []).slice(0, 2);
+  const refundReportAction =
+    REFUND_REPORT_ACTION_LABEL[refundReport?.recommendedAction ?? ""] ?? refundReport?.recommendedAction ?? "";
+  const refundPolicyLabel = refundNotificationPolicyLabel(refundNotificationPolicy);
 
   return (
     <main className="min-h-screen bg-[#f5f1e8] text-stone-950">
@@ -274,40 +779,517 @@ export default function MerchantPage() {
             </div>
           </aside>
 
-          <section className="rounded-[28px] border border-stone-200 bg-white shadow-sm">
-            <div className="flex flex-col gap-4 border-b border-stone-200 p-5 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <h2 className="text-2xl font-black">可訂時段</h2>
-                <p className="mt-1 text-sm text-stone-500">
-                  只調整可接待人數；已訂與剩餘位子由訂位流程自動計算。
-                </p>
+          <div className="space-y-5">
+            <section className="rounded-[28px] border border-amber-200 bg-white shadow-sm">
+              <div className="flex flex-col gap-4 border-b border-amber-100 p-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-2xl bg-amber-50 p-3 text-amber-700">
+                    <AlertTriangle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black">臨場救場</h2>
+                    <p className="mt-1 text-sm text-stone-500">
+                      追蹤顧客晚到與店家延誤；OPEN 事件由 Java incident state 統一管理。
+                    </p>
+                  </div>
+                </div>
+                <span className="w-fit rounded-full bg-amber-50 px-4 py-2 text-sm font-black text-amber-800">
+                  {incidentLoading ? "讀取中" : `${incidents.length} 件待處理`}
+                </span>
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <label className="flex flex-col gap-1 text-sm font-semibold text-stone-600">
-                  日期
-                  <input
-                    type="date"
-                    min={MIN_BOOKING_DATE}
-                    value={date}
-                    onChange={(event) => setDate(event.target.value)}
-                    className="h-11 rounded-xl border border-stone-200 px-3 text-stone-900"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm font-semibold text-stone-600">
-                  桌型
-                  <select
-                    value={tableType}
-                    onChange={(event) => setTableType(event.target.value)}
-                    className="h-11 rounded-xl border border-stone-200 px-3 text-stone-900"
+              <div className="grid gap-3 p-5">
+                {incidents.map((incident) => (
+                  <div
+                    key={incident.id}
+                    className="grid gap-4 rounded-2xl border border-amber-100 bg-[#fffaf0] p-4 lg:grid-cols-[1fr_180px_140px]"
                   >
-                    <option value="normal">一般座位</option>
-                    <option value="bar">吧台</option>
-                    <option value="private">包廂</option>
-                  </select>
-                </label>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-stone-950 px-2.5 py-1 text-xs font-bold text-white">
+                          {INCIDENT_TYPE_LABEL[incident.incidentType] ?? incident.incidentType}
+                        </span>
+                        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-stone-600">
+                          {BOOKING_STATUS_LABEL[incident.bookingStatus] ?? incident.bookingStatus}
+                        </span>
+                        <span className="text-xs font-semibold text-stone-500">{incident.bookingCode}</span>
+                      </div>
+                      <p className="mt-3 text-lg font-black">{incident.title}</p>
+                      <p className="mt-1 text-sm leading-6 text-stone-600">{incident.customerMessage}</p>
+                      {incident.proposedChange?.status === "PENDING" ? (
+                        <div className="mt-3 rounded-xl border border-emerald-100 bg-white px-3 py-2">
+                          <p className="text-xs font-bold text-emerald-700">已送出顧客確認</p>
+                          <p className="mt-1 text-sm font-black text-stone-950">
+                            {incident.proposedChange.date} {incident.proposedChange.time}
+                          </p>
+                          {incident.proposedChange.expiresAt ? (
+                            <p className="mt-1 text-xs text-stone-500">
+                              有效至 {incident.proposedChange.expiresAt}
+                            </p>
+                          ) : null}
+                          <p className="mt-1 text-xs text-stone-500">
+                            等待顧客接受後，Java 才會正式改單並釋放原時段。
+                          </p>
+                        </div>
+                      ) : incident.alternativeSlots?.length ? (
+                        <div className="mt-3">
+                          {incident.proposedChange?.status === "DECLINED" || incident.proposedChange?.status === "EXPIRED" ? (
+                            <p className="mb-2 text-xs font-bold text-amber-700">
+                              {incident.proposedChange.status === "DECLINED" ? "顧客已拒絕上一個提案" : "上一個提案已逾期"}，可重新送出替代時段。
+                            </p>
+                          ) : null}
+                          <p className="text-xs font-bold text-stone-500">可協調替代時段</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {incident.alternativeSlots.map((slot) => (
+                              <button
+                                type="button"
+                                key={`${incident.id}-${slot.time}`}
+                                onClick={() => proposeSlot(incident, slot)}
+                                disabled={proposalBusyKey === `${incident.id}-${slot.time}`}
+                                className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-black text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <Clock className="h-3.5 w-3.5" />
+                                {proposalBusyKey === `${incident.id}-${slot.time}` ? "送出中" : (slot.label ?? slot.time)}
+                                <span className="font-semibold text-stone-500">剩 {slot.remaining} 位</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-3 text-xs font-semibold text-stone-500">
+                          目前沒有足夠座位的同日替代時段。
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 lg:grid-cols-1">
+                      <IncidentFact label="訂位" value={`${incident.bookingDate} ${incident.bookingTime}`} />
+                      <IncidentFact label="人數" value={`${incident.people} 人`} />
+                      <IncidentFact label="預估" value={incident.adjustedTime || `${incident.delayMinutes} 分鐘`} />
+                    </div>
+
+                    <div className="flex items-center justify-start lg:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => resolveIncident(incident)}
+                        disabled={incidentBusyId === incident.id}
+                        className="inline-flex items-center gap-2 rounded-full bg-stone-950 px-4 py-2 text-sm font-black text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <CheckCheck className="h-4 w-4" />
+                        {incidentBusyId === incident.id ? "處理中" : "標記已處理"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {!incidentLoading && incidents.length === 0 && (
+                  <div className="rounded-2xl bg-stone-50 p-6 text-sm text-stone-500">
+                    目前沒有待處理救場事件。顧客在「我的訂位」建立救場通知，或對 AI 說「我塞車會晚到 20 分鐘」後會出現在這裡。
+                  </div>
+                )}
               </div>
-            </div>
+            </section>
+
+            <section className="rounded-[28px] border border-sky-200 bg-white shadow-sm">
+              <div className="flex flex-col gap-4 border-b border-sky-100 p-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-2xl bg-sky-50 p-3 text-sky-700">
+                    <ReceiptText className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black">訂金差額處理</h2>
+                    <p className="mt-1 text-sm text-stone-500">
+                      已付款訂位若改單需要補收或退款，會先停在這裡；PSP settlement 完成後才由 Java 套用改單。
+                    </p>
+                  </div>
+                </div>
+                <span className="w-fit rounded-full bg-sky-50 px-4 py-2 text-sm font-black text-sky-800">
+                  {adjustmentLoading ? "讀取中" : `${depositAdjustments.length} 件待處理`}
+                </span>
+              </div>
+
+              {refundSlaLoading ? (
+                <div className="border-b border-sky-100 bg-sky-50 px-5 py-3 text-sm font-bold text-sky-800">
+                  退款 SLA 讀取中
+                </div>
+              ) : refundSla ? (
+                <div
+                  className={`border-b px-5 py-3 ${
+                    refundAttentionCount > 0
+                      ? "border-red-100 bg-red-50 text-red-800"
+                      : "border-emerald-100 bg-emerald-50 text-emerald-800"
+                  }`}
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-2">
+                      {refundAttentionCount > 0 ? (
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      ) : (
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                      )}
+                      <div>
+                        <p className="text-sm font-black">
+                          {refundAttentionCount > 0
+                            ? `退款 SLA 注意：${refundAttentionCount} 件需處理`
+                            : "退款 SLA 正常"}
+                        </p>
+                        <p className="mt-1 text-xs font-semibold">
+                          {refundAttentionCount > 0
+                            ? `${refundSla.failedCount} 件失敗，${refundSla.stuckProcessingCount} 件超過 ${refundSla.stuckMinutes} 分鐘未回寫，${pendingRefundEscalationCount} 件尚未升級。`
+                            : `沒有失敗退款，也沒有超過 ${refundSla.stuckMinutes} 分鐘未回寫的退款。`}
+                        </p>
+                      </div>
+                    </div>
+                    {refundSla.oldestRequestedAt ? (
+                      <span className="text-xs font-bold">最早請求 {refundSla.oldestRequestedAt}</span>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {!refundSlaLoading && refundReport ? (
+                <div className={`border-b px-5 py-4 ${refundReportTone(refundReport.status)}`}>
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex items-start gap-2">
+                      {refundReport.status === "CLEAR" ? (
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                      ) : (
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      )}
+                      <div>
+                        <p className="text-sm font-black">退款營運摘要</p>
+                        <p className="mt-1 text-xs font-semibold">{refundReport.headline}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="w-fit rounded-full bg-white/80 px-3 py-1 text-xs font-black">
+                        {refundReportAction}
+                      </span>
+                      {refundNotificationPolicy ? (
+                        <span className="w-fit rounded-full bg-white/80 px-3 py-1 text-xs font-black">
+                          {refundPolicyLabel}
+                        </span>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={notifyRefundOperationsDigest}
+                        disabled={refundNotifyBusy}
+                        className="inline-flex items-center gap-2 rounded-full bg-stone-950 px-3 py-1 text-xs font-black text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {refundNotifyBusy ? "發送中" : "發送 LINE 摘要"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={dispatchRefundOperationsDigestIfDue}
+                        disabled={refundPolicyBusy}
+                        className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-black text-stone-900 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {refundPolicyBusy ? "判斷中" : "執行排程判斷"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-4">
+                    <RefundReportMetric label="未升級" value={refundReport.pendingEscalationCount} />
+                    <RefundReportMetric label="已升級" value={refundReport.escalatedCount} />
+                    <RefundReportMetric label="失敗" value={refundReport.failedCount} />
+                    <RefundReportMetric label="逾時" value={refundReport.stuckProcessingCount} />
+                  </div>
+
+                  {refundNotificationPolicy ? (
+                    <div className="mt-3 flex flex-col gap-1 rounded-xl bg-white/80 px-3 py-2 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between">
+                      <span>
+                        排程通知 cooldown {refundNotificationPolicy.cooldownMinutes} 分鐘；
+                        {refundNotificationPolicy.shouldNotify ? "目前符合發送條件" : "目前不會自動發送"}
+                      </span>
+                      {refundNotificationPolicy.lastSentAt || refundNotificationPolicy.nextEligibleAt ? (
+                        <span>
+                          {refundNotificationPolicy.lastSentAt ? `上次 ${refundNotificationPolicy.lastSentAt}` : ""}
+                          {refundNotificationPolicy.nextEligibleAt ? ` / 下次 ${refundNotificationPolicy.nextEligibleAt}` : ""}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {pendingRefundReportItems.length > 0 ? (
+                    <div className="mt-3 grid gap-2">
+                      {pendingRefundReportItems.map((item) => (
+                        <div
+                          key={`pending-refund-${item.id}`}
+                          className="flex flex-col gap-1 rounded-xl bg-white/80 px-3 py-2 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <span className="font-black">{item.bookingCode}</span>
+                          <span>
+                            {refundReasonLabel(item.slaReason)} / {currency(item.deltaAmount)}
+                            {item.settlementRequestedAt ? ` / ${item.settlementRequestedAt}` : ""}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : escalatedRefundReportItems.length > 0 ? (
+                    <div className="mt-3 grid gap-2">
+                      {escalatedRefundReportItems.map((item) => (
+                        <div
+                          key={`escalated-refund-${item.id}`}
+                          className="flex flex-col gap-1 rounded-xl bg-white/80 px-3 py-2 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <span className="font-black">{item.bookingCode}</span>
+                          <span>
+                            已升級 {item.refundEscalatedAt}
+                            {item.refundEscalationNote ? ` / ${item.refundEscalationNote}` : ""}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className="grid gap-3 p-5">
+                {depositAdjustments.map((adjustment) => {
+                  const isTopUp = adjustment.adjustmentType === "TOP_UP";
+                  const isRefund = adjustment.adjustmentType === "REFUND";
+                  const settlementComplete = adjustment.settlementStatus === "COMPLETED";
+                  const settlementPending = adjustment.settlementStatus === "PENDING";
+                  const settlementProcessing = adjustment.settlementStatus === "PROCESSING";
+                  const settlementFailed = adjustment.settlementStatus === "FAILED";
+                  return (
+                    <div
+                      key={adjustment.id}
+                      className="grid gap-4 rounded-2xl border border-sky-100 bg-[#f7fbff] p-4 lg:grid-cols-[1fr_210px_170px]"
+                    >
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                              isTopUp ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-800"
+                            }`}
+                          >
+                            {ADJUSTMENT_TYPE_LABEL[adjustment.adjustmentType] ?? adjustment.adjustmentType}
+                          </span>
+                          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-stone-600">
+                            {ADJUSTMENT_SOURCE_LABEL[adjustment.source] ?? adjustment.source}
+                          </span>
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-bold ${settlementTone(adjustment.settlementStatus)}`}
+                          >
+                            {SETTLEMENT_STATUS_LABEL[adjustment.settlementStatus] ?? adjustment.settlementStatus}
+                          </span>
+                          <span className="text-xs font-semibold text-stone-500">{adjustment.bookingCode}</span>
+                        </div>
+                        <p className="mt-3 text-lg font-black">
+                          {isTopUp ? "需補收" : "需退款"} {currency(adjustment.deltaAmount)}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-stone-600">{adjustment.message}</p>
+                        <p className="mt-2 text-xs font-semibold text-stone-500">
+                          目標改單：{adjustment.proposedDate} {adjustment.proposedTime}，
+                          {adjustment.proposedPeople} 人，訂金 {currency(adjustment.currentDepositTotal)} →{" "}
+                          {currency(adjustment.proposedDepositTotal)}
+                        </p>
+                        {settlementComplete ? (
+                          <p className="mt-2 text-xs font-semibold text-emerald-700">
+                            PSP：{adjustment.settlementProvider || "TAPPAY"} /{" "}
+                            {adjustment.settlementTransId || "-"}，金額{" "}
+                            {currency(adjustment.settlementAmount || adjustment.deltaAmount)}
+                          </p>
+                        ) : isTopUp || settlementProcessing || settlementFailed ? (
+                          <label className="mt-3 flex max-w-sm flex-col gap-1 text-xs font-bold text-stone-600">
+                            {isTopUp ? "PSP 交易編號" : "PSP 退款編號"}
+                            <input
+                              type="text"
+                              value={settlementRefs[adjustment.id] ?? ""}
+                              onChange={(event) =>
+                                setSettlementRefs((current) => ({
+                                  ...current,
+                                  [adjustment.id]: event.target.value,
+                                }))
+                              }
+                              placeholder={isTopUp ? "TapPay top-up rec_trade_id" : "TapPay refund reference"}
+                              className="h-10 rounded-xl border border-sky-200 bg-white px-3 text-sm text-stone-900 outline-none focus:border-sky-500"
+                            />
+                          </label>
+                        ) : (
+                          <p className="mt-3 text-xs font-semibold text-stone-500">
+                            建立退款請求後，需等待 PSP reconciliation 回寫成功才可套用改單。
+                          </p>
+                        )}
+                        {isRefund && (settlementProcessing || settlementFailed) ? (
+                          adjustment.refundEscalatedAt ? (
+                            <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+                              已升級處理：{adjustment.refundEscalatedAt}
+                              {adjustment.refundEscalationNote ? `，${adjustment.refundEscalationNote}` : ""}
+                            </p>
+                          ) : (
+                            <label className="mt-3 flex max-w-sm flex-col gap-1 text-xs font-bold text-stone-600">
+                              升級備註
+                              <input
+                                type="text"
+                                value={refundEscalationNotes[adjustment.id] ?? ""}
+                                onChange={(event) =>
+                                  setRefundEscalationNotes((current) => ({
+                                    ...current,
+                                    [adjustment.id]: event.target.value,
+                                  }))
+                                }
+                                placeholder="例：已建立 TapPay 後台工單"
+                                className="h-10 rounded-xl border border-amber-200 bg-white px-3 text-sm text-stone-900 outline-none focus:border-amber-500"
+                              />
+                            </label>
+                          )
+                        ) : null}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+                        <IncidentFact label="目前訂位" value={`${adjustment.bookingDate} ${adjustment.bookingTime}`} />
+                        <IncidentFact label="目前人數" value={`${adjustment.bookingPeople} 人`} />
+                      </div>
+
+                      <div className="flex flex-col items-start gap-2 lg:items-end lg:justify-center">
+                        {settlementComplete ? (
+                          <button
+                            type="button"
+                            onClick={() => resolveDepositAdjustment(adjustment)}
+                            disabled={adjustmentBusyId === adjustment.id}
+                            className="inline-flex items-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <CheckCheck className="h-4 w-4" />
+                            {adjustmentBusyId === adjustment.id ? "套用中" : "套用改單"}
+                          </button>
+                        ) : isTopUp ? (
+                          <button
+                            type="button"
+                            onClick={() => recordDepositSettlement(adjustment)}
+                            disabled={adjustmentBusyId === adjustment.id}
+                            className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-2 text-sm font-black text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <CreditCard className="h-4 w-4" />
+                            {adjustmentBusyId === adjustment.id ? "記錄中" : "記錄 PSP 完成"}
+                          </button>
+                        ) : isRefund && settlementPending ? (
+                          <button
+                            type="button"
+                            onClick={() => requestRefundSettlement(adjustment)}
+                            disabled={adjustmentBusyId === adjustment.id}
+                            className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-2 text-sm font-black text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <CreditCard className="h-4 w-4" />
+                            {adjustmentBusyId === adjustment.id ? "建立中" : "建立退款請求"}
+                          </button>
+                        ) : isRefund && settlementProcessing ? (
+                          <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
+                            <button
+                              type="button"
+                              onClick={() => reconcileRefundSettlement(adjustment, "COMPLETED")}
+                              disabled={adjustmentBusyId === adjustment.id}
+                              className="inline-flex items-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <CheckCheck className="h-4 w-4" />
+                              {adjustmentBusyId === adjustment.id ? "回寫中" : "對帳成功"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => reconcileRefundSettlement(adjustment, "FAILED")}
+                              disabled={adjustmentBusyId === adjustment.id}
+                              className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              標記失敗
+                            </button>
+                          </div>
+                        ) : isRefund && settlementFailed ? (
+                          <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
+                            <button
+                              type="button"
+                              onClick={() => requestRefundSettlement(adjustment)}
+                              disabled={adjustmentBusyId === adjustment.id}
+                              className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-2 text-sm font-black text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {adjustmentBusyId === adjustment.id ? "建立中" : "重送請求"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => reconcileRefundSettlement(adjustment, "COMPLETED")}
+                              disabled={adjustmentBusyId === adjustment.id}
+                              className="inline-flex items-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              對帳成功
+                            </button>
+                          </div>
+                        ) : null}
+                        {isRefund && (settlementProcessing || settlementFailed) ? (
+                          adjustment.refundEscalatedAt ? (
+                            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-800">
+                              已升級處理
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => escalateRefundAdjustment(adjustment)}
+                              disabled={adjustmentBusyId === adjustment.id}
+                              className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-4 py-2 text-sm font-black text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <AlertTriangle className="h-4 w-4" />
+                              {adjustmentBusyId === adjustment.id ? "處理中" : "升級處理"}
+                            </button>
+                          )
+                        ) : null}
+                        <span className="max-w-[190px] text-xs font-semibold text-stone-500 lg:text-right">
+                          {settlementComplete
+                            ? "已可安全套用改單"
+                            : isTopUp
+                              ? "需先完成 PSP 補款"
+                              : settlementFailed
+                                ? "退款失敗，可重送請求"
+                                : settlementProcessing
+                                  ? "等待 PSP 退款對帳"
+                                  : "需先建立退款請求"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {!adjustmentLoading && depositAdjustments.length === 0 && (
+                  <div className="rounded-2xl bg-stone-50 p-6 text-sm text-stone-500">
+                    目前沒有待處理訂金差額。已付款訂位若改人數造成補收或退款，Java 會先擋下並建立 PSP settlement 處理項目。
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-[28px] border border-stone-200 bg-white shadow-sm">
+              <div className="flex flex-col gap-4 border-b border-stone-200 p-5 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h2 className="text-2xl font-black">可訂時段</h2>
+                  <p className="mt-1 text-sm text-stone-500">
+                    只調整可接待人數；已訂與剩餘位子由訂位流程自動計算。
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <label className="flex flex-col gap-1 text-sm font-semibold text-stone-600">
+                    日期
+                    <input
+                      type="date"
+                      min={MIN_BOOKING_DATE}
+                      value={date}
+                      onChange={(event) => setDate(event.target.value)}
+                      className="h-11 rounded-xl border border-stone-200 px-3 text-stone-900"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-sm font-semibold text-stone-600">
+                    桌型
+                    <select
+                      value={tableType}
+                      onChange={(event) => setTableType(event.target.value)}
+                      className="h-11 rounded-xl border border-stone-200 px-3 text-stone-900"
+                    >
+                      <option value="normal">一般座位</option>
+                      <option value="bar">吧台</option>
+                      <option value="private">包廂</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
 
             {error && (
               <div className="mx-5 mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -388,7 +1370,8 @@ export default function MerchantPage() {
                 </button>
               </div>
             </div>
-          </section>
+            </section>
+          </div>
         </section>
       </div>
     </main>
@@ -400,6 +1383,15 @@ function Metric({ label, value }: { label: string; value: number }) {
     <div className="rounded-2xl bg-white/10 p-4">
       <p className="text-xs font-semibold text-emerald-100/70">{label}</p>
       <p className="mt-2 text-3xl font-black">{value}</p>
+    </div>
+  );
+}
+
+function RefundReportMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="min-h-[68px] rounded-xl bg-white/80 px-3 py-2">
+      <p className="text-xs font-bold opacity-75">{label}</p>
+      <p className="mt-1 text-2xl font-black">{value}</p>
     </div>
   );
 }
@@ -421,6 +1413,15 @@ function MiniStat({ icon, label, value }: { icon: ReactNode; label: string; valu
         {label}
       </div>
       <p className="mt-1 text-xl font-black">{value}</p>
+    </div>
+  );
+}
+
+function IncidentFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-white p-3">
+      <p className="text-xs font-semibold text-stone-500">{label}</p>
+      <p className="mt-1 text-sm font-black text-stone-950">{value}</p>
     </div>
   );
 }

@@ -18,6 +18,13 @@ from typing import AsyncIterator
 from urllib.parse import parse_qs, quote_plus
 from zoneinfo import ZoneInfo
 from app import session_store
+from app.booking_draft import (
+    booking_draft_confirmation_answer as _booking_draft_confirmation_answer,
+    booking_draft_missing as _booking_draft_missing,
+    booking_draft_payload as _booking_draft_payload,
+    compact_booking_prefill as _compact_booking_prefill,
+    merge_booking_prefill as _merge_booking_prefill,
+)
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -2305,6 +2312,189 @@ async def tool_cancel_booking(booking_code: str) -> dict:
     return {"success": True, **data["data"]}
 
 
+async def tool_update_booking(
+    booking_code: str,
+    people: int | None = None,
+    date: str | None = None,
+    time: str | None = None,
+    table_type: str | None = None,
+) -> dict:
+    """Update an existing booking by calling Java's transactional reschedule endpoint."""
+    auth_headers = _agent_java_auth_headers()
+    if not auth_headers:
+        return {"success": False, "error": "請先用 LINE 登入網頁，再修改訂位。"}
+    body: dict = {}
+    if date:
+        body["date"] = date
+    if time:
+        body["time"] = time
+    if people is not None:
+        body["people"] = people
+    if table_type:
+        body["tableType"] = table_type
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        r = await client.post(
+            f"{settings.java_backend_url}/api/booking/{quote_plus(booking_code)}/reschedule",
+            headers=auth_headers,
+            json=body,
+        )
+    if r.status_code != 200:
+        return {"success": False, "error": f"HTTP {r.status_code}"}
+    data = r.json()
+    if not data.get("success"):
+        return {"success": False, "error": data.get("errorMsg", "unknown")}
+    return {"success": True, **data["data"]}
+
+
+async def tool_create_booking_incident(
+    booking_code: str,
+    incident_type: str = "CUSTOMER_LATE",
+    delay_minutes: int = 15,
+    message: str | None = None,
+) -> dict:
+    """Create a real-time booking rescue incident and ask Java to push LINE status."""
+    auth_headers = _agent_java_auth_headers()
+    if not auth_headers:
+        return {"success": False, "error": "請先用 LINE 登入網頁，再建立救場通知。"}
+    body = {
+        "incidentType": incident_type,
+        "delayMinutes": delay_minutes,
+    }
+    if message:
+        body["message"] = message
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        r = await client.post(
+            f"{settings.java_backend_url}/api/booking/{quote_plus(booking_code)}/incidents",
+            headers=auth_headers,
+            json=body,
+        )
+    if r.status_code != 200:
+        return {"success": False, "error": f"HTTP {r.status_code}"}
+    data = r.json()
+    if not data.get("success"):
+        return {"success": False, "error": data.get("errorMsg", "unknown")}
+    return {"success": True, **data["data"]}
+
+
+async def _fetch_private_dining_memory() -> dict:
+    auth_headers = _agent_java_auth_headers()
+    if not auth_headers:
+        return {}
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.get(
+                f"{settings.java_backend_url}/api/dining-memory/me",
+                headers=auth_headers,
+            )
+        if r.status_code != 200:
+            return {}
+        data = r.json()
+        if not data.get("success") or not isinstance(data.get("data"), dict):
+            return {}
+        return data["data"]
+    except Exception:
+        logger.exception("private_dining_memory_fetch_failed")
+        return {}
+
+
+def _private_ai_offer_trigger(query: str) -> str | None:
+    normalized = (query or "").lower()
+    retention_tokens = ("看了幾次", "一直看", "一直找", "還沒訂", "沒訂", "猶豫", "再看看")
+    if any(token in normalized for token in retention_tokens):
+        return "REPEATED_SEARCH_NO_BOOKING"
+
+    off_peak_tokens = (
+        "離峰",
+        "空桌",
+        "空檔",
+        "平日",
+        "下午",
+        "早點",
+        "17:30",
+        "17點",
+        "五點半",
+        "5點半",
+        "5:30",
+    )
+    if any(token in normalized for token in off_peak_tokens):
+        return "OFF_PEAK_FILL"
+
+    discount_tokens = ("優惠", "折扣", "省錢", "便宜", "划算", "打折", "9折", "九折", "八折", "coupon", "offer", "discount")
+    if any(token in normalized for token in discount_tokens):
+        return "SAVE_MONEY_INTENT"
+
+    prefill = _line_booking_prefill_from_text(query)
+    if _private_ai_offer_is_off_peak_time(str(prefill.get("time") or "")):
+        return "OFF_PEAK_FILL"
+    return None
+
+
+def _private_ai_offer_is_off_peak_time(raw_time: str) -> bool:
+    match = re.search(r"([01]?\d|2[0-3]):([0-5]\d)", raw_time or "")
+    if not match:
+        return False
+    hour = int(match.group(1))
+    minute = int(match.group(2))
+    return (hour, minute) <= (17, 30)
+
+
+async def _fetch_private_ai_offers(shop_ids: list[int], query: str) -> dict[int, list[dict]]:
+    auth_headers = _agent_java_auth_headers()
+    trigger = _private_ai_offer_trigger(query)
+    if not auth_headers or not trigger:
+        return {}
+
+    unique_shop_ids: list[int] = []
+    for shop_id in shop_ids:
+        try:
+            sid = int(shop_id)
+        except (TypeError, ValueError):
+            continue
+        if sid > 0 and sid not in unique_shop_ids:
+            unique_shop_ids.append(sid)
+        if len(unique_shop_ids) >= 3:
+            break
+    if not unique_shop_ids:
+        return {}
+
+    prefill = _line_booking_prefill_from_text(query)
+    payload: dict = {
+        "shopIds": unique_shop_ids,
+        "trigger": trigger,
+    }
+    if prefill.get("people"):
+        payload["people"] = prefill["people"]
+    if prefill.get("time"):
+        payload["targetTime"] = prefill["time"]
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.post(
+                f"{settings.java_backend_url}/api/private-offers/match",
+                headers=auth_headers,
+                json=payload,
+            )
+        if r.status_code != 200:
+            return {}
+        data = r.json()
+        if not data.get("success") or not isinstance(data.get("data"), dict):
+            return {}
+        offers = data["data"].get("offers") or []
+        by_shop: dict[int, list[dict]] = {}
+        for offer in offers:
+            if not isinstance(offer, dict):
+                continue
+            try:
+                sid = int(offer.get("shopId"))
+            except (TypeError, ValueError):
+                continue
+            by_shop.setdefault(sid, []).append(offer)
+        return by_shop
+    except Exception:
+        logger.exception("private_ai_offer_fetch_failed")
+        return {}
+
+
 def _agent_java_auth_headers() -> dict[str, str] | None:
     token = _agent_auth_token.get("").strip()
     if not token:
@@ -2319,6 +2509,8 @@ TOOL_DISPATCH = {
     "create_booking": tool_create_booking,
     "pay_booking_with_test_card": tool_pay_booking_with_test_card,
     "cancel_booking": tool_cancel_booking,
+    "update_booking": tool_update_booking,
+    "create_booking_incident": tool_create_booking_incident,
 }
 
 TOOLS = [
@@ -2403,6 +2595,23 @@ TOOLS = [
                     "required": ["booking_code"],
                 },
             },
+            {
+                "name": "update_booking",
+                "description": """修改既有訂位的日期、時間、人數或座位類型。
+僅在已知 bookingCode 且使用者明確要求改單時呼叫；不要用它建立新訂位。
+若使用者只說「改 8 點，同樣 4 位」，沿用原訂位未提到的欄位。""",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "booking_code": {"type": "STRING", "description": "既有訂位編號"},
+                        "people": {"type": "INTEGER", "description": "新訂位人數 1-12"},
+                        "date": {"type": "STRING", "description": "新日期 YYYY-MM-DD"},
+                        "time": {"type": "STRING", "description": "新時間 HH:MM"},
+                        "table_type": {"type": "STRING", "description": "normal/bar/private"},
+                    },
+                    "required": ["booking_code"],
+                },
+            },
         ]
     }
 ]
@@ -2470,6 +2679,11 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 - 若不知道 voucher_id，先 semantic_shop_search 找到 hot_seat_vouchers，再取其中一個 id
 - 訂單成功後，回應要包含 voucher_order_id，並提示用戶到「我的訂單」查看
 - 一個 query 最多訂 1 個 Hot Seat 方案
+
+==== AI 私密配對優惠 ====
+- 若候選資料有 private_ai_offers，描述為「AI 已替你保留/配對的私密優惠」，不要說成公開優惠券或全站折扣。
+- 不要引導使用者找「優惠券入口」；私密 offer 只在符合條件的推薦或訂位流程中顯示。
+- 私密 offer 是輔助決策訊號，不要為了折扣推薦不符合使用者料理、區域或私人記憶偏好的店。
 
 ==== 通用規則 ====
 - 不要主動下單，除非用戶明確表示要訂
@@ -2600,6 +2814,90 @@ def _booking_cancel_intent(query: str) -> bool:
 def _booking_cancel_confirmation_intent(query: str) -> bool:
     normalized = str(query or "").strip()
     return any(token in normalized for token in ("確認取消", "確定取消", "是的取消", "確認退訂", "確定退訂"))
+
+
+def _booking_reschedule_intent(query: str) -> bool:
+    normalized = re.sub(r"\s+", "", str(query or ""))
+    if not normalized:
+        return False
+    if _payment_intent(normalized) or _booking_cancel_intent(normalized) or _booking_cancel_confirmation_intent(normalized):
+        return False
+    if _negative_selection_intent(normalized):
+        return False
+    if re.search(r"(改|換)(到|成)?([0-2]?\d[:：點]|明天|明晚|後天|週|星期|[一二兩三四五六七八九十\d]{1,3}[人位])", normalized):
+        return True
+    return any(
+        token in normalized
+        for token in (
+            "改成",
+            "改到",
+            "更改",
+            "改一下",
+            "改時間",
+            "改日期",
+            "改人數",
+            "改位",
+            "改訂位",
+            "換成",
+            "換到",
+            "延後",
+            "提前",
+        )
+    )
+
+
+def _booking_incident_intent(query: str) -> bool:
+    normalized = re.sub(r"\s+", "", str(query or "").lower())
+    if not normalized:
+        return False
+    return any(
+        token in normalized
+        for token in (
+            "晚到",
+            "遲到",
+            "會晚",
+            "塞車",
+            "路上堵",
+            "趕不上",
+            "晚點到",
+            "店家延誤",
+            "延誤通知",
+            "延後入座",
+            "前面桌",
+            "delay",
+            "late",
+        )
+    )
+
+
+def _booking_incident_type_from_text(query: str) -> str:
+    normalized = re.sub(r"\s+", "", str(query or "").lower())
+    if any(token in normalized for token in ("店家延誤", "前面桌", "餐廳延", "入座延", "延後入座")):
+        return "RESTAURANT_DELAY"
+    return "CUSTOMER_LATE"
+
+
+def _delay_minutes_from_text(query: str, default: int = 15) -> int:
+    normalized = str(query or "")
+    match = re.search(r"([一二兩三四五六七八九十\d]{1,3})\s*(分|分鐘|min|mins)", normalized, re.IGNORECASE)
+    if not match:
+        return default
+    raw = match.group(1)
+    value = _zh_number_to_int(raw) if not raw.isdigit() else int(raw)
+    if value is None or value <= 0:
+        return default
+    return min(value, 45)
+
+
+def _booking_table_type_from_text(query: str) -> str:
+    normalized = re.sub(r"\s+", "", str(query or "").lower())
+    if any(token in normalized for token in ("包廂", "包間", "private")):
+        return "private"
+    if any(token in normalized for token in ("吧台", "bar")):
+        return "bar"
+    if any(token in normalized for token in ("一般位", "一般座位", "普通位", "normal")):
+        return "normal"
+    return ""
 
 
 def _booking_code_from_text(query: str) -> str:
@@ -2902,6 +3200,135 @@ def _expand_initial_recommendations(
     return [*recommended, best_backup], [sid for sid in rejected if sid != best_backup]
 
 
+def _private_memory_avoid_shop_ids(memory: dict | None) -> set[int]:
+    if not isinstance(memory, dict):
+        return set()
+    avoid_ids: set[int] = set()
+    for raw in memory.get("avoidShopIds") or []:
+        try:
+            avoid_ids.add(int(raw))
+        except (TypeError, ValueError):
+            continue
+    for item in memory.get("memories") or []:
+        if not isinstance(item, dict) or not item.get("doNotRecommend"):
+            continue
+        try:
+            avoid_ids.add(int(item.get("shopId")))
+        except (TypeError, ValueError):
+            continue
+    return avoid_ids
+
+
+def _private_memory_by_shop(memory: dict | None) -> dict[int, dict]:
+    if not isinstance(memory, dict):
+        return {}
+    by_shop: dict[int, dict] = {}
+    for item in memory.get("memories") or []:
+        if not isinstance(item, dict):
+            continue
+        try:
+            shop_id = int(item.get("shopId"))
+        except (TypeError, ValueError):
+            continue
+        by_shop[shop_id] = item
+    return by_shop
+
+
+def _adjust_selected_ids_for_private_memory(
+    shops: list[dict],
+    selected_ids: list[int],
+    memory: dict | None,
+) -> list[int]:
+    avoid_ids = _private_memory_avoid_shop_ids(memory)
+    if not avoid_ids:
+        return selected_ids
+    target_count = min(3, len(selected_ids) or len(shops))
+    adjusted = [sid for sid in selected_ids if sid not in avoid_ids]
+    for shop in shops:
+        sid = _shop_id(shop)
+        if sid is None or sid in avoid_ids or sid in adjusted:
+            continue
+        adjusted.append(sid)
+        if len(adjusted) >= target_count:
+            break
+    return adjusted or selected_ids
+
+
+def _annotate_private_memory(shops: list[dict], memory: dict | None) -> list[dict]:
+    by_shop = _private_memory_by_shop(memory)
+    if not by_shop:
+        return shops
+    annotated: list[dict] = []
+    for shop in shops:
+        sid = _shop_id(shop)
+        memory_item = by_shop.get(sid) if sid is not None else None
+        if not memory_item:
+            annotated.append(shop)
+            continue
+        updated = dict(shop)
+        tags = [str(tag) for tag in memory_item.get("tags") or [] if tag]
+        updated["private_memory_tags"] = tags[:6]
+        updated["private_memory_rating"] = memory_item.get("rating")
+        if memory_item.get("doNotRecommend"):
+            updated["private_memory_status"] = "avoid"
+            updated["private_memory_reason"] = "你上次把這家標記為不再推薦"
+        elif tags:
+            updated["private_memory_status"] = "matched"
+            updated["private_memory_reason"] = f"你上次標記：{'、'.join(tags[:3])}"
+        annotated.append(updated)
+    return annotated
+
+
+def _annotate_private_ai_offers(shops: list[dict], offers_by_shop: dict[int, list[dict]] | None) -> list[dict]:
+    if not offers_by_shop:
+        return shops
+    annotated: list[dict] = []
+    for shop in shops:
+        sid = _shop_id(shop)
+        offers = offers_by_shop.get(sid) if sid is not None else None
+        if not offers:
+            annotated.append(shop)
+            continue
+        updated = dict(shop)
+        updated["private_ai_offers"] = offers[:3]
+        first = offers[0]
+        if isinstance(first, dict):
+            title = str(first.get("title") or "AI 私密優惠").strip()
+            updated["private_ai_offer_reason"] = title
+        annotated.append(updated)
+    return annotated
+
+
+def _apply_private_memory_to_recommendations(
+    recommended: list[int],
+    rejected: list[int],
+    shops: list[dict],
+    memory: dict | None,
+) -> tuple[list[int], list[int]]:
+    avoid_ids = _private_memory_avoid_shop_ids(memory)
+    if not avoid_ids:
+        return recommended, rejected
+    target_count = min(3, len(recommended) or len(shops))
+    available_ids = [
+        sid
+        for shop in shops
+        if (sid := _shop_id(shop)) is not None and sid not in avoid_ids
+    ]
+    next_recommended = [sid for sid in recommended if sid not in avoid_ids]
+    for sid in available_ids:
+        if sid not in next_recommended:
+            next_recommended.append(sid)
+        if len(next_recommended) >= target_count:
+            break
+    if not next_recommended:
+        return recommended, rejected
+    next_rejected = []
+    for sid in rejected + [sid for sid in avoid_ids if sid not in rejected]:
+        if sid not in next_recommended and sid not in next_rejected:
+            next_rejected.append(sid)
+    return next_recommended, next_rejected
+
+
 def _validate_agent_decision(
     decision: AgentRecommendationDecision,
     tool_result: dict,
@@ -2928,6 +3355,12 @@ def _validate_agent_decision(
         if sid is not None and sid not in recommended and sid not in rejected:
             rejected.append(sid)
     recommended, rejected = _expand_initial_recommendations(query, recommended, rejected, shops)
+    recommended, rejected = _apply_private_memory_to_recommendations(
+        recommended,
+        rejected,
+        shops,
+        tool_result.get("private_memory") if isinstance(tool_result, dict) else None,
+    )
     rejection_summary = decision.rejection_summary
     if rejection_summary:
         recommended_aliases: list[str] = []
@@ -3705,48 +4138,6 @@ def _fresh_restaurant_recommendation_request(query: str) -> bool:
     )
 
 
-def _compact_booking_prefill(prefill: dict | None) -> dict:
-    if not isinstance(prefill, dict):
-        return {}
-    compact: dict = {}
-    for key in ("date", "time", "table_type"):
-        value = str(prefill.get(key) or "").strip()
-        if value:
-            compact[key] = value
-    people = prefill.get("people")
-    try:
-        if people is not None:
-            compact["people"] = int(people)
-    except (TypeError, ValueError):
-        pass
-    return compact
-
-
-def _merge_booking_prefill(current: dict, draft: dict | None, *, override: bool = False) -> dict:
-    if override and isinstance(draft, dict):
-        merged = _compact_booking_prefill(draft)
-        for key in ("date", "time", "people", "table_type"):
-            if current.get(key) not in (None, ""):
-                merged[key] = current.get(key)
-        return merged
-    merged = dict(current or {})
-    if not isinstance(draft, dict):
-        return merged
-    for key in ("date", "time", "people", "table_type"):
-        if merged.get(key) in (None, "") and draft.get(key) not in (None, ""):
-            merged[key] = draft.get(key)
-    return merged
-
-
-def _booking_draft_payload(shop_id: int, shop_name: str, prefill: dict | None) -> dict:
-    draft = {
-        "shop_id": int(shop_id),
-        "shop_name": str(shop_name or f"店家 {shop_id}"),
-    }
-    draft.update(_compact_booking_prefill(prefill))
-    return draft
-
-
 def _booking_confirm_intent(query: str) -> bool:
     normalized = re.sub(r"\s+", "", str(query or ""))
     if not normalized:
@@ -3779,39 +4170,6 @@ def _booking_draft_edit_intent(query: str) -> bool:
     if _negative_selection_intent(normalized):
         return False
     return any(token in normalized for token in ("改成", "改到", "更改", "改一下", "換成", "換到", "改", "換"))
-
-
-def _booking_draft_missing(draft: dict) -> list[str]:
-    missing = []
-    if not draft.get("date"):
-        missing.append("日期")
-    if not draft.get("time"):
-        missing.append("時間")
-    if not draft.get("people"):
-        missing.append("人數")
-    return missing
-
-
-def _booking_draft_confirmation_answer(draft: dict, query: str = "") -> str:
-    missing = _booking_draft_missing(draft)
-    shop_name = str(draft.get("shop_name") or f"店家 {draft.get('shop_id')}")
-    if missing:
-        return f"我已鎖定「{shop_name}」，還缺{'、'.join(missing)}。請補齊後我再幫你整理確認。"
-    normalized = re.sub(r"\s+", "", str(query or ""))
-    if any(token in normalized for token in ("改成", "改到", "晚點", "主管", "大老闆", "老闆", "總共")):
-        return (
-            f"我已沿用上一輪選定的「{shop_name}」，並套用最新變更："
-            f"{draft.get('date')} {draft.get('time')}、{draft.get('people')} 人。\n"
-            "請確認後再送出；送出時會即時檢查店家容量並扣位，若額滿就改開候位 / 空位通知。"
-        )
-    return (
-        "我幫你整理好訂位內容了，請確認後我再送出。\n"
-        f"- 店家：{shop_name}\n"
-        f"- 日期：{draft.get('date')}\n"
-        f"- 時間：{draft.get('time')}\n"
-        f"- 人數：{draft.get('people')} 人\n"
-        "確認無誤後，可以點下方確認卡，或直接回「確認訂位」。"
-    )
 
 
 def _selection_index_from_text(text: str) -> int | None:
@@ -4593,6 +4951,57 @@ def _build_booking_transaction(
 def _booking_confirmation_narrative(transaction: dict) -> str:
     if transaction.get("status") == "FAILED":
         return f"訂位建立失敗：{transaction.get('error') or '後端未回傳原因'}"
+    if transaction.get("status") == "RESCHEDULE_FAILED":
+        shop_name = transaction.get("shop_name") or f"店家 ID {transaction.get('shop_id')}"
+        return "\n".join(
+            [
+                f"改單失敗：{transaction.get('error') or '新時段目前無法保留'}",
+                "原訂位已保留不變。",
+                "",
+                f"- 店家：{shop_name}",
+                f"- 原時間：{transaction.get('date')} {transaction.get('time')}",
+                f"- 訂位編號：`{transaction.get('booking_code')}`",
+            ]
+        )
+    if transaction.get("action") == "rescheduled":
+        shop_name = transaction.get("shop_name") or f"店家 ID {transaction.get('shop_id')}"
+        status_line = "訂位已更新。" if transaction.get("changed", True) else "訂位內容沒有變更。"
+        lines = [
+            status_line,
+            "",
+            f"- 店家：{shop_name}",
+            f"- 人數：{transaction.get('people')} 人",
+            f"- 新時間：{transaction.get('date')} {transaction.get('time')}",
+            f"- 訂位編號：`{transaction.get('booking_code')}`",
+        ]
+        if transaction.get("status") == "PENDING_PAYMENT" and transaction.get("needs_deposit"):
+            lines.append(f"- 待付訂金：NT$ {transaction.get('deposit_total') or 0}")
+        return "\n".join(lines)
+    if transaction.get("action") == "incident":
+        shop_name = transaction.get("shop_name") or f"店家 ID {transaction.get('shop_id')}"
+        incident = transaction.get("incident") if isinstance(transaction.get("incident"), dict) else {}
+        return "\n".join(
+            [
+                incident.get("title") or "已建立臨場救場通知。",
+                "",
+                f"- 店家：{shop_name}",
+                f"- 原訂位：{transaction.get('date')} {transaction.get('time')}，{transaction.get('people')} 人",
+                f"- 新預估：{incident.get('adjustedTime') or '-'}",
+                f"- 訂位編號：`{transaction.get('booking_code')}`",
+                "",
+                incident.get("customerMessage") or "我已幫你記錄現場狀況，並同步通知 LINE。",
+            ]
+        )
+    if transaction.get("status") == "INCIDENT_FAILED":
+        shop_name = transaction.get("shop_name") or f"店家 ID {transaction.get('shop_id')}"
+        return "\n".join(
+            [
+                f"救場通知建立失敗：{transaction.get('error') or '後端未回傳原因'}",
+                "",
+                f"- 店家：{shop_name}",
+                f"- 訂位編號：`{transaction.get('booking_code') or '-'}`",
+            ]
+        )
     if transaction.get("status") == "CANCELED":
         shop_name = transaction.get("shop_name") or f"店家 ID {transaction.get('shop_id')}"
         return "\n".join(
@@ -4717,6 +5126,128 @@ def _booking_payment_not_needed_narrative(transaction: dict) -> str:
     return "我找不到可付款的待付訂金訂位。請先確認訂位狀態或重新建立訂位。"
 
 
+def _booking_reschedule_action(query: str, transaction: dict) -> ToolGuardResult:
+    current_code = str(transaction.get("booking_code") or "").upper()
+    requested_code = _booking_code_from_text(query)
+    if requested_code and current_code and requested_code != current_code:
+        return ToolGuardResult(
+            action="direct",
+            direct_answer=(
+                f"你提供的訂位編號 `{requested_code}` 和最近一筆 `{current_code}` 不一致。"
+                "為避免改錯訂位，請重新確認訂位編號。"
+            ),
+            last_tool_result={"transaction": transaction},
+        )
+    if not current_code:
+        return ToolGuardResult(
+            action="direct",
+            direct_answer="我找不到這筆訂位的訂位編號，無法安全改單。",
+            last_tool_result={"transaction": transaction},
+        )
+
+    status = str(transaction.get("status") or "")
+    if status == "CANCELED":
+        return ToolGuardResult(action="direct", direct_answer="這筆訂位已取消，不能再改時間。", last_tool_result={"transaction": transaction})
+    if status == "EXPIRED" or _pending_booking_expired(transaction):
+        return ToolGuardResult(action="direct", direct_answer="這筆訂位保留已逾期，請重新建立訂位。", last_tool_result={"transaction": transaction})
+    if status not in {"PAID", "CONFIRMED", "PENDING_PAYMENT"}:
+        return ToolGuardResult(action="direct", direct_answer="我找不到可修改的有效訂位。", last_tool_result={"transaction": transaction})
+    if _same_day_datetime_request(query):
+        return ToolGuardResult(action="direct", direct_answer=_same_day_booking_policy_answer(), last_tool_result={"transaction": transaction})
+
+    prefill = _line_booking_prefill_from_text(query)
+    requested_table_type = _booking_table_type_from_text(query)
+    touched = bool(prefill.get("date") or prefill.get("time") or prefill.get("people") or requested_table_type)
+    if not touched:
+        return ToolGuardResult(
+            action="direct",
+            direct_answer="可以改單。請直接告訴我要改成哪個日期、時間或人數，例如「改成明晚 8 點，同樣 4 位」。",
+            last_tool_result={"transaction": transaction},
+        )
+
+    date = prefill.get("date") or transaction.get("date")
+    time = prefill.get("time") or transaction.get("time")
+    people = prefill.get("people") or transaction.get("people")
+    table_type = requested_table_type or transaction.get("table_type") or "normal"
+    if not date or not time or not people:
+        return ToolGuardResult(
+            action="direct",
+            direct_answer="我需要完整的日期、時間與人數才能改單。請用「改成明晚 8 點 4 位」這種格式回覆。",
+            last_tool_result={"transaction": transaction},
+        )
+    try:
+        people = int(people)
+        requested_date = date_cls.fromisoformat(str(date))
+    except (TypeError, ValueError):
+        return ToolGuardResult(
+            action="direct",
+            direct_answer="改單格式我沒有讀懂，請確認日期為 YYYY-MM-DD、時間為 HH:MM、人數為 1-12。",
+            last_tool_result={"transaction": transaction},
+        )
+    if people < 1 or people > 12:
+        return ToolGuardResult(action="direct", direct_answer="訂位人數需介於 1-12 人。", last_tool_result={"transaction": transaction})
+    if requested_date <= taipei_today():
+        return ToolGuardResult(action="direct", direct_answer=_same_day_booking_policy_answer(), last_tool_result={"transaction": transaction})
+
+    old_people = int(transaction.get("people") or 0)
+    old_table_type = transaction.get("table_type") or "normal"
+    if (
+        str(date) == str(transaction.get("date") or "")
+        and str(time) == str(transaction.get("time") or "")
+        and people == old_people
+        and str(table_type) == str(old_table_type)
+    ):
+        return ToolGuardResult(
+            action="direct",
+            direct_answer="這筆訂位目前已經是你指定的日期、時間與人數，不需要再改。",
+            last_tool_result={"transaction": transaction},
+        )
+
+    return ToolGuardResult(
+        action="reschedule",
+        args={
+            "booking_code": current_code,
+            "date": str(date),
+            "time": str(time),
+            "people": people,
+            "table_type": str(table_type),
+        },
+        last_tool_result={"transaction": transaction},
+    )
+
+
+def _booking_incident_action(query: str, transaction: dict) -> ToolGuardResult:
+    current_code = str(transaction.get("booking_code") or "").upper()
+    requested_code = _booking_code_from_text(query)
+    if requested_code and current_code and requested_code != current_code:
+        return ToolGuardResult(
+            action="direct",
+            direct_answer=(
+                f"你提供的訂位編號 `{requested_code}` 和最近一筆 `{current_code}` 不一致。"
+                "為避免通知錯訂位，請重新確認訂位編號。"
+            ),
+            last_tool_result={"transaction": transaction},
+        )
+    if not current_code:
+        return ToolGuardResult(action="direct", direct_answer="我找不到這筆訂位的訂位編號，無法建立救場通知。", last_tool_result={"transaction": transaction})
+    status = str(transaction.get("status") or "")
+    if status == "CANCELED":
+        return ToolGuardResult(action="direct", direct_answer="這筆訂位已取消，不能建立救場通知。", last_tool_result={"transaction": transaction})
+    if status == "EXPIRED" or _pending_booking_expired(transaction):
+        return ToolGuardResult(action="direct", direct_answer="這筆訂位保留已逾期，不能建立救場通知。", last_tool_result={"transaction": transaction})
+    if status not in {"PAID", "CONFIRMED", "PENDING_PAYMENT"}:
+        return ToolGuardResult(action="direct", direct_answer="我找不到可建立救場通知的有效訂位。", last_tool_result={"transaction": transaction})
+    return ToolGuardResult(
+        action="incident",
+        args={
+            "booking_code": current_code,
+            "incident_type": _booking_incident_type_from_text(query),
+            "delay_minutes": _delay_minutes_from_text(query),
+        },
+        last_tool_result={"transaction": transaction},
+    )
+
+
 def _booking_transaction_after_payment(transaction: dict, payment_result: dict) -> dict:
     updated = dict(transaction)
     if payment_result.get("success"):
@@ -4736,6 +5267,30 @@ def _booking_transaction_after_payment(transaction: dict, payment_result: dict) 
                 "success": False,
                 "status": "PAYMENT_FAILED",
                 "error": payment_result.get("error") or "付款流程未完成",
+            }
+        )
+    return updated
+
+
+def _booking_transaction_after_incident(transaction: dict, incident_result: dict) -> dict:
+    updated = dict(transaction)
+    if incident_result.get("success"):
+        incident = {key: value for key, value in incident_result.items() if key != "success"}
+        updated.update(
+            {
+                "success": True,
+                "action": "incident",
+                "incident": incident,
+                "error": None,
+            }
+        )
+    else:
+        updated.update(
+            {
+                "success": False,
+                "status": "INCIDENT_FAILED",
+                "action": "incident_failed",
+                "error": incident_result.get("error") or "救場通知建立失敗",
             }
         )
     return updated
@@ -4766,6 +5321,41 @@ def _booking_transaction_after_cancel(transaction: dict, cancel_result: dict) ->
                 "success": False,
                 "status": "FAILED",
                 "error": cancel_result.get("error") or "取消訂位失敗",
+            }
+        )
+    return updated
+
+
+def _booking_transaction_after_reschedule(transaction: dict, update_result: dict) -> dict:
+    updated = dict(transaction)
+    if update_result.get("success"):
+        updated.update(
+            {
+                "kind": "booking",
+                "success": True,
+                "action": "rescheduled",
+                "changed": bool(update_result.get("changed", True)),
+                "status": update_result.get("status") or updated.get("status"),
+                "shop_id": update_result.get("shopId") or updated.get("shop_id"),
+                "shop_name": update_result.get("shopName") or updated.get("shop_name"),
+                "booking_code": update_result.get("bookingCode") or updated.get("booking_code"),
+                "people": update_result.get("people") or updated.get("people"),
+                "date": update_result.get("date") or updated.get("date"),
+                "time": update_result.get("time") or updated.get("time"),
+                "table_type": update_result.get("tableType") or updated.get("table_type"),
+                "needs_deposit": bool(update_result.get("needsDeposit", updated.get("needs_deposit"))),
+                "deposit_total": update_result.get("depositTotal") or updated.get("deposit_total"),
+                "hold_expires_at": update_result.get("holdExpiresAt") or updated.get("hold_expires_at"),
+                "error": None,
+            }
+        )
+    else:
+        updated.update(
+            {
+                "success": False,
+                "action": "reschedule_failed",
+                "status": "RESCHEDULE_FAILED",
+                "error": update_result.get("error") or "改單失敗",
             }
         )
     return updated
@@ -4855,6 +5445,19 @@ def _latest_booking_transaction(history: list[dict]) -> dict | None:
     return None
 
 
+def _latest_booking_context_kind(history: list[dict]) -> str:
+    for turn in reversed(history):
+        if not isinstance(turn, dict):
+            continue
+        tx = turn.get("transaction")
+        if isinstance(tx, dict) and tx.get("kind") == "booking":
+            return "transaction"
+        booking_draft = turn.get("booking_draft")
+        if isinstance(booking_draft, dict) and booking_draft:
+            return "draft"
+    return ""
+
+
 def _pending_booking_expired(tx: dict) -> bool:
     if tx.get("status") != "PENDING_PAYMENT":
         return False
@@ -4896,6 +5499,7 @@ JSON schema:
 - 若同品牌有多個分店，只選最符合需求的 1 家；不要在同一個 bullet 合併多家分店。
 - 若使用者指定分類，推薦必須符合主要分類意圖，例如「火鍋」只推火鍋，「漢堡」只推美式/漢堡相關店。
 - 候選資料中的 分類/category/category_slug 是分類依據；若分類已符合使用者主要意圖，視為符合，不要因店名、招牌菜或餐點型態自行改判為不符合。
+- 若候選資料標示「私人記憶:不再推薦」，除非沒有其他候選，不能放進 recommended_shop_ids；可在 narrative 裡簡短說明已避開使用者上次標記的店。
 - 符合條件少於 3 家時不要硬湊；可只推薦 1-2 家。
 - narrative 的開頭要根據 recommended_shop_ids 數量使用下列語氣，低數量要像精選，不要像不足：
   - 3 家：使用「為您推薦以下三間熱門選擇:」
@@ -5020,6 +5624,7 @@ class AgentToolState:
     latest_search_result: dict = field(default_factory=dict)
     booking_result: dict | None = None
     payment_result: dict | None = None
+    update_result: dict | None = None
     final_transaction: dict | None = None
     direct_answer: str | None = None
 
@@ -5134,12 +5739,18 @@ async def _agent_exact_booking_from_query(query: str) -> ToolGuardResult | None:
 
 
 def _agent_booking_action_from_history(query: str, history: list[dict]) -> ToolGuardResult | None:
+    reschedule_intent = _booking_reschedule_intent(query)
+    incident_intent = _booking_incident_intent(query)
     if not (
         _payment_intent(query)
         or _booking_status_intent(query)
         or _booking_cancel_intent(query)
         or _booking_cancel_confirmation_intent(query)
+        or reschedule_intent
+        or incident_intent
     ):
+        return None
+    if reschedule_intent and _latest_booking_context_kind(history) == "draft":
         return None
 
     transaction = _latest_booking_transaction(history)
@@ -5161,6 +5772,12 @@ def _agent_booking_action_from_history(query: str, history: list[dict]) -> ToolG
             args={"booking_code": str(transaction.get("booking_code"))},
             last_tool_result={"transaction": transaction},
         )
+
+    if reschedule_intent:
+        return _booking_reschedule_action(query, transaction)
+
+    if incident_intent:
+        return _booking_incident_action(query, transaction)
 
     if _payment_intent(query):
         if transaction.get("status") == "PENDING_PAYMENT" and transaction.get("needs_deposit") and transaction.get("booking_code"):
@@ -5281,6 +5898,8 @@ def _after_tool_call(
         state.booking_result = tool_result
     elif tool_name == "pay_booking_with_test_card":
         state.payment_result = tool_result
+    elif tool_name == "update_booking":
+        state.update_result = tool_result
 
     if candidate_content is not None:
         state.contents.append(candidate_content)
@@ -5330,6 +5949,40 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
                     ],
                 )
             return final_answer, state.tools_used, state.last_tool_result
+        if booking_action.action == "reschedule":
+            update_result = await tool_update_booking(**booking_action.args)
+            state.tools_used.append("update_booking")
+            base_transaction = (booking_action.last_tool_result or {}).get("transaction") or {}
+            transaction = _booking_transaction_after_reschedule(base_transaction, update_result)
+            final_answer = _booking_confirmation_narrative(transaction)
+            state.final_transaction = transaction
+            state.last_tool_result = {"transaction": transaction}
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {"role": "model", "content": final_answer, "transaction": transaction},
+                    ],
+                )
+            return final_answer, state.tools_used, state.last_tool_result
+        if booking_action.action == "incident":
+            incident_result = await tool_create_booking_incident(**booking_action.args)
+            state.tools_used.append("create_booking_incident")
+            base_transaction = (booking_action.last_tool_result or {}).get("transaction") or {}
+            transaction = _booking_transaction_after_incident(base_transaction, incident_result)
+            final_answer = _booking_confirmation_narrative(transaction)
+            state.final_transaction = transaction
+            state.last_tool_result = {"transaction": transaction}
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {"role": "model", "content": final_answer, "transaction": transaction},
+                    ],
+                )
+            return final_answer, state.tools_used, state.last_tool_result
         guard = _before_tool_call(state, "pay_booking_with_test_card", booking_action.args)
         if guard.action != "stop":
             payment_result = await tool_pay_booking_with_test_card(**guard.args)
@@ -5360,6 +6013,76 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
                 ],
             )
         return final_answer, [], {}
+
+    booking_followup = _agent_booking_followup_from_history(effective_query, history)
+    if booking_followup is not None:
+        if booking_followup.action == "direct":
+            final_answer = booking_followup.direct_answer or ""
+            state.last_tool_result = booking_followup.last_tool_result or {}
+            if session_id:
+                recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
+                booking_draft = (
+                    state.last_tool_result.get("booking_draft")
+                    if isinstance(state.last_tool_result.get("booking_draft"), dict)
+                    else None
+                )
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {
+                            "role": "model",
+                            "content": final_answer,
+                            **({"recommendation": recommendation} if recommendation else {}),
+                            **({"booking_draft": booking_draft} if booking_draft else {}),
+                        },
+                    ],
+                )
+            return final_answer, [], state.last_tool_result
+
+        state.latest_search_result = booking_followup.last_tool_result or {}
+        guard = _before_tool_call(state, "create_booking", booking_followup.args)
+        if guard.action == "direct":
+            final_answer = guard.direct_answer or ""
+            state.final_transaction = guard.final_transaction
+            state.last_tool_result = guard.last_tool_result or {}
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {
+                            "role": "model",
+                            "content": final_answer,
+                            **({"transaction": state.final_transaction} if state.final_transaction else {}),
+                        },
+                    ],
+                )
+            return final_answer, state.tools_used, state.last_tool_result
+        elif guard.action != "stop":
+            tool_result = await tool_create_booking(**guard.args)
+            _after_tool_call(state, "create_booking", tool_result)
+            transaction = _build_booking_transaction(
+                state.booking_result,
+                state.payment_result,
+                state.latest_search_result,
+            )
+            final_answer = _booking_confirmation_narrative(transaction)
+            state.final_transaction = transaction
+            state.last_tool_result["transaction"] = transaction
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {
+                            "role": "model",
+                            "content": final_answer,
+                            "transaction": state.final_transaction,
+                        },
+                    ],
+                )
+            return final_answer, state.tools_used, state.last_tool_result
 
     exact_booking = await _agent_exact_booking_from_query(effective_query)
     if exact_booking is not None:
@@ -5459,41 +6182,6 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
         state.tools_used.append("semantic_shop_search")
         state.last_tool_result = more_recommendations.last_tool_result or {}
 
-    booking_followup = _agent_booking_followup_from_history(effective_query, history)
-    if booking_followup is not None:
-        if booking_followup.action == "direct":
-            final_answer = booking_followup.direct_answer or ""
-            state.last_tool_result = booking_followup.last_tool_result or {}
-            if session_id:
-                recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
-                booking_draft = (
-                    state.last_tool_result.get("booking_draft")
-                    if isinstance(state.last_tool_result.get("booking_draft"), dict)
-                    else None
-                )
-                session_store.save_history(
-                    session_id,
-                    history + [
-                        {"role": "user", "content": query},
-                        {
-                            "role": "model",
-                            "content": final_answer,
-                            **({"recommendation": recommendation} if recommendation else {}),
-                            **({"booking_draft": booking_draft} if booking_draft else {}),
-                        },
-                    ],
-                )
-            return final_answer, [], state.last_tool_result
-        state.latest_search_result = booking_followup.last_tool_result or {}
-        guard = _before_tool_call(state, "create_booking", booking_followup.args)
-        if guard.action == "direct":
-            final_answer = guard.direct_answer or ""
-            state.final_transaction = guard.final_transaction
-            state.last_tool_result = guard.last_tool_result or {}
-        elif guard.action != "stop":
-            tool_result = await tool_create_booking(**guard.args)
-            _after_tool_call(state, "create_booking", tool_result)
-
     if (
         state.booking_result is None
         and not final_answer
@@ -5559,7 +6247,13 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
         )
         final_answer = filter_output(final.text)
 
-    if state.booking_result is not None:
+    if state.update_result is not None:
+        base_transaction = _latest_booking_transaction(state.history) or {}
+        transaction = _booking_transaction_after_reschedule(base_transaction, state.update_result)
+        final_answer = _booking_confirmation_narrative(transaction)
+        state.final_transaction = transaction
+        state.last_tool_result["transaction"] = transaction
+    elif state.booking_result is not None:
         transaction = _build_booking_transaction(
             state.booking_result,
             state.payment_result,
@@ -5755,6 +6449,8 @@ def _compact_tool_context(tool_result: dict) -> str:
         tags = "、".join((s.get("atmosphere_tags") or [])[:3])
         dishes = "、".join((s.get("signature_dishes") or [])[:3])
         summary = (s.get("ai_summary") or "")[:100]
+        private_memory = s.get("private_memory_reason") or ""
+        private_offers = s.get("private_ai_offers") or []
         parts: list[str] = [f"ID:{shop_id}", f"【{name}】{district}"]
         if category:
             parts.append(f"分類:{category}")
@@ -5770,6 +6466,21 @@ def _compact_tool_context(tool_result: dict) -> str:
             parts.append(f"招牌:{dishes}")
         if summary:
             parts.append(summary)
+        if private_memory:
+            status = "不再推薦" if s.get("private_memory_status") == "avoid" else "偏好記憶"
+            parts.append(f"私人記憶:{status}:{private_memory}")
+        if private_offers and isinstance(private_offers, list):
+            offer = private_offers[0]
+            if isinstance(offer, dict):
+                offer_title = str(offer.get("title") or "AI 私密優惠").strip()
+                offer_desc = str(offer.get("description") or "").strip()
+                offer_until = str(offer.get("validUntil") or "").strip()
+                offer_parts = [offer_title]
+                if offer_desc:
+                    offer_parts.append(offer_desc[:80])
+                if offer_until:
+                    offer_parts.append(f"有效至{offer_until}")
+                parts.append(f"AI私密優惠:{' / '.join(offer_parts)}")
         lines.append(" | ".join(parts))
     return "\n".join(lines)
 
@@ -5905,6 +6616,100 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             yield done_payload
             return
 
+        if booking_action.action == "reschedule":
+            tool_name = "update_booking"
+            state.tools_used.append(tool_name)
+            yield {
+                "type": "tool_execution_start",
+                "name": tool_name,
+                "args": booking_action.args,
+                "session_id": session_id,
+            }
+            update_result = await tool_update_booking(**booking_action.args)
+            yield {
+                "type": "tool_execution_end",
+                "name": tool_name,
+                "result_summary": _tool_result_summary(update_result),
+                "session_id": session_id,
+            }
+            yield {"type": "tool", "name": tool_name}
+            base_transaction = (booking_action.last_tool_result or {}).get("transaction") or {}
+            transaction = _booking_transaction_after_reschedule(base_transaction, update_result)
+            full_answer = _booking_confirmation_narrative(transaction)
+            state.final_transaction = transaction
+            state.last_tool_result = {"transaction": transaction}
+            chunk_size = 18
+            for i in range(0, len(full_answer), chunk_size):
+                chunk = full_answer[i : i + chunk_size]
+                yield {"type": "message_update", "content": chunk}
+                yield {"type": "chunk", "content": chunk}
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {"role": "model", "content": full_answer, "transaction": transaction},
+                    ],
+                )
+            done_payload = {
+                "type": "done",
+                "answer": full_answer,
+                **_agent_response_contract(state.last_tool_result),
+                "tools_used": state.tools_used,
+                "tool_result": state.last_tool_result,
+                "session_id": session_id,
+            }
+            yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+            yield done_payload
+            return
+
+        if booking_action.action == "incident":
+            tool_name = "create_booking_incident"
+            state.tools_used.append(tool_name)
+            yield {
+                "type": "tool_execution_start",
+                "name": tool_name,
+                "args": booking_action.args,
+                "session_id": session_id,
+            }
+            incident_result = await tool_create_booking_incident(**booking_action.args)
+            yield {
+                "type": "tool_execution_end",
+                "name": tool_name,
+                "result_summary": _tool_result_summary(incident_result),
+                "session_id": session_id,
+            }
+            yield {"type": "tool", "name": tool_name}
+            base_transaction = (booking_action.last_tool_result or {}).get("transaction") or {}
+            transaction = _booking_transaction_after_incident(base_transaction, incident_result)
+            full_answer = _booking_confirmation_narrative(transaction)
+            state.final_transaction = transaction
+            state.last_tool_result = {"transaction": transaction}
+            chunk_size = 18
+            for i in range(0, len(full_answer), chunk_size):
+                chunk = full_answer[i : i + chunk_size]
+                yield {"type": "message_update", "content": chunk}
+                yield {"type": "chunk", "content": chunk}
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {"role": "model", "content": full_answer, "transaction": transaction},
+                    ],
+                )
+            done_payload = {
+                "type": "done",
+                "answer": full_answer,
+                **_agent_response_contract(state.last_tool_result),
+                "tools_used": state.tools_used,
+                "tool_result": state.last_tool_result,
+                "session_id": session_id,
+            }
+            yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+            yield done_payload
+            return
+
         guard = _before_tool_call(state, "pay_booking_with_test_card", booking_action.args)
         if guard.action != "stop":
             tool_name = "pay_booking_with_test_card"
@@ -5939,6 +6744,136 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
                     history + [
                         {"role": "user", "content": query},
                         {"role": "model", "content": full_answer, "transaction": transaction},
+                    ],
+                )
+            done_payload = {
+                "type": "done",
+                "answer": full_answer,
+                **_agent_response_contract(state.last_tool_result),
+                "tools_used": state.tools_used,
+                "tool_result": state.last_tool_result,
+                "session_id": session_id,
+            }
+            yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+            yield done_payload
+            return
+
+    booking_followup = _agent_booking_followup_from_history(effective_query, history)
+    if booking_followup is not None:
+        if booking_followup.action == "direct":
+            full_answer = booking_followup.direct_answer or ""
+            state.last_tool_result = booking_followup.last_tool_result or {}
+            chunk_size = 18
+            for i in range(0, len(full_answer), chunk_size):
+                chunk = full_answer[i : i + chunk_size]
+                yield {"type": "message_update", "content": chunk}
+                yield {"type": "chunk", "content": chunk}
+            if session_id:
+                recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
+                booking_draft = (
+                    state.last_tool_result.get("booking_draft")
+                    if isinstance(state.last_tool_result.get("booking_draft"), dict)
+                    else None
+                )
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {
+                            "role": "model",
+                            "content": full_answer,
+                            **({"recommendation": recommendation} if recommendation else {}),
+                            **({"booking_draft": booking_draft} if booking_draft else {}),
+                        },
+                    ],
+                )
+            done_payload = {
+                "type": "done",
+                "answer": full_answer,
+                **_agent_response_contract(state.last_tool_result),
+                "tools_used": [],
+                "tool_result": state.last_tool_result,
+                "session_id": session_id,
+            }
+            yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+            yield done_payload
+            return
+
+        state.latest_search_result = booking_followup.last_tool_result or {}
+        guard = _before_tool_call(state, "create_booking", booking_followup.args)
+        if guard.action == "direct":
+            direct_answer = guard.direct_answer
+            state.final_transaction = guard.final_transaction
+            state.last_tool_result = guard.last_tool_result or {}
+            full_answer = direct_answer or ""
+            chunk_size = 18
+            for i in range(0, len(full_answer), chunk_size):
+                chunk = full_answer[i : i + chunk_size]
+                yield {"type": "message_update", "content": chunk}
+                yield {"type": "chunk", "content": chunk}
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {
+                            "role": "model",
+                            "content": full_answer,
+                            **({"transaction": state.final_transaction} if state.final_transaction else {}),
+                        },
+                    ],
+                )
+            done_payload = {
+                "type": "done",
+                "answer": full_answer,
+                **_agent_response_contract(state.last_tool_result),
+                "tools_used": state.tools_used,
+                "tool_result": state.last_tool_result,
+                "session_id": session_id,
+            }
+            yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
+            yield done_payload
+            return
+        elif guard.action != "stop":
+            tool_name = "create_booking"
+            yield {
+                "type": "tool_execution_start",
+                "name": tool_name,
+                "args": guard.args,
+                "session_id": session_id,
+            }
+            tool_result = await tool_create_booking(**guard.args)
+            _after_tool_call(state, tool_name, tool_result)
+            yield {
+                "type": "tool_execution_end",
+                "name": tool_name,
+                "result_summary": _tool_result_summary(tool_result),
+                "session_id": session_id,
+            }
+            yield {"type": "tool", "name": tool_name}
+            transaction = _build_booking_transaction(
+                state.booking_result,
+                state.payment_result,
+                state.latest_search_result,
+            )
+            full_answer = _booking_confirmation_narrative(transaction)
+            state.final_transaction = transaction
+            state.last_tool_result["transaction"] = transaction
+            chunk_size = 18
+            for i in range(0, len(full_answer), chunk_size):
+                chunk = full_answer[i : i + chunk_size]
+                yield {"type": "message_update", "content": chunk}
+                yield {"type": "chunk", "content": chunk}
+            if session_id:
+                session_store.save_history(
+                    session_id,
+                    history + [
+                        {"role": "user", "content": query},
+                        {
+                            "role": "model",
+                            "content": full_answer,
+                            "transaction": state.final_transaction,
+                        },
                     ],
                 )
             done_payload = {
@@ -6191,71 +7126,6 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
         }
         yield {"type": "tool", "name": tool_name}
 
-    booking_followup = _agent_booking_followup_from_history(effective_query, history)
-    if booking_followup is not None:
-        if booking_followup.action == "direct":
-            full_answer = booking_followup.direct_answer or ""
-            state.last_tool_result = booking_followup.last_tool_result or {}
-            chunk_size = 18
-            for i in range(0, len(full_answer), chunk_size):
-                chunk = full_answer[i : i + chunk_size]
-                yield {"type": "message_update", "content": chunk}
-                yield {"type": "chunk", "content": chunk}
-            if session_id:
-                recommendation = _recommendation_context_from_tool_result(effective_query, state.last_tool_result)
-                booking_draft = (
-                    state.last_tool_result.get("booking_draft")
-                    if isinstance(state.last_tool_result.get("booking_draft"), dict)
-                    else None
-                )
-                session_store.save_history(
-                    session_id,
-                    history + [
-                        {"role": "user", "content": query},
-                        {
-                            "role": "model",
-                            "content": full_answer,
-                            **({"recommendation": recommendation} if recommendation else {}),
-                            **({"booking_draft": booking_draft} if booking_draft else {}),
-                        },
-                    ],
-                )
-            done_payload = {
-                "type": "done",
-                "answer": full_answer,
-                **_agent_response_contract(state.last_tool_result),
-                "tools_used": [],
-                "tool_result": state.last_tool_result,
-                "session_id": session_id,
-            }
-            yield {"type": "agent_end", **{key: value for key, value in done_payload.items() if key != "type"}}
-            yield done_payload
-            return
-
-        state.latest_search_result = booking_followup.last_tool_result or {}
-        guard = _before_tool_call(state, "create_booking", booking_followup.args)
-        if guard.action == "direct":
-            direct_answer = guard.direct_answer
-            state.final_transaction = guard.final_transaction
-            state.last_tool_result = guard.last_tool_result or {}
-        elif guard.action != "stop":
-            tool_name = "create_booking"
-            yield {
-                "type": "tool_execution_start",
-                "name": tool_name,
-                "args": guard.args,
-                "session_id": session_id,
-            }
-            tool_result = await tool_create_booking(**guard.args)
-            _after_tool_call(state, tool_name, tool_result)
-            yield {
-                "type": "tool_execution_end",
-                "name": tool_name,
-                "result_summary": _tool_result_summary(tool_result),
-                "session_id": session_id,
-            }
-            yield {"type": "tool", "name": tool_name}
-
     if (
         state.booking_result is None
         and direct_answer is None
@@ -6377,7 +7247,13 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             yield {"type": "message_update", "content": chunk}
             yield {"type": "chunk", "content": chunk}
     else:
-        if state.booking_result is not None:
+        if state.update_result is not None:
+            base_transaction = _latest_booking_transaction(state.history) or {}
+            transaction = _booking_transaction_after_reschedule(base_transaction, state.update_result)
+            full_answer = _booking_confirmation_narrative(transaction)
+            state.final_transaction = transaction
+            state.last_tool_result["transaction"] = transaction
+        elif state.booking_result is not None:
             transaction = _build_booking_transaction(
                 state.booking_result,
                 state.payment_result,
@@ -6568,6 +7444,57 @@ async def internal_line_booking_updated(request: Request):
     result = await push_messages(
         user_id=line_user_id,
         messages=[_line_booking_flex_message(booking, phase, line_user_id=line_user_id)],
+        channel_access_token=settings.line_channel_access_token,
+        enabled=settings.line_reply_enabled or settings.line_background_push_enabled,
+    )
+    return {"ok": bool(result.get("ok")), "line_result": result}
+
+
+@app.post("/internal/line/booking-incident")
+async def internal_line_booking_incident(request: Request):
+    payload = await request.json()
+    _verify_internal_line_secret(payload)
+    line_user_id = str(payload.get("lineUserId") or "").strip()
+    if not line_user_id:
+        return {"ok": True, "skipped": True, "reason": "No LINE user id"}
+    incident = payload.get("incident") if isinstance(payload.get("incident"), dict) else payload
+    result = await push_messages(
+        user_id=line_user_id,
+        messages=[_line_booking_incident_flex_message(incident, line_user_id=line_user_id)],
+        channel_access_token=settings.line_channel_access_token,
+        enabled=settings.line_reply_enabled or settings.line_background_push_enabled,
+    )
+    return {"ok": bool(result.get("ok")), "line_result": result}
+
+
+@app.post("/internal/line/booking-incident-proposal")
+async def internal_line_booking_incident_proposal(request: Request):
+    payload = await request.json()
+    _verify_internal_line_secret(payload)
+    line_user_id = str(payload.get("lineUserId") or "").strip()
+    if not line_user_id:
+        return {"ok": True, "skipped": True, "reason": "No LINE user id"}
+    incident = payload.get("incident") if isinstance(payload.get("incident"), dict) else payload
+    result = await push_messages(
+        user_id=line_user_id,
+        messages=[_line_booking_incident_proposal_flex_message(incident, line_user_id=line_user_id)],
+        channel_access_token=settings.line_channel_access_token,
+        enabled=settings.line_reply_enabled or settings.line_background_push_enabled,
+    )
+    return {"ok": bool(result.get("ok")), "line_result": result}
+
+
+@app.post("/internal/line/refund-operations-digest")
+async def internal_line_refund_operations_digest(request: Request):
+    payload = await request.json()
+    _verify_internal_line_secret(payload)
+    line_user_id = str(payload.get("lineUserId") or "").strip()
+    if not line_user_id:
+        return {"ok": True, "skipped": True, "reason": "No LINE user id"}
+    report = payload.get("report") if isinstance(payload.get("report"), dict) else payload
+    result = await push_messages(
+        user_id=line_user_id,
+        messages=[_line_refund_operations_digest_flex_message(report)],
         channel_access_token=settings.line_channel_access_token,
         enabled=settings.line_reply_enabled or settings.line_background_push_enabled,
     )
@@ -7029,6 +7956,90 @@ async def line_booking_status(shop_id: int, bookingCode: str, lt: str = "", line
     return HTMLResponse(_line_booking_result_page(shop_id, name, booking, line_user_id, line_token))
 
 
+@app.get("/line/book/{shop_id}/incident-proposal/accept", response_class=HTMLResponse)
+async def line_booking_incident_proposal_accept(
+    shop_id: int,
+    bookingCode: str,
+    incidentId: int,
+    lt: str = "",
+    lineUserId: str = "",
+):
+    line_user_id, line_token = _line_context(lt, lineUserId)
+    shop = await _fetch_java_shop(shop_id)
+    name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
+    result = await _respond_line_incident_proposal(
+        bookingCode,
+        incidentId,
+        "accept",
+        line_user_id,
+        line_token,
+    )
+    if not result.get("success"):
+        message = str(result.get("errorMsg") or "替代時段確認失敗，請稍後再試。")
+        return HTMLResponse(
+            _line_html_page(
+                "提案未完成",
+                message,
+                [("查看訂位狀態", _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(bookingCode)}&lt={quote_plus(line_token)}"))],
+            ),
+            status_code=409,
+        )
+    booking = result.get("data") if isinstance(result.get("data"), dict) else {}
+    return HTMLResponse(
+        _line_incident_proposal_response_page(
+            "已接受替代時段",
+            name,
+            booking,
+            shop_id,
+            bookingCode,
+            line_token,
+            accepted=True,
+        )
+    )
+
+
+@app.get("/line/book/{shop_id}/incident-proposal/decline", response_class=HTMLResponse)
+async def line_booking_incident_proposal_decline(
+    shop_id: int,
+    bookingCode: str,
+    incidentId: int,
+    lt: str = "",
+    lineUserId: str = "",
+):
+    line_user_id, line_token = _line_context(lt, lineUserId)
+    shop = await _fetch_java_shop(shop_id)
+    name = _html_escape(str((shop or {}).get("name") or f"店家 {shop_id}"))
+    result = await _respond_line_incident_proposal(
+        bookingCode,
+        incidentId,
+        "decline",
+        line_user_id,
+        line_token,
+    )
+    if not result.get("success"):
+        message = str(result.get("errorMsg") or "替代時段回覆失敗，請稍後再試。")
+        return HTMLResponse(
+            _line_html_page(
+                "提案未完成",
+                message,
+                [("查看訂位狀態", _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(bookingCode)}&lt={quote_plus(line_token)}"))],
+            ),
+            status_code=409,
+        )
+    booking = result.get("data") if isinstance(result.get("data"), dict) else {}
+    return HTMLResponse(
+        _line_incident_proposal_response_page(
+            "已拒絕替代時段",
+            name,
+            booking,
+            shop_id,
+            bookingCode,
+            line_token,
+            accepted=False,
+        )
+    )
+
+
 @app.get("/line/book/{shop_id}/parking", response_class=HTMLResponse)
 async def line_booking_parking_preference(
     shop_id: int,
@@ -7181,6 +8192,7 @@ def _line_booking_result_page(
         f"/line/book/{shop_id}/parking?bookingCode={quote_plus(booking_code_raw)}&driving=true&lt={quote_plus(line_token)}"
     )
     my_bookings_uri = _line_public_uri(f"/line/my-bookings?lt={quote_plus(line_token)}")
+    proposal_section = _line_incident_proposal_html(booking, shop_id, booking_code_raw, line_token)
     title = "訂位保留成功" if status == "PENDING_PAYMENT" else "訂位完成"
     if status == "CANCELED":
         title = "訂位已取消"
@@ -7214,12 +8226,88 @@ def _line_booking_result_page(
           {payment_method_note}
           {payment_note}
         </section>
+        {proposal_section}
         <div class="actions">
           {''.join(action for action in actions if action)}
         </div>
       </main>
     """
     return _line_shell(f"{escaped_shop_name} {status_label}", body)
+
+
+def _line_incident_proposal_html(booking: dict, shop_id: int, booking_code_raw: str, line_token: str) -> str:
+    incident = booking.get("latestIncident") if isinstance(booking.get("latestIncident"), dict) else {}
+    proposal = incident.get("proposedChange") if isinstance(incident.get("proposedChange"), dict) else {}
+    if str(proposal.get("status") or "") != "PENDING":
+        return ""
+    incident_id = str(incident.get("id") or "").strip()
+    if not incident_id:
+        return ""
+    proposal_date = _html_escape(str(proposal.get("date") or ""))
+    proposal_time = _html_escape(str(proposal.get("time") or ""))
+    proposal_people = _html_escape(str(proposal.get("people") or booking.get("people") or ""))
+    proposal_message = _html_escape(str(proposal.get("message") or "店家提出替代時段，請確認是否接受。"))
+    expires_at = _html_escape(str(proposal.get("expiresAt") or ""))
+    accept_uri = _line_public_uri(
+        f"/line/book/{shop_id}/incident-proposal/accept?bookingCode={quote_plus(booking_code_raw)}&incidentId={quote_plus(incident_id)}&lt={quote_plus(line_token)}"
+    )
+    decline_uri = _line_public_uri(
+        f"/line/book/{shop_id}/incident-proposal/decline?bookingCode={quote_plus(booking_code_raw)}&incidentId={quote_plus(incident_id)}&lt={quote_plus(line_token)}"
+    )
+    expires_html = f"<p>有效至：<strong>{expires_at}</strong></p>" if expires_at else ""
+    return f"""
+        <section>
+          <h2>店家提出替代時段</h2>
+          <p>{proposal_date} {proposal_time} · {proposal_people} 人</p>
+          <p>{proposal_message}</p>
+          {expires_html}
+          <div class="actions">
+            <a class="primary" href="{accept_uri}">接受改到此時段</a>
+            <a class="secondary" href="{decline_uri}">拒絕此提案</a>
+          </div>
+        </section>
+    """
+
+
+def _line_incident_proposal_response_page(
+    title: str,
+    escaped_shop_name: str,
+    booking: dict,
+    shop_id: int,
+    booking_code_raw: str,
+    line_token: str,
+    accepted: bool,
+) -> str:
+    booking_date = _html_escape(str(booking.get("date") or ""))
+    booking_time = _html_escape(str(booking.get("time") or ""))
+    people = _html_escape(str(booking.get("people") or ""))
+    status_uri = _line_public_uri(
+        f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code_raw)}&lt={quote_plus(line_token)}"
+    )
+    my_bookings_uri = _line_public_uri(f"/line/my-bookings?lt={quote_plus(line_token)}")
+    note = (
+        "Java 已完成改單，原時段會依既有改單 contract 釋放。"
+        if accepted
+        else "已回覆店家不接受此替代時段，事件保持開啟，店家可重新提出可行方案。"
+    )
+    timing = f"<p>{booking_date} {booking_time} · {people} 人</p>" if booking_date or booking_time or people else ""
+    body = f"""
+      <main>
+        <p class="eyebrow">ByteBites Rescue</p>
+        <h1>{title}</h1>
+        <section>
+          <h2>{escaped_shop_name}</h2>
+          <p>訂位編號：<strong>{_html_escape(booking_code_raw)}</strong></p>
+          {timing}
+          <p>{_html_escape(note)}</p>
+        </section>
+        <div class="actions">
+          <a class="primary" href="{status_uri}">查看訂位狀態</a>
+          <a class="secondary" href="{my_bookings_uri}">我的訂位</a>
+        </div>
+      </main>
+    """
+    return _line_shell(title, body)
 
 
 def _line_parking_preference_page(
@@ -7360,6 +8448,7 @@ async def line_my_bookings(lt: str = "", lineUserId: str = ""):
             if status == "PENDING_PAYMENT" and booking.get("needsDeposit")
             else ""
         )
+        proposal_actions = _line_incident_proposal_html(booking, shop_id, code, line_token)
         cards.append(
             f"""
             <section>
@@ -7373,6 +8462,7 @@ async def line_my_bookings(lt: str = "", lineUserId: str = ""):
                 <a class="secondary" href="{_line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(code)}&lt={quote_plus(line_token)}")}">查看狀態</a>
               </div>
             </section>
+            {proposal_actions}
             """
         )
     body = f"""
@@ -7650,8 +8740,28 @@ async def _enrich_agent_search_result(
             if (sid := _shop_id(shop)) is not None
         ]
 
+    private_memory = await _fetch_private_dining_memory()
+    if private_memory:
+        tool_result["private_memory"] = private_memory
+        selected_ids = _adjust_selected_ids_for_private_memory(shops, selected_ids, private_memory)
+
+    private_offers_by_shop = await _fetch_private_ai_offers(selected_ids, query)
+    if private_offers_by_shop:
+        tool_result["private_ai_offers"] = [
+            offer
+            for offers in private_offers_by_shop.values()
+            for offer in offers
+            if isinstance(offer, dict)
+        ]
+
     tool_result["query"] = query
-    tool_result["shops"] = await _hydrate_agent_search_shops(shops, selected_ids)
+    tool_result["shops"] = _annotate_private_ai_offers(
+        _annotate_private_memory(
+            await _hydrate_agent_search_shops(shops, selected_ids),
+            private_memory,
+        ),
+        private_offers_by_shop,
+    )
     for shop in tool_result["shops"]:
         if isinstance(shop, dict):
             price_label = _agent_price_label(shop)
@@ -8527,7 +9637,7 @@ def _line_booking_prefill_from_text(text: str) -> dict:
         minute = int(explicit_time.group(2))
         booking_time = f"{hour:02d}:{minute:02d}"
     else:
-        hour_match = re.search(r"([0-2]?\d)點(半)?", normalized)
+        hour_match = re.search(r"([0-2]?\d)\s*點\s*(半)?", normalized)
         if hour_match:
             hour = int(hour_match.group(1))
             if hour <= 11 and any(token in normalized for token in ("晚", "晚上", "晚餐")):
@@ -8540,7 +9650,7 @@ def _line_booking_prefill_from_text(text: str) -> dict:
             booking_time = "12:00"
 
     people = None
-    people_match = re.search(r"([一二兩三四五六七八九十\d]{1,3})\s*(個)?人", normalized)
+    people_match = re.search(r"([一二兩三四五六七八九十\d]{1,3})\s*(個)?[人位]", normalized)
     if people_match:
         people = _zh_number_to_int(people_match.group(1))
         if people is not None:
@@ -8667,8 +9777,9 @@ async def _build_line_booking_followup(user_text: str, user_id: str) -> list[dic
     saved_prefill = state.get("booking_prefill") if isinstance(state.get("booking_prefill"), dict) else {}
     prefill = _merge_booking_prefill(_line_booking_prefill_from_text(user_text), saved_prefill)
     people = prefill.get("people")
+    shown_shop = next((shop for shop in shown_shops if _shop_id(shop) == shop_id), None)
     shop = await _fetch_java_shop(shop_id)
-    shop_name = str((shop or {}).get("name") or f"店家 {shop_id}")
+    shop_name = str((shop or shown_shop or {}).get("name") or f"店家 {shop_id}")
     missing = []
     if not prefill.get("date"):
         missing.append("日期")
@@ -8894,13 +10005,34 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     if named_selection_messages is not None:
         return named_selection_messages
 
+    recommendation_state = _load_line_recommendation_state(user_id)
+    recommendation_shops = [
+        shop
+        for shop in recommendation_state.get("shown_shops", [])
+        if isinstance(shop, dict)
+    ]
+    should_prioritize_booking_followup = (
+        _selection_index_from_text(user_text) is not None
+        or not _specific_shop_keyword(user_text)
+        or (
+            bool(recommendation_shops)
+            and _recommended_shop_from_text(user_text, recommendation_shops) is not None
+        )
+    )
+
+    if should_prioritize_booking_followup:
+        booking_followup_messages = await _build_line_booking_followup(user_text, user_id)
+        if booking_followup_messages is not None:
+            return booking_followup_messages
+
     exact_booking_messages = await _build_line_exact_booking_request(user_text, user_id)
     if exact_booking_messages is not None:
         return exact_booking_messages
 
-    booking_followup_messages = await _build_line_booking_followup(user_text, user_id)
-    if booking_followup_messages is not None:
-        return booking_followup_messages
+    if not should_prioritize_booking_followup:
+        booking_followup_messages = await _build_line_booking_followup(user_text, user_id)
+        if booking_followup_messages is not None:
+            return booking_followup_messages
 
     clarification_messages = await _build_line_clarification_if_needed(effective_user_text, user_id)
     if clarification_messages is not None:
@@ -9222,6 +10354,37 @@ async def _update_line_parking_preference(
     return payload
 
 
+async def _respond_line_incident_proposal(
+    booking_code: str,
+    incident_id: int,
+    action: str,
+    line_user_id: str,
+    line_action_token_value: str,
+) -> dict:
+    if action not in {"accept", "decline"}:
+        return {"success": False, "errorMsg": "不支援的提案回覆。"}
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            response = await client.post(
+                f"{settings.java_backend_url}/api/booking/{quote_plus(booking_code)}/incidents/{incident_id}/proposal/{action}",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "lineUserId": line_user_id,
+                    "lineActionToken": line_action_token_value,
+                },
+            )
+    except Exception:
+        logger.exception("line_incident_proposal_%s_failed booking_code=%s incident_id=%s", action, booking_code, incident_id)
+        return {"success": False, "errorMsg": "後端救場提案服務暫時無法連線，請稍後再試。"}
+    try:
+        payload = response.json()
+    except Exception:
+        return {"success": False, "errorMsg": "後端救場提案服務回傳格式異常。"}
+    if response.status_code >= 400:
+        return {"success": False, "errorMsg": payload.get("errorMsg") or "救場提案暫時無法回覆。"}
+    return payload
+
+
 async def _fetch_line_bookings(line_user_id: str = "", line_action_token_value: str = "") -> list[dict]:
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
@@ -9347,6 +10510,8 @@ def _line_booking_flex_message(booking: dict, phase: str, line_user_id: str = ""
     title = "訂位保留成功，待付訂金" if status == "PENDING_PAYMENT" else "訂位已完成"
     if phase == "paid":
         title = "訂金付款成功，訂位完成"
+    if phase == "rescheduled":
+        title = "訂位已更新"
     if phase == "canceled" or status == "CANCELED":
         title = "訂位已取消"
     line_query = f"&lt={quote_plus(line_token)}" if line_token else ""
@@ -9436,6 +10601,300 @@ def _line_booking_flex_message(booking: dict, phase: str, line_user_id: str = ""
             "footer": {"type": "box", "layout": "vertical", "spacing": "sm", "contents": buttons},
         },
     }
+
+
+def _line_booking_incident_flex_message(incident: dict, line_user_id: str = "") -> dict:
+    booking = incident.get("booking") if isinstance(incident.get("booking"), dict) else {}
+    shop_id = int(incident.get("shopId") or booking.get("shopId") or 0)
+    shop_name = str(incident.get("shopName") or booking.get("shopName") or f"店家 {shop_id}")
+    booking_code = str(incident.get("bookingCode") or booking.get("bookingCode") or "")
+    incident_type = str(incident.get("incidentType") or "")
+    title = str(incident.get("title") or "訂位現場狀況更新")
+    message = str(incident.get("customerMessage") or "")
+    action_label = str(incident.get("actionLabel") or "已為你保留狀態")
+    date = str(incident.get("date") or booking.get("date") or "")
+    original_time = str(incident.get("originalTime") or incident.get("time") or booking.get("time") or "")
+    adjusted_time = str(incident.get("adjustedTime") or "")
+    people = str(incident.get("people") or booking.get("people") or "")
+    line_token = _line_token_for_user(line_user_id) if line_user_id else ""
+    line_query = f"&lt={quote_plus(line_token)}" if line_token else ""
+    status_uri = _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code)}{line_query}")
+    rows = [
+        ("店家", shop_name),
+        ("訂位", f"{date or '-'} {original_time or ''}".strip()),
+        ("人數", f"{people or '-'} 人"),
+    ]
+    if adjusted_time:
+        rows.append(("新預估", adjusted_time))
+    rows.append(("處理", action_label))
+    alt_text = "訂位現場狀況更新"
+    if incident_type == "RESTAURANT_DELAY":
+        alt_text = f"{shop_name} 入座時間更新"
+    elif incident_type == "CUSTOMER_LATE":
+        alt_text = "已通知店家你會晚到"
+    return {
+        "type": "flex",
+        "altText": alt_text,
+        "contents": {
+            "type": "bubble",
+            "size": "mega",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {"type": "text", "text": "BYTEBITES RESCUE", "size": "xs", "color": "#16833a", "weight": "bold"},
+                    {"type": "text", "text": title, "size": "lg", "weight": "bold", "wrap": True},
+                    {"type": "text", "text": f"訂位編號 {booking_code}", "size": "sm", "color": "#666666", "wrap": True},
+                    {"type": "separator", "margin": "md"},
+                    {
+                        "type": "box",
+                        "layout": "vertical",
+                        "spacing": "xs",
+                        "margin": "md",
+                        "contents": [_line_booking_flex_row(label, value) for label, value in rows],
+                    },
+                    {
+                        "type": "text",
+                        "text": message or "系統已記錄此現場狀況，並保留後續處理狀態。",
+                        "size": "xs",
+                        "color": "#555555",
+                        "wrap": True,
+                        "margin": "md",
+                    },
+                ],
+            },
+            "footer": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {
+                        "type": "button",
+                        "style": "secondary",
+                        "height": "sm",
+                        "action": {"type": "uri", "label": "查看訂位狀態", "uri": status_uri},
+                    }
+                ],
+            },
+        },
+    }
+
+
+def _line_booking_incident_proposal_flex_message(incident: dict, line_user_id: str = "") -> dict:
+    booking = incident.get("booking") if isinstance(incident.get("booking"), dict) else {}
+    proposal = incident.get("proposedChange") if isinstance(incident.get("proposedChange"), dict) else {}
+    shop_id = int(incident.get("shopId") or booking.get("shopId") or 0)
+    shop_name = str(incident.get("shopName") or booking.get("shopName") or f"店家 {shop_id}")
+    booking_code = str(incident.get("bookingCode") or booking.get("bookingCode") or "")
+    incident_id = str(incident.get("id") or "")
+    date = str(incident.get("bookingDate") or incident.get("date") or booking.get("date") or "")
+    original_time = str(incident.get("bookingTime") or incident.get("originalTime") or incident.get("time") or booking.get("time") or "")
+    proposed_date = str(proposal.get("date") or date)
+    proposed_time = str(proposal.get("time") or "")
+    proposed_people = str(proposal.get("people") or incident.get("people") or booking.get("people") or "")
+    expires_at = str(proposal.get("expiresAt") or "")
+    message = str(proposal.get("message") or "店家提出替代時段，請確認是否接受。")
+    line_token = _line_token_for_user(line_user_id) if line_user_id else ""
+    line_query = f"&lt={quote_plus(line_token)}" if line_token else ""
+    status_uri = _line_public_uri(f"/line/book/{shop_id}/status?bookingCode={quote_plus(booking_code)}{line_query}")
+    accept_uri = _line_public_uri(
+        f"/line/book/{shop_id}/incident-proposal/accept?bookingCode={quote_plus(booking_code)}&incidentId={quote_plus(incident_id)}{line_query}"
+    )
+    decline_uri = _line_public_uri(
+        f"/line/book/{shop_id}/incident-proposal/decline?bookingCode={quote_plus(booking_code)}&incidentId={quote_plus(incident_id)}{line_query}"
+    )
+    rows = [
+        ("店家", shop_name),
+        ("原訂位", f"{date or '-'} {original_time or ''}".strip()),
+        ("建議改到", f"{proposed_date or '-'} {proposed_time or ''}".strip()),
+        ("人數", f"{proposed_people or '-'} 人"),
+    ]
+    if expires_at:
+        rows.append(("有效至", expires_at))
+    buttons = [
+        {
+            "type": "button",
+            "style": "primary",
+            "height": "sm",
+            "action": {"type": "uri", "label": "接受改時段", "uri": accept_uri},
+        },
+        {
+            "type": "button",
+            "style": "secondary",
+            "height": "sm",
+            "action": {"type": "uri", "label": "拒絕提案", "uri": decline_uri},
+        },
+        {
+            "type": "button",
+            "style": "secondary",
+            "height": "sm",
+            "action": {"type": "uri", "label": "查看訂位", "uri": status_uri},
+        },
+    ]
+    return {
+        "type": "flex",
+        "altText": f"{shop_name} 提出替代時段",
+        "contents": {
+            "type": "bubble",
+            "size": "mega",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {"type": "text", "text": "BYTEBITES RESCUE", "size": "xs", "color": "#16833a", "weight": "bold"},
+                    {"type": "text", "text": "店家提出替代時段", "size": "lg", "weight": "bold", "wrap": True},
+                    {"type": "text", "text": f"訂位編號 {booking_code}", "size": "sm", "color": "#666666", "wrap": True},
+                    {"type": "separator", "margin": "md"},
+                    {
+                        "type": "box",
+                        "layout": "vertical",
+                        "spacing": "xs",
+                        "margin": "md",
+                        "contents": [_line_booking_flex_row(label, value) for label, value in rows],
+                    },
+                    {
+                        "type": "text",
+                        "text": message,
+                        "size": "xs",
+                        "color": "#555555",
+                        "wrap": True,
+                        "margin": "md",
+                    },
+                ],
+            },
+            "footer": {"type": "box", "layout": "vertical", "spacing": "sm", "contents": buttons},
+        },
+    }
+
+
+def _line_refund_operations_digest_flex_message(report: dict) -> dict:
+    shop_id = int(report.get("shopId") or 0)
+    shop_name = str(report.get("shopName") or f"店家 {shop_id}")
+    headline = str(report.get("headline") or "退款營運摘要")
+    status = str(report.get("status") or "CLEAR")
+    action = str(report.get("recommendedAction") or "NO_REFUND_ACTION")
+    pending_count = _line_report_int(report.get("pendingEscalationCount"))
+    escalated_count = _line_report_int(report.get("escalatedCount"))
+    failed_count = _line_report_int(report.get("failedCount"))
+    stuck_count = _line_report_int(report.get("stuckProcessingCount"))
+    action_label = {
+        "ESCALATE_FAILED_REFUNDS": "先升級失敗退款",
+        "ESCALATE_STUCK_REFUNDS": "先升級逾時退款",
+        "FOLLOW_UP_ESCALATED_REFUNDS": "追蹤已升級退款",
+        "NO_REFUND_ACTION": "無需跟進",
+    }.get(action, action or "無需跟進")
+    rows = [
+        ("店家", shop_name),
+        ("建議動作", action_label),
+        ("未升級", f"{pending_count} 件"),
+        ("已升級", f"{escalated_count} 件"),
+        ("失敗 / 逾時", f"{failed_count} / {stuck_count} 件"),
+    ]
+    pending_items = report.get("pendingEscalationItems") if isinstance(report.get("pendingEscalationItems"), list) else []
+    item_blocks = []
+    for item in pending_items[:2]:
+        if not isinstance(item, dict):
+            continue
+        booking_code = str(item.get("bookingCode") or "-")
+        reason = _line_refund_reason_label(str(item.get("slaReason") or ""))
+        amount = _line_report_int(item.get("settlementAmount") or abs(_line_report_int(item.get("deltaAmount"))))
+        requested_at = str(item.get("settlementRequestedAt") or "")
+        item_blocks.append(
+            {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "xs",
+                "contents": [
+                    {"type": "text", "text": booking_code, "size": "sm", "weight": "bold", "wrap": True},
+                    {
+                        "type": "text",
+                        "text": f"{reason} · NT$ {amount:,}" + (f" · {requested_at}" if requested_at else ""),
+                        "size": "xs",
+                        "color": "#666666",
+                        "wrap": True,
+                    },
+                ],
+            }
+        )
+    if not item_blocks:
+        item_blocks.append(
+            {
+                "type": "text",
+                "text": "目前沒有未升級退款；請追蹤已升級項目或維持監控。",
+                "size": "xs",
+                "color": "#555555",
+                "wrap": True,
+            }
+        )
+    merchant_uri = _line_public_uri("/merchant")
+    title = "退款營運摘要"
+    if status == "ACTION_REQUIRED":
+        title = "退款需要升級處理"
+    elif status == "FOLLOW_UP":
+        title = "退款已升級待追蹤"
+    return {
+        "type": "flex",
+        "altText": f"{shop_name} 退款營運摘要",
+        "contents": {
+            "type": "bubble",
+            "size": "mega",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {"type": "text", "text": "BYTEBITES OPS", "size": "xs", "color": "#16833a", "weight": "bold"},
+                    {"type": "text", "text": title, "size": "lg", "weight": "bold", "wrap": True},
+                    {"type": "text", "text": headline, "size": "sm", "color": "#666666", "wrap": True},
+                    {"type": "separator", "margin": "md"},
+                    {
+                        "type": "box",
+                        "layout": "vertical",
+                        "spacing": "xs",
+                        "margin": "md",
+                        "contents": [_line_booking_flex_row(label, value) for label, value in rows],
+                    },
+                    {
+                        "type": "box",
+                        "layout": "vertical",
+                        "spacing": "sm",
+                        "margin": "md",
+                        "contents": item_blocks,
+                    },
+                ],
+            },
+            "footer": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {
+                        "type": "button",
+                        "style": "primary",
+                        "height": "sm",
+                        "action": {"type": "uri", "label": "開啟商家後台", "uri": merchant_uri},
+                    }
+                ],
+            },
+        },
+    }
+
+
+def _line_report_int(value) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _line_refund_reason_label(reason: str) -> str:
+    if reason == "FAILED_REFUND":
+        return "退款失敗"
+    if reason == "STUCK_PROCESSING":
+        return "逾時未回寫"
+    return "退款注意"
 
 
 def _line_booking_draft_flex_message(draft: dict, line_user_id: str = "") -> dict:

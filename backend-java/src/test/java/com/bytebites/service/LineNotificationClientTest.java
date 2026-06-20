@@ -124,4 +124,75 @@ class LineNotificationClientTest {
 
         server.verify();
     }
+
+    @Test
+    void bookingIncidentProposalPostsPythonInternalWebhookPayload() throws Exception {
+        RestTemplate restTemplate = new RestTemplate();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        LineNotificationClient client = new LineNotificationClient(
+                restTemplate,
+                "http://localhost:8000/",
+                "sync-secret"
+        );
+        Map<String, Object> incident = new LinkedHashMap<>();
+        incident.put("id", 7L);
+        incident.put("bookingCode", "BK-LINE-SYNC-001");
+        incident.put("shopId", 10009L);
+        incident.put("shopName", "橘色涮涮屋 信義館");
+        incident.put("proposedChange", Map.of(
+                "status", "PENDING",
+                "date", "2026-06-20",
+                "time", "19:30",
+                "people", 2,
+                "expiresAt", "2026-06-19T19:10"
+        ));
+
+        Map<String, Object> expectedPayload = new LinkedHashMap<>();
+        expectedPayload.put("lineUserId", "Udemo-sync");
+        expectedPayload.put("incident", incident);
+        expectedPayload.put("secret", "sync-secret");
+
+        server.expect(requestTo("http://localhost:8000/internal/line/booking-incident-proposal"))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(content().json(objectMapper.writeValueAsString(expectedPayload)))
+                .andRespond(withSuccess("{\"ok\":true}", MediaType.APPLICATION_JSON));
+
+        client.pushBookingIncidentProposal(" Udemo-sync ", incident);
+
+        server.verify();
+    }
+
+    @Test
+    void refundOperationsDigestPostsPythonInternalWebhookPayload() throws Exception {
+        RestTemplate restTemplate = new RestTemplate();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate).build();
+        LineNotificationClient client = new LineNotificationClient(
+                restTemplate,
+                "http://localhost:8000/",
+                "sync-secret"
+        );
+        Map<String, Object> report = new LinkedHashMap<>();
+        report.put("shopId", 10009L);
+        report.put("shopName", "橘色涮涮屋 信義館");
+        report.put("status", "ACTION_REQUIRED");
+        report.put("headline", "1 件退款需要升級處理");
+        report.put("pendingEscalationCount", 1);
+        report.put("escalatedCount", 0);
+        report.put("failedCount", 1);
+        report.put("stuckProcessingCount", 0);
+
+        Map<String, Object> expectedPayload = new LinkedHashMap<>();
+        expectedPayload.put("lineUserId", "Umerchant-sync");
+        expectedPayload.put("report", report);
+        expectedPayload.put("secret", "sync-secret");
+
+        server.expect(requestTo("http://localhost:8000/internal/line/refund-operations-digest"))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(content().json(objectMapper.writeValueAsString(expectedPayload)))
+                .andRespond(withSuccess("{\"ok\":true}", MediaType.APPLICATION_JSON));
+
+        client.pushRefundOperationsDigest(" Umerchant-sync ", report);
+
+        server.verify();
+    }
 }

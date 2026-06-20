@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 import pytest
@@ -76,6 +77,124 @@ def test_agent_response_contract_orders_shops_and_builds_comparison_rows():
         "booking_status": "可線上訂位，建議提前",
         "meta": "NT$ 450-650 · 大安 · 捷運忠孝復興",
     }
+
+
+def test_private_memory_moves_avoided_shop_out_of_default_selection():
+    shops = [
+        {"shop_id": 1, "name": "太吵火鍋"},
+        {"shop_id": 2, "name": "安靜壽司"},
+        {"shop_id": 3, "name": "服務快小館"},
+    ]
+    memory = {
+        "avoidShopIds": [1],
+        "memories": [
+            {
+                "shopId": 1,
+                "tags": ["太吵", "不再推薦"],
+                "doNotRecommend": True,
+            }
+        ],
+    }
+
+    selected = main._adjust_selected_ids_for_private_memory(shops, [1, 2], memory)
+    annotated = main._annotate_private_memory(shops, memory)
+
+    assert selected == [2, 3]
+    assert annotated[0]["private_memory_status"] == "avoid"
+    assert "不再推薦" in annotated[0]["private_memory_reason"]
+
+
+def test_private_memory_validator_removes_avoided_recommendation():
+    tool_result = {
+        "private_memory": {"avoidShopIds": [1], "memories": [{"shopId": 1, "doNotRecommend": True}]},
+        "shops": [
+            {"shop_id": 1, "name": "太吵火鍋"},
+            {"shop_id": 2, "name": "安靜壽司"},
+            {"shop_id": 3, "name": "服務快小館"},
+        ],
+    }
+    decision = main.AgentRecommendationDecision(
+        recommended_shop_ids=[1],
+        narrative="推薦太吵火鍋。",
+        rejected_shop_ids=[2, 3],
+    )
+
+    validated = main._validate_agent_decision(decision, tool_result, "想找安靜餐廳")
+
+    assert 1 not in validated.recommended_shop_ids
+    assert validated.recommended_shop_ids[0] == 2
+
+
+def test_private_ai_offer_trigger_detects_discount_and_off_peak_intent():
+    assert main._private_ai_offer_trigger("明天下午 5:30 想找離峰壽司") == "OFF_PEAK_FILL"
+    assert main._private_ai_offer_trigger("想找有優惠、比較省錢的火鍋") == "SAVE_MONEY_INTENT"
+    assert main._private_ai_offer_trigger("這家我一直看但還沒訂") == "REPEATED_SEARCH_NO_BOOKING"
+    assert main._private_ai_offer_trigger("推薦信義區日式料理") is None
+
+
+def test_private_ai_offer_annotation_is_in_compact_context():
+    shops = [
+        {"shop_id": 1, "name": "安靜壽司", "district": "信義"},
+        {"shop_id": 2, "name": "熱炒小館", "district": "大安"},
+    ]
+    annotated = main._annotate_private_ai_offers(
+        shops,
+        {
+            1: [
+                {
+                    "shopId": 1,
+                    "offerCode": "PO-TEST",
+                    "title": "AI 私密離峰 9 折",
+                    "description": "只在此帳號顯示，適用 17:30 前入座。",
+                    "validUntil": "2026-06-20T18:00",
+                }
+            ]
+        },
+    )
+    context = main._compact_tool_context({"shops": annotated})
+
+    assert annotated[0]["private_ai_offers"][0]["offerCode"] == "PO-TEST"
+    assert "AI私密優惠:AI 私密離峰 9 折" in context
+    assert "公開優惠券" not in context
+
+
+def test_enrich_agent_search_result_attaches_private_ai_offers(monkeypatch):
+    async def fake_fetch_memory():
+        return {}
+
+    async def fake_fetch_offers(shop_ids, query):
+        assert shop_ids == [1]
+        assert "優惠" in query
+        return {
+            1: [
+                {
+                    "shopId": 1,
+                    "offerCode": "PO-TEST",
+                    "title": "AI 私密省錢 9 折",
+                    "description": "只在此帳號顯示",
+                    "validUntil": "2026-06-20T18:00",
+                }
+            ]
+        }
+
+    async def fake_hydrate(shops, selected_ids):
+        return shops
+
+    monkeypatch.setattr(main, "_fetch_private_dining_memory", fake_fetch_memory)
+    monkeypatch.setattr(main, "_fetch_private_ai_offers", fake_fetch_offers)
+    monkeypatch.setattr(main, "_hydrate_agent_search_shops", fake_hydrate)
+
+    result = asyncio.run(
+        main._enrich_agent_search_result(
+            "想找有優惠的日式料理",
+            {"shops": [{"shop_id": 1, "name": "安靜壽司"}, {"shop_id": 2, "name": "熱炒小館"}]},
+            [1],
+        )
+    )
+
+    assert result["private_ai_offers"][0]["offerCode"] == "PO-TEST"
+    assert result["shops"][0]["private_ai_offers"][0]["title"] == "AI 私密省錢 9 折"
+    assert "private_ai_offers" not in result["shops"][1]
 
 
 def test_agent_concierge_narrative_uses_stable_decision_format():
@@ -1550,6 +1669,225 @@ async def test_web_agent_stream_confirm_cancel_latest_booking(monkeypatch):
     assert done["tools_used"] == ["cancel_booking"]
     assert done["transaction"]["status"] == "CANCELED"
     assert "訂位已取消" in done["answer"]
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_reschedules_latest_booking(monkeypatch):
+    captured = {}
+    old_date = (main.taipei_today() + main.timedelta(days=3)).isoformat()
+    new_date = (main.taipei_today() + main.timedelta(days=1)).isoformat()
+
+    async def fake_update_booking(booking_code: str, people: int, date: str, time: str, table_type: str):
+        captured.update(
+            {
+                "booking_code": booking_code,
+                "people": people,
+                "date": date,
+                "time": time,
+                "table_type": table_type,
+            }
+        )
+        return {
+            "success": True,
+            "bookingCode": booking_code,
+            "shopId": 10222,
+            "shopName": "青田七六",
+            "people": people,
+            "date": date,
+            "time": time,
+            "tableType": table_type,
+            "status": "PAID",
+            "needsDeposit": True,
+            "depositTotal": 1200,
+            "changed": True,
+        }
+
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("reschedule followup should bypass model")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {
+                "role": "model",
+                "content": "訂位已完成。",
+                "transaction": {
+                    "kind": "booking",
+                    "success": True,
+                    "status": "PAID",
+                    "shop_id": 10222,
+                    "shop_name": "青田七六",
+                    "booking_code": "BK-RESCHEDULE",
+                    "people": 4,
+                    "date": old_date,
+                    "time": "19:00",
+                    "table_type": "normal",
+                    "needs_deposit": True,
+                    "deposit_total": 1200,
+                },
+            }
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "tool_update_booking", fake_update_booking)
+    monkeypatch.setattr(main, "generate", fail_generate)
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "改成明晚 8 點，同樣 4 位",
+            "test-web-reschedule",
+        )
+    ]
+
+    done = events[-1]
+    assert captured == {
+        "booking_code": "BK-RESCHEDULE",
+        "people": 4,
+        "date": new_date,
+        "time": "20:00",
+        "table_type": "normal",
+    }
+    assert done["tools_used"] == ["update_booking"]
+    assert done["transaction"]["action"] == "rescheduled"
+    assert done["transaction"]["date"] == new_date
+    assert done["transaction"]["time"] == "20:00"
+    assert "訂位已更新" in done["answer"]
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_creates_booking_incident_for_late_arrival(monkeypatch):
+    captured = {}
+    booking_date = (main.taipei_today() + main.timedelta(days=2)).isoformat()
+
+    async def fake_create_booking_incident(booking_code: str, incident_type: str, delay_minutes: int, message=None):
+        captured.update(
+            {
+                "booking_code": booking_code,
+                "incident_type": incident_type,
+                "delay_minutes": delay_minutes,
+                "message": message,
+            }
+        )
+        return {
+            "success": True,
+            "bookingCode": booking_code,
+            "shopId": 10222,
+            "shopName": "青田七六",
+            "incidentType": incident_type,
+            "status": "OPEN",
+            "delayMinutes": delay_minutes,
+            "originalTime": "19:00",
+            "adjustedTime": "19:20",
+            "title": "已通知店家你會晚到 20 分鐘",
+            "customerMessage": "系統已記錄你可能晚到，會協助店家保留到 19:20。",
+            "actionLabel": "已通知店家",
+        }
+
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("incident followup should bypass model")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {
+                "role": "model",
+                "content": "訂位已完成。",
+                "transaction": {
+                    "kind": "booking",
+                    "success": True,
+                    "status": "PAID",
+                    "shop_id": 10222,
+                    "shop_name": "青田七六",
+                    "booking_code": "BK-INCIDENT",
+                    "people": 2,
+                    "date": booking_date,
+                    "time": "19:00",
+                    "table_type": "normal",
+                    "needs_deposit": True,
+                    "deposit_total": 600,
+                },
+            }
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "tool_create_booking_incident", fake_create_booking_incident)
+    monkeypatch.setattr(main, "generate", fail_generate)
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "我塞車會晚到 20 分鐘",
+            "test-web-incident",
+        )
+    ]
+
+    done = events[-1]
+    assert captured == {
+        "booking_code": "BK-INCIDENT",
+        "incident_type": "CUSTOMER_LATE",
+        "delay_minutes": 20,
+        "message": None,
+    }
+    assert done["tools_used"] == ["create_booking_incident"]
+    assert done["transaction"]["action"] == "incident"
+    assert done["transaction"]["incident"]["adjustedTime"] == "19:20"
+    assert "已通知店家你會晚到 20 分鐘" in done["answer"]
+
+
+@pytest.mark.anyio
+async def test_web_agent_stream_reschedule_keeps_original_booking_when_full(monkeypatch):
+    old_date = (main.taipei_today() + main.timedelta(days=3)).isoformat()
+
+    async def fake_update_booking(**kwargs):
+        return {"success": False, "error": "新時段目前已額滿，原訂位已保留不變"}
+
+    def fail_generate(*args, **kwargs):
+        raise AssertionError("reschedule failure should bypass model")
+
+    monkeypatch.setattr(
+        main.session_store,
+        "load_history",
+        lambda session_id: [
+            {
+                "role": "model",
+                "content": "訂位已完成。",
+                "transaction": {
+                    "kind": "booking",
+                    "success": True,
+                    "status": "CONFIRMED",
+                    "shop_id": 10222,
+                    "shop_name": "青田七六",
+                    "booking_code": "BK-FULL",
+                    "people": 2,
+                    "date": old_date,
+                    "time": "19:00",
+                    "table_type": "normal",
+                    "needs_deposit": False,
+                },
+            }
+        ],
+    )
+    monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "tool_update_booking", fake_update_booking)
+    monkeypatch.setattr(main, "generate", fail_generate)
+
+    events = [
+        event
+        async for event in main._run_agent_turn_stream(
+            "改成明晚 8 點 4 位",
+            "test-web-reschedule-full",
+        )
+    ]
+
+    done = events[-1]
+    assert done["tools_used"] == ["update_booking"]
+    assert done["transaction"]["status"] == "RESCHEDULE_FAILED"
+    assert done["transaction"]["date"] == old_date
+    assert "改單失敗" in done["answer"]
+    assert "原訂位已保留不變" in done["answer"]
 
 
 @pytest.mark.anyio
@@ -3680,6 +4018,268 @@ async def test_internal_booking_updated_uses_background_push_switch(monkeypatch)
 
     assert response["ok"] is True
     assert pushed["enabled"] is True
+
+
+def test_line_booking_incident_flex_message_shows_rescue_context(monkeypatch):
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    message = main._line_booking_incident_flex_message(
+        {
+            "bookingCode": "BK-INCIDENT",
+            "shopId": 10009,
+            "shopName": "橘色涮涮屋 信義館",
+            "incidentType": "RESTAURANT_DELAY",
+            "title": "店家回報約延 15 分鐘",
+            "customerMessage": "店家剛回報前面桌用餐延長，預估 19:15 左右可入座。",
+            "actionLabel": "已保留原訂位",
+            "date": "2026-06-20",
+            "originalTime": "19:00",
+            "adjustedTime": "19:15",
+            "people": 2,
+        },
+        line_user_id="Uabc123",
+    )
+
+    assert message["type"] == "flex"
+    assert message["altText"] == "橘色涮涮屋 信義館 入座時間更新"
+    body_text = json.dumps(message["contents"], ensure_ascii=False)
+    assert "BYTEBITES RESCUE" in body_text
+    assert "店家回報約延 15 分鐘" in body_text
+    assert "19:15" in body_text
+
+
+@pytest.mark.anyio
+async def test_internal_booking_incident_pushes_line_card(monkeypatch):
+    pushed = {}
+
+    async def fake_push_messages(user_id, messages, channel_access_token, enabled):
+        pushed["user_id"] = user_id
+        pushed["messages"] = messages
+        pushed["enabled"] = enabled
+        return {"ok": True}
+
+    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
+    monkeypatch.setattr(main.settings, "line_reply_enabled", False)
+    monkeypatch.setattr(main.settings, "line_background_push_enabled", True)
+
+    class FakeRequest:
+        async def json(self):
+            return {
+                "secret": "secret",
+                "lineUserId": "Uabc123",
+                "incident": {
+                    "bookingCode": "BK-INCIDENT",
+                    "shopId": 10009,
+                    "shopName": "橘色涮涮屋 信義館",
+                    "incidentType": "RESTAURANT_DELAY",
+                    "title": "店家回報約延 15 分鐘",
+                    "customerMessage": "店家剛回報前面桌用餐延長，預估 19:15 左右可入座。",
+                    "actionLabel": "已保留原訂位",
+                    "date": "2026-06-20",
+                    "originalTime": "19:00",
+                    "adjustedTime": "19:15",
+                    "people": 2,
+                },
+            }
+
+    response = await main.internal_line_booking_incident(FakeRequest())
+
+    assert response["ok"] is True
+    assert pushed["enabled"] is True
+    assert pushed["user_id"] == "Uabc123"
+    assert pushed["messages"][0]["altText"] == "橘色涮涮屋 信義館 入座時間更新"
+
+
+def test_line_booking_incident_proposal_flex_message_has_accept_decline_actions(monkeypatch):
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    message = main._line_booking_incident_proposal_flex_message(
+        {
+            "id": 7,
+            "bookingCode": "BK-PROPOSAL",
+            "shopId": 10009,
+            "shopName": "橘色涮涮屋 信義館",
+            "bookingDate": "2026-06-20",
+            "bookingTime": "19:00",
+            "people": 2,
+            "proposedChange": {
+                "status": "PENDING",
+                "date": "2026-06-20",
+                "time": "19:30",
+                "people": 2,
+                "message": "店家建議改到 19:30，請確認是否接受。",
+                "expiresAt": "2026-06-19T19:10",
+            },
+        },
+        line_user_id="Uabc123",
+    )
+
+    assert message["type"] == "flex"
+    assert message["altText"] == "橘色涮涮屋 信義館 提出替代時段"
+    payload = json.dumps(message["contents"], ensure_ascii=False)
+    assert "店家提出替代時段" in payload
+    assert "19:30" in payload
+    assert "/line/book/10009/incident-proposal/accept?bookingCode=BK-PROPOSAL&incidentId=7" in payload
+    assert "/line/book/10009/incident-proposal/decline?bookingCode=BK-PROPOSAL&incidentId=7" in payload
+
+
+@pytest.mark.anyio
+async def test_internal_booking_incident_proposal_pushes_line_card(monkeypatch):
+    pushed = {}
+
+    async def fake_push_messages(user_id, messages, channel_access_token, enabled):
+        pushed["user_id"] = user_id
+        pushed["messages"] = messages
+        pushed["enabled"] = enabled
+        return {"ok": True}
+
+    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
+    monkeypatch.setattr(main.settings, "line_reply_enabled", False)
+    monkeypatch.setattr(main.settings, "line_background_push_enabled", True)
+
+    class FakeRequest:
+        async def json(self):
+            return {
+                "secret": "secret",
+                "lineUserId": "Uabc123",
+                "incident": {
+                    "id": 7,
+                    "bookingCode": "BK-PROPOSAL",
+                    "shopId": 10009,
+                    "shopName": "橘色涮涮屋 信義館",
+                    "bookingDate": "2026-06-20",
+                    "bookingTime": "19:00",
+                    "people": 2,
+                    "proposedChange": {
+                        "status": "PENDING",
+                        "date": "2026-06-20",
+                        "time": "19:30",
+                        "people": 2,
+                    },
+                },
+            }
+
+    response = await main.internal_line_booking_incident_proposal(FakeRequest())
+
+    assert response["ok"] is True
+    assert pushed["enabled"] is True
+    assert pushed["user_id"] == "Uabc123"
+    assert pushed["messages"][0]["altText"] == "橘色涮涮屋 信義館 提出替代時段"
+
+
+def test_line_refund_operations_digest_flex_message_summarizes_pending_items(monkeypatch):
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    message = main._line_refund_operations_digest_flex_message(
+        {
+            "shopId": 10009,
+            "shopName": "橘色涮涮屋 信義館",
+            "status": "ACTION_REQUIRED",
+            "recommendedAction": "ESCALATE_FAILED_REFUNDS",
+            "headline": "1 件退款需要升級處理",
+            "pendingEscalationCount": 1,
+            "escalatedCount": 0,
+            "failedCount": 1,
+            "stuckProcessingCount": 0,
+            "pendingEscalationItems": [
+                {
+                    "bookingCode": "BK-REFUND-001",
+                    "slaReason": "FAILED_REFUND",
+                    "settlementAmount": 600,
+                    "settlementRequestedAt": "2026-06-20T10:00",
+                }
+            ],
+        }
+    )
+
+    assert message["type"] == "flex"
+    assert message["altText"] == "橘色涮涮屋 信義館 退款營運摘要"
+    payload = json.dumps(message["contents"], ensure_ascii=False)
+    assert "退款需要升級處理" in payload
+    assert "先升級失敗退款" in payload
+    assert "BK-REFUND-001" in payload
+    assert "NT$ 600" in payload
+    assert "https://bytebites.example.com/merchant" in payload
+
+
+@pytest.mark.anyio
+async def test_internal_refund_operations_digest_pushes_line_card(monkeypatch):
+    pushed = {}
+
+    async def fake_push_messages(user_id, messages, channel_access_token, enabled):
+        pushed["user_id"] = user_id
+        pushed["messages"] = messages
+        pushed["enabled"] = enabled
+        return {"ok": True}
+
+    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
+    monkeypatch.setattr(main.settings, "line_reply_enabled", False)
+    monkeypatch.setattr(main.settings, "line_background_push_enabled", True)
+
+    class FakeRequest:
+        async def json(self):
+            return {
+                "secret": "secret",
+                "lineUserId": "Umerchant123",
+                "report": {
+                    "shopId": 10009,
+                    "shopName": "橘色涮涮屋 信義館",
+                    "status": "ACTION_REQUIRED",
+                    "recommendedAction": "ESCALATE_FAILED_REFUNDS",
+                    "headline": "1 件退款需要升級處理",
+                    "pendingEscalationCount": 1,
+                    "escalatedCount": 0,
+                    "failedCount": 1,
+                    "stuckProcessingCount": 0,
+                    "pendingEscalationItems": [{"bookingCode": "BK-REFUND-001", "slaReason": "FAILED_REFUND"}],
+                },
+            }
+
+    response = await main.internal_line_refund_operations_digest(FakeRequest())
+
+    assert response["ok"] is True
+    assert pushed["enabled"] is True
+    assert pushed["user_id"] == "Umerchant123"
+    assert pushed["messages"][0]["altText"] == "橘色涮涮屋 信義館 退款營運摘要"
+
+
+def test_line_booking_result_page_shows_pending_incident_proposal(monkeypatch):
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    html = main._line_booking_result_page(
+        10009,
+        "橘色涮涮屋 信義館",
+        {
+            "bookingCode": "BK-PROPOSAL",
+            "shopId": 10009,
+            "shopName": "橘色涮涮屋 信義館",
+            "date": "2026-06-20",
+            "time": "19:00",
+            "people": 2,
+            "status": "PAID",
+            "latestIncident": {
+                "id": 7,
+                "proposedChange": {
+                    "status": "PENDING",
+                    "date": "2026-06-20",
+                    "time": "19:30",
+                    "people": 2,
+                    "message": "店家建議改到 19:30，請確認是否接受。",
+                    "expiresAt": "2026-06-19T19:10",
+                },
+            },
+        },
+        line_user_id="Uabc123",
+        line_token="line-token",
+    )
+
+    assert "店家提出替代時段" in html
+    assert "接受改到此時段" in html
+    assert "拒絕此提案" in html
+    assert "/line/book/10009/incident-proposal/accept?bookingCode=BK-PROPOSAL&incidentId=7" in html
 
 
 @pytest.mark.anyio

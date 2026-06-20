@@ -65,6 +65,8 @@ public class SecurityConfig {
                         .requestMatchers("/booking/**", "/api/booking/**").permitAll()
                         .requestMatchers("/availability/**", "/api/availability/**").permitAll()
                         .requestMatchers("/favorites/**", "/api/favorites/**").permitAll()
+                        .requestMatchers("/dining-memory/**", "/api/dining-memory/**").permitAll()
+                        .requestMatchers("/private-offers/**", "/api/private-offers/**").permitAll()
                         .requestMatchers("/user/login", "/user/code", "/error", "/actuator/**").permitAll()
                         .anyRequest().authenticated()
                 )

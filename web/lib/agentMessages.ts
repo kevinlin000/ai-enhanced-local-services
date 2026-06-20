@@ -39,6 +39,9 @@ const DEFAULT_TOOL_LABELS: Record<string, string> = {
   create_hot_seat_order: "建立 Hot Seat 訂單",
   create_booking: "檢查並建立訂位",
   pay_booking_with_test_card: "確認訂金付款",
+  cancel_booking: "取消訂位",
+  update_booking: "修改訂位",
+  create_booking_incident: "建立救場通知",
 };
 
 const DEFAULT_STATUS_LABELS = {

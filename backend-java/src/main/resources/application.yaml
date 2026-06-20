@@ -70,6 +70,13 @@ bytebites:
   line-action-secret: ${LINE_ACTION_SECRET:${LINE_INTERNAL_WEBHOOK_SECRET:}}
   cors:
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:}
+  refund:
+    webhook:
+      secret: ${REFUND_WEBHOOK_SECRET:}
+      previous-secret: ${REFUND_WEBHOOK_PREVIOUS_SECRET:}
+      allowed-sources: ${REFUND_WEBHOOK_ALLOWED_SOURCES:}
+      trusted-proxies: ${REFUND_WEBHOOK_TRUSTED_PROXIES:}
+      source-header: ${REFUND_WEBHOOK_SOURCE_HEADER:X-Forwarded-For}
 
 line:
   oauth:

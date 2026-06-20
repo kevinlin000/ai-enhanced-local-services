@@ -2,6 +2,7 @@ package com.bytebites;
 
 import com.bytebites.entity.Shop;
 import com.bytebites.service.impl.ShopServiceImpl;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @SpringBootTest
+@Disabled("Manual cache warm-up utilities; requires external MySQL and Redis, so it is excluded from default CI.")
 class ByteBitesApplicationTests {
 
     @Resource

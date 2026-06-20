@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS tb_private_ai_offer (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    shop_id BIGINT UNSIGNED NOT NULL,
+    offer_code VARCHAR(40) NOT NULL,
+    title VARCHAR(120) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    trigger_reason VARCHAR(64) NOT NULL,
+    offer_type VARCHAR(32) NOT NULL DEFAULT 'OFF_PEAK_FILL',
+    discount_percent INT NOT NULL DEFAULT 10,
+    min_people INT NOT NULL DEFAULT 1,
+    valid_until DATETIME NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    source VARCHAR(32) NOT NULL DEFAULT 'AI_MATCHED',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    claimed_at DATETIME NULL,
+    UNIQUE KEY uk_private_ai_offer_code (offer_code),
+    INDEX idx_private_ai_offer_user_status (user_id, status, valid_until),
+    INDEX idx_private_ai_offer_user_shop (user_id, shop_id, status),
+    INDEX idx_private_ai_offer_shop_status (shop_id, status, valid_until),
+    CONSTRAINT fk_private_ai_offer_shop FOREIGN KEY (shop_id) REFERENCES tb_shop(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Private AI matched offers, not public vouchers';

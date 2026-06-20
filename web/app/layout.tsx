@@ -1,24 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Noto_Sans_TC } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
 import { NotificationCenterClient } from "@/components/NotificationCenterClient";
 import Script from "next/script";
 import "./globals.css";
-
-const geist = Geist({
-  variable: "--font-geist",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const notoTC = Noto_Sans_TC({
-  variable: "--font-noto-tc",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "ByteBites",
@@ -33,7 +17,7 @@ export default function RootLayout({
   return (
     <html
       lang="zh-Hant"
-      className={`${geist.variable} ${geistMono.variable} ${notoTC.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
       <body className="min-h-full">
         <AppShell>

@@ -10,62 +10,68 @@ UPDATE tb_shop_type SET name = '咖啡/甜點', is_active = 1 WHERE id = 2012;
 UPDATE tb_shop_type SET is_active = 0 WHERE id IN (2006, 2009);
 
 INSERT INTO tb_shop_badge (shop_id, badge_code, source)
-VALUES
-  (10101, '高級', 'allowlist'),
-  (10103, '高級', 'allowlist'),
-  (10104, '高級', 'allowlist'),
-  (10107, '高級', 'allowlist'),
-  (10111, '高級', 'allowlist'),
-  (10114, '高級', 'allowlist'),
-  (10125, '高級', 'allowlist'),
-  (10149, '高級', 'allowlist'),
-  (10176, '高級', 'allowlist'),
-  (10191, '高級', 'allowlist'),
-  (10198, '高級', 'allowlist')
+SELECT allowlist.shop_id, allowlist.badge_code, allowlist.source
+FROM (
+  SELECT 10101 AS shop_id, '高級' AS badge_code, 'allowlist' AS source
+  UNION ALL SELECT 10103, '高級', 'allowlist'
+  UNION ALL SELECT 10104, '高級', 'allowlist'
+  UNION ALL SELECT 10107, '高級', 'allowlist'
+  UNION ALL SELECT 10111, '高級', 'allowlist'
+  UNION ALL SELECT 10114, '高級', 'allowlist'
+  UNION ALL SELECT 10125, '高級', 'allowlist'
+  UNION ALL SELECT 10149, '高級', 'allowlist'
+  UNION ALL SELECT 10176, '高級', 'allowlist'
+  UNION ALL SELECT 10191, '高級', 'allowlist'
+  UNION ALL SELECT 10198, '高級', 'allowlist'
+) allowlist
+JOIN tb_shop ON tb_shop.id = allowlist.shop_id
 ON DUPLICATE KEY UPDATE source = VALUES(source);
 
 INSERT IGNORE INTO tb_shop_tag (shop_id, tag_code)
-VALUES
-  (10104, '景觀'),
-  (10106, '親子'),
-  (10110, '景觀'),
-  (10115, '吃到飽'),
-  (10117, '餐酒館'),
-  (10119, '商務'),
-  (10122, 'Brunch'),
-  (10122, '早午餐'),
-  (10125, '鐵板燒'),
-  (10135, '商務'),
-  (10136, 'Brunch'),
-  (10138, '餐酒館'),
-  (10140, 'Brunch'),
-  (10141, '商務'),
-  (10142, 'Brunch'),
-  (10142, '早午餐'),
-  (10144, '約會'),
-  (10148, '商務'),
-  (10148, '包廂'),
-  (10149, '鐵板燒'),
-  (10151, '法式'),
-  (10156, '吃到飽'),
-  (10158, '親子'),
-  (10159, '牛排'),
-  (10160, '商務'),
-  (10160, '包廂'),
-  (10161, '商務'),
-  (10161, '包廂'),
-  (10164, '餐酒館'),
-  (10165, '韓式'),
-  (10166, '吃到飽'),
-  (10180, 'Brunch'),
-  (10182, '吃到飽'),
-  (10183, '餐酒館'),
-  (10190, '韓式'),
-  (10193, '義式'),
-  (10195, 'Brunch'),
-  (10195, '早午餐'),
-  (10196, '餐酒館'),
-  (10196, 'Brunch');
+SELECT allowlist.shop_id, allowlist.tag_code
+FROM (
+  SELECT 10104 AS shop_id, '景觀' AS tag_code
+  UNION ALL SELECT 10106, '親子'
+  UNION ALL SELECT 10110, '景觀'
+  UNION ALL SELECT 10115, '吃到飽'
+  UNION ALL SELECT 10117, '餐酒館'
+  UNION ALL SELECT 10119, '商務'
+  UNION ALL SELECT 10122, 'Brunch'
+  UNION ALL SELECT 10122, '早午餐'
+  UNION ALL SELECT 10125, '鐵板燒'
+  UNION ALL SELECT 10135, '商務'
+  UNION ALL SELECT 10136, 'Brunch'
+  UNION ALL SELECT 10138, '餐酒館'
+  UNION ALL SELECT 10140, 'Brunch'
+  UNION ALL SELECT 10141, '商務'
+  UNION ALL SELECT 10142, 'Brunch'
+  UNION ALL SELECT 10142, '早午餐'
+  UNION ALL SELECT 10144, '約會'
+  UNION ALL SELECT 10148, '商務'
+  UNION ALL SELECT 10148, '包廂'
+  UNION ALL SELECT 10149, '鐵板燒'
+  UNION ALL SELECT 10151, '法式'
+  UNION ALL SELECT 10156, '吃到飽'
+  UNION ALL SELECT 10158, '親子'
+  UNION ALL SELECT 10159, '牛排'
+  UNION ALL SELECT 10160, '商務'
+  UNION ALL SELECT 10160, '包廂'
+  UNION ALL SELECT 10161, '商務'
+  UNION ALL SELECT 10161, '包廂'
+  UNION ALL SELECT 10164, '餐酒館'
+  UNION ALL SELECT 10165, '韓式'
+  UNION ALL SELECT 10166, '吃到飽'
+  UNION ALL SELECT 10180, 'Brunch'
+  UNION ALL SELECT 10182, '吃到飽'
+  UNION ALL SELECT 10183, '餐酒館'
+  UNION ALL SELECT 10190, '韓式'
+  UNION ALL SELECT 10193, '義式'
+  UNION ALL SELECT 10195, 'Brunch'
+  UNION ALL SELECT 10195, '早午餐'
+  UNION ALL SELECT 10196, '餐酒館'
+  UNION ALL SELECT 10196, 'Brunch'
+) allowlist
+JOIN tb_shop ON tb_shop.id = allowlist.shop_id;
 
 UPDATE tb_shop
 SET type_id = CASE id

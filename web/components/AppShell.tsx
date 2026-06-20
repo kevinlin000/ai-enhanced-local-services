@@ -282,7 +282,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               aria-label="關閉選單"
               onClick={() => setMobileMenuOpen(false)}
             />
-            <aside className="relative flex h-full w-[86vw] max-w-[340px] flex-col border-r bg-[rgb(255_253_248)] shadow-2xl">
+            <aside className="relative flex h-full w-[86vw] max-w-[340px] flex-col border-r bg-[rgb(255_253_248)]">
               <div className="flex h-16 items-center justify-between border-b px-5">
                 <Link href="/" className="text-3xl font-semibold tracking-normal text-[var(--bb-ink)]">
                   bb

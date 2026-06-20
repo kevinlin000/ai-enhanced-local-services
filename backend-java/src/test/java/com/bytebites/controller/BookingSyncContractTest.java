@@ -7,8 +7,13 @@ import com.bytebites.entity.Shop;
 import com.bytebites.entity.jpa.BookingJpa;
 import com.bytebites.repository.BookingJpaRepository;
 import com.bytebites.service.AvailabilityNotificationService;
+import com.bytebites.service.BookingDepositAdjustmentService;
 import com.bytebites.service.BookingHoldService;
+import com.bytebites.service.BookingIncidentService;
 import com.bytebites.service.BookingLineNotificationService;
+import com.bytebites.service.BookingPayloadMapper;
+import com.bytebites.service.BookingRescheduleService;
+import com.bytebites.service.BookingSlotInventory;
 import com.bytebites.service.DepositPolicy;
 import com.bytebites.service.IShopService;
 import com.bytebites.service.LineActionTokenService;
@@ -35,9 +40,12 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -56,9 +64,15 @@ class BookingSyncContractTest {
     @Mock
     private BookingHoldService bookingHoldService;
     @Mock
+    private BookingSlotInventory bookingSlotInventory;
+    @Mock
     private AvailabilityNotificationService availabilityNotificationService;
     @Mock
     private BookingLineNotificationService bookingLineNotificationService;
+    @Mock
+    private BookingDepositAdjustmentService bookingDepositAdjustmentService;
+    @Mock
+    private BookingIncidentService bookingIncidentService;
     @Mock
     private ParkingService parkingService;
     @Mock
@@ -69,14 +83,26 @@ class BookingSyncContractTest {
     private JdbcTemplate jdbcTemplate;
 
     private BookingController controller;
+    private BookingRescheduleService bookingRescheduleService;
 
     @BeforeEach
     void setUp() {
+        bookingRescheduleService = new BookingRescheduleService(
+                bookingRepo,
+                bookingSlotInventory,
+                availabilityNotificationService,
+                bookingLineNotificationService
+        );
         controller = new BookingController(
                 bookingRepo,
                 shopService,
                 depositPolicy,
+                new BookingPayloadMapper(),
+                bookingRescheduleService,
+                bookingDepositAdjustmentService,
+                bookingIncidentService,
                 bookingHoldService,
+                bookingSlotInventory,
                 availabilityNotificationService,
                 bookingLineNotificationService,
                 parkingService,
@@ -85,6 +111,7 @@ class BookingSyncContractTest {
                 jdbcTemplate,
                 new NoopTransactionManager()
         );
+        lenient().when(bookingIncidentService.latestIncidentForBookingCode(anyString())).thenReturn(Optional.empty());
     }
 
     @AfterEach
@@ -135,13 +162,12 @@ class BookingSyncContractTest {
 
         assertThat(canceled.getSuccess()).isTrue();
         assertThat(booking.getStatus()).isEqualTo(BookingHoldService.STATUS_CANCELED);
-        verify(jdbcTemplate).update(
-                contains("UPDATE tb_booking_slot_inventory"),
-                eq(booking.getPeople()),
-                eq(SHOP_ID),
-                eq(booking.getBookingDate()),
-                eq(booking.getBookingTime()),
-                eq(booking.getTableType())
+        verify(bookingSlotInventory).release(
+                booking.getShopId(),
+                booking.getBookingDate(),
+                booking.getBookingTime(),
+                booking.getTableType(),
+                booking.getPeople()
         );
         verify(availabilityNotificationService).triggerIfAvailable(
                 SHOP_ID,
@@ -219,6 +245,310 @@ class BookingSyncContractTest {
                 .containsEntry("drivingToBooking", true)
                 .containsEntry("parkingReminderEnabled", true);
         assertThat(data.get("parkingReminderSentAt")).isNotNull();
+    }
+
+    @Test
+    void webRescheduleWithSameDepositReservesNewSlotReleasesOldSlotPushesLineAndRefreshesMyBookings() {
+        UserHolder.saveUser(webUser());
+        BookingJpa booking = paidBooking("BK-SYNC-004");
+        booking.setDrivingToBooking(true);
+        booking.setParkingReminderEnabled(true);
+        booking.setParkingReminderSentAt(LocalDateTime.now().minusHours(1));
+        LocalDate oldDate = booking.getBookingDate();
+        String oldTime = booking.getBookingTime();
+        String oldTableType = booking.getTableType();
+        int oldPeople = booking.getPeople();
+        LocalDate newDate = oldDate.plusDays(1);
+        when(bookingRepo.findByBookingCode("BK-SYNC-004")).thenReturn(Optional.of(booking));
+        when(bookingHoldService.expireIfDue(booking)).thenReturn(false);
+        when(bookingSlotInventory.reserve(SHOP_ID, newDate, "20:00", "normal", 2)).thenReturn(true);
+        when(shopService.getById(SHOP_ID)).thenReturn(shop());
+        when(bookingRepo.findByUserIdInOrderByCreatedAtDesc(any(Collection.class))).thenReturn(List.of(booking));
+        when(userJpaService.findById(USER_ID)).thenReturn(Optional.empty());
+        when(userJpaService.resolveLineIdentity(LINE_USER_ID, null)).thenReturn(linkedLineUser());
+
+        Result result = controller.reschedule("BK-SYNC-004", Map.of(
+                "date", newDate.toString(),
+                "time", "20:00",
+                "people", 2
+        ));
+
+        assertThat(result.getSuccess()).isTrue();
+        assertThat(booking.getBookingDate()).isEqualTo(newDate);
+        assertThat(booking.getBookingTime()).isEqualTo("20:00");
+        assertThat(booking.getPeople()).isEqualTo(2);
+        assertThat(booking.getDepositTotal()).isEqualTo(600);
+        assertThat(booking.getParkingReminderSentAt()).isNull();
+        verify(bookingSlotInventory).reserve(SHOP_ID, newDate, "20:00", "normal", 2);
+        verify(bookingSlotInventory).release(SHOP_ID, oldDate, oldTime, oldTableType, oldPeople);
+        verify(availabilityNotificationService).triggerIfAvailable(SHOP_ID, oldDate, oldTime, oldTableType);
+        verify(bookingRepo).saveAndFlush(booking);
+        verify(bookingLineNotificationService).pushBookingUpdated(booking, "rescheduled");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) result.getData();
+        assertThat(data)
+                .containsEntry("bookingCode", "BK-SYNC-004")
+                .containsEntry("date", newDate.toString())
+                .containsEntry("time", "20:00")
+                .containsEntry("people", 2)
+                .containsEntry("changed", true);
+        assertThat(data).containsKey("depositPolicy");
+
+        Result refreshed = controller.myBookings(null, null);
+        assertThat(resultList(refreshed).get(0))
+                .containsEntry("bookingCode", "BK-SYNC-004")
+                .containsEntry("date", newDate.toString())
+                .containsEntry("time", "20:00")
+                .containsEntry("people", 2)
+                .containsEntry("status", "PAID");
+    }
+
+    @Test
+    void paidRescheduleRejectsDepositIncreaseBeforeChangingSlots() {
+        UserHolder.saveUser(webUser());
+        BookingJpa booking = paidBooking("BK-SYNC-DEPOSIT-INCREASE");
+        LocalDate oldDate = booking.getBookingDate();
+        String oldTime = booking.getBookingTime();
+        int oldPeople = booking.getPeople();
+        int oldDepositTotal = booking.getDepositTotal();
+        LocalDate newDate = oldDate.plusDays(1);
+        when(bookingRepo.findByBookingCode("BK-SYNC-DEPOSIT-INCREASE")).thenReturn(Optional.of(booking));
+        when(bookingHoldService.expireIfDue(booking)).thenReturn(false);
+
+        Result result = controller.reschedule("BK-SYNC-DEPOSIT-INCREASE", Map.of(
+                "date", newDate.toString(),
+                "time", "20:00",
+                "people", 4
+        ));
+
+        assertThat(result.getSuccess()).isFalse();
+        assertThat(result.getErrorMsg()).contains("增加訂金");
+        assertThat(booking.getBookingDate()).isEqualTo(oldDate);
+        assertThat(booking.getBookingTime()).isEqualTo(oldTime);
+        assertThat(booking.getPeople()).isEqualTo(oldPeople);
+        assertThat(booking.getDepositTotal()).isEqualTo(oldDepositTotal);
+        verify(bookingSlotInventory, never()).reserve(any(), any(), anyString(), anyString(), anyInt());
+        verify(bookingSlotInventory, never()).release(any(), any(), anyString(), anyString(), anyInt());
+        verify(bookingRepo, never()).saveAndFlush(booking);
+        verify(bookingLineNotificationService, never()).pushBookingUpdated(booking, "rescheduled");
+        verify(bookingDepositAdjustmentService).recordRequired(
+                eq(booking),
+                isNull(),
+                eq(newDate),
+                eq("20:00"),
+                eq("normal"),
+                eq(4),
+                any(BookingRescheduleService.DepositAdjustment.class),
+                eq("CUSTOMER_RESCHEDULE")
+        );
+    }
+
+    @Test
+    void paidRescheduleRejectsDepositRefundBeforeChangingCapacity() {
+        UserHolder.saveUser(webUser());
+        BookingJpa booking = paidBooking("BK-SYNC-DEPOSIT-REFUND");
+        booking.setPeople(4);
+        booking.setDepositTotal(1200);
+        LocalDate oldDate = booking.getBookingDate();
+        String oldTime = booking.getBookingTime();
+        int oldPeople = booking.getPeople();
+        int oldDepositTotal = booking.getDepositTotal();
+        when(bookingRepo.findByBookingCode("BK-SYNC-DEPOSIT-REFUND")).thenReturn(Optional.of(booking));
+        when(bookingHoldService.expireIfDue(booking)).thenReturn(false);
+
+        Result result = controller.reschedule("BK-SYNC-DEPOSIT-REFUND", Map.of(
+                "people", 2
+        ));
+
+        assertThat(result.getSuccess()).isFalse();
+        assertThat(result.getErrorMsg()).contains("訂金退款");
+        assertThat(booking.getBookingDate()).isEqualTo(oldDate);
+        assertThat(booking.getBookingTime()).isEqualTo(oldTime);
+        assertThat(booking.getPeople()).isEqualTo(oldPeople);
+        assertThat(booking.getDepositTotal()).isEqualTo(oldDepositTotal);
+        verify(bookingSlotInventory, never()).reserve(any(), any(), anyString(), anyString(), anyInt());
+        verify(bookingSlotInventory, never()).release(any(), any(), anyString(), anyString(), anyInt());
+        verify(bookingRepo, never()).saveAndFlush(booking);
+        verify(bookingLineNotificationService, never()).pushBookingUpdated(booking, "rescheduled");
+    }
+
+    @Test
+    void customerAcceptsIncidentProposalByReschedulingThroughBookingService() {
+        UserHolder.saveUser(webUser());
+        BookingJpa booking = paidBooking("BK-SYNC-PROPOSAL");
+        LocalDate bookingDate = booking.getBookingDate();
+        String oldTime = booking.getBookingTime();
+        int oldPeople = booking.getPeople();
+        Map<String, Object> proposal = Map.of(
+                "proposalStatus", "PENDING",
+                "proposedDate", bookingDate,
+                "proposedTime", "19:30",
+                "proposedTableType", "normal",
+                "proposedPeople", 2,
+                "proposalMessage", "店家建議改到 19:30，請確認是否接受。",
+                "proposalExpiresAt", LocalDateTime.now().plusMinutes(20)
+        );
+        when(bookingRepo.findByBookingCode("BK-SYNC-PROPOSAL")).thenReturn(Optional.of(booking));
+        when(bookingHoldService.expireIfDue(booking)).thenReturn(false);
+        when(jdbcTemplate.queryForList(anyString(), eq(7L), eq("BK-SYNC-PROPOSAL"))).thenReturn(List.of(proposal));
+        when(bookingSlotInventory.reserve(SHOP_ID, bookingDate, "19:30", "normal", 2)).thenReturn(true);
+        when(shopService.getById(SHOP_ID)).thenReturn(shop());
+
+        Result result = controller.acceptIncidentProposal("BK-SYNC-PROPOSAL", 7L, Map.of());
+
+        assertThat(result.getSuccess()).isTrue();
+        assertThat(booking.getBookingTime()).isEqualTo("19:30");
+        verify(bookingSlotInventory).reserve(SHOP_ID, bookingDate, "19:30", "normal", 2);
+        verify(bookingSlotInventory).release(SHOP_ID, bookingDate, oldTime, "normal", oldPeople);
+        verify(availabilityNotificationService).triggerIfAvailable(SHOP_ID, bookingDate, oldTime, "normal");
+        verify(bookingLineNotificationService).pushBookingUpdated(booking, "rescheduled");
+        verify(jdbcTemplate).update(anyString(), eq(7L), eq("BK-SYNC-PROPOSAL"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) result.getData();
+        assertThat(data)
+                .containsEntry("bookingCode", "BK-SYNC-PROPOSAL")
+                .containsEntry("time", "19:30")
+                .containsEntry("changed", true);
+        assertThat(data).containsKey("acceptedProposal");
+    }
+
+    @Test
+    void customerAcceptingIncidentProposalRejectsDepositIncreaseBeforeRescheduling() {
+        UserHolder.saveUser(webUser());
+        BookingJpa booking = paidBooking("BK-SYNC-PROPOSAL-DEPOSIT");
+        LocalDate bookingDate = booking.getBookingDate();
+        String oldTime = booking.getBookingTime();
+        int oldPeople = booking.getPeople();
+        int oldDepositTotal = booking.getDepositTotal();
+        Map<String, Object> proposal = Map.of(
+                "proposalStatus", "PENDING",
+                "proposedDate", bookingDate,
+                "proposedTime", "19:30",
+                "proposedTableType", "normal",
+                "proposedPeople", 4,
+                "proposalMessage", "店家建議改到 19:30，請確認是否接受。",
+                "proposalExpiresAt", LocalDateTime.now().plusMinutes(20)
+        );
+        when(bookingRepo.findByBookingCode("BK-SYNC-PROPOSAL-DEPOSIT")).thenReturn(Optional.of(booking));
+        when(bookingHoldService.expireIfDue(booking)).thenReturn(false);
+        when(jdbcTemplate.queryForList(anyString(), eq(10L), eq("BK-SYNC-PROPOSAL-DEPOSIT"))).thenReturn(List.of(proposal));
+
+        Result result = controller.acceptIncidentProposal("BK-SYNC-PROPOSAL-DEPOSIT", 10L, Map.of());
+
+        assertThat(result.getSuccess()).isFalse();
+        assertThat(result.getErrorMsg()).contains("增加訂金");
+        assertThat(booking.getBookingTime()).isEqualTo(oldTime);
+        assertThat(booking.getPeople()).isEqualTo(oldPeople);
+        assertThat(booking.getDepositTotal()).isEqualTo(oldDepositTotal);
+        verify(bookingSlotInventory, never()).reserve(any(), any(), anyString(), anyString(), anyInt());
+        verify(bookingSlotInventory, never()).release(any(), any(), anyString(), anyString(), anyInt());
+        verify(bookingRepo, never()).saveAndFlush(booking);
+        verify(bookingLineNotificationService, never()).pushBookingUpdated(booking, "rescheduled");
+        verify(bookingDepositAdjustmentService).recordRequired(
+                eq(booking),
+                eq(10L),
+                eq(bookingDate),
+                eq("19:30"),
+                eq("normal"),
+                eq(4),
+                any(BookingRescheduleService.DepositAdjustment.class),
+                eq("INCIDENT_PROPOSAL")
+        );
+    }
+
+    @Test
+    void customerDeclinesIncidentProposalWithoutRescheduling() {
+        UserHolder.saveUser(webUser());
+        BookingJpa booking = paidBooking("BK-SYNC-DECLINE");
+        String oldTime = booking.getBookingTime();
+        Map<String, Object> proposal = Map.of(
+                "proposalStatus", "PENDING",
+                "proposedDate", booking.getBookingDate(),
+                "proposedTime", "19:30",
+                "proposedTableType", "normal",
+                "proposedPeople", 2,
+                "proposalMessage", "店家建議改到 19:30，請確認是否接受。",
+                "proposalExpiresAt", LocalDateTime.now().plusMinutes(20)
+        );
+        when(bookingRepo.findByBookingCode("BK-SYNC-DECLINE")).thenReturn(Optional.of(booking));
+        when(bookingHoldService.expireIfDue(booking)).thenReturn(false);
+        when(jdbcTemplate.queryForList(anyString(), eq(8L), eq("BK-SYNC-DECLINE"))).thenReturn(List.of(proposal));
+        when(jdbcTemplate.update(anyString(), eq(8L), eq("BK-SYNC-DECLINE"))).thenReturn(1);
+        when(shopService.getById(SHOP_ID)).thenReturn(shop());
+
+        Result result = controller.declineIncidentProposal("BK-SYNC-DECLINE", 8L, Map.of());
+
+        assertThat(result.getSuccess()).isTrue();
+        assertThat(booking.getBookingTime()).isEqualTo(oldTime);
+        verify(bookingSlotInventory, never()).reserve(any(), any(), anyString(), anyString(), anyInt());
+        verify(bookingSlotInventory, never()).release(any(), any(), anyString(), anyString(), anyInt());
+        verify(jdbcTemplate).update(anyString(), eq(8L), eq("BK-SYNC-DECLINE"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) result.getData();
+        assertThat(data)
+                .containsEntry("bookingCode", "BK-SYNC-DECLINE")
+                .containsKey("declinedProposal");
+    }
+
+    @Test
+    void acceptingExpiredIncidentProposalMarksExpiredWithoutRescheduling() {
+        UserHolder.saveUser(webUser());
+        BookingJpa booking = paidBooking("BK-SYNC-EXPIRED");
+        String oldTime = booking.getBookingTime();
+        Map<String, Object> proposal = Map.of(
+                "proposalStatus", "PENDING",
+                "proposedDate", booking.getBookingDate(),
+                "proposedTime", "19:30",
+                "proposedTableType", "normal",
+                "proposedPeople", 2,
+                "proposalMessage", "店家建議改到 19:30，請確認是否接受。",
+                "proposalExpiresAt", LocalDateTime.now().minusMinutes(1)
+        );
+        when(bookingRepo.findByBookingCode("BK-SYNC-EXPIRED")).thenReturn(Optional.of(booking));
+        when(bookingHoldService.expireIfDue(booking)).thenReturn(false);
+        when(jdbcTemplate.queryForList(anyString(), eq(9L), eq("BK-SYNC-EXPIRED"))).thenReturn(List.of(proposal));
+        when(jdbcTemplate.update(anyString(), eq(9L), eq("BK-SYNC-EXPIRED"))).thenReturn(1);
+
+        Result result = controller.acceptIncidentProposal("BK-SYNC-EXPIRED", 9L, Map.of());
+
+        assertThat(result.getSuccess()).isFalse();
+        assertThat(result.getErrorMsg()).contains("逾期");
+        assertThat(booking.getBookingTime()).isEqualTo(oldTime);
+        verify(bookingSlotInventory, never()).reserve(any(), any(), anyString(), anyString(), anyInt());
+        verify(bookingSlotInventory, never()).release(any(), any(), anyString(), anyString(), anyInt());
+        verify(jdbcTemplate).update(anyString(), eq(9L), eq("BK-SYNC-EXPIRED"));
+    }
+
+    @Test
+    void rescheduleDoesNotReleaseOldSlotWhenNewSlotIsFull() {
+        UserHolder.saveUser(webUser());
+        BookingJpa booking = paidBooking("BK-SYNC-FULL");
+        LocalDate oldDate = booking.getBookingDate();
+        String oldTime = booking.getBookingTime();
+        String oldTableType = booking.getTableType();
+        int oldPeople = booking.getPeople();
+        LocalDate newDate = oldDate.plusDays(1);
+        when(bookingRepo.findByBookingCode("BK-SYNC-FULL")).thenReturn(Optional.of(booking));
+        when(bookingHoldService.expireIfDue(booking)).thenReturn(false);
+        when(bookingSlotInventory.reserve(SHOP_ID, newDate, "20:00", "normal", 2)).thenReturn(false);
+
+        Result result = controller.reschedule("BK-SYNC-FULL", Map.of(
+                "date", newDate.toString(),
+                "time", "20:00",
+                "people", 2
+        ));
+
+        assertThat(result.getSuccess()).isFalse();
+        assertThat(result.getErrorMsg()).contains("原訂位已保留不變");
+        assertThat(booking.getBookingDate()).isEqualTo(oldDate);
+        assertThat(booking.getBookingTime()).isEqualTo(oldTime);
+        assertThat(booking.getTableType()).isEqualTo(oldTableType);
+        assertThat(booking.getPeople()).isEqualTo(oldPeople);
+        verify(bookingSlotInventory).reserve(SHOP_ID, newDate, "20:00", "normal", 2);
+        verify(bookingSlotInventory, never()).release(any(), any(), anyString(), anyString(), anyInt());
+        verify(availabilityNotificationService, never()).triggerIfAvailable(any(), any(), anyString(), anyString());
+        verify(bookingRepo, never()).saveAndFlush(booking);
+        verify(bookingLineNotificationService, never()).pushBookingUpdated(booking, "rescheduled");
     }
 
     @SuppressWarnings("unchecked")

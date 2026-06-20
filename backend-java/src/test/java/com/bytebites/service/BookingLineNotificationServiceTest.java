@@ -38,7 +38,12 @@ class BookingLineNotificationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new BookingLineNotificationService(shopService, lineNotificationClient, userJpaService);
+        service = new BookingLineNotificationService(
+                shopService,
+                lineNotificationClient,
+                userJpaService,
+                new BookingPayloadMapper()
+        );
     }
 
     @Test
@@ -146,6 +151,82 @@ class BookingLineNotificationServiceTest {
                 .containsEntry("name", "市府轉運站停車場")
                 .containsEntry("availableCar", 18)
                 .containsEntry("distanceMeters", 180);
+    }
+
+    @Test
+    void bookingIncidentPayloadContainsIncidentAndBookingContext() {
+        BookingJpa booking = booking(BookingHoldService.STATUS_PAID, "TPY-SYNC-001");
+        when(shopService.getById(SHOP_ID)).thenReturn(shop());
+        when(userJpaService.findLineNotificationUserId(USER_ID)).thenReturn(Optional.of(LINE_USER_ID));
+
+        service.pushBookingIncident(booking, Map.of(
+                "id", 7L,
+                "bookingCode", "BK-LINE-001",
+                "shopId", SHOP_ID,
+                "shopName", "橘色涮涮屋 信義館",
+                "incidentType", "RESTAURANT_DELAY",
+                "title", "店家回報約延 15 分鐘",
+                "customerMessage", "店家剛回報前面桌用餐延長。",
+                "actionLabel", "已保留原訂位",
+                "originalTime", "19:00",
+                "adjustedTime", "19:15"
+        ));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> incidentCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(lineNotificationClient).pushBookingIncident(
+                org.mockito.ArgumentMatchers.eq(LINE_USER_ID),
+                incidentCaptor.capture()
+        );
+        assertThat(incidentCaptor.getValue())
+                .containsEntry("bookingCode", "BK-LINE-001")
+                .containsEntry("incidentType", "RESTAURANT_DELAY")
+                .containsEntry("date", booking.getBookingDate().toString())
+                .containsEntry("time", "19:00")
+                .containsEntry("people", 2);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> bookingPayload = (Map<String, Object>) incidentCaptor.getValue().get("booking");
+        assertThat(bookingPayload)
+                .containsEntry("bookingCode", "BK-LINE-001")
+                .containsEntry("shopName", "橘色涮涮屋 信義館")
+                .containsEntry("status", "PAID");
+    }
+
+    @Test
+    void bookingIncidentProposalPayloadRoutesToProposalWebhook() {
+        when(userJpaService.findLineNotificationUserId(USER_ID)).thenReturn(Optional.of(LINE_USER_ID));
+        Map<String, Object> incident = Map.of(
+                "id", 7L,
+                "bookingCode", "BK-LINE-001",
+                "userId", USER_ID,
+                "shopId", SHOP_ID,
+                "shopName", "橘色涮涮屋 信義館",
+                "proposedChange", Map.of(
+                        "status", "PENDING",
+                        "date", LocalDate.now().plusDays(3).toString(),
+                        "time", "19:30",
+                        "people", 2,
+                        "expiresAt", "2026-06-19T19:10"
+                )
+        );
+
+        service.pushBookingIncidentProposal(incident);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> incidentCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(lineNotificationClient).pushBookingIncidentProposal(
+                org.mockito.ArgumentMatchers.eq(LINE_USER_ID),
+                incidentCaptor.capture()
+        );
+        assertThat(incidentCaptor.getValue())
+                .containsEntry("bookingCode", "BK-LINE-001")
+                .containsEntry("userId", USER_ID)
+                .containsEntry("shopName", "橘色涮涮屋 信義館");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> proposedChange = (Map<String, Object>) incidentCaptor.getValue().get("proposedChange");
+        assertThat(proposedChange)
+                .containsEntry("status", "PENDING")
+                .containsEntry("time", "19:30");
     }
 
     private BookingJpa booking(int status, String paymentTransId) {
