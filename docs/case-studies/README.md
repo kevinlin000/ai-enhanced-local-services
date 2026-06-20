@@ -31,9 +31,10 @@ Data quality -> AI reliability -> transaction consistency -> product differentia
 | 08 | [Parking Reminder](08-parking-reminder-demo.md) | ByteBites extends the dining journey beyond booking into arrival support. |
 | 09 | [Modernization and Security](09-modernization-security.md) | The AI layer was built on a cleaned and upgraded backend foundation. |
 | 10 | [AI Dialogue State](10-ai-dialogue-state.md) | A useful AI agent needs state, confirmation, and task memory. |
-| 11 | [Public Demo Deployment](11-demo-deployment.md) | A working product must be reachable by classmates, not only by localhost. |
+| 11 | [Public Demo Deployment](11-demo-deployment.md) | A working product must be reachable by classmates, with ngrok for local tunnels and Nginx for stable public routing. |
 | 12 | [Premium UI Positioning](12-premium-ui-positioning.md) | The design moved from competitor imitation to ByteBites' own AI operations identity. |
 | 13 | [AI Concierge Quality Hardening](13-ai-concierge-quality-hardening.md) | Recent fixes moved the assistant toward reliable customer-service behavior. |
+| 14 | [Portfolio Verification](14-portfolio-verification.md) | The project is now reviewable through one verification command, CI, data gates, and evidence maps. |
 
 ## 中文導讀
 
@@ -51,16 +52,22 @@ Data quality -> AI reliability -> transaction consistency -> product differentia
 4. **產品定位不是模仿競品**  
    ByteBites 走的是「AI 會推薦，也會安排」：推薦只是入口，後面的訂位、提醒、停車才是差異化。
 
+5. **作品要能被審查，不只要能 demo**
+   單一 verification script、CI matrix、data quality gate 和 evidence map 讓 reviewer 能把主張連回程式、測試與資料。
+
 ## Reviewer Questions This Index Helps Answer
 
-- Is this only a UI demo?  
+- Is this only a UI demo?
   No. The cases show backend migrations, identity sync, tests, AI contracts, data pipelines, and deployment.
 
-- Is the AI reliable or just fluent?  
+- Is the AI reliable or just fluent?
   Reliability is addressed through hard constraints, state handling, regression tests, and response contracts.
 
-- Is the data real enough to support recommendations?  
+- Is the data real enough to support recommendations?
   The crawler and coverage cases show how shop, review, media, taxonomy, and vector payload quality were audited.
 
-- Is the product differentiated?  
+- Is the product differentiated?
   The parking, LINE sync, and AI operations positioning cases show why ByteBites is more than restaurant discovery.
+
+- Can I verify the claims quickly?
+  Yes. Start with `docs/portfolio-evidence-map.md`, then run `scripts/verify-portfolio.sh`.

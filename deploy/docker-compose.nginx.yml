@@ -1,0 +1,19 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: bytebites-nginx
+    profiles:
+      - public-proxy
+    ports:
+      - "${BYTEBITES_PUBLIC_HTTP_PORT:-8088}:80"
+    environment:
+      SERVER_NAME: "${SERVER_NAME:-localhost}"
+      WEB_UPSTREAM: "${WEB_UPSTREAM:-host.docker.internal:3000}"
+      JAVA_UPSTREAM: "${JAVA_UPSTREAM:-host.docker.internal:8081}"
+      AI_UPSTREAM: "${AI_UPSTREAM:-host.docker.internal:8000}"
+      CLIENT_MAX_BODY_SIZE: "${CLIENT_MAX_BODY_SIZE:-10m}"
+    volumes:
+      - ./nginx/bytebites.conf.template:/etc/nginx/templates/bytebites.conf.template:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

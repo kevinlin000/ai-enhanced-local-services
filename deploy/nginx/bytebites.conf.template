@@ -1,0 +1,96 @@
+# ByteBites stable public reverse proxy.
+#
+# Render before installing:
+#   SERVER_NAME=demo.example.com \
+#   WEB_UPSTREAM=127.0.0.1:3000 \
+#   JAVA_UPSTREAM=127.0.0.1:8081 \
+#   AI_UPSTREAM=127.0.0.1:8000 \
+#   CLIENT_MAX_BODY_SIZE=10m \
+#   envsubst '$SERVER_NAME $WEB_UPSTREAM $JAVA_UPSTREAM $AI_UPSTREAM $CLIENT_MAX_BODY_SIZE' \
+#     < deploy/nginx/bytebites.conf.template \
+#     > /etc/nginx/conf.d/bytebites.conf
+#
+# LINE requires a public HTTPS URL. Terminate TLS at this Nginx server
+# with your certificate automation, or place this config behind a TLS
+# load balancer / CDN that forwards to Nginx.
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    "" close;
+}
+
+upstream bytebites_web {
+    server ${WEB_UPSTREAM};
+    keepalive 32;
+}
+
+upstream bytebites_java {
+    server ${JAVA_UPSTREAM};
+    keepalive 32;
+}
+
+upstream bytebites_ai {
+    server ${AI_UPSTREAM};
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    server_name ${SERVER_NAME};
+
+    client_max_body_size ${CLIENT_MAX_BODY_SIZE};
+
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Request-ID $request_id;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_connect_timeout 5s;
+    proxy_send_timeout 300s;
+    proxy_read_timeout 300s;
+    proxy_redirect off;
+
+    location = /health/java {
+        proxy_pass http://bytebites_java/actuator/health;
+    }
+
+    location = /health/ai {
+        proxy_pass http://bytebites_ai/health;
+    }
+
+    # Public Java API path used by the Web app:
+    # /api/java/api/shop/count -> Java /api/shop/count
+    location /api/java/ {
+        proxy_pass http://bytebites_java/;
+    }
+
+    # Legacy AI proxy path kept for the existing public smoke test:
+    # /api/python/health -> AI /health
+    location /api/python/ {
+        proxy_buffering off;
+        proxy_pass http://bytebites_ai/;
+    }
+
+    # Current AI API path. Preserve the /api/ai prefix for FastAPI.
+    location /api/ai/ {
+        proxy_buffering off;
+        proxy_pass http://bytebites_ai;
+    }
+
+    # LINE Messaging API webhook. Preserve the /api/line prefix for FastAPI.
+    location /api/line/ {
+        proxy_pass http://bytebites_ai;
+    }
+
+    # LINE Flex card action pages and lightweight booking/status pages.
+    location /line/ {
+        proxy_pass http://bytebites_ai;
+    }
+
+    location / {
+        proxy_pass http://bytebites_web;
+    }
+}

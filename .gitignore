@@ -58,6 +58,7 @@ venv/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+.uv-cache/
 etl-pipeline/.env
 etl-pipeline/data/raw/
 etl-pipeline/data/processed/
