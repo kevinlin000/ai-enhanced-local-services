@@ -4,7 +4,7 @@
 評估 real-time incident handling 完成後的下一個最高價值產品能力，並完成一個可驗證、可面試展示的最小縱切。
 
 ## 目前階段
-階段 32 完成
+階段 33 完成
 
 ## 各階段
 
@@ -269,6 +269,14 @@
 - [x] commit / push 並確認 GitHub Portfolio CI 回綠
 - **狀態：** complete
 
+### 階段 33：Portfolio readiness scorecard and next plan
+- [x] 評估目前作品是否已足夠面試展示
+- [x] 給出 portfolio readiness score 與角色別評分
+- [x] 新增 scorecard 文件，明確區分 portfolio-ready 與 production-ready
+- [x] 將 scorecard 接進 README / release boundary / verifier
+- [x] 執行 release verifier、portfolio verification、CI
+- **狀態：** complete
+
 ## 關鍵問題
 1. incident 完成後，下一個能力應強化「營運閉環」、「AI 個人化」還是「可觀測/後台」？
 2. 哪個最小縱切能增加面試敘事價值，而不把系統帶進過大重構？
@@ -336,6 +344,7 @@
 | Phase 32 選 CI fixture stabilization | Release boundary 已完成但 push gate 仍紅；下一步最高價值不是加新功能，而是消除 CI 與本機資料狀態不一致，讓 portfolio 證據可被第三方重現 |
 | ETL taxonomy tests 分成 committed fixture 與 full corpus | CI checkout 不包含 ignored raw data；核心 fixture 必須提交，完整 103 筆 approval 只在完整 raw corpus 存在時執行 |
 | Java proposal expiry tests 使用 business zone | Runtime 以台北時間判斷提案是否逾期；測試也必須用同一個 business zone，避免 UTC hosted runner 誤判 |
+| Phase 33 先做 scorecard，不再加新功能 | 作品已足夠面試展示；下一個價值是把評分、證據、扣分點與後續計畫集中，讓面試官快速理解成熟度 |
 
 ## 遇到的錯誤
 | 錯誤 | 嘗試次數 | 解決方案 |

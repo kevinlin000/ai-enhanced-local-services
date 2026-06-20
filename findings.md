@@ -86,6 +86,8 @@
 - ETL taxonomy 測試應分成兩層：committed minimal fixture 永遠在 CI 跑核心分類回歸；完整 103 筆 approval map 只在 full raw corpus 存在時跑。
 - Phase 32 完成 fixture stabilization 後，本機完整 raw 模式 ETL 為 43 passed；模擬 CI 無 raw 模式為 42 passed, 1 skipped。
 - Portfolio CI 的 ETL 修正推上後，Backend Java 暴露另一個 hosted-runner-only failure：proposal expiry 測試用系統預設時區，production code 用 `Asia/Taipei` business zone，UTC runner 會把未來 20 分鐘誤判成已逾期。
+- 目前作品以 portfolio interview 標準可評 88/100：足夠展示且高於一般 CRUD / chatbot demo，但尚未是 production SaaS rollout。
+- 目前不應繼續堆新功能；更高價值是把 evidence package 收斂成 scorecard、截圖、短 demo script、production-gap answer 與 architecture diagram。
 
 ## 技術決策
 | 決策 | 理由 |
@@ -150,6 +152,8 @@
 | Phase 32 先修 CI red gate，不加新功能 | Portfolio CI 紅燈會直接削弱作品可信度；在 CI 回綠前，新增功能的展示價值低於修正可重現性 |
 | taxonomy fixture 不提交完整 raw corpus | `etl-pipeline/data/raw/` 是 crawler output 且已被忽略；提交少量 critical fixture 可保留回歸保障，同時避免把 62MB raw data 變成 repo contract |
 | Java proposal expiry tests 使用 business zone | Runtime 以台北時間判斷提案是否逾期；測試也必須用同一個 business zone，避免 CI runner 時區影響結果 |
+| Portfolio readiness 評分採 88/100 | 作品已具備產品差異、Java source-of-truth、AI workflow、資料品質、Web/LINE 協調與 CI；扣分主要來自 presentation packaging 與 production rollout gaps |
+| 下一步做 evidence package 而非 feature | 新功能會增加說明成本；目前最大槓桿是讓現有深度更容易被面試官看見 |
 
 ## 遇到的問題
 | 問題 | 解決方案 |

@@ -22,6 +22,7 @@ The key presentation point is not that ByteBites has a chatbot. It is that AI is
 Fast links:
 
 - [Presentation Guide / 發表指南](docs/presentation-guide.md)
+- [Portfolio Readiness Scorecard / 作品成熟度評分](docs/portfolio-readiness-scorecard.md)
 - [Release Boundary / 發表交付邊界](docs/release-boundary.md)
 - [Nginx Public Deployment Boundary](docs/deployment-nginx.md)
 - [Portfolio Evidence Map / 面試證據地圖](docs/portfolio-evidence-map.md)

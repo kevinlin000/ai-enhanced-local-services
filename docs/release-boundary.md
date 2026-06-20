@@ -22,6 +22,8 @@ The strongest claim is not "the model recommends restaurants." The strongest cla
 AI can orchestrate the dining workflow, but Java remains the source of truth for booking, payment, incident, and refund state.
 ```
 
+The portfolio readiness scorecard is maintained at `docs/portfolio-readiness-scorecard.md`. Current recommendation: portfolio-ready at **88 / 100**, demo-ready for interviews, not yet a production SaaS rollout.
+
 ## Verification Ladder
 
 Run the checks in this order when preparing a release or presentation.
@@ -67,6 +69,7 @@ The current work should be reviewed or committed in coherent groups:
 | Deployment boundary | Nginx template, Compose overlay, demo readiness, public-proxy smoke |
 | Migration reliability | V16 clean-schema fix, clean MySQL migration smoke, manual GitHub Actions smoke |
 | Evidence and docs | README, roadmap, portfolio evidence map, case studies, release boundary |
+| Scorecard | portfolio readiness score, role-specific framing, remaining gaps, next plan |
 
 Do not squash these into one anonymous "final update" commit if the goal is reviewer clarity.
 

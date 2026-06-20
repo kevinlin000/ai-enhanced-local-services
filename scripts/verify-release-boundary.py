@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DOC = ROOT / "docs" / "release-boundary.md"
+SCORECARD = ROOT / "docs" / "portfolio-readiness-scorecard.md"
 SCRIPT = ROOT / "scripts" / "release-readiness.sh"
 
 
@@ -32,6 +33,11 @@ def main() -> None:
     except FileNotFoundError:
         fail(f"missing release readiness script: {SCRIPT.relative_to(ROOT)}")
 
+    try:
+        scorecard = SCORECARD.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing portfolio readiness scorecard: {SCORECARD.relative_to(ROOT)}")
+
     required_doc_snippets = {
         "release thesis": "AI can orchestrate the dining workflow, but Java remains the source of truth",
         "dry run": "scripts/release-readiness.sh --dry-run",
@@ -39,6 +45,8 @@ def main() -> None:
         "full gate": "scripts/release-readiness.sh --full",
         "live local": "scripts/release-readiness.sh --live-local --base-url http://localhost:8088",
         "portfolio verifier": "scripts/verify-portfolio.sh",
+        "readiness scorecard": "docs/portfolio-readiness-scorecard.md",
+        "readiness score": "88 / 100",
         "clean mysql smoke": "scripts/smoke-clean-mysql-migrations.sh --timeout 180",
         "demo readiness": "scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict",
         "github workflow": ".github/workflows/clean-mysql-migration-smoke.yml",
@@ -47,6 +55,19 @@ def main() -> None:
     }
     for label, snippet in required_doc_snippets.items():
         require(doc, snippet, label)
+
+    required_scorecard_snippets = {
+        "overall score": "Portfolio readiness: 88 / 100",
+        "portfolio yes": "Yes for portfolio interviews.",
+        "production no": "Not yet for production SaaS rollout.",
+        "java score": "Java backend",
+        "ai score": "AI application engineer",
+        "full stack score": "Full-stack engineer",
+        "evidence package": "Step 1: Evidence Package",
+        "stop feature creep": "Stop Adding Features For Now",
+    }
+    for label, snippet in required_scorecard_snippets.items():
+        require(scorecard, snippet, label)
 
     required_script_snippets = {
         "dry run option": "--dry-run",

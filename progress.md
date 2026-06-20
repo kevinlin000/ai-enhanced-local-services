@@ -2,6 +2,22 @@
 
 ## 會話：2026-06-20
 
+### 階段 33：Portfolio readiness scorecard and next plan
+- **狀態：** complete
+- 執行的操作：
+  - 依目前完整產品面、架構面、驗證面評估作品成熟度，判斷目前已足夠作為 portfolio interview project。
+  - 給出總分：Portfolio readiness 88 / 100；角色別評分：Java backend 92、AI application engineer 90、Full-stack engineer 88、Production platform/SRE 72。
+  - 新增 `docs/portfolio-readiness-scorecard.md`，集中說明「已足夠面試展示，但尚非 production SaaS rollout」。
+  - 在 scorecard 中列出扣分點：demo evidence 分散、production gaps 需精簡答法、缺一眼看懂的架構圖、live demo 依賴本機服務、截圖需聚焦高訊號頁面。
+  - 將 scorecard 接到 README fast links、`docs/release-boundary.md` 與 `scripts/verify-release-boundary.py`。
+  - 更新 `task_plan.md` Phase 33。
+  - `python3 scripts/verify-release-boundary.py` 通過。
+  - `git diff --check` 通過。
+  - `scripts/verify-portfolio.sh` 通過：Java 96 tests / 0 failures / 3 skipped，AI 174 passed，ETL 43 passed，data-quality gate passed，Nginx deployment template contract passed，clean MySQL migration smoke/workflow contracts passed，release boundary contract passed，Web tests 19 passed，Web production build passed。
+- 後續規劃評估：
+  - 下一步最高價值是 evidence package：固定截圖、短影片或 slide deck，而不是再新增產品功能。
+  - 若繼續做工程，應先做一張 architecture diagram 與 demo screenshot checklist，讓面試官在 60 秒內看懂深度。
+
 ### 階段 32：Portfolio CI taxonomy fixture stabilization
 - **狀態：** complete
 - 執行的操作：
