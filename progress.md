@@ -2,6 +2,21 @@
 
 ## 會話：2026-06-20
 
+### 階段 44：README public-facing cleanup
+- **狀態：** complete
+- **完成時間：** 2026-06-21T01:35:00+08:00
+- 執行的操作：
+  - 使用者指出 README 放入成熟度評分、100 分路線圖、錄影講稿、面試包等連結不專業，且台灣作品文件應中文為主、英文獨立成一版。
+  - 重寫 `README.md` 為中文主文件，移除中英混排與 `Fast links`。
+  - README 公開審查入口只保留專業 reviewer-facing artifacts：project journey、architecture overview、ER model、performance/query evidence、data coverage、Nginx deployment、case studies。
+  - 新增 `README.en.md` 作為英文版，避免中文主文件被英文內容稀釋。
+  - 更新 markdown link verifier roots，讓 `README.en.md` 的連結也會被 data-quality gate 檢查。
+  - 進一步將 README 直接連出去的公開證據文件 `architecture-overview.md`、`er-model-booking-operations.md`、`performance-query-evidence.md` 改成中文主體。
+  - 同步更新 release boundary verifier 與 performance/query verifier 的中文 snippets。
+- 後續規劃評估：
+  - 內部文件仍可保留，但不要從 README 入口曝光。
+  - 下一步應繼續檢查 `docs/release-boundary.md`、scorecard、roadmap 是否需要移到 `_internal` 或改名，避免 reviewer 從公開文件鏈看到內部準備語氣。
+
 ### 階段 43：Performance/query evidence
 - **狀態：** complete
 - **完成時間：** 2026-06-21T01:10:00+08:00

@@ -4,7 +4,7 @@
 評估 real-time incident handling 完成後的下一個最高價值產品能力，並完成一個可驗證、可面試展示的最小縱切。
 
 ## 目前階段
-階段 43 完成
+階段 44 完成
 
 ## 各階段
 
@@ -357,6 +357,14 @@
 - [x] 同步 README / release boundary / evidence map / scorecard / roadmap
 - **狀態：** complete
 
+### 階段 44：README public-facing cleanup
+- [x] 重新審視 README 是否像正式作品入口
+- [x] 移除 README 中不適合公開入口的自評、100 分、錄影、面試準備連結
+- [x] 將 README 改為中文主文件
+- [x] 新增獨立英文版 README
+- [x] 將英文 README 納入 markdown link verifier
+- **狀態：** complete
+
 ## 關鍵問題
 1. incident 完成後，下一個能力應強化「營運閉環」、「AI 個人化」還是「可觀測/後台」？
 2. 哪個最小縱切能增加面試敘事價值，而不把系統帶進過大重構？
@@ -436,6 +444,7 @@
 | Phase 41 大廠評分只作內部策略 | Google/Binance/Shopee 等投遞評分和缺口很有用，但不應出現在 README / release boundary / scorecard；對外文件只呈現作品成熟證據 |
 | Phase 42 補 system design interview pack | 使用者晚點才錄影；錄影之外最高價值是把架構追問答辯變成 reviewer-facing artifact，且不包含內部自評或投遞策略 |
 | Phase 43 補 performance/query evidence | 大廠面試會問查詢與效能，但目前沒有 production-like benchmark；先把 hot path、索引與 code anchors 做成可驗證 evidence，不假裝已有 QPS/p95 數據 |
+| Phase 44 README 採中文主文件 + 英文獨立版 | 台灣求職情境下 README 應先用中文專業呈現；英文版獨立存在即可，避免中英混排與內部準備文件讓入口失焦 |
 
 ## 遇到的錯誤
 | 錯誤 | 嘗試次數 | 解決方案 |

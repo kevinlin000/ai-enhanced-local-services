@@ -42,6 +42,7 @@ MARKDOWN_LINK_PATTERN = re.compile(r"(?<!!)\[[^\]\n]+\]\(([^)\n]+)\)")
 
 MARKDOWN_LINK_ROOTS = (
     "README.md",
+    "README.en.md",
     "CONTEXT-MAP.md",
     "docs",
     "ai-service-python/README.md",

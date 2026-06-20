@@ -25,14 +25,14 @@ def require(path: Path, snippet: str, label: str) -> None:
 
 def verify_doc() -> None:
     required = {
-        "title": "ByteBites Performance And Query Evidence",
-        "scope": "The critical runtime surfaces are:",
-        "query path map": "Query Path Map",
-        "slot reservation": "Slot Reservation",
-        "refund operations": "Refund Operations",
+        "title": "ByteBites 效能與查詢證據",
+        "scope": "目前最重要的 runtime surfaces",
+        "query path map": "查詢路徑對照",
+        "slot reservation": "座位保留",
+        "refund operations": "Refund operations",
         "verifier command": "python3 scripts/verify-performance-query-evidence.py",
-        "no throughput overclaim": "This evidence does not prove production-scale throughput.",
-        "next performance work": "Next Performance Work",
+        "no throughput overclaim": "這份證據不證明 production-scale throughput。",
+        "next performance work": "下一步效能工作",
     }
     for label, snippet in required.items():
         require(DOC, snippet, label)

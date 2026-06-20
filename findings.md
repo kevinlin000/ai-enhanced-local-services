@@ -107,6 +107,8 @@
 - 內部嚴格評分暫定：Java backend 86/100、AI application 84/100、Full-stack 82/100。要往 95+，優先補 performance/query evidence、E2E browser flows、AI eval/observability、system design interview pack。
 - 錄影之外的下一個最高價值 artifact 是 system design interview pack；這可以公開，因為它回答架構邊界、一致性、失敗模式、AI reliability、production gap，不包含自評分數或投遞策略。
 - Performance/query evidence 應先做 query shape + index coverage + verifier，不應宣稱未量測的 QPS 或 p95 latency；這比假 benchmark 更專業。
+- README 是 reviewer-facing 作品入口，不應出現成熟度自評、100 分路線圖、錄影講稿、面試包等內部準備文件；台灣求職情境應採中文主文件，英文獨立放 `README.en.md`。
+- README 連出去的 reviewer-facing docs 也應中文主體；否則入口改中文但架構/ER/效能文件仍英文，整體仍像臨時拼裝。
 
 ## 技術決策
 | 決策 | 理由 |
@@ -185,6 +187,8 @@
 | 大廠 100 分計畫不放對外文件 | 這是使用者自己的投遞策略與殘酷評分，不是作品集證據；對外只呈現成熟、正向、可驗證的 artifacts |
 | Phase 42 補 system design interview pack | 這是 reviewer-facing artifact，因為它不是自評，而是可審查的工程設計答辯：state ownership、consistency、failure modes、verification、production rollout |
 | Phase 43 補 performance/query evidence verifier | 目前沒有 production-like load test，不應誇大效能；先把 hot query paths、索引與程式碼錨點接進 release gate，讓查詢證據不漂移 |
+| Phase 44 README 改成中文主文件 | README 面向面試官與 reviewer，應像正式作品入口；內部規劃、自評與錄影準備不放公開入口，英文改成獨立版本 |
+| Phase 44 同步公開證據文件中文化 | README 連結出去的 architecture / ER / performance evidence 都是公開審查材料，應與 README 一樣中文優先 |
 
 ## 遇到的問題
 | 問題 | 解決方案 |

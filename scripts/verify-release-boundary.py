@@ -197,12 +197,12 @@ def main() -> None:
         require(recording_cloud_plan, snippet, label)
 
     required_architecture_snippets = {
-        "state boundary": "AI orchestrates the dining workflow.",
-        "java owns state": "Java owns business state.",
+        "state boundary": "AI 負責理解與協調流程。",
+        "java owns state": "Java 負責業務狀態。",
         "mermaid": "flowchart LR",
-        "nginx": "Nginx public boundary",
-        "java source of truth": "Spring Boot Java",
-        "critical flow": "Real-time incident handling is the best single architecture example",
+        "nginx": "Nginx 公開邊界",
+        "java source of truth": "業務狀態權威",
+        "critical flow": "臨場救場是最能代表架構邊界的流程",
         "verification": "scripts/verify-portfolio.sh",
     }
     for label, snippet in required_architecture_snippets.items():
@@ -226,27 +226,27 @@ def main() -> None:
         require(system_design_pack, snippet, label)
 
     required_performance_query_snippets = {
-        "title": "ByteBites Performance And Query Evidence",
-        "query path map": "Query Path Map",
-        "slot reservation": "Slot Reservation",
-        "refund operations": "Refund Operations",
+        "title": "ByteBites 效能與查詢證據",
+        "query path map": "查詢路徑對照",
+        "slot reservation": "座位保留",
+        "refund operations": "Refund operations",
         "verifier": "python3 scripts/verify-performance-query-evidence.py",
-        "no overclaim": "This evidence does not prove production-scale throughput.",
-        "next performance work": "Next Performance Work",
+        "no overclaim": "這份證據不證明 production-scale throughput。",
+        "next performance work": "下一步效能工作",
     }
     for label, snippet in required_performance_query_snippets.items():
         require(performance_query_evidence, snippet, label)
 
     required_er_model_snippets = {
-        "er title": "ByteBites Booking Operations ER Model",
+        "er title": "ByteBites 訂位營運 ER Model",
         "booking table": "tb_booking",
         "incident table": "tb_booking_incident",
         "deposit adjustment table": "tb_booking_deposit_adjustment",
         "refund audit table": "tb_booking_refund_reconciliation_event",
         "merchant auth table": "tb_merchant_shop",
         "booking code point": "booking_code",
-        "proposal tradeoff": "one incident, one pending proposal",
-        "money movement separation": "separates booking mutation from money movement",
+        "proposal tradeoff": "一個 incident、一個 pending proposal",
+        "money movement separation": "將訂位異動與金流義務分離",
     }
     for label, snippet in required_er_model_snippets.items():
         require(er_model, snippet, label)
