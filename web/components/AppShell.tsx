@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Bell,
-  BookOpen,
   CalendarDays,
   ChevronRight,
   Compass,
@@ -52,12 +51,6 @@ const NAV_ITEMS = [
     label: "收藏餐廳",
     href: "/favorites",
     icon: Heart,
-  },
-  {
-    label: "食記",
-    href: "/posts",
-    icon: BookOpen,
-    disabled: true,
   },
 ];
 
@@ -163,26 +156,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             const className = `flex items-center rounded-lg py-2.5 text-[15px] font-medium transition ${
               active
                 ? "bb-shell-active"
-                : item.disabled
-                  ? "cursor-not-allowed text-zinc-400"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
             } ${collapsed ? "justify-center px-3" : "gap-3 px-4"}`;
-
-            if (item.disabled) {
-              return (
-                <div key={item.label} className={className} title="後續加入食記功能">
-                  <Icon className="h-5 w-5" />
-                  {!collapsed ? (
-                    <>
-                      <span className="flex-1">{item.label}</span>
-                      <span className="rounded-full bg-background px-2 py-0.5 text-[10px] font-medium text-zinc-400">
-                        soon
-                      </span>
-                    </>
-                  ) : null}
-                </div>
-              );
-            }
 
             return (
               <Link key={item.label} href={item.href} className={className} title={item.label}>
@@ -346,22 +321,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   const className = `flex items-center gap-3 rounded-lg px-4 py-3 text-[15px] font-medium transition ${
                     active
                       ? "bb-shell-active"
-                      : item.disabled
-                        ? "cursor-not-allowed text-zinc-400"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`;
-
-                  if (item.disabled) {
-                    return (
-                      <div key={item.label} className={className}>
-                        <Icon className="h-5 w-5" />
-                        <span className="flex-1">{item.label}</span>
-                        <span className="rounded-full bg-background px-2 py-0.5 text-[10px] font-medium text-zinc-400">
-                          soon
-                        </span>
-                      </div>
-                    );
-                  }
 
                   return (
                     <Link key={item.label} href={item.href} className={className}>

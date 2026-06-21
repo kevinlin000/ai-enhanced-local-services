@@ -9,6 +9,8 @@ test("app shell keeps navigation chrome quiet and workspace-like", () => {
   const source = readFileSync(join(root, "components/AppShell.tsx"), "utf8");
 
   assert.doesNotMatch(source, /\b(?:font-black|font-bold|rounded-2xl|rounded-3xl|shadow-sm|shadow-lg|shadow-xl|shadow-2xl)\b/);
+  assert.doesNotMatch(source, /\b(?:soon|disabled)\b/i);
+  assert.doesNotMatch(source, /後續加入|敬請期待|待開放|即將推出|即將上線/);
   assert.doesNotMatch(source, /bg-\[#(?:f7f3ec|f6f1e8|e9ddbd)\]/);
   assert.match(source, /bb-premium-page/);
   assert.match(source, /bb-shell-active/);

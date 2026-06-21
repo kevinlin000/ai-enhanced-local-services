@@ -199,6 +199,7 @@
 | ER SVG 放置策略 | dbdiagram 產出的 SVG 適合放在 `docs/er-model-booking-operations.md`，README 只連 ER 文件；這樣第一屏不會變重，但 reviewer 進 ER 文件時能直接看到正式圖 |
 | CI warning 收斂策略 | GitHub Actions 的 Node 20 deprecation warning 不只更新 workflow；新增 action version verifier 並接進 portfolio/release gate，避免未來回退到舊 action major |
 | setup-uv cache warning | 升級 action 後 Node 20 warning 消失，但 AI/ETL job 會競爭同一個 uv cache key；應用 `working-directory` 與 `cache-suffix` 分開 cache，避免 warning annotation |
+| 公開 UI 不放 coming-soon 導覽 | `食記 soon` 這種 disabled nav 會讓作品看起來未完成；公開展示版應只露出已完成且可驗證的功能，未完成概念放 roadmap 或內部規劃 |
 
 ## 遇到的問題
 | 問題 | 解決方案 |
