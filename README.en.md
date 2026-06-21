@@ -28,7 +28,7 @@ This repository is not positioned as a chatbot demo. It is a contract-tested ful
 | Time | Start Here |
 |---|---|
 | 30 seconds | This README: Quick Read and Core Workflow. |
-| 3 minutes | [Architecture Overview](docs/architecture-overview.md), [Booking Operations ER Model](docs/er-model-booking-operations.md), [Data Coverage Report](docs/data-coverage-report.md). |
+| 3 minutes | [Demo Walkthrough](docs/demo-walkthrough.en.md), [Architecture Overview](docs/architecture-overview.md), [Booking Operations ER Model](docs/er-model-booking-operations.md). |
 | 10 minutes | [Performance And Query Evidence](docs/performance-query-evidence.md), [Nginx Public Deployment Boundary](docs/deployment-nginx.md), [Engineering Case Studies](docs/case-studies/README.md). |
 | Verification | Run `scripts/verify-portfolio.sh` or inspect Portfolio CI. |
 
@@ -130,6 +130,20 @@ Full details: [Architecture Overview](docs/architecture-overview.md)
 | Data | Python ETL, Google Places / Maps crawler, Mongo-backed reviews, ABSA metadata |
 | Deployment | Nginx reverse-proxy blueprint, Docker Compose public-proxy overlay, local ngrok demo |
 | Verification | Java, Python, ETL, data-quality, Web, release readiness, clean migration smoke |
+
+## Demo Walkthrough
+
+Use [Demo Walkthrough](docs/demo-walkthrough.en.md) for the 3-minute and 5-minute review path.
+
+Recommended sequence:
+
+1. AI recommendation cards.
+2. Booking and demo payment state.
+3. Real-time incident handling.
+4. Merchant alternative-slot proposal.
+5. LINE rescue/proposal card.
+6. Refund operations digest.
+7. Architecture, ER model, and verification gates.
 
 ## Verification
 

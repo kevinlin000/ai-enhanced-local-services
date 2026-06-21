@@ -29,7 +29,7 @@ Java 後端負責訂位、付款、臨場事件、退款等業務狀態。
 | 時間 | 建議閱讀 |
 |---|---|
 | 30 秒 | 本 README 的「快速判讀」與「核心流程」。 |
-| 3 分鐘 | [架構總覽](docs/architecture-overview.md)、[訂位營運 ER Model](docs/er-model-booking-operations.md)、[資料覆蓋率報告](docs/data-coverage-report.md)。 |
+| 3 分鐘 | [展示導覽](docs/demo-walkthrough.md)、[架構總覽](docs/architecture-overview.md)、[訂位營運 ER Model](docs/er-model-booking-operations.md)。 |
 | 10 分鐘 | [效能與查詢證據](docs/performance-query-evidence.md)、[Nginx 公開部署邊界](docs/deployment-nginx.md)、[工程案例索引](docs/case-studies/README.md)。 |
 | 實際驗證 | 執行 `scripts/verify-portfolio.sh`，或查看 GitHub Actions 的 Portfolio CI。 |
 
@@ -145,6 +145,8 @@ ETL / data quality
 | Verification | Java / Python / Web tests、Portfolio CI、release readiness、clean MySQL migration smoke |
 
 ## 展示路線
+
+完整講法與 3 / 5 分鐘節奏可看：[展示導覽](docs/demo-walkthrough.md)。
 
 1. Web AI：輸入 `大安區 7 人 適合聊天` 或 `中山區 商務宴請 台菜 安靜包廂`。
 2. 推薦卡：展示 AI 理由、照片、招牌菜、評論亮點與詳情頁。

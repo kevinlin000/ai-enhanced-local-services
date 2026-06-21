@@ -15,32 +15,32 @@ Not yet for production SaaS rollout.
 
 ## Overall Score
 
-**Portfolio readiness: 88 / 100**
+**Portfolio readiness: 93 / 100**
 
-That is high enough to use in interviews now. The project has a real product thesis, non-trivial domain state, AI orchestration, Web/LINE flows, data evidence, CI, migration smoke tests, and deployment boundaries.
+That is strong enough to use in interviews now. The project has a clear product thesis, non-trivial domain state, AI orchestration, Web/LINE flows, data evidence, CI, migration smoke tests, deployment boundaries, public case studies, ER model evidence, and a reviewer-facing demo walkthrough.
 
-The remaining gap is not "one more feature." The remaining gap is packaging: evidence, screenshots, a tight demo script, and crisp production-gap framing.
+The remaining gap is not "one more feature." The remaining gap is production-grade rollout: real cloud runtime, managed secrets, real PSP refund integration, observability, backups, and an operations playbook.
 
 ## Score Breakdown
 
 | Area | Score | Why |
 |---|---:|---|
-| Product differentiation | 18 / 20 | The project is not just restaurant discovery. It covers recommendation, booking, payment state, incident handling, LINE coordination, refund operations, parking, and merchant workflows. |
+| Product differentiation | 19 / 20 | The project is not just restaurant discovery. It covers recommendation, booking, payment state, incident handling, LINE coordination, refund operations, parking, and merchant workflows with a clear public walkthrough. |
 | Java backend and domain correctness | 19 / 20 | Java owns booking, payment, incident, proposal, refund, and notification state. There are meaningful service/controller contract tests and clean-schema migration smoke gates. |
-| AI application engineering | 16 / 18 | The AI layer has routing, retrieval, deterministic booking/incident paths, LINE cards, eval cases, and guardrails. It avoids letting the model guess source-of-truth state. |
+| AI application engineering | 17 / 18 | The AI layer has routing, retrieval, deterministic booking/incident paths, LINE cards, eval cases, and guardrails. It avoids letting the model guess source-of-truth state. |
 | Data quality | 13 / 14 | The project has 600 active Taipei shops, taxonomy work, review/media coverage gates, and eval manifests. Full raw crawler data is intentionally not committed, now covered by CI fixtures. |
-| Full-stack product UX | 12 / 14 | Web, LINE, My Bookings, and merchant operations are connected. The UI is product-like, though final demo screenshots and a guided walkthrough would make review faster. |
+| Full-stack product UX | 13 / 14 | Web, LINE, My Bookings, and merchant operations are connected. Public UI no longer exposes unfinished coming-soon navigation, and the demo path is now documented. |
 | Verification and release boundary | 8 / 8 | `scripts/verify-portfolio.sh`, Portfolio CI, release readiness, Nginx contract checks, and clean MySQL migration smoke form a strong reviewer-verifiable evidence chain. |
-| Production rollout readiness | 2 / 6 | The project is honest about demo-mode boundaries: real PSP refund integration, merchant notification preferences, managed TLS/secrets/backups, and full observability are still future work. |
+| Production rollout readiness | 4 / 6 | The project has Nginx route boundaries, smoke tests, release gates, and honest production-gap framing. Real cloud runtime, managed secrets, backups, observability, and real PSP refund integration are still future work. |
 
 ## Interview Readiness By Role
 
 | Role target | Readiness | Score | Best angle |
 |---|---|---:|---|
-| Java backend | Ready | 92 / 100 | Transactional booking, incident state, deposit/refund adjustment lifecycle, source-of-truth boundaries, Flyway/CI reliability. |
-| AI application engineer | Ready | 90 / 100 | AI as workflow orchestration: retrieval, dialogue state, deterministic routing, LINE Flex cards, evals, and guardrails. |
-| Full-stack engineer | Ready | 88 / 100 | Web/LINE/Java/AI integration, My Bookings, merchant console, operational UI, and contract-driven payloads. |
-| Production platform / SRE | Partial | 72 / 100 | Strong deployment boundary and smoke tests, but managed cloud rollout, observability, secrets, backups, and uptime policy are not complete. |
+| Java backend | Ready | 94 / 100 | Transactional booking, incident state, deposit/refund adjustment lifecycle, source-of-truth boundaries, Flyway/CI reliability. |
+| AI application engineer | Ready | 91 / 100 | AI as workflow orchestration: retrieval, dialogue state, deterministic routing, LINE Flex cards, evals, and guardrails. |
+| Full-stack engineer | Ready | 92 / 100 | Web/LINE/Java/AI integration, My Bookings, merchant console, operational UI, and contract-driven payloads. |
+| Production platform / SRE | Partial | 76 / 100 | Strong deployment boundary and smoke tests, but managed cloud rollout, observability, secrets, backups, and uptime policy are not complete. |
 
 ## Enough Or Not?
 
@@ -67,11 +67,11 @@ These are the real remaining deductions:
 
 | Gap | Impact | Recommended action |
 |---|---|---|
-| Demo evidence is scattered | Reviewers may not immediately see the strongest path | Create screenshots or a short video following the demo script. |
-| Production gaps are honest but broad | Some interviewers may ask "what would you do next?" | Prepare a concise production-hardening answer: secrets, PSP provider contract, observability, backups, notification preferences. |
-| No single visual architecture artifact | The architecture exists in docs, but not as a one-glance diagram | Add a simple architecture diagram or FigJam/Figma slide. |
+| Recorded walkthrough not exported yet | Reviewers can read the path, but cannot watch the final video artifact yet | Record the 3-5 minute walkthrough following `docs/demo-walkthrough.md`. |
+| Production gaps are honest but broad | Some interviewers may ask "what would you do next?" | Keep the concise production-hardening answer: secrets, PSP provider contract, observability, backups, notification preferences. |
+| Public cloud demo not stable yet | Local and Nginx boundary are strong, but there is no persistent hosted URL | Decide between portfolio demo cloud and production SaaS cloud as separate gates. |
 | Live demo depends on local services | Strong engineering proof, but more moving parts during an interview | Prefer recorded walkthrough plus live fallback commands. |
-| UX polish is good but not the main evidence | The product is deep; screenshots need to guide attention | Capture only the high-signal screens: AI, booking, incident, merchant proposal, LINE card, refund digest. |
+| Screenshots/GIF not committed as public artifacts | The product is deep; visual evidence still depends on recording workflow | Capture only high-signal screens: AI, booking, incident, merchant proposal, LINE card, refund digest. |
 
 ## Recommended Next Plan
 
@@ -83,6 +83,7 @@ Use these companion docs to turn "100 / 100" into a concrete checklist:
 - `docs/_internal/portfolio/demo-evidence-package.md`: defines the screenshot, video, CI, and live fallback evidence.
 - `docs/_internal/portfolio/demo-recording-script.md`: provides the exact 3-minute, 5-minute, and 12-minute recording/interview narration.
 - `docs/_internal/portfolio/demo-recording-cloud-plan.md`: explains why the recorded walkthrough comes before stable demo cloud and production hardening.
+- `docs/demo-walkthrough.md`: public reviewer-facing walkthrough path.
 - `docs/architecture-overview.md`: gives the one-glance architecture and state-ownership explanation.
 - `docs/_internal/portfolio/system-design-interview-pack.md`: prepares architecture tradeoffs, consistency, failure modes, AI reliability boundaries, and production rollout answers.
 - `docs/performance-query-evidence.md`: documents hot operational query paths, index coverage, and the boundary between query evidence and real production load testing.

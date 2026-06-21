@@ -1022,6 +1022,7 @@
 | Phase 48 case study and CI polish | 公開文件語氣、精選案例、ER SVG、GitHub Actions action versions | 1-11 case studies 去除學校情境與工具協作痕跡；README 精選改選高訊號工程案例；ER 文件嵌入 dbdiagram SVG；workflow 升級並新增 action version verifier；AI/ETL uv cache 分流 | passed |
 | Phase 48 verification | `scripts/release-readiness.sh --offline` + `scripts/verify-portfolio.sh` | release/data-quality/links/action-version guard 與全 repo portfolio gate 通過 | Java 96 tests 0 failures 3 skipped; AI 174 passed; ETL 43 passed; Web 19 passed; build passed |
 | Phase 49 public UI polish | 移除 `食記 soon` disabled navigation | App shell 不再顯示未完成入口；移除 unused `BookOpen` import、disabled nav rendering branch，並新增 AppShell test guard 防回退 | Java 96 tests 0 failures 3 skipped; AI 174 passed; ETL 43 passed; Web 19 passed; build passed |
+| Phase 50 demo walkthrough packaging | 新增公開展示導覽與英文版，更新 README review path、release verifier、scorecard/roadmap | `docs/demo-walkthrough.md` 與 `docs/demo-walkthrough.en.md` 成為 reviewer-facing 3/5 分鐘展示入口；內部 scorecard 更新為 93/100 | Java 96 tests 0 failures 3 skipped; AI 174 passed; ETL 43 passed; Web 19 passed; build passed |
 
 ## 錯誤日誌
 | 時間戳記 | 錯誤 | 嘗試次數 | 解決方案 |

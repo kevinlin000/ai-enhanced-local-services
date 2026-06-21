@@ -11,18 +11,18 @@ The goal is not to pretend every production concern is solved. The goal is to ma
 | Portfolio 100 | A reviewer can understand the product, inspect the architecture, replay the demo path, and verify the engineering claims without guesswork. | Yes. |
 | Production SaaS 100 | Real merchant onboarding, managed cloud infrastructure, real PSP refund integration, secrets, backups, uptime, observability, and operational ownership are complete. | No. Requires external providers and deployment work. |
 
-The current scorecard stays at `88 / 100` until the evidence package is filled with actual screenshots, video, and the final demo checklist result.
+The current scorecard is `93 / 100`. The public README, case studies, ER model, CI warning cleanup, and reviewer-facing walkthrough are now in place. The remaining lift toward 100 is the final recorded walkthrough, stable visual evidence, and production-rollout hardening.
 
 ## Portfolio 100 Rubric
 
 | Area | Current | 100-point requirement |
 |---|---:|---|
 | Product story | Strong | One short narrative explains why ByteBites is AI dining operations, not a chatbot. |
-| Architecture | Strong but distributed | One diagram shows state ownership and channel boundaries at a glance. |
-| Demo evidence | Scattered | A reviewer-facing evidence package contains the exact screenshots, video, CI proof, and fallback commands. |
+| Architecture | Strong | One diagram shows state ownership and channel boundaries at a glance. |
+| Demo evidence | Good path, final video pending | A reviewer-facing evidence package contains the exact screenshots, video, CI proof, and fallback commands. |
 | Verification | Strong | Local verifier, CI matrix, release readiness, clean migration smoke, and public-proxy smoke are linked from one place. |
-| Production-gap answer | Honest but broad | A concise answer separates demo-grade proof from production rollout work. |
-| Interview delivery | Not packaged | 5-minute and 12-minute walkthroughs use the same evidence order. |
+| Production-gap answer | Clear | A concise answer separates demo-grade proof from production rollout work. |
+| Interview delivery | Public walkthrough ready | 5-minute and 12-minute walkthroughs use the same evidence order. |
 
 ## Path To Portfolio 100
 
@@ -46,16 +46,20 @@ The current scorecard stays at `88 / 100` until the evidence package is filled w
    - Required artifact: `docs/_internal/portfolio/demo-recording-script.md`.
    - Acceptance: both scripts reinforce the same thesis: AI orchestrates; Java owns state.
 
-6. Prepare the system-design interview pack.
+6. Prepare the public demo walkthrough.
+   - Required artifact: `docs/demo-walkthrough.md`.
+   - Acceptance: a reviewer can follow the 3-minute or 5-minute route without reading internal preparation notes.
+
+7. Prepare the system-design interview pack.
    - Required artifact: `docs/_internal/portfolio/system-design-interview-pack.md`.
    - Acceptance: architecture boundaries, consistency model, failure modes, AI reliability constraints, and production rollout gaps are answerable without improvising.
 
-7. Prepare performance and query evidence.
+8. Prepare performance and query evidence.
    - Required artifact: `docs/performance-query-evidence.md`.
    - Required verifier: `scripts/verify-performance-query-evidence.py`.
    - Acceptance: hot operational query paths, supporting indexes, and code anchors are reviewer-checkable without claiming unproven production throughput.
 
-8. Run final verification.
+9. Run final verification.
    - Required command: `scripts/release-readiness.sh --full`.
    - Optional rehearsal: `scripts/release-readiness.sh --live-local --base-url http://localhost:8088`.
    - Acceptance: local full verification and GitHub Portfolio CI are green.
@@ -83,9 +87,10 @@ The next score lift is evidence packaging:
 architecture overview
   -> demo evidence package
   -> recording and cloud plan
+  -> public demo walkthrough
   -> screenshots/video
   -> final verification result
   -> interview walkthrough
 ```
 
-When those are complete, the portfolio score can reasonably move from `88 / 100` toward `95-100 / 100` for interview use.
+When the final video and stable visual evidence are complete, the portfolio score can reasonably move from `93 / 100` toward `95-97 / 100` for interview use. The last points require either a stable cloud demo or production-grade rollout work.

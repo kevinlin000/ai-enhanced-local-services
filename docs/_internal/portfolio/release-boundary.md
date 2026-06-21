@@ -22,7 +22,7 @@ The strongest claim is not "the model recommends restaurants." The strongest cla
 AI can orchestrate the dining workflow, but Java remains the source of truth for booking, payment, incident, and refund state.
 ```
 
-The portfolio readiness scorecard is maintained at `docs/_internal/portfolio/portfolio-readiness-scorecard.md`. Current recommendation: portfolio-ready at **88 / 100**, demo-ready for interviews, not yet a production SaaS rollout.
+The portfolio readiness scorecard is maintained at `docs/_internal/portfolio/portfolio-readiness-scorecard.md`. Current recommendation: portfolio-ready at **93 / 100**, demo-ready for interviews, not yet a production SaaS rollout.
 
 The path from the current score toward portfolio 100 is tracked in:
 
@@ -30,6 +30,7 @@ The path from the current score toward portfolio 100 is tracked in:
 - `docs/_internal/portfolio/demo-evidence-package.md`
 - `docs/_internal/portfolio/demo-recording-script.md`
 - `docs/_internal/portfolio/demo-recording-cloud-plan.md`
+- `docs/demo-walkthrough.md`
 - `docs/architecture-overview.md`
 - `docs/_internal/portfolio/system-design-interview-pack.md`
 - `docs/performance-query-evidence.md`
@@ -79,7 +80,7 @@ The current work should be reviewed or committed in coherent groups:
 | Web operations UI | My Bookings rescue/payment flows, merchant incident/proposal/refund surfaces |
 | Deployment boundary | Nginx template, Compose overlay, demo readiness, public-proxy smoke |
 | Migration reliability | V16 clean-schema fix, clean MySQL migration smoke, manual GitHub Actions smoke |
-| Evidence and docs | README, roadmap, internal portfolio evidence map, case studies, release boundary, performance/query evidence |
+| Evidence and docs | README, demo walkthrough, roadmap, internal portfolio evidence map, case studies, release boundary, performance/query evidence |
 | Scorecard and 100-point path | internal portfolio readiness score, role-specific framing, remaining gaps, evidence package, recording script, recording/cloud plan, architecture overview, system design interview pack, next plan |
 
 Do not squash these into one anonymous "final update" commit if the goal is reviewer clarity.

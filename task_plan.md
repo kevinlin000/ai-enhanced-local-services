@@ -4,7 +4,7 @@
 評估 real-time incident handling 完成後的下一個最高價值產品能力，並完成一個可驗證、可面試展示的最小縱切。
 
 ## 目前階段
-階段 49 完成
+階段 50 完成
 
 ## 各階段
 
@@ -450,6 +450,7 @@
 | Phase 47 README 頂級化重整 | 目前 README 內容完整但平均鋪陳；要改成中文主入口、英文獨立精簡版，第一屏先給產品定位、狀態邊界、資料證據與驗證入口，降低 AI 味與冗長感 |
 | Phase 48 公開文件語氣與 CI warning 收斂 | 精選 case studies 應從 1-11 裡挑高訊號工程案例；公開文件避免學校情境與工具協作痕跡；ER SVG 放 ER 文件而非 README 第一屏；GitHub Actions action majors 需升級並由 verifier 防回退 |
 | Phase 49 公開 UI polish | 未完成的 `食記 soon` 導覽會削弱作品成熟度；公開介面應只露出可操作、可驗證的功能，未完成構想留在 roadmap 或內部筆記 |
+| Phase 50 公開展示導覽 | 作品已經有深度，但 reviewer 需要一條 3-5 分鐘可跟讀的展示路線；新增中文主版與英文版 demo walkthrough，並更新內部 scorecard 到 93/100 |
 
 ## 遇到的錯誤
 | 錯誤 | 嘗試次數 | 解決方案 |

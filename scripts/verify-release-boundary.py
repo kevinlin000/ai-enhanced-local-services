@@ -14,6 +14,8 @@ ROADMAP_100 = INTERNAL_PORTFOLIO / "portfolio-100-roadmap.md"
 EVIDENCE_PACKAGE = INTERNAL_PORTFOLIO / "demo-evidence-package.md"
 RECORDING_SCRIPT = INTERNAL_PORTFOLIO / "demo-recording-script.md"
 RECORDING_CLOUD_PLAN = INTERNAL_PORTFOLIO / "demo-recording-cloud-plan.md"
+DEMO_WALKTHROUGH = ROOT / "docs" / "demo-walkthrough.md"
+DEMO_WALKTHROUGH_EN = ROOT / "docs" / "demo-walkthrough.en.md"
 ARCHITECTURE_OVERVIEW = ROOT / "docs" / "architecture-overview.md"
 SYSTEM_DESIGN_PACK = INTERNAL_PORTFOLIO / "system-design-interview-pack.md"
 PERFORMANCE_QUERY_EVIDENCE = ROOT / "docs" / "performance-query-evidence.md"
@@ -69,6 +71,16 @@ def main() -> None:
         fail(f"missing recording and cloud plan: {RECORDING_CLOUD_PLAN.relative_to(ROOT)}")
 
     try:
+        demo_walkthrough = DEMO_WALKTHROUGH.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing demo walkthrough: {DEMO_WALKTHROUGH.relative_to(ROOT)}")
+
+    try:
+        demo_walkthrough_en = DEMO_WALKTHROUGH_EN.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing English demo walkthrough: {DEMO_WALKTHROUGH_EN.relative_to(ROOT)}")
+
+    try:
         architecture_overview = ARCHITECTURE_OVERVIEW.read_text(encoding="utf-8")
     except FileNotFoundError:
         fail(f"missing architecture overview: {ARCHITECTURE_OVERVIEW.relative_to(ROOT)}")
@@ -105,10 +117,11 @@ def main() -> None:
         "demo evidence package": "docs/_internal/portfolio/demo-evidence-package.md",
         "recording script": "docs/_internal/portfolio/demo-recording-script.md",
         "recording cloud plan": "docs/_internal/portfolio/demo-recording-cloud-plan.md",
+        "public demo walkthrough": "docs/demo-walkthrough.md",
         "architecture overview": "docs/architecture-overview.md",
         "system design interview pack": "docs/_internal/portfolio/system-design-interview-pack.md",
         "performance query evidence": "docs/performance-query-evidence.md",
-        "readiness score": "88 / 100",
+        "readiness score": "93 / 100",
         "clean mysql smoke": "scripts/smoke-clean-mysql-migrations.sh --timeout 180",
         "demo readiness": "scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict",
         "github workflow": ".github/workflows/clean-mysql-migration-smoke.yml",
@@ -119,7 +132,7 @@ def main() -> None:
         require(doc, snippet, label)
 
     required_scorecard_snippets = {
-        "overall score": "Portfolio readiness: 88 / 100",
+        "overall score": "Portfolio readiness: 93 / 100",
         "portfolio yes": "Yes for portfolio interviews.",
         "production no": "Not yet for production SaaS rollout.",
         "java score": "Java backend",
@@ -143,7 +156,7 @@ def main() -> None:
         "two 100s": "Two Different 100s",
         "portfolio 100": "Portfolio 100",
         "production saas 100": "Production SaaS 100",
-        "current score": "88 / 100",
+        "current score": "93 / 100",
         "evidence package": "docs/_internal/portfolio/demo-evidence-package.md",
         "recording cloud plan": "docs/_internal/portfolio/demo-recording-cloud-plan.md",
         "architecture overview": "docs/architecture-overview.md",
@@ -202,6 +215,44 @@ def main() -> None:
     }
     for label, snippet in required_recording_cloud_snippets.items():
         require(recording_cloud_plan, snippet, label)
+
+    required_demo_walkthrough_snippets = {
+        "title": "ByteBites 展示導覽",
+        "english link": "demo-walkthrough.en.md",
+        "core thesis ai": "AI 負責理解需求與協調流程。",
+        "core thesis java": "Java 負責訂位、付款、臨場事件與退款狀態。",
+        "3 minute version": "3 分鐘版本",
+        "5 minute version": "5 分鐘版本",
+        "voiceover": "可直接照念的短稿",
+        "evidence map": "證據對照",
+        "release readiness": "scripts/release-readiness.sh --offline",
+        "portfolio verifier": "scripts/verify-portfolio.sh",
+        "live smoke": "scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict",
+        "clean migration": "scripts/smoke-clean-mysql-migrations.sh --timeout 180",
+        "no overclaim": "不要過度宣稱",
+        "production boundary": "production SaaS",
+    }
+    for label, snippet in required_demo_walkthrough_snippets.items():
+        require(demo_walkthrough, snippet, label)
+
+    required_demo_walkthrough_en_snippets = {
+        "title": "ByteBites Demo Walkthrough",
+        "chinese link": "demo-walkthrough.md",
+        "core thesis ai": "AI interprets intent and coordinates the workflow.",
+        "core thesis java": "Java owns booking, payment, incident, and refund state.",
+        "3 minute version": "3-Minute Version",
+        "5 minute version": "5-Minute Version",
+        "voiceover": "Short Voiceover Script",
+        "evidence map": "Evidence Map",
+        "release readiness": "scripts/release-readiness.sh --offline",
+        "portfolio verifier": "scripts/verify-portfolio.sh",
+        "live smoke": "scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict",
+        "clean migration": "scripts/smoke-clean-mysql-migrations.sh --timeout 180",
+        "no overclaim": "Do Not Overclaim",
+        "production boundary": "production SaaS",
+    }
+    for label, snippet in required_demo_walkthrough_en_snippets.items():
+        require(demo_walkthrough_en, snippet, label)
 
     required_architecture_snippets = {
         "state boundary": "AI 負責理解與協調流程。",

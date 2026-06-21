@@ -200,6 +200,8 @@
 | CI warning 收斂策略 | GitHub Actions 的 Node 20 deprecation warning 不只更新 workflow；新增 action version verifier 並接進 portfolio/release gate，避免未來回退到舊 action major |
 | setup-uv cache warning | 升級 action 後 Node 20 warning 消失，但 AI/ETL job 會競爭同一個 uv cache key；應用 `working-directory` 與 `cache-suffix` 分開 cache，避免 warning annotation |
 | 公開 UI 不放 coming-soon 導覽 | `食記 soon` 這種 disabled nav 會讓作品看起來未完成；公開展示版應只露出已完成且可驗證的功能，未完成概念放 roadmap 或內部規劃 |
+| 公開展示導覽 | 錄影稿是內部準備文件；公開文件應提供 reviewer 可直接跟的 3/5 分鐘導覽、證據對照與不過度宣稱邊界，避免 README 變長或暴露內部自評 |
+| 目前評分 93/100 | README、case studies、ER 圖、CI warning、公開 UI polish 與 demo walkthrough 已補齊；扣分仍來自尚未完成穩定雲端、真實 PSP refund、managed secrets、backup、observability 與正式營運制度 |
 
 ## 遇到的問題
 | 問題 | 解決方案 |
