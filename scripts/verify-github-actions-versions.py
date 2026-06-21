@@ -15,6 +15,8 @@ REQUIRED_SNIPPETS = {
     "portfolio node setup": "actions/setup-node@v6",
     "portfolio pnpm setup": "pnpm/action-setup@v6.0.9",
     "portfolio uv setup": "astral-sh/setup-uv@v8.2.0",
+    "ai uv cache suffix": "cache-suffix: ai-service-python",
+    "etl uv cache suffix": "cache-suffix: etl-pipeline",
     "clean smoke checkout": "actions/checkout@v7",
     "clean smoke java setup": "actions/setup-java@v5",
 }

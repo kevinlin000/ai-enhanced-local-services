@@ -1019,7 +1019,7 @@
 | ER normalization explanation | 更新 `docs/er-model-booking-operations.md` | 補 1NF/2NF/3NF 評估、audit snapshot tradeoff、未來 proposal history 拆表方向；release offline readiness 通過 | passed |
 | Phase 47 README rewrite | 重寫 `README.md` 與 `README.en.md` | 中文主入口聚焦快速判讀、核心流程、工程證據、驗證與精選案例；英文版同步精簡 | passed |
 | Phase 47 verification | `scripts/release-readiness.sh --offline` + `scripts/verify-portfolio.sh` | release/data-quality/links 與全 repo portfolio gate 通過 | Java 96 tests 0 failures 3 skipped; AI 174 passed; ETL 43 passed; Web 19 passed; build passed |
-| Phase 48 case study and CI polish | 公開文件語氣、精選案例、ER SVG、GitHub Actions action versions | 1-11 case studies 去除學校情境與工具協作痕跡；README 精選改選高訊號工程案例；ER 文件嵌入 dbdiagram SVG；workflow 升級並新增 action version verifier | passed |
+| Phase 48 case study and CI polish | 公開文件語氣、精選案例、ER SVG、GitHub Actions action versions | 1-11 case studies 去除學校情境與工具協作痕跡；README 精選改選高訊號工程案例；ER 文件嵌入 dbdiagram SVG；workflow 升級並新增 action version verifier；AI/ETL uv cache 分流 | passed |
 | Phase 48 verification | `scripts/release-readiness.sh --offline` + `scripts/verify-portfolio.sh` | release/data-quality/links/action-version guard 與全 repo portfolio gate 通過 | Java 96 tests 0 failures 3 skipped; AI 174 passed; ETL 43 passed; Web 19 passed; build passed |
 
 ## 錯誤日誌

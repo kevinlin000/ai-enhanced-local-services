@@ -198,6 +198,7 @@
 | 公開 case study 精選 | README 精選案例應優先選 1-11 裡能證明工程能力的案例：SSE streaming、ABSA、資料覆蓋、Web/LINE 交易同步、AI 對話狀態、公開展示部署；13/14 這類作品整理案例留在索引，不放首頁精選 |
 | ER SVG 放置策略 | dbdiagram 產出的 SVG 適合放在 `docs/er-model-booking-operations.md`，README 只連 ER 文件；這樣第一屏不會變重，但 reviewer 進 ER 文件時能直接看到正式圖 |
 | CI warning 收斂策略 | GitHub Actions 的 Node 20 deprecation warning 不只更新 workflow；新增 action version verifier 並接進 portfolio/release gate，避免未來回退到舊 action major |
+| setup-uv cache warning | 升級 action 後 Node 20 warning 消失，但 AI/ETL job 會競爭同一個 uv cache key；應用 `working-directory` 與 `cache-suffix` 分開 cache，避免 warning annotation |
 
 ## 遇到的問題
 | 問題 | 解決方案 |
