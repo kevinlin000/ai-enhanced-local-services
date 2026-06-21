@@ -1,13 +1,13 @@
-# Case Study 11: 公開 Demo 部署 — 最後一哩不是上線，是可被同學打開
+# Case Study 11: 公開展示部署 — 從本機可跑到外部可開
 
-**TL;DR** 專題發表前，最大的風險不是功能少，而是現場打不開。ByteBites 需要 Web、Java、AI、RabbitMQ、Qdrant、LINE Login、LINE bot、CORS、callback URL、ngrok public URL 全部對齊。這篇記錄如何把本機系統整理成可展示的公開 demo。
+**TL;DR** 公開展示前，最大的風險不是功能少，而是外部環境打不開。ByteBites 需要 Web、Java、AI、RabbitMQ、Qdrant、LINE Login、LINE bot、CORS、callback URL、ngrok public URL 全部對齊。這篇記錄如何把本機系統整理成可展示的公開入口。
 
 **Tech:** Next.js rewrites / Spring Boot config / ngrok / Nginx boundary / Docker Compose / LINE Developers / health checks
 **Repo:** `web/README.md`, `docs/deployment-nginx.md`, `deploy/nginx/bytebites.conf.template`, `deploy/docker-compose.nginx.yml`, `scripts/demo-readiness.sh`, `scripts/smoke-nginx-public-proxy.sh`, `scripts/smoke-clean-mysql-migrations.sh`, `.github/workflows/clean-mysql-migration-smoke.yml`, `docker-compose.yml`, `backend-java/src/main/resources/application.yaml`
 
-## 1. 問題：本機能跑，不代表同學能看
+## 1. 問題：本機能跑，不代表外部使用者能看
 
-本機開 `localhost:3000` 很容易，但同學需要公開 HTTPS URL。LINE Login 和 Messaging API 也需要公開 callback/webhook。
+本機開 `localhost:3000` 很容易，但外部使用者需要公開 HTTPS URL。LINE Login 和 Messaging API 也需要公開 callback/webhook。
 
 這牽涉：
 
@@ -67,7 +67,7 @@ client_id=2010368383
 redirect_uri=https://.../api/java/api/auth/line/callback
 ```
 
-這一步很重要：如果 channel 還在 Developing，同學不一定能登入。
+這一步很重要：如果 channel 還在 Developing，外部使用者不一定能登入。
 
 ## 4. 第三個坑：Docker Compose project name
 
@@ -157,7 +157,7 @@ scripts/smoke-clean-mysql-migrations.sh --timeout 180
 
 ## 7. 我學到的事
 
-**Demo deployment 是產品的一部分。** 教授和同學打得開，才有機會看到功能。
+**公開展示部署是產品的一部分。** 外部使用者打得開，才有機會看到功能。
 
 **LINE 設定錯誤看起來像程式 bug。** 其實可能是 channel type、callback URL、Published 狀態或 tester 權限。
 
@@ -169,7 +169,7 @@ scripts/smoke-clean-mysql-migrations.sh --timeout 180
 
 ## English Version
 
-# Case Study 11: Public Demo Deployment — The Last Mile Is Openability
+# Case Study 11: Public Deployment Rehearsal — From Local Runtime to External Access
 
 Before a presentation, the biggest risk is not missing features. It is the demo not opening. ByteBites needed Web, Java, AI, RabbitMQ, Qdrant, LINE Login, LINE Messaging API, CORS, callback URLs, ngrok, and public health checks to align.
 
@@ -177,7 +177,7 @@ The key bug was OAuth cookie path under proxy. Java used `/api/auth/line`, but t
 
 LINE Developers also required clear separation between Messaging API and LINE Login channels. The login channel had to be Published so classmates could sign in without tester roles.
 
-The later deployment boundary is to keep ngrok for temporary local tunnels and use Nginx, or an equivalent managed reverse proxy, for stable public demos. The route contract keeps `/api/java`, `/api/ai`, `/api/line`, and `/line` stable so LINE Login, Messaging API webhooks, AI streaming, and browser API calls do not drift into separate URL rules.
+The later deployment boundary is to keep ngrok for temporary local tunnels and use Nginx, or an equivalent managed reverse proxy, for stable public access. The route contract keeps `/api/java`, `/api/ai`, `/api/line`, and `/line` stable so LINE Login, Messaging API webhooks, AI streaming, and browser API calls do not drift into separate URL rules.
 
 A formal rehearsal also needs a clean-schema migration smoke. The script creates a temporary MySQL database, starts Java on a temporary port, waits for `/actuator/health`, and drops the database afterward. That catches Flyway regressions that an already-migrated local database can hide.
 

@@ -113,6 +113,7 @@ case "$MODE" in
     run_step "Whitespace check" git diff --check
     run_step "Nginx deployment contract" python3 scripts/verify-nginx-template.py
     run_step "Clean migration workflow contract" python3 scripts/verify-clean-migration-workflow.py
+    run_step "GitHub Actions version contract" python3 scripts/verify-github-actions-versions.py
     run_step "Release boundary contract" python3 scripts/verify-release-boundary.py
     run_step "Performance/query evidence contract" python3 scripts/verify-performance-query-evidence.py
     run_step "Data-quality evidence contract" python3 scripts/verify-data-quality.py

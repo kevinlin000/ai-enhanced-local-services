@@ -181,11 +181,12 @@ CI 位於 `.github/workflows/portfolio-ci.yml`。乾淨 MySQL schema 啟動驗�
 
 ## 精選工程案例
 
+- [AI Agent 真實串流 — 從假串流到可量測 TTFT](docs/case-studies/01-sse-streaming-debug.md)
+- [ABSA 評論分析 Pipeline — 可溯源評論智能](docs/case-studies/02-absa-pipeline.md)
+- [資料爬蟲與覆蓋率 — 600 家可用店的資料基礎](docs/case-studies/06-data-crawler-coverage.md)
 - [Web / LINE 訂位同步 — 從兩套身份到同一個交易狀態](docs/case-studies/07-web-line-booking-sync.md)
 - [AI 對話狀態 — 從單輪問答到可完成任務的 Agent](docs/case-studies/10-ai-dialogue-state.md)
-- [公開 Demo 部署 — 最後一哩不是上線，是可被同學打開](docs/case-studies/11-demo-deployment.md)
-- [AI Concierge 品質硬化 — 從會回答到可靠接待](docs/case-studies/13-ai-concierge-quality-hardening.md)
-- [Portfolio Verification — 從很多亮點到可審查作品](docs/case-studies/14-portfolio-verification.md)
+- [公開展示部署 — 從本機可跑到外部可開](docs/case-studies/11-demo-deployment.md)
 
 完整列表：[工程案例索引](docs/case-studies/README.md)
 

@@ -25,7 +25,7 @@
 
 ## 2. ABSA prompt 設計
 
-跟 Claude 討論後，我先固定 4 個 aspect：菜色、服務、環境、價格。每個 aspect 要輸出正負 evidence、具體詞與來源評論。
+設計時先固定 4 個 aspect：菜色、服務、環境、價格。每個 aspect 要輸出正負 evidence、具體詞與來源評論。
 
 ```json
 {

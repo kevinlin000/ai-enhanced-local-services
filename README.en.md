@@ -148,11 +148,12 @@ scripts/smoke-clean-mysql-migrations.sh --timeout 180
 
 ## Selected Case Studies
 
+- [Real Streaming for an AI Agent](docs/case-studies/01-sse-streaming-debug.md)
+- [ABSA Review Intelligence Pipeline](docs/case-studies/02-absa-pipeline.md)
+- [Data Crawling and Coverage](docs/case-studies/06-data-crawler-coverage.md)
 - [Web / LINE Booking Sync](docs/case-studies/07-web-line-booking-sync.md)
 - [AI Dialogue State](docs/case-studies/10-ai-dialogue-state.md)
-- [Public Demo Deployment](docs/case-studies/11-demo-deployment.md)
-- [AI Concierge Quality Hardening](docs/case-studies/13-ai-concierge-quality-hardening.md)
-- [Portfolio Verification](docs/case-studies/14-portfolio-verification.md)
+- [Public Deployment Rehearsal](docs/case-studies/11-demo-deployment.md)
 
 Full list: [Engineering Case Studies](docs/case-studies/README.md)
 

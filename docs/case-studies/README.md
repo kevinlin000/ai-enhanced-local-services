@@ -17,6 +17,19 @@ In the presentation, the strongest path is:
 Data quality -> AI reliability -> transaction consistency -> product differentiation
 ```
 
+## Recommended Review Set
+
+Start with these six cases for the strongest public review path:
+
+| Area | Case | Why It Matters |
+|---|---|---|
+| AI runtime | [01 — AI Agent 真實串流](01-sse-streaming-debug.md) | Shows root-cause debugging and measured TTFT improvement. |
+| AI evidence | [02 — ABSA Pipeline](02-absa-pipeline.md) | Shows evaluation, faithfulness checks, and traceable review intelligence. |
+| Data foundation | [06 — Data Crawling and Coverage](06-data-crawler-coverage.md) | Shows why recommendation quality depends on audited data coverage. |
+| Transaction state | [07 — Web / LINE Booking Sync](07-web-line-booking-sync.md) | Shows one Java-owned transaction state across Web and LINE. |
+| Agent state | [10 — AI Dialogue State](10-ai-dialogue-state.md) | Shows task memory, clarification, and deterministic booking guards. |
+| Public access | [11 — Public Deployment Rehearsal](11-demo-deployment.md) | Shows the route, OAuth, webhook, and fresh-schema checks needed for external access. |
+
 ## Cases
 
 | # | Case | What It Proves |
@@ -31,7 +44,7 @@ Data quality -> AI reliability -> transaction consistency -> product differentia
 | 08 | [Parking Reminder](08-parking-reminder-demo.md) | ByteBites extends the dining journey beyond booking into arrival support. |
 | 09 | [Modernization and Security](09-modernization-security.md) | The AI layer was built on a cleaned and upgraded backend foundation. |
 | 10 | [AI Dialogue State](10-ai-dialogue-state.md) | A useful AI agent needs state, confirmation, and task memory. |
-| 11 | [Public Demo Deployment](11-demo-deployment.md) | A working product must be reachable by classmates, with ngrok for local tunnels and Nginx for stable public routing. |
+| 11 | [Public Deployment Rehearsal](11-demo-deployment.md) | A working product needs stable external access, with ngrok for temporary tunnels and Nginx for stable public routing. |
 | 12 | [Premium UI Positioning](12-premium-ui-positioning.md) | The design moved from competitor imitation to ByteBites' own AI operations identity. |
 | 13 | [AI Concierge Quality Hardening](13-ai-concierge-quality-hardening.md) | Recent fixes moved the assistant toward reliable customer-service behavior. |
 | 14 | [Portfolio Verification](14-portfolio-verification.md) | The project is now reviewable through one verification command, CI, data gates, and evidence maps. |
@@ -52,12 +65,12 @@ Data quality -> AI reliability -> transaction consistency -> product differentia
 4. **產品定位不是模仿競品**  
    ByteBites 走的是「AI 會推薦，也會安排」：推薦只是入口，後面的訂位、提醒、停車才是差異化。
 
-5. **作品要能被審查，不只要能 demo**
+5. **作品要能被審查，不只要能展示**
    單一 verification script、CI matrix、data quality gate 和 evidence map 讓 reviewer 能把主張連回程式、測試與資料。
 
 ## Reviewer Questions This Index Helps Answer
 
-- Is this only a UI demo?
+- Is this only a UI prototype?
   No. The cases show backend migrations, identity sync, tests, AI contracts, data pipelines, and deployment.
 
 - Is the AI reliable or just fluent?

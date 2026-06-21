@@ -15,7 +15,7 @@ LINE 生態裡容易踩到一個陷阱：
 
 早期狀態下，使用者可以在 Web 建立訂位，也可以在 LINE bot 收到推薦；但付款、取消、通知不一定能穩定回到同一個人。
 
-這在 demo 裡會很致命。使用者看到「訂位成功」但 LINE 沒收到通知，或 LINE 卡片點進去不是同一筆狀態，信任感會直接掉下來。
+這在展示環境裡會很致命。使用者看到「訂位成功」但 LINE 沒收到通知，或 LINE 卡片點進去不是同一筆狀態，信任感會直接掉下來。
 
 ## 2. 決策：交易狀態以後端為準，前端和 LINE 只是入口
 
@@ -60,7 +60,7 @@ LINE bot 互動也要能回到同一份使用者資料，而不是每次用 webh
 ```text
 Booking created
   -> PENDING_PAYMENT / CONFIRMED
-  -> demo payment writes backend status
+  -> test payment writes backend status
   -> backend publishes/sends LINE notification
   -> Web my-bookings reads backend status
 ```
@@ -132,11 +132,11 @@ LINE 對話最大的問題是使用者會說：
 
 **聊天介面不能自成一套狀態。** LINE bot 是入口，不是 database。
 
-**Demo payment 也要回寫真狀態。** 即使金流是 demo authorization，狀態 contract 仍要像真的一樣。
+**測試付款也要回寫真狀態。** 即使金流是 demo authorization，狀態 contract 仍要像真的一樣。
 
 **使用者 follow-up 是 agent 的核心。** 不能只靠 single-turn prompt，看似小語句其實都帶上下文。
 
-**一致性比酷炫更重要。** 現場 demo 最怕的是 Web 顯示已付款，LINE 還說待付款。
+**一致性比酷炫更重要。** 展示時最怕的是 Web 顯示已付款，LINE 還說待付款。
 
 ## English Version
 

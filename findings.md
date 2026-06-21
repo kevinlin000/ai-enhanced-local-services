@@ -195,6 +195,9 @@
 | Phase 46 ER 範圍維持 booking operations bounded context | 不畫 crawler/taxonomy/review 全庫；面試高價值是 Java source-of-truth、booking_code workflow key、incident proposal、deposit adjustment、refund audit 與 merchant notification state |
 | ER model 正規化評估 | 1NF/2NF 符合；3NF 核心符合，但 adjustment 金額、notification count、incident proposal 欄位是刻意保留的 audit / workflow snapshot，應在公開 ER 文件中說明 |
 | README 重整方向 | 專業作品入口應先呈現可驗證證據鏈，而不是平均列完所有功能；中文主 README 放快速判讀、核心流程、工程證據、驗證與精選案例，英文版保持獨立精簡 |
+| 公開 case study 精選 | README 精選案例應優先選 1-11 裡能證明工程能力的案例：SSE streaming、ABSA、資料覆蓋、Web/LINE 交易同步、AI 對話狀態、公開展示部署；13/14 這類作品整理案例留在索引，不放首頁精選 |
+| ER SVG 放置策略 | dbdiagram 產出的 SVG 適合放在 `docs/er-model-booking-operations.md`，README 只連 ER 文件；這樣第一屏不會變重，但 reviewer 進 ER 文件時能直接看到正式圖 |
+| CI warning 收斂策略 | GitHub Actions 的 Node 20 deprecation warning 不只更新 workflow；新增 action version verifier 並接進 portfolio/release gate，避免未來回退到舊 action major |
 
 ## 遇到的問題
 | 問題 | 解決方案 |

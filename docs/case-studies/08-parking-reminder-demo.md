@@ -1,6 +1,6 @@
-# Case Study 08: 停車提醒與車位預約 demo — 把用餐流程延伸到出發前
+# Case Study 08: 停車提醒與車位保留展示 — 把用餐流程延伸到出發前
 
-**TL;DR** 訂餐廳的痛點不只在「找哪家」和「有沒有位」。台北鬧區還有一個現實問題：到了附近找不到停車位。ByteBites 把訂位後的 driving preference、附近停車場、即時空位提醒、LINE notification 串成一條產品故事，並用 demo spot hold 展示未來可預約車位的方向。
+**TL;DR** 訂餐廳的痛點不只在「找哪家」和「有沒有位」。台北鬧區還有一個現實問題：到了附近找不到停車位。ByteBites 把訂位後的 driving preference、附近停車場、即時空位提醒、LINE notification 串成一條產品故事，並用展示版 spot hold 說明未來可預約車位的方向。
 
 **Tech:** Spring scheduled job / Taipei parking data / LINE push / Next.js shop detail / booking preference / demo state processing  
 **Repo:** `backend-java/`, `ai-service-python/app/line_bot.py`, `web/components/ShopDetailTabs.tsx`
@@ -39,7 +39,7 @@
 - 查詢當下使用最新快取/上游資料。
 - LINE message 明確呈現附近停車場與剩餘車位。
 
-這是負責任的 demo 設計：產品體驗成立，但不誇大資料即時性。
+這是負責任的展示設計：產品體驗成立，但不誇大資料即時性。
 
 ## 4. API 與 contract
 
@@ -63,18 +63,18 @@ Booking
 
 前端 detail page 也顯示附近停車場，讓 Web 和 LINE 的資訊不是兩套世界。
 
-## 5. Demo spot hold：可以展示，但要誠實
+## 5. 展示版 spot hold：可以展示，但要誠實
 
 後續提出「停車通知後能不能預約車位」這個想法。真實世界裡確實有部分停車場支援預約，但不普遍，也不是台北開放資料本身能完成的事。
 
-因此合理方案是做 demo hold：
+因此合理方案是做展示版 hold：
 
 - 使用者在 LINE 或 Web 點「預約車位」。
-- 顯示 demo 成功。
+- 顯示展示版保留成功。
 - 回傳停車場名稱、樓層、區域、格位編號。
 - 前端畫面把可用格數減 1。
 - LINE 發送確認訊息。
-- 文案保留 demo / 展示語意，不假裝真的串到停車場營運商。
+- 文案保留展示語意，不假裝真的串到停車場營運商。
 
 這讓產品願景很清楚，同時避免誠信風險。
 
@@ -100,7 +100,7 @@ Booking
 
 **資料限制要說清楚。** 開放資料有更新頻率，不能把它包裝成每秒保證車位。
 
-**Demo 可以假，但 contract 要真。** UI 可以展示 spot hold，後端狀態與訊息格式仍應像真流程設計。
+**展示整合可以是假的，但 contract 要真。** UI 可以展示 spot hold，後端狀態與訊息格式仍應像真流程設計。
 
 **差異化來自流程延伸。** 從「推薦餐廳」延伸到「準時抵達」，產品定位就不一樣了。
 

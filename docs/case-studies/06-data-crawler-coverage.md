@@ -1,11 +1,11 @@
-# Case Study 06: 資料爬蟲與覆蓋率 — 從 demo seed 到 600 家可用店
+# Case Study 06: 資料爬蟲與覆蓋率 — 從 seed 資料到 600 家可用店
 
-**TL;DR** ByteBites 一開始只有少量 seed 店家，推薦看起來像 demo。後來我把資料工作當成產品核心：Google Places / Maps crawler、review sync、media manifest、coverage audit、query normalization、taxonomy backfill。最後把資料推到 600 家 active Taipei shops，並把 legacy seed 從 MySQL/Qdrant 推薦路徑移除。
+**TL;DR** ByteBites 一開始只有少量 seed 店家，推薦看起來像原型。後來我把資料工作當成產品核心：Google Places / Maps crawler、review sync、media manifest、coverage audit、query normalization、taxonomy backfill。最後把資料推到 600 家 active Taipei shops，並把 legacy seed 從 MySQL/Qdrant 推薦路徑移除。
 
 **Tech:** Google Places / Google Maps / MongoDB / MySQL / Qdrant / Python ETL / Playwright-style crawler hardening  
 **Repo:** `etl-pipeline/`, `tools/`, `docs/data-coverage-report.md`, `docs/taxonomy-audit.md`
 
-## 1. 起點：demo seed 看起來能跑，但不能支撐 AI
+## 1. 起點：seed 資料看起來能跑，但不能支撐 AI
 
 早期 25 家 seed 店可以讓 UI 有內容，但 AI 推薦很快會出問題：
 
@@ -80,7 +80,7 @@ Google Maps 頁面不是為批次爬蟲設計的，實作過程遇到很多不�
 - ABSA coverage 高，可以放心把評論分析放進 detail page。
 - media coverage 夠高，首頁和推薦卡才有視覺品質。
 
-## 5. Legacy seed cleanup：不讓 demo 資料污染真實推薦
+## 5. Legacy seed cleanup：不讓 seed 資料污染真實推薦
 
 當真實資料達到可用規模後，最早的 25 家 seed shop 反而變成風險。它們存在於：
 
@@ -113,9 +113,9 @@ Google Maps 頁面不是為批次爬蟲設計的，實作過程遇到很多不�
 
 ## English Version
 
-# Case Study 06: Data Crawling and Coverage — From Demo Seeds to 600 Usable Shops
+# Case Study 06: Data Crawling and Coverage — From Seed Data to 600 Usable Shops
 
-ByteBites started with a small seed dataset. That was enough for UI demos, but not enough for trustworthy AI recommendations. The real work was building a data pipeline: Places crawling, Maps detail crawling, review extraction, Mongo sync, MySQL loading, Qdrant payload sync, media manifests, coverage reports, and manual taxonomy audits.
+ByteBites started with a small seed dataset. That was enough for a UI prototype, but not enough for trustworthy AI recommendations. The real work was building a data pipeline: Places crawling, Maps detail crawling, review extraction, Mongo sync, MySQL loading, Qdrant payload sync, media manifests, coverage reports, and manual taxonomy audits.
 
 The crawler had to be hardened against real Google Maps behavior: unstable review tabs, noisy shop names, SEO suffixes, limited review views, detail retry queues, and shop-id mismatches between intermediate storage and final payloads.
 

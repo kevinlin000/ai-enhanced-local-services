@@ -448,6 +448,7 @@
 | Phase 45 整理公開/內部文件邊界 | README 已清掉內部入口，但 docs 根目錄仍混著自評、錄影、100 分路線圖與 release handoff；下一步要移到 `docs/_internal/portfolio/` 並更新 verifier，讓公開 docs 像正式作品入口 |
 | Phase 46 補 dbdiagram DBML ER model | Mermaid 方便 GitHub 直接看，但 dbdiagram/DBML 更像正式資料模型 artifact；新增 DBML source 並接進 ER 文件與 verifier，讓面試時可直接產圖 |
 | Phase 47 README 頂級化重整 | 目前 README 內容完整但平均鋪陳；要改成中文主入口、英文獨立精簡版，第一屏先給產品定位、狀態邊界、資料證據與驗證入口，降低 AI 味與冗長感 |
+| Phase 48 公開文件語氣與 CI warning 收斂 | 精選 case studies 應從 1-11 裡挑高訊號工程案例；公開文件避免學校情境與工具協作痕跡；ER SVG 放 ER 文件而非 README 第一屏；GitHub Actions action majors 需升級並由 verifier 防回退 |
 
 ## 遇到的錯誤
 | 錯誤 | 嘗試次數 | 解決方案 |

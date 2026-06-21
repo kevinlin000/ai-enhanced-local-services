@@ -27,15 +27,15 @@ AI 評論分析
 
 這不是 label wording 問題，而是 context 問題。推薦卡不是 review audit report。
 
-## 3. 跟 Claude 討論後的轉折
+## 3. 產品語境轉折
 
-我一開始問 Claude：「褒貶」是不是該改成「中等」或「評價不一」？
+一開始很容易把問題看成 label wording：「褒貶」是不是該改成「中等」或「評價不一」？
 
-Claude 第一個回答停在 label wording。這不夠深。
+但這不夠深。
 
 我 push：「一般使用者看到推薦卡上都是分歧、負面，還會想去吃嗎？」
 
-這次 Claude 抓到本質：ByteBites 的承諾是「我幫你選」，但 raw ABSA bar 在做「我把負評攤給你」。兩者互相打架。
+真正的本質是：ByteBites 的承諾是「我幫你選」，但 raw ABSA bar 在做「我把負評攤給你」。兩者互相打架。
 
 ## 4. Recommendation 和 Detail 是兩種 context
 
@@ -139,7 +139,7 @@ Agent 推幾家，文字講幾家，卡片 render 幾家。single source of trut
 
 **single source of truth 是 UX 基礎。** narrative count 和 card count 不一致就是 bug。
 
-**AI 第一個答案可能不夠深。** Claude 一開始停在改 label，我 push 使用者感受後才挖到真正問題。
+**第一個修法常停在表面。** 改 label 不能解決推薦卡的語境問題，必須回到使用者看到畫面時的決策心理。
 
 ## English Version
 

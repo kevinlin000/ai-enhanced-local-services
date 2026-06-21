@@ -2,7 +2,7 @@
 
 這份 ER model 聚焦作品中最重要的營運流程：推薦進入訂位、訂位可能產生臨場救場 incident、incident 可以產生替代時段提案，已付款訂位異動則可能產生補款或退款營運狀態。
 
-它刻意不畫出所有 crawler、taxonomy、review、ABSA 或 cache table。面試或 reviewer 審查時，最有價值的是 Java 擁有的 operational state model。
+它刻意不畫出所有 crawler、taxonomy、review、ABSA 或 cache table。公開審查時，最有價值的是 Java 擁有的 operational state model。
 
 ## 核心資料表
 
@@ -20,11 +20,14 @@
 
 ## Diagram
 
-GitHub 可以直接顯示下方 Mermaid 圖。若要給面試官或簡報使用，也可以打開 dbdiagram 版本：
+GitHub 可以直接顯示下方 Mermaid 圖。若要做簡報或視覺審查，也可以使用 dbdiagram 產出的 SVG 圖：
 
 - DBML source：[docs/dbml/bytebites-booking-operations.dbml](dbml/bytebites-booking-operations.dbml)
 - 使用方式：將 DBML 內容貼到 dbdiagram.io，即可產生可縮放的 ER 圖。
 - 建議講法：這不是全庫 schema，而是 booking operations bounded context；目標是說清楚 Java-owned state。
+- SVG asset：[docs/assets/bytebites-booking-operations-er-model.svg](assets/bytebites-booking-operations-er-model.svg)
+
+![ByteBites booking operations ER model](assets/bytebites-booking-operations-er-model.svg)
 
 ```mermaid
 erDiagram
@@ -152,7 +155,7 @@ erDiagram
 - `tb_merchant_notification_dispatch` 保存 `attention_count`、`pending_escalation_count`、`escalated_count` 等通知當下的摘要。這些值可由 refund operations 查詢重算，但 notification dispatch 是一筆已發送或已跳過的營運紀錄，需要保留當時內容。
 - `booking_code` 是穩定 workflow key，`id` 是資料庫主鍵。Web、LINE、incident、refund audit 以 `booking_code` 串流程，可以避免把內部 row id 暴露到外部通道；資料庫內仍保留 `id` 作為 primary key。
 
-面試時可以這樣回答：
+可以這樣回答：
 
 ```text
 核心模型遵守 1NF / 2NF / 3NF；少數看起來像冗餘的欄位是 audit snapshot。

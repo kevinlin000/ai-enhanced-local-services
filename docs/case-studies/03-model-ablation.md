@@ -21,11 +21,11 @@
 
 Pro models 更慢且 quota 不適合互動式 Agent，排除。
 
-## 3. 我 push back Claude 的地方
+## 3. 候選模型選擇的取捨
 
-Claude 一開始建議試 `2.5-flash-lite`，理由是它偏低延遲。我看 tier list 後覺得不完整：同樣 4K RPM，`3.1-flash-lite` 是較新世代，理論上推理與 tool routing 更穩。
+低延遲直覺會先指向 `2.5-flash-lite`，理由是它偏低延遲。但看完 tier list 後，這個判斷不完整：同樣 4K RPM，`3.1-flash-lite` 是較新世代，理論上推理與 tool routing 更穩。
 
-我 push back：「為什麼不用 3.1 Flash Lite？同 tier 但較新，應該 reasoning 更好。」
+因此真正要驗證的問題不是「哪個最快」，而是「哪個在 ByteBites 的 tool-routing workload 上最穩」。
 
 最後決定不是聽誰的直覺，而是兩個都測。
 
@@ -81,7 +81,7 @@ Agent 與 ABSA 可以用不同 model：互動式對話用 fast/cheap，內容分
 
 ## 8. 我學到的事
 
-**AI 工具的推薦是 hypothesis，不是答案。** Claude 建議 `2.5-flash-lite` 有道理，但不能直接上線。
+**低延遲直覺是 hypothesis，不是答案。** `2.5-flash-lite` 的方向有道理，但不能在未驗證 tool routing 前直接上線。
 
 **task-specific benchmark 勝過 headline benchmark。** vendor 說 fastest，不代表適合你的 tool-routing agent。
 
@@ -95,7 +95,7 @@ Agent 與 ABSA 可以用不同 model：互動式對話用 fast/cheap，內容分
 
 ByteBites originally used `gemini-3.5-flash` for its AI Agent. Even after fixing true streaming, TTFT remained around 6-7 seconds. I first suspected prompt size, compressed context by about 70%, and measured no meaningful TTFT gain. The bottleneck was model/API latency, not token prefill.
 
-Claude initially suggested trying `2.5-flash-lite` because it is latency-oriented. I pushed back: `3.1-flash-lite` is newer, same RPM tier, and should reason better. We tested both.
+The initial latency-first choice was `2.5-flash-lite`, but `3.1-flash-lite` was newer, in the same RPM tier, and likely to reason better. We tested both.
 
 The ablation used 3 models × 3 queries × 3 runs and measured latency, quality, and tool routing. `2.5-flash-lite` was fastest but failed tool routing on hotpot queries. `3.1-flash-lite` gave the best production trade-off: fast enough, cheaper, and reliable routing.
 

@@ -32,6 +32,9 @@ run_step "Clean MySQL migration smoke contract" \
 run_step "Clean MySQL migration workflow contract" \
   python3 "$ROOT_DIR/scripts/verify-clean-migration-workflow.py"
 
+run_step "GitHub Actions version contract" \
+  python3 "$ROOT_DIR/scripts/verify-github-actions-versions.py"
+
 run_step "Release boundary contract" \
   python3 "$ROOT_DIR/scripts/verify-release-boundary.py"
 

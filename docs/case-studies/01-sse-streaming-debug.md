@@ -1,6 +1,6 @@
 # Case Study 01: AI Agent 真實串流 — 三層 debug 走完
 
-**TL;DR** 做 ByteBites 的 AI 餐廳推薦對話時，我以為加了 SSE 就有串流體驗。實際打開瀏覽器發現：等 15 秒，文字突然全部出現。這篇記錄跟 Claude / Codex 三輪 debug，把 TTFT (time-to-first-token) 從「實質無限大」壓到 908ms 的過程。
+**TL;DR** 做 ByteBites 的 AI 餐廳推薦對話時，我以為加了 SSE 就有串流體驗。實際打開瀏覽器發現：等 15 秒，文字突然全部出現。這篇記錄三輪系統化 debug，把 TTFT (time-to-first-token) 從「實質無限大」壓到 908ms 的過程。
 
 **Tech:** Python / FastAPI / Gemini SDK / Server-Sent Events / Next.js  
 **Repo:** `ai-service-python/app/main.py`
@@ -9,7 +9,7 @@
 
 最初版本後端有 SSE endpoint，前端也有 reader，`text/event-stream` header 正確。功能上「會動」，但體感很慢。我一開始以為是 Gemini 本身慢。
 
-直到 Codex audit 時用 `curl` 看 raw SSE timeline：
+直到用 `curl` 檢查 raw SSE timeline：
 
 ```text
 thinking -> [3-15s silence] -> [all chunks burst in <200ms] -> done
@@ -48,7 +48,7 @@ Agent 流程：
 
 bug 在第 4 步。`contents` 裡有 function-call history，Gemini 看到後推斷下一輪也要 call tool，所以回另一個 function_call，而不是文字。沒有 text，就沒有 chunk。
 
-這層是 Claude 提出的假設，我用 raw payload log 驗證。
+這層假設來自 raw payload review，最後用 log 驗證。
 
 修法：分離 tool-execution context 與 synthesis context。
 
@@ -97,7 +97,7 @@ token 減少約 70%。但實測 TTFT median 沒顯著改善。直覺上應該變
 | `gemini-3.1-flash-lite` | 2.28s, Qdrant warm 後 908ms | 4/5 | OK |
 | `gemini-2.5-flash-lite` | 0.92s | 2/5 | failed hotpot routing |
 
-Claude 一開始建議試 `2.5-flash-lite`，因為它偏低延遲。我 push back：為什麼不用同 tier 但較新的 `3.1-flash-lite`？最後兩個都測，數據證明 `2.5` 雖快但 routing 不穩，直接出局。
+低延遲直覺會先指向 `2.5-flash-lite`，但同 tier、較新的 `3.1-flash-lite` 理論上應有更穩定的 reasoning 與 tool routing。最後兩個都測，數據證明 `2.5` 雖快但 routing 不穩，直接出局。
 
 ## 6. 最後數字
 
@@ -116,7 +116,7 @@ TTFT 從實質無限大到 < 1 秒。total latency 從 22.5s 到約 8s。
 
 **root cause 常在不直觀的層。** 表面是「stream 沒輸出」，真正原因是 function-call history 讓模型繼續回 function_call。
 
-**AI 協作要驗證。** Claude 提假設，Codex 跑 audit，我看 log 決定下一步。AI 給選項，工程師要驗證與取捨。
+**工程假設要驗證。** 任何看似合理的修法都要回到 log、raw timeline 與 benchmark，不用直覺替代證據。
 
 **量化比直覺重要。** token 壓縮看起來合理，但實測沒有降低 TTFT。沒有量化就會誤以為自己修好了。
 
@@ -124,7 +124,7 @@ TTFT 從實質無限大到 < 1 秒。total latency 從 22.5s 到約 8s。
 
 # Case Study 01: Real Streaming for an AI Agent — Three Layers of Debugging
 
-**TL;DR** I built an SSE-based AI restaurant recommendation chat and assumed SSE meant streaming. In the browser: 15 seconds of silence, then the full answer appears at once. This case study covers the debugging process with Claude and Codex that moved TTFT from effectively infinite to 908ms.
+**TL;DR** I built an SSE-based AI restaurant recommendation chat and assumed SSE meant streaming. In the browser: 15 seconds of silence, then the full answer appears at once. This case study covers the debugging process that moved TTFT from effectively infinite to 908ms.
 
 The first version had the right endpoint, reader, and headers. But `curl` exposed the truth:
 
@@ -140,4 +140,4 @@ The third hypothesis was context bloat. I compressed the synthesis prompt from f
 
 The real breakthrough was model selection. A small ablation showed `gemini-2.5-flash-lite` was fastest but failed tool routing, while `gemini-3.1-flash-lite` delivered the right balance of latency and reasoning. With Qdrant warm, TTFT reached 908ms.
 
-**Lesson:** streaming is not a header; it is a timeline. Always inspect raw event arrival with `curl`. AI tools help generate hypotheses, but engineering judgment comes from logs, benchmarks, and trade-offs.
+**Lesson:** streaming is not a header; it is a timeline. Always inspect raw event arrival with `curl`. Engineering judgment comes from logs, benchmarks, and trade-offs.
