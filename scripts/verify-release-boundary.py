@@ -18,6 +18,7 @@ ARCHITECTURE_OVERVIEW = ROOT / "docs" / "architecture-overview.md"
 SYSTEM_DESIGN_PACK = INTERNAL_PORTFOLIO / "system-design-interview-pack.md"
 PERFORMANCE_QUERY_EVIDENCE = ROOT / "docs" / "performance-query-evidence.md"
 ER_MODEL = ROOT / "docs" / "er-model-booking-operations.md"
+ER_MODEL_DBML = ROOT / "docs" / "dbml" / "bytebites-booking-operations.dbml"
 SCRIPT = ROOT / "scripts" / "release-readiness.sh"
 
 
@@ -86,6 +87,11 @@ def main() -> None:
         er_model = ER_MODEL.read_text(encoding="utf-8")
     except FileNotFoundError:
         fail(f"missing ER model doc: {ER_MODEL.relative_to(ROOT)}")
+
+    try:
+        er_model_dbml = ER_MODEL_DBML.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing ER model DBML source: {ER_MODEL_DBML.relative_to(ROOT)}")
 
     required_doc_snippets = {
         "release thesis": "AI can orchestrate the dining workflow, but Java remains the source of truth",
@@ -245,12 +251,28 @@ def main() -> None:
         "deposit adjustment table": "tb_booking_deposit_adjustment",
         "refund audit table": "tb_booking_refund_reconciliation_event",
         "merchant auth table": "tb_merchant_shop",
+        "dbml source": "docs/dbml/bytebites-booking-operations.dbml",
         "booking code point": "booking_code",
         "proposal tradeoff": "一個 incident、一個 pending proposal",
         "money movement separation": "將訂位異動與金流義務分離",
     }
     for label, snippet in required_er_model_snippets.items():
         require(er_model, snippet, label)
+
+    required_er_model_dbml_snippets = {
+        "project": "Project bytebites_booking_operations",
+        "booking table": "Table tb_booking",
+        "incident table": "Table tb_booking_incident",
+        "deposit adjustment table": "Table tb_booking_deposit_adjustment",
+        "refund audit table": "Table tb_booking_refund_reconciliation_event",
+        "merchant dispatch table": "Table tb_merchant_notification_dispatch",
+        "booking incident ref": "Ref: tb_booking.booking_code < tb_booking_incident.booking_code",
+        "deposit adjustment ref": "Ref: tb_booking.booking_code < tb_booking_deposit_adjustment.booking_code",
+        "refund audit ref": "Ref: tb_booking_deposit_adjustment.id < tb_booking_refund_reconciliation_event.adjustment_id",
+        "java ownership note": "Java owns booking, incident, deposit adjustment, refund audit, and merchant notification state.",
+    }
+    for label, snippet in required_er_model_dbml_snippets.items():
+        require(er_model_dbml, snippet, label)
 
     required_script_snippets = {
         "dry run option": "--dry-run",

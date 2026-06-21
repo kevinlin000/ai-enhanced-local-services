@@ -37,7 +37,7 @@ Java 負責訂位、付款、救場、退款等核心狀態。
 
 - [專案演進總覽](docs/project-journey.md)
 - [架構總覽](docs/architecture-overview.md)
-- [訂位營運 ER Model](docs/er-model-booking-operations.md)
+- [訂位營運 ER Model](docs/er-model-booking-operations.md)（含 dbdiagram DBML source）
 - [效能與查詢證據](docs/performance-query-evidence.md)
 - [資料覆蓋率報告](docs/data-coverage-report.md)
 - [Nginx 公開部署邊界](docs/deployment-nginx.md)

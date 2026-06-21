@@ -191,6 +191,8 @@
 | Phase 44 同步公開證據文件中文化 | README 連結出去的 architecture / ER / performance evidence 都是公開審查材料，應與 README 一樣中文優先 |
 | Phase 45 採移動內部文件而非刪除 | readiness scorecard、100 roadmap、recording script、cloud plan、release boundary 對使用者準備面試有用，但不該在公開 docs 根目錄；移到 `docs/_internal/portfolio/` 可保留工作記憶並降低 reviewer 入口雜訊 |
 | Phase 45 verifier 必須跟著改 | 若只搬文件不改 verifier，release gate 會壞；若 verifier 仍要求舊公開路徑，未來又會把內部文件拉回公開根目錄 |
+| Phase 46 ER model 採 Mermaid + DBML 雙軌 | Mermaid 保留 GitHub 即看；DBML 可貼到 dbdiagram.io 產生正式圖，適合面試官追問資料模型時展示 |
+| Phase 46 ER 範圍維持 booking operations bounded context | 不畫 crawler/taxonomy/review 全庫；面試高價值是 Java source-of-truth、booking_code workflow key、incident proposal、deposit adjustment、refund audit 與 merchant notification state |
 
 ## 遇到的問題
 | 問題 | 解決方案 |

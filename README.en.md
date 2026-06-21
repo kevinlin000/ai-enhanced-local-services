@@ -13,7 +13,7 @@ Java owns booking, payment, incident, and refund state.
 
 - [Project Journey](docs/project-journey.md)
 - [Architecture Overview](docs/architecture-overview.md)
-- [Booking Operations ER Model](docs/er-model-booking-operations.md)
+- [Booking Operations ER Model](docs/er-model-booking-operations.md) with dbdiagram DBML source
 - [Performance And Query Evidence](docs/performance-query-evidence.md)
 - [Data Coverage Report](docs/data-coverage-report.md)
 - [Nginx Public Deployment Boundary](docs/deployment-nginx.md)

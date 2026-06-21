@@ -1,0 +1,243 @@
+// ByteBites booking operations ER model.
+// Paste this file into https://dbdiagram.io/ to render the interview diagram.
+// Scope is intentionally limited to Java-owned operational state.
+
+Project bytebites_booking_operations {
+  database_type: "MySQL"
+  note: "AI orchestrates booking workflows, but Java owns booking, incident, deposit adjustment, refund audit, and merchant notification state."
+}
+
+Table tb_user {
+  id bigint [pk, increment]
+  phone varchar(11) [unique, not null]
+  nick_name varchar(32)
+  icon varchar(255)
+  line_user_id varchar(64) [unique]
+  line_display_name varchar(100)
+  line_picture_url varchar(500)
+  create_time timestamp
+  update_time timestamp
+
+  Note: "Customer account and merchant operator account."
+}
+
+Table tb_shop {
+  id bigint [pk, increment]
+  name varchar(128) [not null]
+  type_id bigint [not null]
+  district varchar(20)
+  mrt_station varchar(50)
+  price_range tinyint
+  open_hours varchar(32)
+  score int
+  is_active tinyint
+  create_time timestamp
+  update_time timestamp
+
+  Note: "Restaurant profile and merchant operating unit."
+}
+
+Table tb_merchant_shop {
+  user_id bigint [pk, not null]
+  shop_id bigint [pk, not null]
+  role varchar(20) [not null, default: "owner"]
+  created_at datetime [not null]
+
+  indexes {
+    shop_id [name: "idx_merchant_shop_shop"]
+  }
+
+  Note: "Authorization boundary for merchant console APIs."
+}
+
+Table tb_booking_slot_inventory {
+  id bigint [pk, increment]
+  shop_id bigint [not null]
+  booking_date date [not null]
+  booking_time varchar(10) [not null]
+  table_type varchar(20) [not null, default: "normal"]
+  capacity int [not null]
+  booked_count int [not null]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (shop_id, booking_date, booking_time, table_type) [unique, name: "uk_booking_slot"]
+    (shop_id, booking_date, booking_time) [name: "idx_booking_slot_lookup"]
+  }
+
+  Note: "Java-owned availability inventory for deterministic booking and proposal checks."
+}
+
+Table tb_booking {
+  id bigint [pk, increment]
+  user_id bigint
+  booking_code varchar(50) [unique, not null]
+  shop_id bigint [not null]
+  people int [not null]
+  booking_date date [not null]
+  booking_time varchar(10) [not null]
+  table_type varchar(20) [not null, default: "normal"]
+  status tinyint [not null]
+  needs_deposit tinyint [not null]
+  deposit_per_person int [not null]
+  deposit_total int [not null]
+  payment_trans_id varchar(100)
+  hold_expires_at datetime
+  idempotency_key varchar(80)
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    booking_code [unique, name: "uk_booking_code"]
+    idempotency_key [unique, name: "uk_booking_idempotency_key"]
+    shop_id [name: "idx_shop_id"]
+    user_id [name: "idx_booking_user"]
+    (user_id, created_at) [name: "idx_booking_user_created"]
+    (user_id, status) [name: "idx_booking_user_status"]
+    (status, hold_expires_at) [name: "idx_booking_hold_expiry"]
+  }
+
+  Note: "Booking source of truth. booking_code is the stable workflow key across Web, LINE, incidents, payments, and refunds."
+}
+
+Table tb_booking_incident {
+  id bigint [pk, increment]
+  booking_code varchar(50) [not null]
+  user_id bigint
+  shop_id bigint [not null]
+  incident_type varchar(32) [not null]
+  status varchar(20) [not null, default: "OPEN"]
+  delay_minutes int [not null]
+  original_time varchar(10) [not null]
+  adjusted_time varchar(10) [not null]
+  title varchar(120) [not null]
+  customer_message varchar(500) [not null]
+  action_label varchar(80) [not null]
+  source varchar(32) [not null, default: "AI_RESCUE"]
+  proposal_status varchar(20)
+  proposed_date date
+  proposed_time varchar(10)
+  proposed_table_type varchar(20)
+  proposed_people int
+  proposal_message varchar(500)
+  proposed_at datetime
+  proposal_expires_at datetime
+  proposal_accepted_at datetime
+  proposal_declined_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+  resolved_at datetime
+
+  indexes {
+    (booking_code, status, created_at) [name: "idx_booking_incident_booking_status"]
+    (user_id, status, created_at) [name: "idx_booking_incident_user_status"]
+    (shop_id, status, created_at) [name: "idx_booking_incident_shop_status"]
+    (proposal_status, proposed_at) [name: "idx_booking_incident_proposal_status"]
+  }
+
+  Note: "Real-time rescue incident. Portfolio version keeps one pending proposal on the incident row."
+}
+
+Table tb_booking_deposit_adjustment {
+  id bigint [pk, increment]
+  booking_code varchar(50) [not null]
+  incident_id bigint
+  user_id bigint
+  shop_id bigint [not null]
+  status varchar(20) [not null, default: "OPEN"]
+  adjustment_type varchar(20) [not null]
+  source varchar(40) [not null]
+  current_deposit_total int [not null]
+  proposed_deposit_total int [not null]
+  delta_amount int [not null]
+  proposed_date date [not null]
+  proposed_time varchar(10) [not null]
+  proposed_table_type varchar(20) [not null, default: "normal"]
+  proposed_people int [not null]
+  settlement_status varchar(30) [not null, default: "PENDING"]
+  settlement_provider varchar(30)
+  settlement_trans_id varchar(100)
+  settlement_amount int [not null]
+  settlement_requested_at datetime
+  settlement_completed_at datetime
+  refund_escalated_at datetime
+  refund_escalation_note varchar(500)
+  refund_escalated_by_user_id bigint
+  applied_booking_update tinyint [not null]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (booking_code, proposed_date, proposed_time, proposed_table_type, proposed_people, delta_amount, status) [unique, name: "uk_booking_deposit_adjustment_state"]
+    (shop_id, status, created_at) [name: "idx_deposit_adjustment_shop_status"]
+    booking_code [name: "idx_deposit_adjustment_booking"]
+    incident_id [name: "idx_deposit_adjustment_incident"]
+    (shop_id, settlement_status, created_at) [name: "idx_deposit_adjustment_settlement"]
+    (shop_id, adjustment_type, settlement_status, refund_escalated_at) [name: "idx_deposit_adjustment_refund_escalation"]
+  }
+
+  Note: "Separates booking mutation from money movement obligations. Java requires settlement completion before applying protected updates."
+}
+
+Table tb_booking_refund_reconciliation_event {
+  id bigint [pk, increment]
+  event_key varchar(120) [unique]
+  adjustment_id bigint [not null]
+  booking_code varchar(50) [not null]
+  event_type varchar(40) [not null]
+  result_status varchar(30) [not null]
+  amount int [not null]
+  settlement_trans_id varchar(100)
+  message varchar(500)
+  recorded_by_user_id bigint
+  created_at datetime [not null]
+
+  indexes {
+    event_key [unique, name: "uk_refund_reconciliation_event_key"]
+    (adjustment_id, created_at) [name: "idx_refund_reconciliation_adjustment"]
+    (booking_code, created_at) [name: "idx_refund_reconciliation_booking"]
+  }
+
+  Note: "Append-only refund request and PSP reconciliation audit log with event-key idempotency."
+}
+
+Table tb_merchant_notification_dispatch {
+  id bigint [pk, increment]
+  shop_id bigint [not null]
+  notification_type varchar(60) [not null]
+  dispatch_source varchar(30) [not null]
+  status varchar(20) [not null]
+  reason varchar(60)
+  report_status varchar(40)
+  attention_count int [not null]
+  pending_escalation_count int [not null]
+  escalated_count int [not null]
+  stuck_minutes int [not null]
+  cooldown_minutes int [not null]
+  line_user_id varchar(100)
+  headline varchar(200)
+  sent_at datetime
+  created_at datetime [not null]
+
+  indexes {
+    (shop_id, notification_type, status, sent_at) [name: "idx_merchant_notification_last_sent"]
+    (shop_id, notification_type, created_at) [name: "idx_merchant_notification_created"]
+  }
+
+  Note: "Cooldown and audit record for merchant refund operations digest notifications."
+}
+
+Ref: tb_user.id < tb_booking.user_id
+Ref: tb_user.id < tb_merchant_shop.user_id
+Ref: tb_shop.id < tb_merchant_shop.shop_id
+Ref: tb_shop.id < tb_booking.shop_id
+Ref: tb_shop.id < tb_booking_slot_inventory.shop_id
+Ref: tb_shop.id < tb_booking_incident.shop_id
+Ref: tb_shop.id < tb_booking_deposit_adjustment.shop_id
+Ref: tb_shop.id < tb_merchant_notification_dispatch.shop_id
+Ref: tb_booking.booking_code < tb_booking_incident.booking_code
+Ref: tb_booking.booking_code < tb_booking_deposit_adjustment.booking_code
+Ref: tb_booking.booking_code < tb_booking_refund_reconciliation_event.booking_code
+Ref: tb_booking_incident.id < tb_booking_deposit_adjustment.incident_id
+Ref: tb_booking_deposit_adjustment.id < tb_booking_refund_reconciliation_event.adjustment_id

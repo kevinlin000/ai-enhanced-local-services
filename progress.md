@@ -1014,6 +1014,8 @@
 | Phase 45 audit | rg internal portfolio doc paths | 找出仍在公開 docs 根目錄的自評、錄影、面試與 release handoff 文件，以及 verifier 依賴 | README 已乾淨；scripts/docs 舊路徑已改成 internal path | passed |
 | Phase 45 internal docs relocation | git mv + verifier updates | 將 portfolio prep docs 移到 `docs/_internal/portfolio/`，公開 README/docs 不再連到自評、錄影、100 分路線圖或面試包 | release/data-quality/offline readiness 通過 | passed |
 | Portfolio verification | scripts/verify-portfolio.sh | 驗證 internal docs relocation 沒有破壞整體作品 gate | Java 96 tests 0 failures 3 skipped; AI 174 passed; ETL 43 passed; Web 19 passed; build passed | passed |
+| Phase 46 DBML ER model | 新增 `docs/dbml/bytebites-booking-operations.dbml` 並更新 ER doc / README / verifier | dbdiagram source 可直接產圖，release verifier 會檢查核心 tables 和 refs；portfolio gate 通過 | passed |
+| Portfolio verification | scripts/verify-portfolio.sh | 驗證 DBML ER model 與文件連結沒有破壞整體作品 gate | Java 96 tests 0 failures 3 skipped; AI 174 passed; ETL 43 passed; Web 19 passed; build passed | passed |
 
 ## 錯誤日誌
 | 時間戳記 | 錯誤 | 嘗試次數 | 解決方案 |

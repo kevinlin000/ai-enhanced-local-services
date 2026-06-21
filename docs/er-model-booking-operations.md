@@ -20,6 +20,12 @@
 
 ## Diagram
 
+GitHub 可以直接顯示下方 Mermaid 圖。若要給面試官或簡報使用，也可以打開 dbdiagram 版本：
+
+- DBML source：[docs/dbml/bytebites-booking-operations.dbml](dbml/bytebites-booking-operations.dbml)
+- 使用方式：將 DBML 內容貼到 dbdiagram.io，即可產生可縮放的 ER 圖。
+- 建議講法：這不是全庫 schema，而是 booking operations bounded context；目標是說清楚 Java-owned state。
+
 ```mermaid
 erDiagram
     TB_USER ||--o{ TB_BOOKING : places
