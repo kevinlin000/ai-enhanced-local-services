@@ -60,11 +60,11 @@ Suggested order:
 
 Keep it under 5 minutes. The video should prove the workflow, not explain every feature.
 
-The author should record the voiceover personally. See `docs/demo-recording-cloud-plan.md` for the recording and cloud-deployment decision.
+The author should record the voiceover personally. See `docs/_internal/portfolio/demo-recording-cloud-plan.md` for the recording and cloud-deployment decision.
 
-Use `docs/demo-recording-script.md` for the exact 3-minute cut, 5-minute walkthrough, and 12-minute interview version.
+Use `docs/_internal/portfolio/demo-recording-script.md` for the exact 3-minute cut, 5-minute walkthrough, and 12-minute interview version.
 
-Use `docs/system-design-interview-pack.md` after the demo when a reviewer asks about architecture tradeoffs, consistency, failure modes, or production rollout boundaries.
+Use `docs/_internal/portfolio/system-design-interview-pack.md` after the demo when a reviewer asks about architecture tradeoffs, consistency, failure modes, or production rollout boundaries.
 
 Use `docs/performance-query-evidence.md` when a reviewer asks whether the operational flows have indexed query paths or whether performance claims are being overclaimed.
 

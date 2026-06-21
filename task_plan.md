@@ -445,6 +445,7 @@
 | Phase 42 補 system design interview pack | 使用者晚點才錄影；錄影之外最高價值是把架構追問答辯變成 reviewer-facing artifact，且不包含內部自評或投遞策略 |
 | Phase 43 補 performance/query evidence | 大廠面試會問查詢與效能，但目前沒有 production-like benchmark；先把 hot path、索引與 code anchors 做成可驗證 evidence，不假裝已有 QPS/p95 數據 |
 | Phase 44 README 採中文主文件 + 英文獨立版 | 台灣求職情境下 README 應先用中文專業呈現；英文版獨立存在即可，避免中英混排與內部準備文件讓入口失焦 |
+| Phase 45 整理公開/內部文件邊界 | README 已清掉內部入口，但 docs 根目錄仍混著自評、錄影、100 分路線圖與 release handoff；下一步要移到 `docs/_internal/portfolio/` 並更新 verifier，讓公開 docs 像正式作品入口 |
 
 ## 遇到的錯誤
 | 錯誤 | 嘗試次數 | 解決方案 |

@@ -233,7 +233,7 @@ def verify_case_studies() -> None:
 
 
 def verify_portfolio_evidence_map() -> None:
-    evidence_path = ROOT / "docs" / "portfolio-evidence-map.md"
+    evidence_path = ROOT / "docs" / "_internal" / "portfolio" / "portfolio-evidence-map.md"
     try:
         evidence = evidence_path.read_text(encoding="utf-8")
     except FileNotFoundError:
@@ -244,7 +244,7 @@ def verify_portfolio_evidence_map() -> None:
         "Full-Stack Track",
         "scripts/verify-portfolio.sh",
         "scripts/release-readiness.sh",
-        "docs/release-boundary.md",
+        "docs/_internal/portfolio/release-boundary.md",
         "BookingSlotInventory",
         "booking_draft.py",
         ".github/workflows/portfolio-ci.yml",

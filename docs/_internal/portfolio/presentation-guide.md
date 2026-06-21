@@ -178,7 +178,7 @@ Then show:
 | Web/LINE are synchronized | `docs/case-studies/07-web-line-booking-sync.md` |
 | Deployment was made testable | `docs/case-studies/11-demo-deployment.md` |
 | Design has product judgment | `docs/case-studies/05-recommendation-ux.md`, `12-premium-ui-positioning.md` |
-| Claims are reviewable | `docs/portfolio-evidence-map.md`, `scripts/verify-portfolio.sh`, `.github/workflows/portfolio-ci.yml` |
+| Claims are reviewable | `docs/_internal/portfolio/portfolio-evidence-map.md`, `scripts/verify-portfolio.sh`, `.github/workflows/portfolio-ci.yml` |
 
 ## 5. What to Say If Asked About Limits
 

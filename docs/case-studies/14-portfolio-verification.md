@@ -1,9 +1,9 @@
 # Case Study 14: Portfolio Verification — 從很多亮點到可審查作品
 
-**TL;DR** ByteBites 的問題不是沒有亮點，而是亮點太分散：Java booking、AI agent、資料品質、Web/LINE、停車提醒、UI positioning 各自都能講，但面試官很難在短時間內確認哪些是真的。這輪把作品整理成可審查的 evidence chain：單一驗證入口、CI matrix、資料品質 gate、面試證據地圖，並把訂位庫存與 booking payload 抽成更深的 Java Module。
+**TL;DR** ByteBites 的問題不是沒有亮點，而是亮點太分散：Java booking、AI agent、資料品質、Web/LINE、停車提醒、UI positioning 各自都能講，但審查者很難在短時間內確認哪些是真的。這輪把作品整理成可審查的 evidence chain：單一驗證入口、CI matrix、資料品質 gate、release boundary，並把訂位庫存與 booking payload 抽成更深的 Java Module。
 
 **Tech:** GitHub Actions / Bash / Python standard library / Maven / pytest / pnpm / Next.js build / Spring Boot contract tests
-**Repo:** `scripts/verify-portfolio.sh`, `scripts/release-readiness.sh`, `scripts/verify-data-quality.py`, `scripts/verify-nginx-template.py`, `scripts/verify-clean-migration-workflow.py`, `scripts/verify-release-boundary.py`, `scripts/smoke-clean-mysql-migrations.sh`, `.github/workflows/portfolio-ci.yml`, `.github/workflows/clean-mysql-migration-smoke.yml`, `docs/portfolio-evidence-map.md`, `docs/release-boundary.md`
+**Repo:** `scripts/verify-portfolio.sh`, `scripts/release-readiness.sh`, `scripts/verify-data-quality.py`, `scripts/verify-nginx-template.py`, `scripts/verify-clean-migration-workflow.py`, `scripts/verify-release-boundary.py`, `scripts/smoke-clean-mysql-migrations.sh`, `.github/workflows/portfolio-ci.yml`, `.github/workflows/clean-mysql-migration-smoke.yml`, `README.md`, `docs/architecture-overview.md`
 
 ## 1. 起點：功能很多，但評審不一定看得到
 
@@ -44,7 +44,7 @@ Web production build
 
 其中 deployment 和 clean migration smoke 在 portfolio gate 只跑離線 contract：template verifier、`bash -n`、`--dry-run`。真正需要 Docker、MySQL、Redis、RabbitMQ 和 Java process 的 live smoke，保留給正式 demo rehearsal 執行，避免日常 portfolio verification 被本機服務狀態綁架。
 
-後續再補 `docs/release-boundary.md` 和 `scripts/release-readiness.sh`，把 demo 前檢查整理成四層：dry-run、offline、full portfolio、live-local。這讓發表前不需要憑記憶找命令。
+後續再補 release boundary 和 `scripts/release-readiness.sh`，把 demo 前檢查整理成四層：dry-run、offline、full portfolio、live-local。這讓發表前不需要憑記憶找命令。
 
 ## 3. CI matrix：把本機驗證搬到 reviewer 熟悉的形狀
 
@@ -213,15 +213,15 @@ user says "我塞車會晚到 20 分鐘"
 
 這個功能的重點不是多一則通知，而是把現場狀況變成後端狀態：OPEN / RESOLVED、原時間、新預估時間、顧客可讀訊息、商家提案，以及 ACCEPTED / DECLINED / EXPIRED 的顧客回覆都可追蹤。AI 只負責理解「我會晚到」這種自然語言與組 LINE 卡片；真正的 incident 建立、通知、替代時段建議、顧客確認、訂金差額防護、PSP settlement tracking、退款 reconciliation idempotency / audit / signature verification / secret rotation / source allowlist、refund SLA visibility / escalation tracking / operations digest notification / scheduled policy 與改單仍由 Java contract 驗證。
 
-## 11. Reviewer Evidence Map
+## 11. Reviewer Evidence Chain
 
-最後新增：
+最後整理一份內部證據地圖，目標不是放在公開入口，而是確保每個 claim 都能回到 code、test、data 或 case study：
 
 ```text
-docs/portfolio-evidence-map.md
+claim -> code anchor -> test/eval -> public evidence doc
 ```
 
-它不是一般文件，而是面試入口：
+它不是一般文件，而是審查準備用索引：
 
 - Java backend track；
 - AI application track；

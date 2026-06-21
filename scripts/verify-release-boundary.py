@@ -7,14 +7,15 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DOC = ROOT / "docs" / "release-boundary.md"
-SCORECARD = ROOT / "docs" / "portfolio-readiness-scorecard.md"
-ROADMAP_100 = ROOT / "docs" / "portfolio-100-roadmap.md"
-EVIDENCE_PACKAGE = ROOT / "docs" / "demo-evidence-package.md"
-RECORDING_SCRIPT = ROOT / "docs" / "demo-recording-script.md"
-RECORDING_CLOUD_PLAN = ROOT / "docs" / "demo-recording-cloud-plan.md"
+INTERNAL_PORTFOLIO = ROOT / "docs" / "_internal" / "portfolio"
+DOC = INTERNAL_PORTFOLIO / "release-boundary.md"
+SCORECARD = INTERNAL_PORTFOLIO / "portfolio-readiness-scorecard.md"
+ROADMAP_100 = INTERNAL_PORTFOLIO / "portfolio-100-roadmap.md"
+EVIDENCE_PACKAGE = INTERNAL_PORTFOLIO / "demo-evidence-package.md"
+RECORDING_SCRIPT = INTERNAL_PORTFOLIO / "demo-recording-script.md"
+RECORDING_CLOUD_PLAN = INTERNAL_PORTFOLIO / "demo-recording-cloud-plan.md"
 ARCHITECTURE_OVERVIEW = ROOT / "docs" / "architecture-overview.md"
-SYSTEM_DESIGN_PACK = ROOT / "docs" / "system-design-interview-pack.md"
+SYSTEM_DESIGN_PACK = INTERNAL_PORTFOLIO / "system-design-interview-pack.md"
 PERFORMANCE_QUERY_EVIDENCE = ROOT / "docs" / "performance-query-evidence.md"
 ER_MODEL = ROOT / "docs" / "er-model-booking-operations.md"
 SCRIPT = ROOT / "scripts" / "release-readiness.sh"
@@ -93,13 +94,13 @@ def main() -> None:
         "full gate": "scripts/release-readiness.sh --full",
         "live local": "scripts/release-readiness.sh --live-local --base-url http://localhost:8088",
         "portfolio verifier": "scripts/verify-portfolio.sh",
-        "readiness scorecard": "docs/portfolio-readiness-scorecard.md",
-        "portfolio 100 roadmap": "docs/portfolio-100-roadmap.md",
-        "demo evidence package": "docs/demo-evidence-package.md",
-        "recording script": "docs/demo-recording-script.md",
-        "recording cloud plan": "docs/demo-recording-cloud-plan.md",
+        "readiness scorecard": "docs/_internal/portfolio/portfolio-readiness-scorecard.md",
+        "portfolio 100 roadmap": "docs/_internal/portfolio/portfolio-100-roadmap.md",
+        "demo evidence package": "docs/_internal/portfolio/demo-evidence-package.md",
+        "recording script": "docs/_internal/portfolio/demo-recording-script.md",
+        "recording cloud plan": "docs/_internal/portfolio/demo-recording-cloud-plan.md",
         "architecture overview": "docs/architecture-overview.md",
-        "system design interview pack": "docs/system-design-interview-pack.md",
+        "system design interview pack": "docs/_internal/portfolio/system-design-interview-pack.md",
         "performance query evidence": "docs/performance-query-evidence.md",
         "readiness score": "88 / 100",
         "clean mysql smoke": "scripts/smoke-clean-mysql-migrations.sh --timeout 180",
@@ -120,12 +121,12 @@ def main() -> None:
         "full stack score": "Full-stack engineer",
         "evidence package": "Step 1: Evidence Package",
         "100-point path": "Step 0: Define The 100-Point Path",
-        "portfolio 100 roadmap": "docs/portfolio-100-roadmap.md",
-        "demo evidence package": "docs/demo-evidence-package.md",
-        "recording script": "docs/demo-recording-script.md",
-        "recording cloud plan": "docs/demo-recording-cloud-plan.md",
+        "portfolio 100 roadmap": "docs/_internal/portfolio/portfolio-100-roadmap.md",
+        "demo evidence package": "docs/_internal/portfolio/demo-evidence-package.md",
+        "recording script": "docs/_internal/portfolio/demo-recording-script.md",
+        "recording cloud plan": "docs/_internal/portfolio/demo-recording-cloud-plan.md",
         "architecture overview": "docs/architecture-overview.md",
-        "system design interview pack": "docs/system-design-interview-pack.md",
+        "system design interview pack": "docs/_internal/portfolio/system-design-interview-pack.md",
         "performance query evidence": "docs/performance-query-evidence.md",
         "stop feature creep": "Stop Adding Features For Now",
     }
@@ -137,10 +138,10 @@ def main() -> None:
         "portfolio 100": "Portfolio 100",
         "production saas 100": "Production SaaS 100",
         "current score": "88 / 100",
-        "evidence package": "docs/demo-evidence-package.md",
-        "recording cloud plan": "docs/demo-recording-cloud-plan.md",
+        "evidence package": "docs/_internal/portfolio/demo-evidence-package.md",
+        "recording cloud plan": "docs/_internal/portfolio/demo-recording-cloud-plan.md",
         "architecture overview": "docs/architecture-overview.md",
-        "system design interview pack": "docs/system-design-interview-pack.md",
+        "system design interview pack": "docs/_internal/portfolio/system-design-interview-pack.md",
         "performance query evidence": "docs/performance-query-evidence.md",
         "production roadmap": "Production 100 Roadmap",
     }
@@ -160,9 +161,9 @@ def main() -> None:
         "er model doc": "docs/er-model-booking-operations.md",
         "live fallback": "scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict",
         "production gap answer": "Production Gap Answer",
-        "recording script": "docs/demo-recording-script.md",
-        "recording cloud plan": "docs/demo-recording-cloud-plan.md",
-        "system design interview pack": "docs/system-design-interview-pack.md",
+        "recording script": "docs/_internal/portfolio/demo-recording-script.md",
+        "recording cloud plan": "docs/_internal/portfolio/demo-recording-cloud-plan.md",
+        "system design interview pack": "docs/_internal/portfolio/system-design-interview-pack.md",
         "performance query evidence": "docs/performance-query-evidence.md",
     }
     for label, snippet in required_evidence_package_snippets.items():

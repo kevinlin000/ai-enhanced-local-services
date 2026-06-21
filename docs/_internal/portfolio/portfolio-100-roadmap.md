@@ -31,11 +31,11 @@ The current scorecard stays at `88 / 100` until the evidence package is filled w
    - Acceptance: one diagram explains Web, Java, AI, LINE, ETL, Qdrant, MySQL, Redis/RabbitMQ, and Nginx public boundary.
 
 2. Create the demo evidence package.
-   - Required artifact: `docs/demo-evidence-package.md`.
+   - Required artifact: `docs/_internal/portfolio/demo-evidence-package.md`.
    - Acceptance: every screenshot/video/CI proof item has a filename, purpose, and pass criteria.
 
 3. Decide the recording and cloud order.
-   - Required artifact: `docs/demo-recording-cloud-plan.md`.
+   - Required artifact: `docs/_internal/portfolio/demo-recording-cloud-plan.md`.
    - Acceptance: the project has a clear answer for personal voiceover, stable demo cloud, and production hardening scope.
 
 4. Record or capture the evidence.
@@ -43,11 +43,11 @@ The current scorecard stays at `88 / 100` until the evidence package is filled w
    - Acceptance: the evidence package can be reviewed without running the app live.
 
 5. Prepare interview scripts.
-   - Required artifact: `docs/demo-recording-script.md`.
+   - Required artifact: `docs/_internal/portfolio/demo-recording-script.md`.
    - Acceptance: both scripts reinforce the same thesis: AI orchestrates; Java owns state.
 
 6. Prepare the system-design interview pack.
-   - Required artifact: `docs/system-design-interview-pack.md`.
+   - Required artifact: `docs/_internal/portfolio/system-design-interview-pack.md`.
    - Acceptance: architecture boundaries, consistency model, failure modes, AI reliability constraints, and production rollout gaps are answerable without improvising.
 
 7. Prepare performance and query evidence.

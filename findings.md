@@ -189,6 +189,8 @@
 | Phase 43 補 performance/query evidence verifier | 目前沒有 production-like load test，不應誇大效能；先把 hot query paths、索引與程式碼錨點接進 release gate，讓查詢證據不漂移 |
 | Phase 44 README 改成中文主文件 | README 面向面試官與 reviewer，應像正式作品入口；內部規劃、自評與錄影準備不放公開入口，英文改成獨立版本 |
 | Phase 44 同步公開證據文件中文化 | README 連結出去的 architecture / ER / performance evidence 都是公開審查材料，應與 README 一樣中文優先 |
+| Phase 45 採移動內部文件而非刪除 | readiness scorecard、100 roadmap、recording script、cloud plan、release boundary 對使用者準備面試有用，但不該在公開 docs 根目錄；移到 `docs/_internal/portfolio/` 可保留工作記憶並降低 reviewer 入口雜訊 |
+| Phase 45 verifier 必須跟著改 | 若只搬文件不改 verifier，release gate 會壞；若 verifier 仍要求舊公開路徑，未來又會把內部文件拉回公開根目錄 |
 
 ## 遇到的問題
 | 問題 | 解決方案 |

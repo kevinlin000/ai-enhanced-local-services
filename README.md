@@ -33,7 +33,7 @@ Java 負責訂位、付款、救場、退款等核心狀態。
 
 ## 審查入口
 
-這些文件適合讓 reviewer 快速理解系統，不包含內部自評或錄影準備內容。
+以下文件適合快速理解系統設計、資料證據、部署邊界與工程案例。
 
 - [專案演進總覽](docs/project-journey.md)
 - [架構總覽](docs/architecture-overview.md)

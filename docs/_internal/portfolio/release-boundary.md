@@ -22,16 +22,16 @@ The strongest claim is not "the model recommends restaurants." The strongest cla
 AI can orchestrate the dining workflow, but Java remains the source of truth for booking, payment, incident, and refund state.
 ```
 
-The portfolio readiness scorecard is maintained at `docs/portfolio-readiness-scorecard.md`. Current recommendation: portfolio-ready at **88 / 100**, demo-ready for interviews, not yet a production SaaS rollout.
+The portfolio readiness scorecard is maintained at `docs/_internal/portfolio/portfolio-readiness-scorecard.md`. Current recommendation: portfolio-ready at **88 / 100**, demo-ready for interviews, not yet a production SaaS rollout.
 
 The path from the current score toward portfolio 100 is tracked in:
 
-- `docs/portfolio-100-roadmap.md`
-- `docs/demo-evidence-package.md`
-- `docs/demo-recording-script.md`
-- `docs/demo-recording-cloud-plan.md`
+- `docs/_internal/portfolio/portfolio-100-roadmap.md`
+- `docs/_internal/portfolio/demo-evidence-package.md`
+- `docs/_internal/portfolio/demo-recording-script.md`
+- `docs/_internal/portfolio/demo-recording-cloud-plan.md`
 - `docs/architecture-overview.md`
-- `docs/system-design-interview-pack.md`
+- `docs/_internal/portfolio/system-design-interview-pack.md`
 - `docs/performance-query-evidence.md`
 
 ## Verification Ladder
@@ -79,8 +79,8 @@ The current work should be reviewed or committed in coherent groups:
 | Web operations UI | My Bookings rescue/payment flows, merchant incident/proposal/refund surfaces |
 | Deployment boundary | Nginx template, Compose overlay, demo readiness, public-proxy smoke |
 | Migration reliability | V16 clean-schema fix, clean MySQL migration smoke, manual GitHub Actions smoke |
-| Evidence and docs | README, roadmap, portfolio evidence map, case studies, release boundary, performance/query evidence |
-| Scorecard and 100-point path | portfolio readiness score, role-specific framing, remaining gaps, evidence package, recording script, recording/cloud plan, architecture overview, system design interview pack, next plan |
+| Evidence and docs | README, roadmap, internal portfolio evidence map, case studies, release boundary, performance/query evidence |
+| Scorecard and 100-point path | internal portfolio readiness score, role-specific framing, remaining gaps, evidence package, recording script, recording/cloud plan, architecture overview, system design interview pack, next plan |
 
 Do not squash these into one anonymous "final update" commit if the goal is reviewer clarity.
 
@@ -96,7 +96,7 @@ Do not squash these into one anonymous "final update" commit if the goal is revi
 8. Show incident state in My Bookings, merchant proposal, LINE proposal card, and accept/decline path.
 9. Show private memory or private offer as the personalization layer.
 10. Close with the architecture boundary: AI orchestrates; Java owns state.
-11. If the interviewer asks for deeper design tradeoffs, open `docs/system-design-interview-pack.md`.
+11. If the interviewer asks for deeper design tradeoffs, open `docs/_internal/portfolio/system-design-interview-pack.md`.
 
 ## Production Gaps
 

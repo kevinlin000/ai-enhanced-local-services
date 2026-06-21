@@ -79,8 +79,8 @@ I did not want to overclaim demo-mode integrations as production systems.
 ## Next Work Order
 
 1. Capture the 3-5 minute walkthrough.
-2. Capture the evidence screenshots from `docs/demo-evidence-package.md`.
-3. Follow the narration and shot order in `docs/demo-recording-script.md`.
+2. Capture the evidence screenshots from `docs/_internal/portfolio/demo-evidence-package.md`.
+3. Follow the narration and shot order in `docs/_internal/portfolio/demo-recording-script.md`.
 4. Store the CI run link and final verification output.
 5. Only then choose whether to create a stable public cloud demo.
 6. If deploying to cloud, start with a demo environment, not production SaaS.

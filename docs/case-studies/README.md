@@ -70,4 +70,4 @@ Data quality -> AI reliability -> transaction consistency -> product differentia
   The parking, LINE sync, and AI operations positioning cases show why ByteBites is more than restaurant discovery.
 
 - Can I verify the claims quickly?
-  Yes. Start with `docs/portfolio-evidence-map.md`, then run `scripts/verify-portfolio.sh`.
+  Yes. Start with `README.md`, then run `scripts/verify-portfolio.sh`.

@@ -192,7 +192,7 @@ ByteBites 不是 inline clone，也不是普通 chatbot。它是：
 - 更新 README、Case Studies、Presentation Guide，讓專案故事能被快速理解。
 - 建立 `scripts/verify-portfolio.sh`，把 Java、AI、ETL、data gate、Web tests 和 production build 收斂成單一作品驗證入口。
 - 新增 GitHub Actions portfolio CI matrix，讓 reviewer 能用熟悉的方式確認每個子系統。
-- 新增 `docs/portfolio-evidence-map.md`，把 Java backend、AI application、full-stack 三種職缺的 code anchors 和測試證據整理成面試入口。
+- 新增內部 portfolio evidence map，整理 Java backend、AI application、full-stack 三種職缺的 code anchors 和測試證據。
 - 將訂位庫存與 booking payload 抽成更深的 Module，讓交易流程的 Locality 和 test surface 更清楚。
 
 ### 為什麼重要
