@@ -1017,6 +1017,8 @@
 | Phase 46 DBML ER model | 新增 `docs/dbml/bytebites-booking-operations.dbml` 並更新 ER doc / README / verifier | dbdiagram source 可直接產圖，release verifier 會檢查核心 tables 和 refs；portfolio gate 通過 | passed |
 | Portfolio verification | scripts/verify-portfolio.sh | 驗證 DBML ER model 與文件連結沒有破壞整體作品 gate | Java 96 tests 0 failures 3 skipped; AI 174 passed; ETL 43 passed; Web 19 passed; build passed | passed |
 | ER normalization explanation | 更新 `docs/er-model-booking-operations.md` | 補 1NF/2NF/3NF 評估、audit snapshot tradeoff、未來 proposal history 拆表方向；release offline readiness 通過 | passed |
+| Phase 47 README rewrite | 重寫 `README.md` 與 `README.en.md` | 中文主入口聚焦快速判讀、核心流程、工程證據、驗證與精選案例；英文版同步精簡 | passed |
+| Phase 47 verification | `scripts/release-readiness.sh --offline` + `scripts/verify-portfolio.sh` | release/data-quality/links 與全 repo portfolio gate 通過 | Java 96 tests 0 failures 3 skipped; AI 174 passed; ETL 43 passed; Web 19 passed; build passed |
 
 ## 錯誤日誌
 | 時間戳記 | 錯誤 | 嘗試次數 | 解決方案 |
@@ -1030,11 +1032,11 @@
 ## 五問重啟檢查
 | 問題 | 答案 |
 |------|------|
-| 我在哪裡？ | 階段 23：退款 callback source validation / PSP allowlist 完成 |
-| 我要去哪裡？ | 下一輪可做 merchant notification preferences，或 provider-specific refund retry / operations |
-| 目標是什麼？ | 評估 incident 後下一步，並完成可驗證的最小縱切 |
+| 我在哪裡？ | Phase 47：README 頂級化重整，中文主入口與英文獨立版已完成並通過驗證 |
+| 我要去哪裡？ | commit、push，接著檢查 GitHub Actions |
+| 目標是什麼？ | 讓公開 README 像正式作品入口：中文為主、英文獨立、去除內部自評與準備文件感 |
 | 我學到了什麼？ | 見 findings.md |
-| 我做了什麼？ | 見上方記錄；本輪把 refund reconciliation callback 推進到 optional source allowlist 與 trusted proxy header validation |
+| 我做了什麼？ | 重寫 README.md / README.en.md，收斂成快速判讀、核心流程、工程證據、驗證與精選案例 |
 
 ---
 *每個階段完成後或遇到錯誤時更新此檔案*

@@ -1,84 +1,116 @@
 # ByteBites — AI 用餐營運平台
 
-ByteBites 不是單純的餐廳推薦或聊天機器人。它把「找餐廳」往後延伸到訂位、付款狀態、對話式改單、臨場救場、LINE 通知、商家後台、退款營運與資料品質驗證。
+[English version](README.en.md)
 
-核心設計原則：
+ByteBites 是一個以台灣用餐場景為核心的 AI 輔助用餐營運系統。它不只回答「哪家餐廳適合我」，而是把推薦、訂位、付款狀態、對話式改單、臨場救場、LINE 通知、商家處理與退款營運串成同一個可驗證流程。
+
+核心原則很簡單：
 
 ```text
-AI 負責理解與協調流程。
-Java 負責訂位、付款、救場、退款等核心狀態。
+AI 負責理解需求與協調流程。
+Java 後端負責訂位、付款、臨場事件、退款等業務狀態。
 ```
 
-這份專案以台灣用餐場景為主：LINE Login / Messaging API、台北店家資料、捷運與行政區、TapPay demo 訂金流程、候補通知、停車提醒，以及商家端營運處理。
+這個專案的重點不是展示模型文字能力，而是展示一個 AI 應用如何在真實交易流程中維持狀態邊界、資料品質與可驗證性。
 
-英文版：[README.en.md](README.en.md)
+## 快速判讀
 
-## 專案定位
+| 面向 | ByteBites 的做法 |
+|---|---|
+| 產品定位 | AI 用餐營運平台，不是單輪餐廳推薦聊天機器人。 |
+| 狀態邊界 | Web / LINE / AI 都只是入口；Java 是訂位、付款、臨場事件與退款的權威資料來源。 |
+| AI 可靠性 | 模型負責理解語意；訂位、改單、臨場救場都走可重現的後端合約。 |
+| 資料基礎 | 600 家台北 active shops，含 media coverage、review sync、ABSA、taxonomy audit、Qdrant payload sync。 |
+| 驗證方式 | `scripts/verify-portfolio.sh`、Portfolio CI、release readiness、clean MySQL migration smoke。 |
+| 設計證據 | 架構文件、dbdiagram DBML ER Model、hot query / index evidence、14 篇工程案例。 |
 
-多數餐廳產品停在 discovery：使用者看完餐廳資訊後，後面的訂位、付款、提醒、臨時狀況與交通安排都交回給使用者。ByteBites 的目標是讓 AI 進入完整用餐流程：
+## 審查路線
+
+| 時間 | 建議閱讀 |
+|---|---|
+| 30 秒 | 本 README 的「快速判讀」與「核心流程」。 |
+| 3 分鐘 | [架構總覽](docs/architecture-overview.md)、[訂位營運 ER Model](docs/er-model-booking-operations.md)、[資料覆蓋率報告](docs/data-coverage-report.md)。 |
+| 10 分鐘 | [效能與查詢證據](docs/performance-query-evidence.md)、[Nginx 公開部署邊界](docs/deployment-nginx.md)、[工程案例索引](docs/case-studies/README.md)。 |
+| 實際驗證 | 執行 `scripts/verify-portfolio.sh`，或查看 GitHub Actions 的 Portfolio CI。 |
+
+## 核心流程
 
 ```text
 自然語言需求
   -> 餐廳檢索與推薦
   -> 結構化推薦卡
   -> 訂位與 demo 訂金付款
-  -> LINE / Web 狀態同步
+  -> Web / LINE 狀態同步
   -> 對話式改單
   -> 臨場救場與商家替代時段提案
   -> 補款 / 退款 / 營運摘要
   -> 私人偏好記憶與私密 offer
 ```
 
-這個專案的展示重點不是「模型會回答」，而是模型只能協調流程；真正會影響訂位、付款與退款的狀態，都由 Java 後端持久化、驗證與測試保護。
+最能代表系統邊界的流程是臨場救場：
 
-## 審查入口
+1. 使用者對 AI 說：`我塞車會晚到 20 分鐘`。
+2. AI 不自行猜測訂位，而是從 Java 查詢最近有效訂位。
+3. Java 建立 `tb_booking_incident`，並透過 LINE / Web 顯示最新臨場事件。
+4. 商家後台提出替代時段。
+5. 顧客可從 Web 或 LINE 接受 / 拒絕。
+6. Java 驗證座位、身份與訂金政策後才改單；若涉及差額，建立 TOP_UP / REFUND adjustment。
 
-以下文件適合快速理解系統設計、資料證據、部署邊界與工程案例。
+## 工程重點
 
-- [專案演進總覽](docs/project-journey.md)
-- [架構總覽](docs/architecture-overview.md)
-- [訂位營運 ER Model](docs/er-model-booking-operations.md)（含 dbdiagram DBML source）
-- [效能與查詢證據](docs/performance-query-evidence.md)
-- [資料覆蓋率報告](docs/data-coverage-report.md)
-- [Nginx 公開部署邊界](docs/deployment-nginx.md)
-- [工程案例索引](docs/case-studies/README.md)
+### Java 擁有交易狀態
 
-## 核心能力
+訂位、付款、改單、臨場事件、替代時段提案、補款、退款與通知狀態都由 Spring Boot 後端維護。AI service 不直接改交易狀態，前端也不保存權威狀態。
 
-- **AI 用餐助理**：理解模糊需求、保留推薦上下文、支援「第 2 家」「明晚 7 點 4 人」這類 follow-up，資訊不足時會追問。
-- **餐廳探索**：依料理、行政區、捷運、評分、價位、資料品質與 AI metadata 篩選排序。
-- **結構化推薦卡**：推薦文案與 UI 卡片共用 `recommended_shop_ids`，降低模型文字與產品狀態分裂的風險。
-- **訂位與付款狀態**：建立訂位、保留座位、demo 訂金付款、取消與 LINE 通知都由 Java contract 保護。
-- **對話式改單**：使用者可對 AI 說「改成明晚 8 點，同樣 4 位」，但真正改單仍由 Java 驗證座位、身份與訂金政策。
-- **臨場救場**：顧客說「我塞車會晚到 20 分鐘」時，系統會從最近有效訂位建立 incident；商家可提出替代時段，顧客可在 Web 或 LINE 接受 / 拒絕。
-- **退款與補款營運**：已付款訂位若改單產生差額，Java 會建立 TOP_UP 或 REFUND adjustment；退款 reconciliation 支援 event key 去重、audit trail、HMAC signature、secret rotation、source allowlist、SLA visibility 與 escalation。
-- **私人偏好記憶**：用餐後可記錄「太吵」「不再推薦」等私人標籤，下次 AI 推薦會用 deterministic validator 避開。
-- **AI 私密配對優惠**：不做公開優惠券頁；當使用者明確想省錢或離峰用餐時，AI 透過 Java 建立只對本人可見的限時 offer。
-- **LINE 雙整合**：LINE Login 負責 Web 身份；Messaging API 負責聊天、Flex cards、通知與提醒。
-- **資料品質層**：Google Places / Maps crawler、Mongo review sync、media manifest、ABSA、taxonomy audit、Qdrant payload sync、legacy seed cleanup。
+相關證據：
 
-## 系統快照
+- [訂位營運 ER Model](docs/er-model-booking-operations.md)，含 dbdiagram DBML source 與 1NF / 2NF / 3NF 設計說明。
+- [Web / LINE 訂位同步案例](docs/case-studies/07-web-line-booking-sync.md)
+- [Portfolio Verification 案例](docs/case-studies/14-portfolio-verification.md)
 
-| 區塊 | 技術與責任 |
+### AI 負責協調，後端負責決策
+
+AI 層處理語意理解、推薦整理、對話上下文與 LINE Flex cards；但涉及訂位、改單、臨場救場和退款的操作，都回到 Java 合約。這讓 AI 應用不是只靠 prompt，而是由狀態機、資料約束與測試保護。
+
+相關證據：
+
+- [AI 對話狀態案例](docs/case-studies/10-ai-dialogue-state.md)
+- [AI Concierge 品質硬化案例](docs/case-studies/13-ai-concierge-quality-hardening.md)
+- `ai-service-python/evals/`
+
+### 先有資料品質，再談推薦品質
+
+推薦品質不是只靠模型。ByteBites 將店家資料、照片、評論、taxonomy、ABSA 與 Qdrant payload 都納入可驗證資料管線。
+
+目前資料證據：
+
+| 指標 | 狀態 |
 |---|---|
-| Frontend | Next.js，餐廳探索、AI chat、我的訂位、收藏、通知、商家後台 |
-| Backend | Spring Boot 3.2 / Java 17，auth、shop、booking、payment、incident、refund、parking APIs |
-| AI service | FastAPI，Gemini agent、語意搜尋、LINE bot、Flex cards、private memory / offers |
-| Data / ETL | Python ETL，crawler、review sync、taxonomy、ABSA、Qdrant payload |
-| Storage | MySQL / Flyway、Redis、RabbitMQ、Qdrant、Mongo-backed reviews |
-| LINE | LINE Login 與 Messaging API 分離整合 |
-| Deployment | 本機 ngrok demo、Nginx reverse-proxy blueprint、Docker Compose public-proxy overlay |
-| Observability | health endpoints、Prometheus / Grafana compose support |
-| Verification | Java / Python / Web tests、Portfolio CI、release readiness、clean MySQL migration smoke |
+| Active Taipei shops | 600 |
+| Cover image / media manifest | 100% |
+| AI summary coverage | 100% |
+| ABSA / Mongo review coverage | 99%+ |
+| Price signal coverage | 85%+ |
 
-## 架構
+完整報告：[資料覆蓋率報告](docs/data-coverage-report.md)
+
+### 可被審查的交付路徑
+
+作品不是只在本機「剛好能跑」。Repo 內有單一 portfolio gate、GitHub Actions、Nginx route contract、clean-schema migration smoke 與 release readiness。
+
+```bash
+scripts/verify-portfolio.sh
+scripts/release-readiness.sh --offline
+```
+
+## 系統架構
 
 ```text
 Browser / LINE
   |
   v
 Next.js Web
-  |-- 餐廳探索、AI chat、訂位與商家後台
+  |-- 餐廳探索、AI chat、我的訂位、商家後台
   |
   +--> Spring Boot Java
   |      |-- auth / shop / booking / payment / incident / refund / parking
@@ -97,20 +129,31 @@ ETL / data quality
   |-- taxonomy audit and Qdrant payload sync
 ```
 
-完整架構說明見 [docs/architecture-overview.md](docs/architecture-overview.md)。
+完整說明：[架構總覽](docs/architecture-overview.md)
+
+## 技術棧
+
+| 區塊 | 技術與責任 |
+|---|---|
+| Frontend | Next.js，餐廳探索、AI chat、我的訂位、收藏、通知、商家後台 |
+| Backend | Spring Boot 3.2 / Java 17，auth、shop、booking、payment、incident、refund、parking APIs |
+| AI service | FastAPI，Gemini agent、語意搜尋、LINE bot、Flex cards、private memory / offers |
+| Data / ETL | Python ETL，crawler、review sync、taxonomy、ABSA、Qdrant payload |
+| Storage | MySQL / Flyway、Redis、RabbitMQ、Qdrant、Mongo-backed reviews |
+| LINE | LINE Login 與 Messaging API 分離整合 |
+| Deployment | Nginx reverse-proxy blueprint、Docker Compose public-proxy overlay、本機 ngrok demo |
+| Verification | Java / Python / Web tests、Portfolio CI、release readiness、clean MySQL migration smoke |
 
 ## 展示路線
 
-1. 首頁：展示 ByteBites 的定位「會推薦，也會安排」。
-2. Web AI：輸入 `大安區 7 人 適合聊天` 或 `中山區 商務宴請 台菜 安靜包廂`。
-3. 推薦卡：展示 AI 理由、照片、招牌菜、評論亮點與詳情頁。
-4. 訂位：選日期、人數、是否開車，完成 demo 訂金付款。
-5. 改單：對 AI 說 `改成明晚 8 點，同樣 4 位`。
-6. 救場：對 AI 說 `我塞車會晚到 20 分鐘`，展示 Java incident、LINE rescue card、商家替代時段提案與顧客接受 / 拒絕。
-7. 退款營運：展示商家後台 refund operations digest、FAILED / stale refund SLA、升級處理狀態。
-8. 私人記憶：記錄 `太吵` / `不再推薦`，再展示 AI 推薦會避開。
-9. 私密 offer：輸入 `想找有優惠、比較省錢的日式料理`，展示只對本人可見的 AI offer。
-10. 驗證：展示 CI、release readiness、clean migration smoke。
+1. Web AI：輸入 `大安區 7 人 適合聊天` 或 `中山區 商務宴請 台菜 安靜包廂`。
+2. 推薦卡：展示 AI 理由、照片、招牌菜、評論亮點與詳情頁。
+3. 訂位：選日期、人數、是否開車，完成 demo 訂金付款。
+4. 改單：對 AI 說 `改成明晚 8 點，同樣 4 位`。
+5. 救場：對 AI 說 `我塞車會晚到 20 分鐘`，展示 Java incident、LINE rescue card、商家替代時段提案與顧客接受 / 拒絕。
+6. 退款營運：展示商家後台 refund operations digest、FAILED / stale refund SLA、升級處理狀態。
+7. 私人記憶：記錄 `太吵` / `不再推薦`，再展示 AI 推薦避開該店。
+8. 驗證：展示 Portfolio CI、release readiness、clean migration smoke。
 
 ## 驗證
 
@@ -136,23 +179,29 @@ scripts/verify-portfolio.sh
 
 CI 位於 `.github/workflows/portfolio-ci.yml`。乾淨 MySQL schema 啟動驗證位於 `.github/workflows/clean-mysql-migration-smoke.yml`，採手動觸發，因為它會啟 MySQL、Redis、RabbitMQ 與 Java process。
 
+## 精選工程案例
+
+- [Web / LINE 訂位同步 — 從兩套身份到同一個交易狀態](docs/case-studies/07-web-line-booking-sync.md)
+- [AI 對話狀態 — 從單輪問答到可完成任務的 Agent](docs/case-studies/10-ai-dialogue-state.md)
+- [公開 Demo 部署 — 最後一哩不是上線，是可被同學打開](docs/case-studies/11-demo-deployment.md)
+- [AI Concierge 品質硬化 — 從會回答到可靠接待](docs/case-studies/13-ai-concierge-quality-hardening.md)
+- [Portfolio Verification — 從很多亮點到可審查作品](docs/case-studies/14-portfolio-verification.md)
+
+完整列表：[工程案例索引](docs/case-studies/README.md)
+
 ## 本機啟動
 
 ```bash
-# 1. 啟動基礎服務
 docker compose up -d
 
-# 2. Java backend
 cd backend-java
 set -a; source .env; set +a
 mvn spring-boot:run
 
-# 3. AI service
 cd ../ai-service-python
 set -a; source .env; set +a
 uv run uvicorn app.main:app --reload --port 8000
 
-# 4. Web
 cd ../web
 npm run dev
 ```
@@ -167,32 +216,12 @@ npm run dev
 - Prometheus: `http://localhost:9090`
 - Grafana: `http://localhost:3001`
 
-正式 demo 前可執行：
+正式 demo 前：
 
 ```bash
 scripts/release-readiness.sh --offline
 scripts/smoke-clean-mysql-migrations.sh --timeout 180
 ```
-
-## 工程案例
-
-完整演進總覽：
-[ByteBites Project Journey — 從後端基礎到 AI 用餐營運平台](docs/project-journey.md)
-
-1. [AI Agent 真實串流 — 三層 debug 走完](docs/case-studies/01-sse-streaming-debug.md)
-2. [ABSA Pipeline — 從模板到 LLM, F1 0.955](docs/case-studies/02-absa-pipeline.md)
-3. [Model 選擇不是「越貴越好」](docs/case-studies/03-model-ablation.md)
-4. [Taxonomy 從 0 到 production](docs/case-studies/04-taxonomy-migration.md)
-5. [推薦卡 UX — 從暴露 ABSA 到正面 framing](docs/case-studies/05-recommendation-ux.md)
-6. [資料爬蟲與覆蓋率 — 從 demo seed 到 600 家可用店](docs/case-studies/06-data-crawler-coverage.md)
-7. [Web / LINE 訂位同步 — 從兩套身份到同一個交易狀態](docs/case-studies/07-web-line-booking-sync.md)
-8. [停車提醒與車位預約 demo — 把用餐流程延伸到出發前](docs/case-studies/08-parking-reminder-demo.md)
-9. [從代碼體檢到 Spring Boot 3 — 先把地基補好](docs/case-studies/09-modernization-security.md)
-10. [AI 對話狀態 — 從單輪問答到可完成任務的 Agent](docs/case-studies/10-ai-dialogue-state.md)
-11. [公開 Demo 部署 — 最後一哩不是上線，是可被同學打開](docs/case-studies/11-demo-deployment.md)
-12. [Premium UI 不是變成 inline clone — 找回 ByteBites 的品牌定位](docs/case-studies/12-premium-ui-positioning.md)
-13. [AI Concierge 品質硬化 — 從會回答到可靠接待](docs/case-studies/13-ai-concierge-quality-hardening.md)
-14. [Portfolio Verification — 從很多亮點到可審查作品](docs/case-studies/14-portfolio-verification.md)
 
 ## 專案結構
 
@@ -207,9 +236,9 @@ ai-enhanced-local-services/
 └── docs/                  # architecture, data reports, deployment notes, case studies
 ```
 
-## AI 協作說明
+## 上線邊界
 
-Claude 與 Codex 參與了假設生成、代碼審查、樣板實作與 debug，但最終判斷仍由工程驗證決定。這份專案刻意保留 case studies，是為了說清楚：AI 工具能加速，但產品責任、資料驗證、trade-off 與最後使用者體驗仍由工程師負責。
+這是已具備作品展示品質、並由合約測試保護的專案，不宣稱已完成正式 SaaS 上線。真正上線仍需要受管祕密、雲端資料庫與備份還原策略、觀測儀表板、真實 PSP 退款供應商整合、商家通知偏好與營運手冊。
 
 ## 聯絡
 

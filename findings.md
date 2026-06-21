@@ -194,6 +194,7 @@
 | Phase 46 ER model 採 Mermaid + DBML 雙軌 | Mermaid 保留 GitHub 即看；DBML 可貼到 dbdiagram.io 產生正式圖，適合面試官追問資料模型時展示 |
 | Phase 46 ER 範圍維持 booking operations bounded context | 不畫 crawler/taxonomy/review 全庫；面試高價值是 Java source-of-truth、booking_code workflow key、incident proposal、deposit adjustment、refund audit 與 merchant notification state |
 | ER model 正規化評估 | 1NF/2NF 符合；3NF 核心符合，但 adjustment 金額、notification count、incident proposal 欄位是刻意保留的 audit / workflow snapshot，應在公開 ER 文件中說明 |
+| README 重整方向 | 專業作品入口應先呈現可驗證證據鏈，而不是平均列完所有功能；中文主 README 放快速判讀、核心流程、工程證據、驗證與精選案例，英文版保持獨立精簡 |
 
 ## 遇到的問題
 | 問題 | 解決方案 |

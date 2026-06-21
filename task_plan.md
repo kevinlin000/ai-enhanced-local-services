@@ -447,6 +447,7 @@
 | Phase 44 README 採中文主文件 + 英文獨立版 | 台灣求職情境下 README 應先用中文專業呈現；英文版獨立存在即可，避免中英混排與內部準備文件讓入口失焦 |
 | Phase 45 整理公開/內部文件邊界 | README 已清掉內部入口，但 docs 根目錄仍混著自評、錄影、100 分路線圖與 release handoff；下一步要移到 `docs/_internal/portfolio/` 並更新 verifier，讓公開 docs 像正式作品入口 |
 | Phase 46 補 dbdiagram DBML ER model | Mermaid 方便 GitHub 直接看，但 dbdiagram/DBML 更像正式資料模型 artifact；新增 DBML source 並接進 ER 文件與 verifier，讓面試時可直接產圖 |
+| Phase 47 README 頂級化重整 | 目前 README 內容完整但平均鋪陳；要改成中文主入口、英文獨立精簡版，第一屏先給產品定位、狀態邊界、資料證據與驗證入口，降低 AI 味與冗長感 |
 
 ## 遇到的錯誤
 | 錯誤 | 嘗試次數 | 解決方案 |
