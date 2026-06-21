@@ -1016,6 +1016,7 @@
 | Portfolio verification | scripts/verify-portfolio.sh | 驗證 internal docs relocation 沒有破壞整體作品 gate | Java 96 tests 0 failures 3 skipped; AI 174 passed; ETL 43 passed; Web 19 passed; build passed | passed |
 | Phase 46 DBML ER model | 新增 `docs/dbml/bytebites-booking-operations.dbml` 並更新 ER doc / README / verifier | dbdiagram source 可直接產圖，release verifier 會檢查核心 tables 和 refs；portfolio gate 通過 | passed |
 | Portfolio verification | scripts/verify-portfolio.sh | 驗證 DBML ER model 與文件連結沒有破壞整體作品 gate | Java 96 tests 0 failures 3 skipped; AI 174 passed; ETL 43 passed; Web 19 passed; build passed | passed |
+| ER normalization explanation | 更新 `docs/er-model-booking-operations.md` | 補 1NF/2NF/3NF 評估、audit snapshot tradeoff、未來 proposal history 拆表方向；release offline readiness 通過 | passed |
 
 ## 錯誤日誌
 | 時間戳記 | 錯誤 | 嘗試次數 | 解決方案 |

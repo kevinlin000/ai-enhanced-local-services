@@ -255,6 +255,9 @@ def main() -> None:
         "booking code point": "booking_code",
         "proposal tradeoff": "一個 incident、一個 pending proposal",
         "money movement separation": "將訂位異動與金流義務分離",
+        "normalization check": "正規化檢查",
+        "third normal form": "第三正規化（3NF）",
+        "audit snapshot tradeoff": "audit snapshot",
     }
     for label, snippet in required_er_model_snippets.items():
         require(er_model, snippet, label)

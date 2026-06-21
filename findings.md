@@ -193,6 +193,7 @@
 | Phase 45 verifier 必須跟著改 | 若只搬文件不改 verifier，release gate 會壞；若 verifier 仍要求舊公開路徑，未來又會把內部文件拉回公開根目錄 |
 | Phase 46 ER model 採 Mermaid + DBML 雙軌 | Mermaid 保留 GitHub 即看；DBML 可貼到 dbdiagram.io 產生正式圖，適合面試官追問資料模型時展示 |
 | Phase 46 ER 範圍維持 booking operations bounded context | 不畫 crawler/taxonomy/review 全庫；面試高價值是 Java source-of-truth、booking_code workflow key、incident proposal、deposit adjustment、refund audit 與 merchant notification state |
+| ER model 正規化評估 | 1NF/2NF 符合；3NF 核心符合，但 adjustment 金額、notification count、incident proposal 欄位是刻意保留的 audit / workflow snapshot，應在公開 ER 文件中說明 |
 
 ## 遇到的問題
 | 問題 | 解決方案 |
