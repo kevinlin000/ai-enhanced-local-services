@@ -117,3 +117,6 @@ web/lib/_generated/
 # ABSA evaluation logs (runtime artifacts, not source)
 ai-service-python/evals/*_log.json
 ai-service-python/evals/*_log.jsonl
+backups/
+.playwright-cli/
+output/
