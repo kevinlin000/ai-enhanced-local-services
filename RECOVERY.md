@@ -68,3 +68,41 @@
 
 - ❌ 不要跑 `restore_active_600_shops.py`（已加 `SystemExit` 硬擋）。
 - ❌ 不要按 extracted 的 `shop_id` 欄位 join（那欄是舊編號，會張冠李戴）；用 place_id 或名稱。
+
+---
+
+## 接手起手清單（下一位請先照這跑）
+
+### 0. 現況快照（2026-06-24 重建後）
+- `tb_shop` is_active=1：**599**（不是 600；已無 inactive legacy）
+- `tb_shop_ai_metadata`：599（真實，`model_version='extracted-restore-v1'`）
+- `tb_shop_absa`：586（其餘 12 未過品質門檻 + 1 家評論<5）
+- Qdrant `shops`/`bytebites_shops`：599 點，已對齊，已刪過時點 10701
+- merchant demo user：`1001`，擁 14 家有效店
+
+### 1. 先驗「599」一致（不要信任何單一數字）
+四者一致才算數：
+- DB：`SELECT COUNT(*) FROM tb_shop WHERE is_active=1`
+- API：`curl localhost:8081/api/shop/count`
+- 前台搜尋 total
+- 抽 3 家詳情頁渲染正確（介紹/照片/評論/特色）
+
+### 2. 清快取（外科式，**禁止 FLUSHALL**）
+本次重建在前一次清快取之後 → Redis/Caffeine 可能又髒。
+- 刪 `cache:shop:*`（+ 任何 shop list/search 相關 key）
+- 重啟 Java（清 Caffeine）
+- 不動其他業務 key
+- 清完重驗 API + ngrok
+
+### 3. 破壞性 DB 操作鐵規（restore / remap / seed / migration）
+**這次災難就是跳過這流程造成的，必照：**
+1. `mysqldump` 備份 →（`backups/` 已 gitignore）
+2. dry-run 印出 affected rows
+3. 只改目標表 / 目標 id
+4. 改後 count + sample verify
+5. 留 recovery note
+
+### 4. Demo 收尾範圍（錄影/面試前）
+- ✅ authenticated smoke（訂位→TapPay 沙箱→我的訂位→商家後台→異常/退款）
+- ✅ 最小 demo seed（我的訂位/商家/異常/押金 各 1-2 筆，綁**有效** shop_id）
+- ❌ 不重構大模組（押金/退款）、不清死碼（Blog/Follow）、不大改 DB
