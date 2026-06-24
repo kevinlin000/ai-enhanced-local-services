@@ -174,33 +174,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className={`space-y-3 ${collapsed ? "px-3" : "px-4"} py-5`}>
-          {mounted ? (
-            isAuthLoading ? null : isLoggedIn ? (
-              <button
-                type="button"
-                onClick={logout}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium hover:bg-muted ${
-                  collapsed ? "justify-center" : ""
-                }`}
-                title="登出"
-              >
-                <LogOut className="h-5 w-5" />
-                {!collapsed ? "登出" : null}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={login}
-                className={`flex w-full items-center gap-3 rounded-lg bg-emerald-700 px-3 py-2.5 text-left text-sm font-medium text-white hover:bg-emerald-800 ${
-                  collapsed ? "justify-center" : ""
-                }`}
-                title="用 LINE 登入"
-              >
-                <LogIn className="h-5 w-5" />
-                {!collapsed ? "用 LINE 登入" : null}
-              </button>
-            )
-          ) : null}
+          {mounted && isLoggedIn ? (
+            <button
+              type="button"
+              onClick={logout}
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium hover:bg-muted ${
+                collapsed ? "justify-center" : ""
+              }`}
+              title="登出"
+            >
+              <LogOut className="h-5 w-5" />
+              {!collapsed ? "登出" : null}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={login}
+              className={`flex w-full items-center gap-3 rounded-lg bg-emerald-700 px-3 py-2.5 text-left text-sm font-medium text-white hover:bg-emerald-800 ${
+                collapsed ? "justify-center" : ""
+              }`}
+              title="用 LINE 登入"
+            >
+              <LogIn className="h-5 w-5" />
+              {!collapsed ? "用 LINE 登入" : null}
+            </button>
+          )}
 
           {!collapsed ? <p className="px-3 text-[11px] text-muted-foreground/70">Version: 1.4.0</p> : null}
         </div>
@@ -335,33 +333,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </nav>
 
               <div className="space-y-3 border-t px-4 py-5">
-                {mounted ? (
-                  isAuthLoading ? null : isLoggedIn ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        logout();
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium hover:bg-muted"
-                    >
-                      <LogOut className="h-5 w-5" />
-                      登出
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        login();
-                      }}
-                      className="flex w-full items-center gap-3 rounded-lg bg-emerald-700 px-3 py-2.5 text-left text-sm font-medium text-white hover:bg-emerald-800"
-                    >
-                      <LogIn className="h-5 w-5" />
-                      用 LINE 登入
-                    </button>
-                  )
-                ) : null}
+                {mounted && isLoggedIn ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium hover:bg-muted"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    登出
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      login();
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg bg-emerald-700 px-3 py-2.5 text-left text-sm font-medium text-white hover:bg-emerald-800"
+                  >
+                    <LogIn className="h-5 w-5" />
+                    用 LINE 登入
+                  </button>
+                )}
                 <p className="px-3 text-[11px] text-muted-foreground/70">Version: 1.4.0</p>
               </div>
             </aside>

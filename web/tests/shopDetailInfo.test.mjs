@@ -23,3 +23,12 @@ test("shop detail parking stays in the basic info section as a compact list", ()
   assert.match(source, /依距離排序，車位以台北市公開即時資料為準/);
   assert.doesNotMatch(source, /導航到停車場/);
 });
+
+test("favorite button does not call protected status API before auth is ready", () => {
+  const source = readFileSync(join(root, "components/FavoriteShopButton.tsx"), "utf8");
+
+  assert.match(source, /if \(!mounted \|\| isAuthLoading\) \{/);
+  assert.ok(source.indexOf("if (!mounted || isAuthLoading)") < source.indexOf("javaApi.favoriteStatus(shopId)"));
+  assert.match(source, /try \{\s*const response = await javaApi\.favoriteStatus\(shopId\);/s);
+  assert.match(source, /catch \{/);
+});

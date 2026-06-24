@@ -113,7 +113,7 @@ function ShopsPageContent() {
   const router = useRouter();
   const [options, setOptions] = useState<FilterOptions | null>(null);
   const [shops, setShops] = useState<Shop[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [categorySlugToId, setCategorySlugToId] = useState<Map<string, number>>(new Map());
 
   // search mode — lazy init from URL (?mode=ai)
@@ -324,7 +324,7 @@ function ShopsPageContent() {
     () =>
       [...selectedTypes].map((id) => ({
         id,
-        name: typeNameById.get(id) ?? `分類 ${id}`,
+        name: typeNameById.get(id) ?? "分類載入中",
       })),
     [selectedTypes, typeNameById],
   );
