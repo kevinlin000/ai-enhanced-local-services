@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   MessageSquareText,
+  MonitorPlay,
   PenSquare,
   Presentation,
   Search,
@@ -22,6 +23,11 @@ import {
 import { useAuth } from "@/lib/auth";
 
 const NAV_ITEMS = [
+  {
+    label: "Demo 導覽",
+    href: "/demo",
+    icon: MonitorPlay,
+  },
   {
     label: "與 AI 助手聊天",
     href: "/ai",

@@ -13,7 +13,7 @@ services:
       AI_UPSTREAM: "${AI_UPSTREAM:-host.docker.internal:8000}"
       CLIENT_MAX_BODY_SIZE: "${CLIENT_MAX_BODY_SIZE:-10m}"
     volumes:
-      - ./nginx/bytebites.conf.template:/etc/nginx/templates/bytebites.conf.template:ro
+      - ./nginx/bytebites.conf.template:/etc/nginx/templates/default.conf.template:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
