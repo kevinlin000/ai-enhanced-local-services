@@ -13,6 +13,8 @@ COMPOSE = ROOT / "deploy" / "docker-compose.nginx.yml"
 DOC = ROOT / "docs" / "deployment-nginx.md"
 SMOKE = ROOT / "scripts" / "smoke-nginx-public-proxy.sh"
 READINESS = ROOT / "scripts" / "demo-readiness.sh"
+CONFIGURE_PUBLIC_URL = ROOT / "scripts" / "configure-public-url.sh"
+VERIFY_PUBLIC_URL_ENV = ROOT / "scripts" / "verify-public-url-env.sh"
 
 
 def fail(message: str) -> None:
@@ -50,6 +52,16 @@ def main() -> None:
         readiness = READINESS.read_text(encoding="utf-8")
     except FileNotFoundError:
         fail(f"missing readiness script: {READINESS.relative_to(ROOT)}")
+
+    try:
+        configure_public_url = CONFIGURE_PUBLIC_URL.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing public URL config script: {CONFIGURE_PUBLIC_URL.relative_to(ROOT)}")
+
+    try:
+        verify_public_url_env = VERIFY_PUBLIC_URL_ENV.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        fail(f"missing public URL env verifier: {VERIFY_PUBLIC_URL_ENV.relative_to(ROOT)}")
 
     required_template_snippets = {
         "web upstream": "upstream bytebites_web",
@@ -95,6 +107,7 @@ def main() -> None:
         "line webhook": 'check_http "line webhook check" "/api/line/webhook" "^200$" "bytebites-line-bot"',
         "line login route": "$BASE_URL/api/java/api/auth/line/login",
         "oauth cookie path": 'EXPECTED_LINE_COOKIE_PATH="${EXPECTED_LINE_COOKIE_PATH:-/api/java/api/auth/line}"',
+        "expected line redirect uri": 'EXPECTED_LINE_REDIRECT_URI="${EXPECTED_LINE_REDIRECT_URI:-}"',
         "sse route": "$BASE_URL/api/ai/agent/stream",
         "sse frame check": '"type": "agent_start"',
         "dry run": "--dry-run",
@@ -117,6 +130,32 @@ def main() -> None:
     for label, snippet in required_readiness_snippets.items():
         require(readiness, snippet, label)
 
+    required_public_url_config_snippets = {
+        "public url arg": "--public-url",
+        "https guard": "LINE Login needs a public HTTPS URL.",
+        "callback path": "/api/java/api/auth/line/callback",
+        "cookie path": "/api/java/api/auth/line",
+        "root env": '".env"',
+        "backend env": '"backend-java/.env"',
+        "ai env": '"ai-service-python/.env"',
+        "ai public web url": "LINE_PUBLIC_WEB_URL",
+        "dry run": "--dry-run",
+    }
+    for label, snippet in required_public_url_config_snippets.items():
+        require(configure_public_url, snippet, label)
+
+    required_public_url_verify_snippets = {
+        "public url arg": "--public-url",
+        "callback path": "/api/java/api/auth/line/callback",
+        "cookie path": "/api/java/api/auth/line",
+        "root env": '".env"',
+        "backend env": '"backend-java/.env"',
+        "ai env": '"ai-service-python/.env"',
+        "ai public web url": "LINE_PUBLIC_WEB_URL",
+    }
+    for label, snippet in required_public_url_verify_snippets.items():
+        require(verify_public_url_env, snippet, label)
+
     for forbidden in ("ngrok-free.app", "ngrok-free.dev", "ngrok.io"):
         if forbidden in template:
             fail(f"template must not hard-code ngrok host: {forbidden}")
@@ -133,15 +172,24 @@ def main() -> None:
         "local compose port": "http://localhost:8088/health/java",
         "smoke script": "scripts/smoke-nginx-public-proxy.sh",
         "readiness script": "scripts/demo-readiness.sh",
+        "public url config script": "scripts/configure-public-url.sh",
+        "public url env verifier": "scripts/verify-public-url-env.sh",
     }
     for label, snippet in required_doc_snippets.items():
         require(doc, snippet, label)
 
     subprocess.run(["bash", "-n", str(SMOKE)], check=True)
     subprocess.run(["bash", "-n", str(READINESS)], check=True)
+    subprocess.run(["bash", "-n", str(CONFIGURE_PUBLIC_URL)], check=True)
+    subprocess.run(["bash", "-n", str(VERIFY_PUBLIC_URL_ENV)], check=True)
     env = {**os.environ, "DRY_RUN": "true"}
     subprocess.run(["bash", str(SMOKE)], check=True, env=env, stdout=subprocess.DEVNULL)
     subprocess.run(["bash", str(READINESS)], check=True, env=env, stdout=subprocess.DEVNULL)
+    subprocess.run(
+        ["bash", str(CONFIGURE_PUBLIC_URL), "--public-url", "https://demo.bytebites.example", "--dry-run"],
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
 
     print("nginx template: deployment route contract passed")
 

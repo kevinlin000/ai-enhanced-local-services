@@ -6,6 +6,7 @@ TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-8}"
 STREAM_TIMEOUT_SECONDS="${STREAM_TIMEOUT_SECONDS:-4}"
 INCLUDE_STREAM="${INCLUDE_STREAM:-true}"
 EXPECTED_LINE_COOKIE_PATH="${EXPECTED_LINE_COOKIE_PATH:-/api/java/api/auth/line}"
+EXPECTED_LINE_REDIRECT_URI="${EXPECTED_LINE_REDIRECT_URI:-}"
 STREAM_QUERY="${STREAM_QUERY:-daan dinner for 2}"
 DRY_RUN="${DRY_RUN:-false}"
 
@@ -28,6 +29,7 @@ Environment:
   STREAM_TIMEOUT_SECONDS
   INCLUDE_STREAM
   EXPECTED_LINE_COOKIE_PATH
+  EXPECTED_LINE_REDIRECT_URI
   STREAM_QUERY
 USAGE
 }
@@ -81,6 +83,7 @@ base_url=$BASE_URL
 3. GET /health/ai -> 200 and body contains bytebites-ai
 4. GET /api/line/webhook -> 200 and body contains bytebites-line-bot
 5. GET /api/java/api/auth/line/login -> 3xx, Location present, Set-Cookie Path=$EXPECTED_LINE_COOKIE_PATH
+   Optional: EXPECTED_LINE_REDIRECT_URI must appear in the LINE authorize URL.
 6. POST /api/ai/agent/stream -> text/event-stream and initial agent_start frame
 CHECKS
 }
@@ -137,6 +140,23 @@ check_line_login() {
     printf "Headers for line login:\n" >&2
     sed -n '1,20p' "$headers" >&2 || true
     fail "LINE login state cookie path did not match $EXPECTED_LINE_COOKIE_PATH"
+  fi
+
+  if [ -n "$EXPECTED_LINE_REDIRECT_URI" ]; then
+    if ! python3 - "$location" "$EXPECTED_LINE_REDIRECT_URI" <<'PY'
+import sys
+from urllib.parse import parse_qs, urlparse
+
+location, expected = sys.argv[1], sys.argv[2]
+actual = parse_qs(urlparse(location).query).get("redirect_uri", [""])[0]
+if actual != expected:
+    print(f"expected redirect_uri={expected}", file=sys.stderr)
+    print(f"actual redirect_uri={actual}", file=sys.stderr)
+    sys.exit(1)
+PY
+    then
+      fail "LINE login redirect_uri did not match EXPECTED_LINE_REDIRECT_URI"
+    fi
   fi
 
   pass "line login redirect ($status -> $location)"

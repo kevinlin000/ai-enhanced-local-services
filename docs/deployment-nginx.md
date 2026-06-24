@@ -90,6 +90,40 @@ docker compose \
 
 For LINE Developers, the public URL still needs HTTPS. Either terminate TLS on the Nginx host, place this proxy behind a TLS load balancer/CDN, or temporarily point ngrok at `localhost:8088` while keeping Nginx as the route contract under test.
 
+## Configure One Public URL
+
+When switching from a temporary tunnel to a stable Nginx domain, update all local env files with the same public URL:
+
+```bash
+scripts/configure-public-url.sh --public-url https://<domain>
+```
+
+This updates only ignored local env files:
+
+- `.env`
+- `backend-java/.env`
+- `ai-service-python/.env`
+
+It keeps the public LINE Login callback on:
+
+```text
+https://<domain>/api/java/api/auth/line/callback
+```
+
+For local route rehearsal only, you can point the env files at the local Nginx overlay:
+
+```bash
+scripts/configure-public-url.sh --public-url http://localhost:8088 --allow-local-http
+```
+
+Do not use local HTTP for real LINE Login. LINE Login and Messaging callbacks need a public HTTPS URL registered in LINE Developers.
+
+Before a demo, verify the local env files do not still point to an old tunnel:
+
+```bash
+scripts/verify-public-url-env.sh --public-url https://<domain>
+```
+
 ## Required Environment
 
 Web:
@@ -190,7 +224,8 @@ scripts/smoke-nginx-public-proxy.sh --base-url http://localhost:8088
 For a deployed domain:
 
 ```bash
-scripts/smoke-nginx-public-proxy.sh --base-url https://<domain>
+EXPECTED_LINE_REDIRECT_URI=https://<domain>/api/java/api/auth/line/callback \
+  scripts/smoke-nginx-public-proxy.sh --base-url https://<domain>
 ```
 
 The script checks:

@@ -117,8 +117,8 @@ case "$MODE" in
     run_step "Release boundary contract" python3 scripts/verify-release-boundary.py
     run_step "Performance/query evidence contract" python3 scripts/verify-performance-query-evidence.py
     run_step "Data-quality evidence contract" python3 scripts/verify-data-quality.py
-    run_step "Smoke script syntax" bash -c "bash -n scripts/demo-readiness.sh && bash -n scripts/smoke-nginx-public-proxy.sh && bash -n scripts/smoke-clean-mysql-migrations.sh && bash -n scripts/release-readiness.sh"
-    run_step "Smoke script dry-runs" bash -c "scripts/demo-readiness.sh --dry-run >/dev/null && scripts/smoke-nginx-public-proxy.sh --dry-run >/dev/null && scripts/smoke-clean-mysql-migrations.sh --dry-run >/dev/null && scripts/release-readiness.sh --dry-run >/dev/null"
+    run_step "Smoke script syntax" bash -c "bash -n scripts/demo-readiness.sh && bash -n scripts/smoke-nginx-public-proxy.sh && bash -n scripts/configure-public-url.sh && bash -n scripts/verify-public-url-env.sh && bash -n scripts/smoke-clean-mysql-migrations.sh && bash -n scripts/release-readiness.sh"
+    run_step "Smoke script dry-runs" bash -c "scripts/demo-readiness.sh --dry-run >/dev/null && scripts/smoke-nginx-public-proxy.sh --dry-run >/dev/null && scripts/configure-public-url.sh --public-url https://demo.bytebites.example --dry-run >/dev/null && scripts/smoke-clean-mysql-migrations.sh --dry-run >/dev/null && scripts/release-readiness.sh --dry-run >/dev/null"
     printf "\nRelease offline readiness passed.\n"
     ;;
   full)
