@@ -70,6 +70,8 @@ bytebites:
   line-action-secret: ${LINE_ACTION_SECRET:${LINE_INTERNAL_WEBHOOK_SECRET:}}
   demo-mode:
     enabled: ${DEMO_MODE_ENABLED:true}
+  security:
+    strict-mode: ${SECURITY_STRICT_MODE:false}
   cors:
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:}
   refund:

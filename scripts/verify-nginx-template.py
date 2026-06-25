@@ -81,6 +81,11 @@ def main() -> None:
         "java health": "location = /health/java",
         "ai health": "location = /health/ai",
         "sse buffering disabled": "proxy_buffering off;",
+        "content type security header": 'add_header X-Content-Type-Options "nosniff" always;',
+        "frame security header": 'add_header X-Frame-Options "DENY" always;',
+        "referrer security header": 'add_header Referrer-Policy "strict-origin-when-cross-origin" always;',
+        "permissions policy header": 'add_header Permissions-Policy "camera=(), microphone=(), payment=()" always;',
+        "csp report only header": "add_header Content-Security-Policy-Report-Only",
     }
     for label, snippet in required_template_snippets.items():
         require(template, snippet, label)
@@ -174,6 +179,8 @@ def main() -> None:
         "readiness script": "scripts/demo-readiness.sh",
         "public url config script": "scripts/configure-public-url.sh",
         "public url env verifier": "scripts/verify-public-url-env.sh",
+        "strict security mode": "SECURITY_STRICT_MODE=true",
+        "actuator strict note": "/actuator/prometheus",
     }
     for label, snippet in required_doc_snippets.items():
         require(doc, snippet, label)

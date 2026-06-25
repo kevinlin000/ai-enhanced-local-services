@@ -5,9 +5,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -28,6 +31,9 @@ public class SecurityConfig {
     @Value("${bytebites.cors.allowed-origin-patterns:}")
     private String extraAllowedOriginPatterns;
 
+    @Value("${bytebites.security.strict-mode:${SECURITY_STRICT_MODE:false}}")
+    private boolean strictSecurityMode;
+
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
@@ -47,7 +53,6 @@ public class SecurityConfig {
                                 "/api/demo/**",
                                 "/api/category/**",
                                 "/api/mrt/**",
-                                "/api/merchant/**",
                                 "/api/parking/**",
                                 "/api/shop/**",
                                 "/api/shop/nearby-mrt/**",
@@ -58,20 +63,45 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/auth/line/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/shop/**", "/shop-type/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shop/**", "/api/shop-type/**").permitAll()
-                        .requestMatchers("/merchant/**").permitAll()
                         .requestMatchers("/upload/**", "/voucher/**", "/voucher/list/**", "/blog/hot").permitAll()
-                        .requestMatchers("/voucher-order/seckill/**", "/api/voucher-order/seckill/**").permitAll()
-                        .requestMatchers("/payment/**", "/api/payment/**").permitAll()
-                        .requestMatchers("/booking/**", "/api/booking/**").permitAll()
-                        .requestMatchers("/availability/**", "/api/availability/**").permitAll()
-                        .requestMatchers("/favorites/**", "/api/favorites/**").permitAll()
-                        .requestMatchers("/dining-memory/**", "/api/dining-memory/**").permitAll()
-                        .requestMatchers("/private-offers/**", "/api/private-offers/**").permitAll()
-                        .requestMatchers("/user/login", "/user/code", "/error", "/actuator/**").permitAll()
+                        .requestMatchers("/user/login", "/user/code", "/error", "/actuator/health").permitAll()
+                        .requestMatchers(protectedDemoRoutes()).access((authentication, context) -> {
+                            Authentication current = authentication.get();
+                            return new AuthorizationDecision(allowsProtectedDemoRoute(strictSecurityMode, current));
+                        })
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    private String[] protectedDemoRoutes() {
+        return new String[]{
+                "/api/merchant/**",
+                "/merchant/**",
+                "/voucher-order/seckill/**",
+                "/api/voucher-order/seckill/**",
+                "/payment/**",
+                "/api/payment/**",
+                "/booking/**",
+                "/api/booking/**",
+                "/availability/**",
+                "/api/availability/**",
+                "/favorites/**",
+                "/api/favorites/**",
+                "/dining-memory/**",
+                "/api/dining-memory/**",
+                "/private-offers/**",
+                "/api/private-offers/**",
+                "/actuator/**"
+        };
+    }
+
+    static boolean allowsProtectedDemoRoute(boolean strictMode, Authentication current) {
+        boolean authenticated = current != null
+                && current.isAuthenticated()
+                && !(current instanceof AnonymousAuthenticationToken);
+        return !strictMode || authenticated;
     }
 
     @Bean
