@@ -31,21 +31,21 @@ export function useAuth() {
   useEffect(() => {
     const storedToken = localStorage.getItem(KEY);
     setToken(storedToken);
-    setAuthStatus(storedToken ? "validating" : "anonymous");
+    setAuthStatus("validating");
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!token) {
-      setUser(null);
-      if (mounted) setAuthStatus((current) => current === "expired" ? current : "anonymous");
+    if (!mounted) {
       return;
     }
 
     let cancelled = false;
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
     setAuthStatus("validating");
     fetch("/api/java/api/auth/me", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers,
+      credentials: "same-origin",
       cache: "no-store",
     })
       .then((res) => {
@@ -59,17 +59,17 @@ export function useAuth() {
           setAuthStatus("authenticated");
           return;
         }
-        localStorage.removeItem(KEY);
+        if (token) localStorage.removeItem(KEY);
         setToken(null);
         setUser(null);
-        setAuthStatus("expired");
+        setAuthStatus(token ? "expired" : "anonymous");
       })
       .catch(() => {
         if (!cancelled) {
-          localStorage.removeItem(KEY);
+          if (token) localStorage.removeItem(KEY);
           setToken(null);
           setUser(null);
-          setAuthStatus("expired");
+          setAuthStatus(token ? "expired" : "anonymous");
         }
       });
 
@@ -85,6 +85,11 @@ export function useAuth() {
 
   const logout = () => {
     localStorage.removeItem(KEY);
+    void fetch("/api/java/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+    });
     setToken(null);
     setUser(null);
     setAuthStatus("anonymous");

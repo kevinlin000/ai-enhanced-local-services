@@ -170,6 +170,8 @@ def main() -> None:
         "ngrok/nginx boundary": "ngrok | Local, temporary demo tunnels",
         "login callback": "LINE_REDIRECT_URI=https://<domain>/api/java/api/auth/line/callback",
         "oauth cookie path": "LINE_OAUTH_COOKIE_PATH=/api/java/api/auth/line",
+        "auth cookie secure": "LINE_AUTH_COOKIE_SECURE=true",
+        "http-only auth cookie": "httpOnly `bytebites_token` cookie",
         "line webhook": "https://<domain>/api/line/webhook",
         "trusted proxy": "REFUND_WEBHOOK_TRUSTED_PROXIES=127.0.0.1/32",
         "ai public url": "LINE_PUBLIC_WEB_URL=https://<domain>",

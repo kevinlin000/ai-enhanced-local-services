@@ -14,7 +14,7 @@ import com.bytebites.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.aop.framework.AopContext;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -57,6 +57,10 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     @Resource
     private VoucherOrderJpaRepository voucherOrderJpaRepo;
+
+    @Lazy
+    @Resource
+    private IVoucherOrderService proxy;
 
     private static final DefaultRedisScript<Long> SECKILL_SCRIPT;
     static {
@@ -178,7 +182,6 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             lock.unlock();
         }
     }
-    private IVoucherOrderService proxy;
     @Override
     public Result seckillVoucher(Long voucherId) {
         //獲取用戶
@@ -202,8 +205,6 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             return Result.fail("下單失敗");
         }
 
-        //3. 獲取代理對象
-        proxy = (IVoucherOrderService) AopContext.currentProxy();
         //3.返回訂單id
         return Result.ok(orderId);
     }
