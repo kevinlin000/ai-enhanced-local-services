@@ -74,7 +74,7 @@ AI 產品的風險常常不是 syntax error，而是資料證據掉了：
 
 所以 `scripts/verify-data-quality.py` 不依賴外部服務，只用 repo 內資料檢查：
 
-- 600 active shops；
+- 599 active shops；
 - 11 個 coverage threshold；
 - conversation quality cases；
 - agent concierge / RAG eval manifests；

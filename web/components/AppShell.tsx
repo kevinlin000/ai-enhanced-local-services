@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+  AlertTriangle,
   Bell,
   CalendarDays,
   ChevronRight,
@@ -16,7 +17,9 @@ import {
   MonitorPlay,
   PenSquare,
   Presentation,
+  ReceiptText,
   Search,
+  Store,
   UserCircle,
   X,
 } from "lucide-react";
@@ -60,6 +63,34 @@ const NAV_ITEMS = [
   },
 ];
 
+const MERCHANT_NAV_ITEMS = [
+  {
+    label: "營運總覽",
+    href: "/merchant",
+    icon: Store,
+  },
+  {
+    label: "工作佇列",
+    href: "/merchant#incident-queue",
+    icon: AlertTriangle,
+  },
+  {
+    label: "訂金退款",
+    href: "/merchant#deposit-queue",
+    icon: ReceiptText,
+  },
+  {
+    label: "時段容量",
+    href: "/merchant#slots",
+    icon: CalendarDays,
+  },
+  {
+    label: "店家清單",
+    href: "/merchant#shops",
+    icon: Store,
+  },
+];
+
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/" || pathname === "/shops";
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -98,6 +129,128 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       ? user?.displayName ?? "ByteBites User"
       : "請先登入";
   const pictureUrl = mounted && isLoggedIn ? user?.pictureUrl : null;
+
+  if (pathname.startsWith("/merchant")) {
+    return (
+      <div className="min-h-screen bg-[#f7f6f2] text-foreground md:grid md:grid-cols-[248px_minmax(0,1fr)]">
+        <aside className="hidden border-r border-stone-200 bg-[#fbfaf6] md:sticky md:top-0 md:flex md:h-screen md:flex-col">
+          <div className="border-b border-stone-200 px-5 py-5">
+            <Link href="/merchant" className="block text-2xl font-semibold tracking-normal text-[var(--bb-ink)]">
+              ByteBites Ops
+            </Link>
+            <p className="mt-1 text-xs font-medium text-zinc-500">商家工作台</p>
+          </div>
+
+          <div className="border-b border-stone-200 px-5 py-5">
+            <div className="flex items-center gap-3">
+              <div
+                className="bb-shell-avatar flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-background ring-1 ring-border"
+                style={{ width: 48, height: 48, maxWidth: 48, maxHeight: 48 }}
+              >
+                {pictureUrl ? (
+                  <img
+                    src={pictureUrl}
+                    alt={displayName}
+                    width={48}
+                    height={48}
+                    className="bb-shell-avatar-image"
+                    style={{ width: "100%", height: "100%", maxWidth: "100%", maxHeight: "100%", objectFit: "cover" }}
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <UserCircle className="h-8 w-8 text-zinc-500" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-base font-medium tracking-normal">{displayName}</p>
+                <p className="mt-0.5 text-xs font-medium text-zinc-500">
+                  {mounted && isAuthLoading ? "正在確認 LINE 登入" : mounted && isLoggedIn ? "LINE 已登入" : "未登入"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <nav className="flex-1 space-y-1 px-3 py-4">
+            {MERCHANT_NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const active = item.href === "/merchant" ? pathname === "/merchant" : isActive(pathname, item.href);
+              const className = `flex items-center gap-3 rounded-lg px-4 py-3 text-[15px] font-medium transition ${
+                active ? "bb-shell-active" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`;
+
+              return (
+                <Link key={item.label} href={item.href} className={className}>
+                  <Icon className="h-5 w-5" />
+                  <span className="flex-1">{item.label}</span>
+                  <ChevronRight className="h-4 w-4 opacity-60" />
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="space-y-2 border-t border-stone-200 px-4 py-5">
+            <Link
+              href="/demo"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <MonitorPlay className="h-5 w-5" />
+              Demo 導覽
+            </Link>
+            <Link
+              href="/"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <Compass className="h-5 w-5" />
+              切換消費者端
+            </Link>
+            {mounted && isLoggedIn ? (
+              <button
+                type="button"
+                onClick={logout}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium hover:bg-muted"
+              >
+                <LogOut className="h-5 w-5" />
+                登出
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={login}
+                className="flex w-full items-center gap-3 rounded-lg bg-emerald-700 px-3 py-2.5 text-left text-sm font-medium text-white hover:bg-emerald-800"
+              >
+                <LogIn className="h-5 w-5" />
+                用 LINE 登入
+              </button>
+            )}
+            <p className="px-3 text-[11px] text-muted-foreground/70">Version: 1.4.0</p>
+          </div>
+        </aside>
+
+        <div className="flex min-w-0 flex-col">
+          <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-stone-200 bg-[#fbfaf6]/90 px-4 backdrop-blur md:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <Link href="/merchant" className="text-lg font-semibold tracking-normal md:hidden">
+                Ops
+              </Link>
+              <div className="hidden min-w-0 md:block">
+                <p className="text-sm font-semibold text-stone-900">商家營運台</p>
+                <p className="text-xs font-medium text-zinc-500">時段容量、救場事件、訂金退款</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/demo"
+                className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
+              >
+                Demo 導覽
+              </Link>
+            </div>
+          </header>
+          {children}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={shellClass}>

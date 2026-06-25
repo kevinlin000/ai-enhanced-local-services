@@ -1,18 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
-  CalendarDays,
   CheckCheck,
   CheckCircle2,
   Clock,
   CreditCard,
   ReceiptText,
   Store,
-  UsersRound,
 } from "lucide-react";
 import {
   javaApi,
@@ -686,114 +683,127 @@ export default function MerchantPage() {
   const refundPolicyLabel = refundNotificationPolicyLabel(refundNotificationPolicy);
 
   return (
-    <main className="min-h-screen bg-[#f5f1e8] text-stone-950">
-      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-8 lg:px-8">
-        <header className="overflow-hidden rounded-[32px] border border-emerald-900/10 bg-[#092d21] text-white shadow-2xl">
-          <div className="grid gap-8 p-8 lg:grid-cols-[1.1fr_0.9fr] lg:p-10">
+    <main className="min-h-screen bg-[#f7f6f2] text-stone-950">
+      <div className="mx-auto flex max-w-[1500px] flex-col gap-5 px-4 py-5 lg:px-6">
+        <header className="border border-stone-200 bg-white">
+          <div className="grid gap-5 p-5 lg:grid-cols-[1fr_520px] lg:items-end">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-normal text-emerald-200">營運後台</p>
-              <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-normal lg:text-6xl">
-                把每個時段的可訂位子管清楚。
-              </h1>
-              <p className="mt-5 max-w-2xl text-lg leading-8 text-emerald-50/85">
-                店家調整各時段可接待人數；使用者訂位時，系統會即時計算已訂與剩餘位子，額滿時可接空位通知。
-              </p>
-              <div className="mt-7 grid gap-3 text-sm text-emerald-50/80 sm:grid-cols-3">
-                <DemoNote title="Story 1" detail="部門聚餐、熱門時段、候位通知" />
-                <DemoNote title="Story 2" detail="家庭用餐、開車抵達、停車提醒" />
-                <DemoNote title="現場測試" detail="調低 19:00 容量即可模擬額滿" />
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-stone-500">
+                <span>營運總覽</span>
+                <span className="text-stone-300">/</span>
+                <span>{selectedShop?.district ?? "展示環境"}</span>
               </div>
+              <h1 className="mt-2 text-3xl font-semibold tracking-normal text-stone-950">
+                商家營運台
+              </h1>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-600">
+                管理店家時段容量、現場救場、訂金退款與空位通知。錄影時先選示範店家，再依序測 AI 推薦、訂位、事件處理與後台容量。
+              </p>
             </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-white/10 p-6 backdrop-blur">
-              <div className="flex items-center gap-3">
-                <Store className="h-6 w-6 text-emerald-200" />
-                <div>
-                  <p className="text-sm text-emerald-100/75">目前店家</p>
-                  <p className="text-xl font-bold">{selectedShop?.name ?? "載入中"}</p>
+            <div className="min-w-0 border border-stone-200 bg-[#fbfaf7] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+                    <Store className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-stone-500">目前店家</p>
+                    <p className="truncate text-base font-semibold">{selectedShop?.name ?? "載入中"}</p>
+                  </div>
                 </div>
+                <span className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                  {token ? "登入帳號" : "展示環境"}
+                </span>
               </div>
-              <div className="mt-6 grid grid-cols-3 gap-3">
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Metric label="總容量" value={totals.capacity} />
                 <Metric label="已訂" value={totals.booked} />
                 <Metric label="剩餘" value={totals.remaining} />
               </div>
-              <p className="mt-5 text-sm leading-6 text-emerald-50/75">
-                展示環境已開放一組示範店家，方便直接測試容量、訂位、空位通知與停車提醒。正式上線時會依店家帳號顯示自己的分店。
-              </p>
             </div>
+          </div>
+
+          <div className="grid border-t border-stone-200 text-sm text-stone-600 md:grid-cols-3">
+            <DemoNote title="Story 1" detail="部門聚餐、熱門時段、候位通知" />
+            <DemoNote title="Story 2" detail="家庭用餐、開車抵達、停車提醒" />
+            <DemoNote title="現場測試" detail="調低 19:00 容量即可模擬額滿" />
           </div>
         </header>
 
-        <section className="grid gap-5 lg:grid-cols-[320px_1fr]">
-          <aside className="rounded-[28px] border border-stone-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-black">示範店家</h2>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                {token ? "登入帳號" : "展示環境"}
-              </span>
-            </div>
-            <p className="mt-2 text-sm leading-6 text-stone-500">
-              已對齊明天報告的兩段 Demo Story。選一間店後，調整明天或週末熱門時段即可測試訂位與候位流程。
-            </p>
+        <section className="grid gap-5 lg:grid-cols-[360px_1fr]">
+          <aside className="space-y-5">
+            <section id="shops" className="border border-stone-200 bg-white p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold">店家</h2>
+                <span className="rounded-lg bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">
+                  {shops.length} 家
+                </span>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-stone-500">
+                選店後，右側工作區同步顯示事件、訂金與容量。
+              </p>
 
-            <div className="mt-5 space-y-3">
-              {shops.map((shop) => {
-                const demoStory = demoStoryForShop(shop);
-                return (
-                  <button
-                    key={shop.id}
-                    type="button"
-                    onClick={() => setSelectedShopId(shop.id)}
-                    className={`w-full rounded-2xl border p-4 text-left transition ${
-                      shop.id === selectedShopId
-                        ? "border-emerald-600 bg-emerald-50 shadow-sm"
-                        : "border-stone-200 bg-white hover:border-stone-300"
-                    }`}
-                  >
-                    <p className="font-black">{shop.name}</p>
-                    <p className="mt-1 text-sm text-stone-500">{shop.district ?? "未標示行政區"}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-4 max-h-[760px] space-y-2 overflow-y-auto pr-1">
+                {shops.map((shop) => {
+                  const demoStory = demoStoryForShop(shop);
+                  return (
+                    <button
+                      key={shop.id}
+                      type="button"
+                      onClick={() => setSelectedShopId(shop.id)}
+                      className={`w-full rounded-lg border px-3 py-3 text-left transition ${
+                        shop.id === selectedShopId
+                          ? "border-emerald-600 bg-emerald-50"
+                          : "border-stone-200 bg-white hover:border-stone-300"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold">{shop.name}</p>
+                          <p className="mt-1 text-sm text-stone-500">{shop.district ?? "未標示行政區"}</p>
+                        </div>
+                        <span className="rounded-md bg-stone-100 px-2 py-1 text-xs font-semibold text-stone-600">
+                          可管理
+                        </span>
+                      </div>
                       {demoStory ? (
-                        <>
-                          <span className="rounded-full bg-stone-950 px-2.5 py-1 text-xs font-bold text-white">
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-md bg-stone-950 px-2.5 py-1 text-xs font-semibold text-white">
                             {demoStory.label}
                           </span>
-                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                          <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
                             {demoStory.detail}
                           </span>
-                        </>
+                        </div>
                       ) : null}
-                      <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-600">
-                        可管理
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-              {!loading && shops.length === 0 && (
-                <p className="rounded-2xl bg-stone-50 p-4 text-sm text-stone-600">
-                  展示環境目前沒有可管理店家，請先確認資料庫 migration 已套用。
-                </p>
-              )}
-            </div>
+                    </button>
+                  );
+                })}
+                {!loading && shops.length === 0 && (
+                  <p className="rounded-lg bg-stone-50 p-4 text-sm text-stone-600">
+                    展示環境目前沒有可管理店家，請先確認資料庫 migration 已套用。
+                  </p>
+                )}
+              </div>
+            </section>
           </aside>
 
           <div className="space-y-5">
-            <section className="rounded-[28px] border border-amber-200 bg-white shadow-sm">
-              <div className="flex flex-col gap-4 border-b border-amber-100 p-5 lg:flex-row lg:items-center lg:justify-between">
+            <section id="incident-queue" className="rounded-lg border border-stone-200 bg-white">
+              <div className="flex flex-col gap-4 border-b border-stone-200 p-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-2xl bg-amber-50 p-3 text-amber-700">
+                  <div className="rounded-lg bg-stone-100 p-3 text-stone-700">
                     <AlertTriangle className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black">臨場救場</h2>
+                    <h2 className="text-xl font-semibold">臨場救場</h2>
                     <p className="mt-1 text-sm text-stone-500">
                       追蹤顧客晚到與店家延誤；OPEN 事件由 Java incident state 統一管理。
                     </p>
                   </div>
                 </div>
-                <span className="w-fit rounded-full bg-amber-50 px-4 py-2 text-sm font-black text-amber-800">
+                <span className="w-fit rounded-md bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700">
                   {incidentLoading ? "讀取中" : `${incidents.length} 件待處理`}
                 </span>
               </div>
@@ -802,24 +812,24 @@ export default function MerchantPage() {
                 {incidents.map((incident) => (
                   <div
                     key={incident.id}
-                    className="grid gap-4 rounded-2xl border border-amber-100 bg-[#fffaf0] p-4 lg:grid-cols-[1fr_180px_140px]"
+                    className="grid gap-4 rounded-lg border border-stone-200 bg-[#fffdf8] p-4 lg:grid-cols-[1fr_180px_140px]"
                   >
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-stone-950 px-2.5 py-1 text-xs font-bold text-white">
+                        <span className="rounded-md bg-stone-950 px-2.5 py-1 text-xs font-medium text-white">
                           {INCIDENT_TYPE_LABEL[incident.incidentType] ?? incident.incidentType}
                         </span>
-                        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-stone-600">
+                        <span className="rounded-md bg-white px-2.5 py-1 text-xs font-medium text-stone-600">
                           {BOOKING_STATUS_LABEL[incident.bookingStatus] ?? incident.bookingStatus}
                         </span>
                         <span className="text-xs font-semibold text-stone-500">{incident.bookingCode}</span>
                       </div>
-                      <p className="mt-3 text-lg font-black">{incident.title}</p>
+                      <p className="mt-3 text-lg font-semibold">{incident.title}</p>
                       <p className="mt-1 text-sm leading-6 text-stone-600">{incident.customerMessage}</p>
                       {incident.proposedChange?.status === "PENDING" ? (
-                        <div className="mt-3 rounded-xl border border-emerald-100 bg-white px-3 py-2">
-                          <p className="text-xs font-bold text-emerald-700">已送出顧客確認</p>
-                          <p className="mt-1 text-sm font-black text-stone-950">
+                        <div className="mt-3 rounded-lg border border-emerald-100 bg-white px-3 py-2">
+                          <p className="text-xs font-medium text-emerald-700">已送出顧客確認</p>
+                          <p className="mt-1 text-sm font-semibold text-stone-950">
                             {incident.proposedChange.date} {incident.proposedChange.time}
                           </p>
                           {incident.proposedChange.expiresAt ? (
@@ -834,11 +844,11 @@ export default function MerchantPage() {
                       ) : incident.alternativeSlots?.length ? (
                         <div className="mt-3">
                           {incident.proposedChange?.status === "DECLINED" || incident.proposedChange?.status === "EXPIRED" ? (
-                            <p className="mb-2 text-xs font-bold text-amber-700">
+                            <p className="mb-2 text-xs font-medium text-amber-700">
                               {incident.proposedChange.status === "DECLINED" ? "顧客已拒絕上一個提案" : "上一個提案已逾期"}，可重新送出替代時段。
                             </p>
                           ) : null}
-                          <p className="text-xs font-bold text-stone-500">可協調替代時段</p>
+                          <p className="text-xs font-medium text-stone-500">可協調替代時段</p>
                           <div className="mt-2 flex flex-wrap gap-2">
                             {incident.alternativeSlots.map((slot) => (
                               <button
@@ -846,7 +856,7 @@ export default function MerchantPage() {
                                 key={`${incident.id}-${slot.time}`}
                                 onClick={() => proposeSlot(incident, slot)}
                                 disabled={proposalBusyKey === `${incident.id}-${slot.time}`}
-                                className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-black text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 <Clock className="h-3.5 w-3.5" />
                                 {proposalBusyKey === `${incident.id}-${slot.time}` ? "送出中" : (slot.label ?? slot.time)}
@@ -873,7 +883,7 @@ export default function MerchantPage() {
                         type="button"
                         onClick={() => resolveIncident(incident)}
                         disabled={incidentBusyId === incident.id}
-                        className="inline-flex items-center gap-2 rounded-full bg-stone-950 px-4 py-2 text-sm font-black text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex items-center gap-2 rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <CheckCheck className="h-4 w-4" />
                         {incidentBusyId === incident.id ? "處理中" : "標記已處理"}
@@ -883,33 +893,33 @@ export default function MerchantPage() {
                 ))}
 
                 {!incidentLoading && incidents.length === 0 && (
-                  <div className="rounded-2xl bg-stone-50 p-6 text-sm text-stone-500">
+                  <div className="rounded-lg bg-stone-50 p-6 text-sm text-stone-500">
                     目前沒有待處理救場事件。顧客在「我的訂位」建立救場通知，或對 AI 說「我塞車會晚到 20 分鐘」後會出現在這裡。
                   </div>
                 )}
               </div>
             </section>
 
-            <section className="rounded-[28px] border border-sky-200 bg-white shadow-sm">
-              <div className="flex flex-col gap-4 border-b border-sky-100 p-5 lg:flex-row lg:items-center lg:justify-between">
+            <section id="deposit-queue" className="rounded-lg border border-stone-200 bg-white">
+              <div className="flex flex-col gap-4 border-b border-stone-200 p-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-2xl bg-sky-50 p-3 text-sky-700">
+                  <div className="rounded-lg bg-stone-100 p-3 text-stone-700">
                     <ReceiptText className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black">訂金差額處理</h2>
+                    <h2 className="text-xl font-semibold">訂金差額處理</h2>
                     <p className="mt-1 text-sm text-stone-500">
                       已付款訂位若改單需要補收或退款，會先停在這裡；PSP settlement 完成後才由 Java 套用改單。
                     </p>
                   </div>
                 </div>
-                <span className="w-fit rounded-full bg-sky-50 px-4 py-2 text-sm font-black text-sky-800">
+                <span className="w-fit rounded-md bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700">
                   {adjustmentLoading ? "讀取中" : `${depositAdjustments.length} 件待處理`}
                 </span>
               </div>
 
               {refundSlaLoading ? (
-                <div className="border-b border-sky-100 bg-sky-50 px-5 py-3 text-sm font-bold text-sky-800">
+                <div className="border-b border-sky-100 bg-sky-50 px-5 py-3 text-sm font-medium text-sky-800">
                   退款 SLA 讀取中
                 </div>
               ) : refundSla ? (
@@ -928,7 +938,7 @@ export default function MerchantPage() {
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                       )}
                       <div>
-                        <p className="text-sm font-black">
+                        <p className="text-sm font-semibold">
                           {refundAttentionCount > 0
                             ? `退款 SLA 注意：${refundAttentionCount} 件需處理`
                             : "退款 SLA 正常"}
@@ -941,7 +951,7 @@ export default function MerchantPage() {
                       </div>
                     </div>
                     {refundSla.oldestRequestedAt ? (
-                      <span className="text-xs font-bold">最早請求 {refundSla.oldestRequestedAt}</span>
+                      <span className="text-xs font-medium">最早請求 {refundSla.oldestRequestedAt}</span>
                     ) : null}
                   </div>
                 </div>
@@ -957,16 +967,16 @@ export default function MerchantPage() {
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                       )}
                       <div>
-                        <p className="text-sm font-black">退款營運摘要</p>
+                        <p className="text-sm font-semibold">退款營運摘要</p>
                         <p className="mt-1 text-xs font-semibold">{refundReport.headline}</p>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <span className="w-fit rounded-full bg-white/80 px-3 py-1 text-xs font-black">
+                      <span className="w-fit rounded-md bg-white/80 px-3 py-1 text-xs font-semibold">
                         {refundReportAction}
                       </span>
                       {refundNotificationPolicy ? (
-                        <span className="w-fit rounded-full bg-white/80 px-3 py-1 text-xs font-black">
+                        <span className="w-fit rounded-md bg-white/80 px-3 py-1 text-xs font-semibold">
                           {refundPolicyLabel}
                         </span>
                       ) : null}
@@ -974,7 +984,7 @@ export default function MerchantPage() {
                         type="button"
                         onClick={notifyRefundOperationsDigest}
                         disabled={refundNotifyBusy}
-                        className="inline-flex items-center gap-2 rounded-full bg-stone-950 px-3 py-1 text-xs font-black text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex items-center gap-2 rounded-md bg-stone-950 px-3 py-1 text-xs font-semibold text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {refundNotifyBusy ? "發送中" : "發送 LINE 摘要"}
                       </button>
@@ -982,7 +992,7 @@ export default function MerchantPage() {
                         type="button"
                         onClick={dispatchRefundOperationsDigestIfDue}
                         disabled={refundPolicyBusy}
-                        className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-black text-stone-900 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1 text-xs font-semibold text-stone-900 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {refundPolicyBusy ? "判斷中" : "執行排程判斷"}
                       </button>
@@ -997,7 +1007,7 @@ export default function MerchantPage() {
                   </div>
 
                   {refundNotificationPolicy ? (
-                    <div className="mt-3 flex flex-col gap-1 rounded-xl bg-white/80 px-3 py-2 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mt-3 flex flex-col gap-1 rounded-lg bg-white/80 px-3 py-2 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between">
                       <span>
                         排程通知 cooldown {refundNotificationPolicy.cooldownMinutes} 分鐘；
                         {refundNotificationPolicy.shouldNotify ? "目前符合發送條件" : "目前不會自動發送"}
@@ -1016,9 +1026,9 @@ export default function MerchantPage() {
                       {pendingRefundReportItems.map((item) => (
                         <div
                           key={`pending-refund-${item.id}`}
-                          className="flex flex-col gap-1 rounded-xl bg-white/80 px-3 py-2 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between"
+                          className="flex flex-col gap-1 rounded-lg bg-white/80 px-3 py-2 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between"
                         >
-                          <span className="font-black">{item.bookingCode}</span>
+                          <span className="font-semibold">{item.bookingCode}</span>
                           <span>
                             {refundReasonLabel(item.slaReason)} / {currency(item.deltaAmount)}
                             {item.settlementRequestedAt ? ` / ${item.settlementRequestedAt}` : ""}
@@ -1031,9 +1041,9 @@ export default function MerchantPage() {
                       {escalatedRefundReportItems.map((item) => (
                         <div
                           key={`escalated-refund-${item.id}`}
-                          className="flex flex-col gap-1 rounded-xl bg-white/80 px-3 py-2 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between"
+                          className="flex flex-col gap-1 rounded-lg bg-white/80 px-3 py-2 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between"
                         >
-                          <span className="font-black">{item.bookingCode}</span>
+                          <span className="font-semibold">{item.bookingCode}</span>
                           <span>
                             已升級 {item.refundEscalatedAt}
                             {item.refundEscalationNote ? ` / ${item.refundEscalationNote}` : ""}
@@ -1056,28 +1066,28 @@ export default function MerchantPage() {
                   return (
                     <div
                       key={adjustment.id}
-                      className="grid gap-4 rounded-2xl border border-sky-100 bg-[#f7fbff] p-4 lg:grid-cols-[1fr_210px_170px]"
+                      className="grid gap-4 rounded-lg border border-sky-100 bg-[#f7fbff] p-4 lg:grid-cols-[1fr_210px_170px]"
                     >
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <span
-                            className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                            className={`rounded-md px-2.5 py-1 text-xs font-medium ${
                               isTopUp ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-800"
                             }`}
                           >
                             {ADJUSTMENT_TYPE_LABEL[adjustment.adjustmentType] ?? adjustment.adjustmentType}
                           </span>
-                          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-stone-600">
+                          <span className="rounded-md bg-white px-2.5 py-1 text-xs font-medium text-stone-600">
                             {ADJUSTMENT_SOURCE_LABEL[adjustment.source] ?? adjustment.source}
                           </span>
                           <span
-                            className={`rounded-full px-2.5 py-1 text-xs font-bold ${settlementTone(adjustment.settlementStatus)}`}
+                            className={`rounded-md px-2.5 py-1 text-xs font-medium ${settlementTone(adjustment.settlementStatus)}`}
                           >
                             {SETTLEMENT_STATUS_LABEL[adjustment.settlementStatus] ?? adjustment.settlementStatus}
                           </span>
                           <span className="text-xs font-semibold text-stone-500">{adjustment.bookingCode}</span>
                         </div>
-                        <p className="mt-3 text-lg font-black">
+                        <p className="mt-3 text-lg font-semibold">
                           {isTopUp ? "需補收" : "需退款"} {currency(adjustment.deltaAmount)}
                         </p>
                         <p className="mt-1 text-sm leading-6 text-stone-600">{adjustment.message}</p>
@@ -1093,7 +1103,7 @@ export default function MerchantPage() {
                             {currency(adjustment.settlementAmount || adjustment.deltaAmount)}
                           </p>
                         ) : isTopUp || settlementProcessing || settlementFailed ? (
-                          <label className="mt-3 flex max-w-sm flex-col gap-1 text-xs font-bold text-stone-600">
+                          <label className="mt-3 flex max-w-sm flex-col gap-1 text-xs font-medium text-stone-600">
                             {isTopUp ? "PSP 交易編號" : "PSP 退款編號"}
                             <input
                               type="text"
@@ -1105,7 +1115,7 @@ export default function MerchantPage() {
                                 }))
                               }
                               placeholder={isTopUp ? "TapPay top-up rec_trade_id" : "TapPay refund reference"}
-                              className="h-10 rounded-xl border border-sky-200 bg-white px-3 text-sm text-stone-900 outline-none focus:border-sky-500"
+                              className="h-10 rounded-lg border border-sky-200 bg-white px-3 text-sm text-stone-900 outline-none focus:border-sky-500"
                             />
                           </label>
                         ) : (
@@ -1115,12 +1125,12 @@ export default function MerchantPage() {
                         )}
                         {isRefund && (settlementProcessing || settlementFailed) ? (
                           adjustment.refundEscalatedAt ? (
-                            <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+                            <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
                               已升級處理：{adjustment.refundEscalatedAt}
                               {adjustment.refundEscalationNote ? `，${adjustment.refundEscalationNote}` : ""}
                             </p>
                           ) : (
-                            <label className="mt-3 flex max-w-sm flex-col gap-1 text-xs font-bold text-stone-600">
+                            <label className="mt-3 flex max-w-sm flex-col gap-1 text-xs font-medium text-stone-600">
                               升級備註
                               <input
                                 type="text"
@@ -1132,7 +1142,7 @@ export default function MerchantPage() {
                                   }))
                                 }
                                 placeholder="例：已建立 TapPay 後台工單"
-                                className="h-10 rounded-xl border border-amber-200 bg-white px-3 text-sm text-stone-900 outline-none focus:border-amber-500"
+                                className="h-10 rounded-lg border border-amber-200 bg-white px-3 text-sm text-stone-900 outline-none focus:border-amber-500"
                               />
                             </label>
                           )
@@ -1150,7 +1160,7 @@ export default function MerchantPage() {
                             type="button"
                             onClick={() => resolveDepositAdjustment(adjustment)}
                             disabled={adjustmentBusyId === adjustment.id}
-                            className="inline-flex items-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <CheckCheck className="h-4 w-4" />
                             {adjustmentBusyId === adjustment.id ? "套用中" : "套用改單"}
@@ -1160,7 +1170,7 @@ export default function MerchantPage() {
                             type="button"
                             onClick={() => recordDepositSettlement(adjustment)}
                             disabled={adjustmentBusyId === adjustment.id}
-                            className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-2 text-sm font-black text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <CreditCard className="h-4 w-4" />
                             {adjustmentBusyId === adjustment.id ? "記錄中" : "記錄 PSP 完成"}
@@ -1170,7 +1180,7 @@ export default function MerchantPage() {
                             type="button"
                             onClick={() => requestRefundSettlement(adjustment)}
                             disabled={adjustmentBusyId === adjustment.id}
-                            className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-2 text-sm font-black text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <CreditCard className="h-4 w-4" />
                             {adjustmentBusyId === adjustment.id ? "建立中" : "建立退款請求"}
@@ -1181,7 +1191,7 @@ export default function MerchantPage() {
                               type="button"
                               onClick={() => reconcileRefundSettlement(adjustment, "COMPLETED")}
                               disabled={adjustmentBusyId === adjustment.id}
-                              className="inline-flex items-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               <CheckCheck className="h-4 w-4" />
                               {adjustmentBusyId === adjustment.id ? "回寫中" : "對帳成功"}
@@ -1190,7 +1200,7 @@ export default function MerchantPage() {
                               type="button"
                               onClick={() => reconcileRefundSettlement(adjustment, "FAILED")}
                               disabled={adjustmentBusyId === adjustment.id}
-                              className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="inline-flex items-center gap-2 rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               標記失敗
                             </button>
@@ -1201,7 +1211,7 @@ export default function MerchantPage() {
                               type="button"
                               onClick={() => requestRefundSettlement(adjustment)}
                               disabled={adjustmentBusyId === adjustment.id}
-                              className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-2 text-sm font-black text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               {adjustmentBusyId === adjustment.id ? "建立中" : "重送請求"}
                             </button>
@@ -1209,7 +1219,7 @@ export default function MerchantPage() {
                               type="button"
                               onClick={() => reconcileRefundSettlement(adjustment, "COMPLETED")}
                               disabled={adjustmentBusyId === adjustment.id}
-                              className="inline-flex items-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               對帳成功
                             </button>
@@ -1217,7 +1227,7 @@ export default function MerchantPage() {
                         ) : null}
                         {isRefund && (settlementProcessing || settlementFailed) ? (
                           adjustment.refundEscalatedAt ? (
-                            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-800">
+                            <span className="rounded-md bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
                               已升級處理
                             </span>
                           ) : (
@@ -1225,7 +1235,7 @@ export default function MerchantPage() {
                               type="button"
                               onClick={() => escalateRefundAdjustment(adjustment)}
                               disabled={adjustmentBusyId === adjustment.id}
-                              className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-4 py-2 text-sm font-black text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="inline-flex items-center gap-2 rounded-md border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               <AlertTriangle className="h-4 w-4" />
                               {adjustmentBusyId === adjustment.id ? "處理中" : "升級處理"}
@@ -1249,17 +1259,17 @@ export default function MerchantPage() {
                 })}
 
                 {!adjustmentLoading && depositAdjustments.length === 0 && (
-                  <div className="rounded-2xl bg-stone-50 p-6 text-sm text-stone-500">
+                  <div className="rounded-lg bg-stone-50 p-6 text-sm text-stone-500">
                     目前沒有待處理訂金差額。已付款訂位若改人數造成補收或退款，Java 會先擋下並建立 PSP settlement 處理項目。
                   </div>
                 )}
               </div>
             </section>
 
-            <section className="rounded-[28px] border border-stone-200 bg-white shadow-sm">
+            <section id="slots" className="rounded-lg border border-stone-200 bg-white">
               <div className="flex flex-col gap-4 border-b border-stone-200 p-5 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <h2 className="text-2xl font-black">可訂時段</h2>
+                  <h2 className="text-xl font-semibold">可訂時段</h2>
                   <p className="mt-1 text-sm text-stone-500">
                     只調整可接待人數；已訂與剩餘位子由訂位流程自動計算。
                   </p>
@@ -1273,7 +1283,7 @@ export default function MerchantPage() {
                       min={MIN_BOOKING_DATE}
                       value={date}
                       onChange={(event) => setDate(event.target.value)}
-                      className="h-11 rounded-xl border border-stone-200 px-3 text-stone-900"
+                      className="h-11 rounded-lg border border-stone-200 px-3 text-stone-900"
                     />
                   </label>
                   <label className="flex flex-col gap-1 text-sm font-semibold text-stone-600">
@@ -1281,7 +1291,7 @@ export default function MerchantPage() {
                     <select
                       value={tableType}
                       onChange={(event) => setTableType(event.target.value)}
-                      className="h-11 rounded-xl border border-stone-200 px-3 text-stone-900"
+                      className="h-11 rounded-lg border border-stone-200 px-3 text-stone-900"
                     >
                       <option value="normal">一般座位</option>
                       <option value="bar">吧台</option>
@@ -1292,61 +1302,86 @@ export default function MerchantPage() {
               </div>
 
             {error && (
-              <div className="mx-5 mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              <div className="mx-5 mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                 {error}
               </div>
             )}
             {message && (
-              <div className="mx-5 mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+              <div className="mx-5 mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
                 {message}
               </div>
             )}
 
-            <div className="grid gap-3 p-5">
-              {slots.map((slot) => {
-                const health = slotHealth(slot);
-                return (
-                  <div
-                    key={`${slot.tableType}-${slot.time}`}
-                    className="grid gap-4 rounded-2xl border border-stone-200 bg-[#fffdf8] p-4 lg:grid-cols-[120px_1fr_160px_120px]"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-emerald-700" />
-                      <span className="text-lg font-black">{slot.time}</span>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      <MiniStat icon={<UsersRound className="h-4 w-4" />} label="容量" value={capacities[slot.time] ?? slot.capacity} />
-                      <MiniStat icon={<CheckCircle2 className="h-4 w-4" />} label="已訂" value={slot.bookedCount} />
-                      <MiniStat icon={<CalendarDays className="h-4 w-4" />} label="剩餘" value={slot.remaining} />
-                    </div>
-
-                    <label className="flex flex-col gap-1 text-sm font-semibold text-stone-600">
-                      設定可接待人數
-                      <input
-                        type="number"
-                        min={slot.bookedCount}
-                        max={80}
-                        value={capacities[slot.time] ?? slot.capacity}
-                        onChange={(event) =>
-                          setCapacities((prev) => ({
-                            ...prev,
-                            [slot.time]: Number(event.target.value),
-                          }))
-                        }
-                        className="h-11 rounded-xl border border-stone-200 px-3 text-stone-950"
-                      />
-                    </label>
-
-                    <div className="flex items-center justify-start lg:justify-end">
-                      <span className={`rounded-full px-4 py-2 text-sm font-black ${health.tone}`}>
-                        {health.label}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-              {loading && <div className="rounded-2xl bg-stone-50 p-8 text-center text-stone-500">載入中...</div>}
+            <div className="p-5">
+              {loading ? (
+                <div className="rounded-lg bg-stone-50 p-8 text-center text-sm font-medium text-stone-500">
+                  載入中...
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-stone-200">
+                  <table className="w-full min-w-[760px] border-collapse text-sm">
+                    <thead className="bg-stone-50 text-xs font-semibold uppercase tracking-normal text-stone-500">
+                      <tr className="border-b border-stone-200">
+                        <th className="px-4 py-3 text-left">時段</th>
+                        <th className="px-4 py-3 text-right">容量</th>
+                        <th className="px-4 py-3 text-right">已訂</th>
+                        <th className="px-4 py-3 text-right">剩餘</th>
+                        <th className="px-4 py-3 text-left">設定容量</th>
+                        <th className="px-4 py-3 text-right">狀態</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-200 bg-white">
+                      {slots.map((slot) => {
+                        const health = slotHealth(slot);
+                        const currentCapacity = capacities[slot.time] ?? slot.capacity;
+                        return (
+                          <tr key={`${slot.tableType}-${slot.time}`} className="hover:bg-[#fffdf8]">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2 font-semibold text-stone-950 tabular-nums">
+                                <Clock className="h-4 w-4 text-emerald-700" />
+                                {slot.time}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-right font-medium tabular-nums text-stone-900">
+                              {currentCapacity}
+                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums text-stone-600">
+                              {slot.bookedCount}
+                            </td>
+                            <td className="px-4 py-3 text-right font-medium tabular-nums text-stone-900">
+                              {slot.remaining}
+                            </td>
+                            <td className="px-4 py-3">
+                              <label className="sr-only" htmlFor={`capacity-${slot.tableType}-${slot.time}`}>
+                                設定 {slot.time} 可接待人數
+                              </label>
+                              <input
+                                id={`capacity-${slot.tableType}-${slot.time}`}
+                                type="number"
+                                min={slot.bookedCount}
+                                max={80}
+                                value={currentCapacity}
+                                onChange={(event) =>
+                                  setCapacities((prev) => ({
+                                    ...prev,
+                                    [slot.time]: Number(event.target.value),
+                                  }))
+                                }
+                                className="h-9 w-24 rounded-md border border-stone-200 px-3 text-sm font-medium text-stone-950"
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className={`inline-flex min-w-14 justify-center rounded-md px-3 py-1 text-xs font-semibold ${health.tone}`}>
+                                {health.label}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-3 border-t border-stone-200 p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -1356,7 +1391,7 @@ export default function MerchantPage() {
               <div className="flex gap-3">
                 <Link
                   href="/ai"
-                  className="rounded-full border border-stone-300 px-5 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50"
+                  className="rounded-md border border-stone-300 px-5 py-3 text-sm font-medium text-stone-700 hover:bg-stone-50"
                 >
                   去測 AI 訂位
                 </Link>
@@ -1364,7 +1399,7 @@ export default function MerchantPage() {
                   type="button"
                   onClick={saveSlots}
                   disabled={saving || !selectedShopId}
-                  className="rounded-full bg-emerald-700 px-6 py-3 text-sm font-black text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-md bg-emerald-700 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {saving ? "儲存中..." : "儲存容量"}
                 </button>
@@ -1380,48 +1415,36 @@ export default function MerchantPage() {
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl bg-white/10 p-4">
-      <p className="text-xs font-semibold text-emerald-100/70">{label}</p>
-      <p className="mt-2 text-3xl font-black">{value}</p>
+    <div className="rounded-lg border border-stone-200 bg-white p-3">
+      <p className="text-xs font-medium text-stone-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-stone-950">{value}</p>
     </div>
   );
 }
 
 function RefundReportMetric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="min-h-[68px] rounded-xl bg-white/80 px-3 py-2">
-      <p className="text-xs font-bold opacity-75">{label}</p>
-      <p className="mt-1 text-2xl font-black">{value}</p>
+    <div className="min-h-[68px] rounded-lg bg-white/80 px-3 py-2">
+      <p className="text-xs font-medium opacity-75">{label}</p>
+      <p className="mt-1 text-2xl font-semibold">{value}</p>
     </div>
   );
 }
 
 function DemoNote({ title, detail }: { title: string; detail: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-      <p className="font-black text-white">{title}</p>
-      <p className="mt-1 leading-6 text-emerald-50/75">{detail}</p>
-    </div>
-  );
-}
-
-function MiniStat({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
-  return (
-    <div className="rounded-xl bg-white p-3">
-      <div className="flex items-center gap-2 text-xs font-semibold text-stone-500">
-        {icon}
-        {label}
-      </div>
-      <p className="mt-1 text-xl font-black">{value}</p>
+    <div className="border-b border-stone-200 p-4 md:border-b-0 md:border-r last:md:border-r-0">
+      <p className="font-semibold text-stone-900">{title}</p>
+      <p className="mt-1 leading-6 text-stone-500">{detail}</p>
     </div>
   );
 }
 
 function IncidentFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-white p-3">
+    <div className="rounded-lg bg-white p-3">
       <p className="text-xs font-semibold text-stone-500">{label}</p>
-      <p className="mt-1 text-sm font-black text-stone-950">{value}</p>
+      <p className="mt-1 text-sm font-semibold text-stone-950">{value}</p>
     </div>
   );
 }

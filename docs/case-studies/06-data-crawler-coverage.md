@@ -1,6 +1,6 @@
-# Case Study 06: 資料爬蟲與覆蓋率 — 從 seed 資料到 600 家可用店
+# Case Study 06: 資料爬蟲與覆蓋率 — 從 seed 資料到 599 家可用店
 
-**TL;DR** ByteBites 一開始只有少量 seed 店家，推薦看起來像原型。後來我把資料工作當成產品核心：Google Places / Maps crawler、review sync、media manifest、coverage audit、query normalization、taxonomy backfill。最後把資料推到 600 家 active Taipei shops，並把 legacy seed 從 MySQL/Qdrant 推薦路徑移除。
+**TL;DR** ByteBites 一開始只有少量 seed 店家，推薦看起來像原型。後來我把資料工作當成產品核心：Google Places / Maps crawler、review sync、media manifest、coverage audit、query normalization、taxonomy backfill。資料恢復後保留 599 家 active Taipei shops，並把 legacy seed 從 MySQL/Qdrant 推薦路徑移除。
 
 **Tech:** Google Places / Google Maps / MongoDB / MySQL / Qdrant / Python ETL / Playwright-style crawler hardening  
 **Repo:** `etl-pipeline/`, `tools/`, `docs/data-coverage-report.md`, `docs/taxonomy-audit.md`
@@ -113,7 +113,7 @@ Google Maps 頁面不是為批次爬蟲設計的，實作過程遇到很多不�
 
 ## English Version
 
-# Case Study 06: Data Crawling and Coverage — From Seed Data to 600 Usable Shops
+# Case Study 06: Data Crawling and Coverage — From Seed Data to 599 Usable Shops
 
 ByteBites started with a small seed dataset. That was enough for a UI prototype, but not enough for trustworthy AI recommendations. The real work was building a data pipeline: Places crawling, Maps detail crawling, review extraction, Mongo sync, MySQL loading, Qdrant payload sync, media manifests, coverage reports, and manual taxonomy audits.
 

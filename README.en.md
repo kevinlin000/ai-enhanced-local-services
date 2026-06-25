@@ -19,7 +19,7 @@ This repository is not positioned as a chatbot demo. It is a contract-tested ful
 |---|---|
 | Product | AI dining operations platform, not one-shot restaurant recommendation. |
 | State ownership | Web, LINE, and AI are entry points; Java owns business state. |
-| Data | 600 active Taipei shops, media coverage, review sync, ABSA, taxonomy audit, Qdrant payload sync. |
+| Data | 599 active Taipei shops, media coverage, review sync, ABSA, taxonomy audit, Qdrant payload sync. |
 | Verification | `scripts/verify-portfolio.sh`, Portfolio CI, release readiness, clean MySQL migration smoke. |
 | Design | Architecture docs, dbdiagram DBML ER model, query/index evidence, engineering case studies. |
 
@@ -83,7 +83,7 @@ Recommendation quality is backed by data coverage and repeatable checks, not jus
 
 | Metric | Status |
 |---|---|
-| Active Taipei shops | 600 |
+| Active Taipei shops | 599 |
 | Cover image / media manifest | 100% |
 | AI summary coverage | 100% |
 | ABSA / Mongo review coverage | 99%+ |

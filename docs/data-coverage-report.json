@@ -1,36 +1,37 @@
 {
-  "generated_at": "2026-06-06T14:23:02.829530+00:00",
-  "total_shops": 600,
+  "generated_at": "2026-06-25T07:45:34Z",
+  "source": "recovered MySQL + media manifest snapshot after 2026-06-24 catalog recovery",
+  "total_shops": 599,
   "coverage": [
     {
       "label": "Cover image/media",
-      "count": 600,
+      "count": 599,
       "percent": "100.0%"
     },
     {
       "label": "Price signal",
-      "count": 518,
+      "count": 517,
       "percent": "86.3%"
     },
     {
       "label": "District",
-      "count": 600,
+      "count": 599,
       "percent": "100.0%"
     },
     {
       "label": "MRT station",
-      "count": 178,
-      "percent": "29.7%"
+      "count": 177,
+      "percent": "29.5%"
     },
     {
       "label": "AI summary",
-      "count": 600,
+      "count": 599,
       "percent": "100.0%"
     },
     {
       "label": "ABSA",
-      "count": 599,
-      "percent": "99.8%"
+      "count": 586,
+      "percent": "97.8%"
     },
     {
       "label": "SQL reviews (legacy)",
@@ -40,599 +41,81 @@
     {
       "label": "Mongo reviews",
       "count": 599,
-      "percent": "99.8%"
+      "percent": "100.0%"
     },
     {
       "label": "Media manifest entry",
-      "count": 600,
+      "count": 599,
       "percent": "100.0%"
     },
     {
       "label": "Media manifest reviews",
       "count": 599,
-      "percent": "99.8%"
+      "percent": "100.0%"
     },
     {
       "label": "Media manifest photos",
-      "count": 600,
+      "count": 599,
       "percent": "100.0%"
     },
     {
       "label": "Media manifest overview",
       "count": 572,
-      "percent": "95.3%"
+      "percent": "95.5%"
     }
   ],
   "category_distribution": [
-    {
-      "label": "中式料理",
-      "count": 126
-    },
-    {
-      "label": "火鍋",
-      "count": 87
-    },
-    {
-      "label": "日式料理",
-      "count": 73
-    },
-    {
-      "label": "義法料理",
-      "count": 71
-    },
-    {
-      "label": "日式燒肉",
-      "count": 60
-    },
-    {
-      "label": "居酒屋",
-      "count": 59
-    },
-    {
-      "label": "美式料理",
-      "count": 59
-    },
-    {
-      "label": "咖啡/甜點",
-      "count": 32
-    },
-    {
-      "label": "素食",
-      "count": 26
-    },
-    {
-      "label": "自助餐",
-      "count": 7
-    }
+    { "label": "火鍋", "count": 88 },
+    { "label": "中式料理", "count": 80 },
+    { "label": "日式料理", "count": 78 },
+    { "label": "義法料理", "count": 78 },
+    { "label": "居酒屋", "count": 68 },
+    { "label": "日式燒肉", "count": 57 },
+    { "label": "美式料理", "count": 49 },
+    { "label": "咖啡/甜點", "count": 43 },
+    { "label": "素食", "count": 25 },
+    { "label": "韓式料理", "count": 15 },
+    { "label": "異國料理", "count": 10 },
+    { "label": "自助餐", "count": 8 }
   ],
   "district_distribution": [
-    {
-      "label": "大安",
-      "count": 101
-    },
-    {
-      "label": "中山",
-      "count": 77
-    },
-    {
-      "label": "信義",
-      "count": 74
-    },
-    {
-      "label": "士林",
-      "count": 54
-    },
-    {
-      "label": "中正",
-      "count": 50
-    },
-    {
-      "label": "松山",
-      "count": 50
-    },
-    {
-      "label": "內湖",
-      "count": 46
-    },
-    {
-      "label": "萬華",
-      "count": 46
-    },
-    {
-      "label": "文山",
-      "count": 39
-    },
-    {
-      "label": "南港",
-      "count": 24
-    },
-    {
-      "label": "北投",
-      "count": 24
-    },
-    {
-      "label": "大同",
-      "count": 15
-    }
+    { "label": "大安", "count": 102 },
+    { "label": "中山", "count": 78 },
+    { "label": "信義", "count": 75 },
+    { "label": "士林", "count": 54 },
+    { "label": "中正", "count": 50 },
+    { "label": "松山", "count": 49 },
+    { "label": "內湖", "count": 46 },
+    { "label": "萬華", "count": 45 },
+    { "label": "文山", "count": 39 },
+    { "label": "北投", "count": 24 },
+    { "label": "南港", "count": 24 },
+    { "label": "大同", "count": 13 }
   ],
   "mrt_distribution": [
-    {
-      "label": "未填",
-      "count": 422
-    },
-    {
-      "label": "信義安和",
-      "count": 39
-    },
-    {
-      "label": "中山",
-      "count": 33
-    },
-    {
-      "label": "市政府",
-      "count": 32
-    },
-    {
-      "label": "台北101/世貿",
-      "count": 23
-    },
-    {
-      "label": "中山國小",
-      "count": 17
-    },
-    {
-      "label": "象山",
-      "count": 13
-    },
-    {
-      "label": "雙連",
-      "count": 11
-    },
-    {
-      "label": "行天宮",
-      "count": 10
-    }
+    { "label": "未填", "count": 422 },
+    { "label": "信義安和", "count": 39 },
+    { "label": "中山", "count": 33 },
+    { "label": "市政府", "count": 32 },
+    { "label": "台北101/世貿", "count": 22 },
+    { "label": "中山國小", "count": 17 },
+    { "label": "象山", "count": 13 },
+    { "label": "雙連", "count": 11 },
+    { "label": "行天宮", "count": 10 }
   ],
   "critical_missing": [
-    {
-      "id": 10701,
-      "name": "原蔬生活 élémentlifes……………..……...（僅接受一週內電話預約 We accept phone reservations up to one week in advance.）",
-      "district": "大安",
-      "mrt_station": "台北101/世貿",
-      "has_image": 1,
-      "has_price": 1,
-      "has_ai_summary": 1,
-      "has_absa": 0,
-      "review_count": 0
-    },
-    {
-      "id": 10765,
-      "name": "AW Cafe Wine Bistro",
-      "district": "大安",
-      "mrt_station": "信義安和",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10760,
-      "name": "中山｜燒肉政宗 YAKINIKU MASAMUNE",
-      "district": "中山",
-      "mrt_station": "中山國小",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10759,
-      "name": "茶茶王國[士林店]-Matcha Prince茶茶王国のおうじちゃま",
-      "district": "士林",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10757,
-      "name": "爍場居酒屋復興店",
-      "district": "松山",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10756,
-      "name": "五漁村丼飯屋",
-      "district": "內湖",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10751,
-      "name": "KOBE SWEETS CAFE 神戶果実 微風南山",
-      "district": "信義",
-      "mrt_station": "象山",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10746,
-      "name": "林斯漢堡美式餐廳Lin’s Burger 台北信義店",
-      "district": "信義",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10703,
-      "name": "老菘田居酒屋(串燒‧酒場) 南京店",
-      "district": "松山",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10690,
-      "name": "町燒居酒屋",
-      "district": "萬華",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10688,
-      "name": "阿緹卡義大利pizza專賣店Antica",
-      "district": "士林",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10685,
-      "name": "玖酒井食事町",
-      "district": "大安",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10650,
-      "name": "12:59早午餐Brunch.Pasta.Coffee.Dessert",
-      "district": "萬華",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10649,
-      "name": "大河牧場 漢堡排洋食館-內湖大全聯店",
-      "district": "內湖",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10648,
-      "name": "IKIGAI燒肉專門店-微風百貨店",
-      "district": "松山",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10647,
-      "name": "Monday蔬食料理 錦州店",
-      "district": "中山",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10643,
-      "name": "八和和牛燒肉專門店-安和本店",
-      "district": "大安",
-      "mrt_station": "信義安和",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10641,
-      "name": "東京家庭義大利麵 堺人餐飲 天母",
-      "district": "士林",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10637,
-      "name": "燒究食寓 萬華店 – 居酒屋｜宵夜｜串燒",
-      "district": "萬華",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10633,
-      "name": "青杉燒肉",
-      "district": "大安",
-      "mrt_station": "信義安和",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10631,
-      "name": "哞屋Mon wo",
-      "district": "中山",
-      "mrt_station": "中山國小",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10630,
-      "name": "燒鳩 刺身•串燒•夜食",
-      "district": "松山",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10625,
-      "name": "大河牧場 漢堡排專売-南港環球店",
-      "district": "南港",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10611,
-      "name": "花嶼輕食館Flower Island Brunch-台北士林站輕食早午餐/下午茶/咖啡廳 異國料理/義大利麵/燉飯/創意料理 親子/寵物友善 聚餐/慶生/約會/網美 2026熱門訂位評價推薦 PTT Dcard threads",
-      "district": "士林",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10610,
-      "name": "Lazy Pasta 慵懶義式廚房大安國館店",
-      "district": "大安",
-      "mrt_station": "信義安和",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10609,
-      "name": "酒桃Sake momo",
-      "district": "大安",
-      "mrt_station": "台北101/世貿",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10608,
-      "name": "深深 永康制作所（建議先打電話問一下）",
-      "district": "大安",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10606,
-      "name": "Bounce Back 美式漢堡",
-      "district": "大安",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10605,
-      "name": "肉你好燒肉-延吉店",
-      "district": "大安",
-      "mrt_station": "信義安和",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10604,
-      "name": "夜酌居酒屋 市民店 東區居酒屋 寵物友善",
-      "district": "松山",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10603,
-      "name": "極簡鍋物｜萬華199和牛火鍋｜西門町火鍋推薦｜小龍蝦專賣店｜萬華美食",
-      "district": "萬華",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10602,
-      "name": "雲の咖哩屋",
-      "district": "松山",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10601,
-      "name": "邑居酒屋",
-      "district": "中山",
-      "mrt_station": "中山",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10597,
-      "name": "漢來上海湯包 台北LaLaport南港店",
-      "district": "南港",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10596,
-      "name": "肉你好燒肉-南京三民店",
-      "district": "松山",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10595,
-      "name": "串在一起平價串燒-士林店",
-      "district": "士林",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10590,
-      "name": "原燒 日式燒肉 沙拉烤物放題 台北西門店",
-      "district": "萬華",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10589,
-      "name": "鷲 炎鹽串燒 居酒屋",
-      "district": "中山",
-      "mrt_station": "中山國小",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10588,
-      "name": "發肉燒肉餐酒忠孝二店",
-      "district": "大安",
-      "mrt_station": "信義安和",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    },
-    {
-      "id": 10583,
-      "name": "初樂燒肉",
-      "district": "大安",
-      "mrt_station": "",
-      "has_image": 1,
-      "has_price": 0,
-      "has_ai_summary": 1,
-      "has_absa": 1,
-      "review_count": 1
-    }
+    { "id": 10130, "name": "MAJI MAJI集食行樂", "district": "中山", "mrt_station": "", "has_image": 1, "has_price": 1, "has_ai_summary": 1, "has_absa": 0 },
+    { "id": 10131, "name": "詹記麻辣火鍋 敦南店", "district": "大安", "mrt_station": "", "has_image": 1, "has_price": 1, "has_ai_summary": 1, "has_absa": 0 },
+    { "id": 10158, "name": "大樹先生的家", "district": "大安", "mrt_station": "", "has_image": 1, "has_price": 1, "has_ai_summary": 1, "has_absa": 0 },
+    { "id": 10194, "name": "小廢墟咖啡", "district": "文山", "mrt_station": "", "has_image": 1, "has_price": 1, "has_ai_summary": 1, "has_absa": 0 },
+    { "id": 10357, "name": "長生塩人 天母", "district": "士林", "mrt_station": "", "has_image": 1, "has_price": 0, "has_ai_summary": 1, "has_absa": 0 },
+    { "id": 10426, "name": "老倉庫", "district": "士林", "mrt_station": "", "has_image": 1, "has_price": 1, "has_ai_summary": 1, "has_absa": 0 },
+    { "id": 10430, "name": "集客人間茶館-東興店", "district": "松山", "mrt_station": "市政府", "has_image": 1, "has_price": 1, "has_ai_summary": 1, "has_absa": 0 },
+    { "id": 10456, "name": "初心菓寮", "district": "內湖", "mrt_station": "", "has_image": 1, "has_price": 0, "has_ai_summary": 1, "has_absa": 0 },
+    { "id": 10514, "name": "沾美西餐廳", "district": "大安", "mrt_station": "信義安和", "has_image": 1, "has_price": 1, "has_ai_summary": 1, "has_absa": 0 },
+    { "id": 10687, "name": "山上走走 日式鍋物台北華山店", "district": "中正", "mrt_station": "", "has_image": 1, "has_price": 0, "has_ai_summary": 1, "has_absa": 0 },
+    { "id": 10698, "name": "樂氣串燒居酒屋", "district": "大安", "mrt_station": "信義安和", "has_image": 1, "has_price": 1, "has_ai_summary": 1, "has_absa": 0 },
+    { "id": 10704, "name": "PAI CAFÉ & BRUNCH 八德店", "district": "松山", "mrt_station": "", "has_image": 1, "has_price": 1, "has_ai_summary": 1, "has_absa": 0 },
+    { "id": 10741, "name": "Oregano奧瑞岡義式餐廳", "district": "大安", "mrt_station": "信義安和", "has_image": 1, "has_price": 1, "has_ai_summary": 1, "has_absa": 0 }
   ]
 }

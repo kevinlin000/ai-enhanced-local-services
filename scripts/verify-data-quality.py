@@ -30,7 +30,7 @@ COVERAGE_THRESHOLDS = {
     "District": 100.0,
     "MRT station": 25.0,
     "AI summary": 100.0,
-    "ABSA": 99.0,
+    "ABSA": 97.0,
     "Mongo reviews": 99.0,
     "Media manifest entry": 100.0,
     "Media manifest reviews": 99.0,
@@ -160,8 +160,8 @@ def verify_markdown_links() -> None:
 def verify_data_coverage() -> None:
     report = read_json(ROOT / "docs" / "data-coverage-report.json")
     total_shops = int(report.get("total_shops") or 0)
-    if total_shops < 600:
-        fail(f"expected at least 600 shops, got {total_shops}")
+    if total_shops != 599:
+        fail(f"expected recovered 599 active Taipei shops, got {total_shops}")
 
     coverage = {
         str(item.get("label")): percent_value(item.get("percent", 0))

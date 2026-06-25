@@ -6,7 +6,7 @@
 
 | Area | Status |
 |---|---|
-| Data | 600 active Taipei shops, crawler coverage reports, Qdrant payload sync, legacy seed cleanup |
+| Data | 599 active Taipei shops, crawler coverage reports, Qdrant payload sync, legacy seed cleanup |
 | Web | Premium app shell, discovery, AI chat, shop detail, booking/payment, favorites, notifications, merchant console |
 | LINE | Messaging bot, LINE Login, recommendation cards, booking/payment/cancel/incident notifications |
 | AI | Semantic search, hard constraints, dialogue state, private preference memory, private AI-matched offers, incident routing, clarification policy, response contract, regression tests |
@@ -233,5 +233,5 @@ The section below preserves earlier planning context. Some items have already be
 **為什麼 AI 部分用 Python 不用 Spring AI？**
 業界 AI 應用 95% 在 Python 生態（LangChain、LlamaIndex、Hugging Face）。本專案採用 Java 後端 + Python AI 服務的微服務拆分，符合業界實際分工。
 
-**為什麼先聚焦台北 600 家，而不是全台店家？**
+**為什麼先聚焦台北 599 家，而不是全台店家？**
 AI 推薦 demo 的關鍵不是把地圖鋪滿，而是讓每一家進入推薦池的店有足夠 metadata：分類、行政區、捷運、照片、評論、AI summary、ABSA、價格訊號與 Qdrant payload。先把台北資料做深，能比全台淺資料更穩定地展示 grounded recommendation。

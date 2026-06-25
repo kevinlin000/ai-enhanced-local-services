@@ -54,7 +54,7 @@ Start with these six cases for the strongest public review path:
 這些案例不是流水帳，而是展示「工程判斷」。建議報告時不要逐篇朗讀，而是挑 4 條主線：
 
 1. **資料不是背景，是 AI 品質的天花板**  
-   600 家 active Taipei shops、media coverage、ABSA、Qdrant payload、legacy seed cleanup，證明推薦不是靠模型硬猜。
+   599 家 active Taipei shops、media coverage、ABSA、Qdrant payload、legacy seed cleanup，證明推薦不是靠模型硬猜。
 
 2. **AI 不是聊天，是任務狀態機**  
    使用者會說「第 2 家」「明天晚上」「改 8 點」「取消剛剛那筆」，所以系統需要 recommendation context、booking draft、confirmation policy。

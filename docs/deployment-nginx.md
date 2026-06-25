@@ -142,7 +142,10 @@ CORS_ALLOWED_ORIGIN_PATTERNS=https://<domain>
 LINE_REDIRECT_URI=https://<domain>/api/java/api/auth/line/callback
 LINE_OAUTH_COOKIE_PATH=/api/java/api/auth/line
 AI_SERVICE_URL=http://127.0.0.1:8000
+DEMO_MODE_ENABLED=false
 ```
+
+`DEMO_MODE_ENABLED=true` is only for local portfolio recording. It allows the `X-Demo-Mode: true` header to map requests to the seeded demo merchant user. Stable public demos and production-like environments should set it to `false` and use real LINE/JWT identity.
 
 AI service:
 

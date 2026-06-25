@@ -15,7 +15,7 @@
 - Refund reconciliation：callback audit lookup 與 event-key idempotency。
 - Refund operations notification：scheduler-ready cooldown policy。
 
-目前資料規模是 portfolio release：600 家 active Taipei shops、demo dataset，以及聚焦的營運流程。這份證據證明的是 query shape 與 index coverage，不是正式 production 流量容量。
+目前資料規模是 portfolio release：599 家 active Taipei shops、demo dataset，以及聚焦的營運流程。這份證據證明的是 query shape 與 index coverage，不是正式 production 流量容量。
 
 ## 查詢路徑對照
 
