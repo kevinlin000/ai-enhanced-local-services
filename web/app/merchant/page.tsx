@@ -683,8 +683,8 @@ export default function MerchantPage() {
   const refundPolicyLabel = refundNotificationPolicyLabel(refundNotificationPolicy);
 
   return (
-    <main className="min-h-screen bg-[#f7f6f2] text-stone-950">
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-5 px-4 py-5 lg:px-6">
+    <main className="min-h-screen overflow-x-hidden bg-[#f7f6f2] text-stone-950">
+      <div className="mx-auto flex max-w-[1500px] min-w-0 flex-col gap-5 px-4 py-5 lg:px-6">
         <header className="border border-stone-200 bg-white">
           <div className="grid gap-5 p-5 lg:grid-cols-[1fr_520px] lg:items-end">
             <div>
@@ -731,8 +731,8 @@ export default function MerchantPage() {
           </div>
         </header>
 
-        <section className="grid gap-5 lg:grid-cols-[360px_1fr]">
-          <aside className="space-y-5">
+        <section className="grid min-w-0 gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
+          <aside className="min-w-0 space-y-5">
             <section id="shops" className="border border-stone-200 bg-white p-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-semibold">店家</h2>
@@ -789,16 +789,16 @@ export default function MerchantPage() {
             </section>
           </aside>
 
-          <div className="space-y-5">
+          <div className="min-w-0 space-y-5">
             <section id="incident-queue" className="rounded-lg border border-stone-200 bg-white">
               <div className="flex flex-col gap-4 border-b border-stone-200 p-5 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex items-start gap-3">
+                <div className="flex min-w-0 items-start gap-3">
                   <div className="rounded-lg bg-stone-100 p-3 text-stone-700">
                     <AlertTriangle className="h-5 w-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <h2 className="text-xl font-semibold">臨場救場</h2>
-                    <p className="mt-1 text-sm text-stone-500">
+                    <p className="mt-1 break-words text-sm text-stone-500">
                       追蹤顧客晚到與店家延誤；OPEN 事件由 Java incident state 統一管理。
                     </p>
                   </div>
@@ -902,13 +902,13 @@ export default function MerchantPage() {
 
             <section id="deposit-queue" className="rounded-lg border border-stone-200 bg-white">
               <div className="flex flex-col gap-4 border-b border-stone-200 p-5 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex items-start gap-3">
+                <div className="flex min-w-0 items-start gap-3">
                   <div className="rounded-lg bg-stone-100 p-3 text-stone-700">
                     <ReceiptText className="h-5 w-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <h2 className="text-xl font-semibold">訂金差額處理</h2>
-                    <p className="mt-1 text-sm text-stone-500">
+                    <p className="mt-1 break-words text-sm text-stone-500">
                       已付款訂位若改單需要補收或退款，會先停在這裡；PSP settlement 完成後才由 Java 套用改單。
                     </p>
                   </div>

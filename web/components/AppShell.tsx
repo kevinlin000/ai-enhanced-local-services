@@ -96,6 +96,48 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function ProductFooter() {
+  const links = [
+    ["探索餐廳", "/shops"],
+    ["AI 助手", "/ai"],
+    ["我的訂位", "/my-bookings"],
+    ["專案亮點", "/showcase"],
+  ] as const;
+
+  return (
+    <footer className="border-t border-[rgb(222_216_203_/_0.82)] bg-[rgb(255_253_248_/_0.76)] px-5 py-8 md:px-8">
+      <div className="mx-auto grid max-w-7xl gap-6 text-sm text-muted-foreground md:grid-cols-[1fr_auto] md:items-end">
+        <div>
+          <Link href="/" className="text-xl font-semibold tracking-normal text-[var(--bb-ink)]">
+            ByteBites
+          </Link>
+          <p className="mt-2 max-w-2xl leading-6">
+            台北餐廳搜尋、AI 推薦、訂位與通知管理。資料、交易狀態與商家操作分層處理。
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="rounded-lg border border-[rgb(222_216_203_/_0.82)] bg-white px-3 py-1.5 text-xs font-medium text-[#5d5140]">
+              599 家台北 active shops
+            </span>
+            <span className="rounded-lg border border-[rgb(222_216_203_/_0.82)] bg-white px-3 py-1.5 text-xs font-medium text-[#5d5140]">
+              LINE login
+            </span>
+            <span className="rounded-lg border border-[rgb(222_216_203_/_0.82)] bg-white px-3 py-1.5 text-xs font-medium text-[#5d5140]">
+              Java transaction state
+            </span>
+          </div>
+        </div>
+        <nav className="flex flex-wrap gap-x-5 gap-y-2 md:justify-end" aria-label="頁尾導覽">
+          {links.map(([label, href]) => (
+            <Link key={href} href={href} className="font-medium text-[#5d5140] hover:text-[var(--bb-ink)]">
+              {label}
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </footer>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isLoggedIn, isAuthLoading, login, logout, mounted, user } = useAuth();
@@ -523,6 +565,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         ) : null}
         {children}
+        <ProductFooter />
       </div>
     </div>
   );
