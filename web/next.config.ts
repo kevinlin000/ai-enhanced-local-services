@@ -4,6 +4,8 @@ const javaApiProxyTarget = process.env.JAVA_API_PROXY_TARGET ?? "http://localhos
 const aiApiProxyTarget = process.env.AI_API_PROXY_TARGET ?? "http://localhost:8000";
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+
   // 允許 ngrok tunnel 做為 dev origin（HMR WebSocket + hydration）
   allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev", "*.ngrok.io"],
 

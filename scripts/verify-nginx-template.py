@@ -78,6 +78,7 @@ def main() -> None:
         "ai prefix preserve": "proxy_pass http://bytebites_ai;",
         "line webhook path": "location /api/line/",
         "line action path": "location /line/",
+        "server tokens disabled": "server_tokens off;",
         "java health": "location = /health/java",
         "ai health": "location = /health/ai",
         "sse buffering disabled": "proxy_buffering off;",
