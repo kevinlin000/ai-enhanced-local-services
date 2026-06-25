@@ -181,6 +181,8 @@ def main() -> None:
         "public url config script": "scripts/configure-public-url.sh",
         "public url env verifier": "scripts/verify-public-url-env.sh",
         "strict security mode": "SECURITY_STRICT_MODE=true",
+        "jwt secret": "JWT_SECRET=<at-least-32-random-bytes>",
+        "strict startup guard": "Java fails startup",
         "actuator strict note": "/actuator/prometheus",
     }
     for label, snippet in required_doc_snippets.items():
