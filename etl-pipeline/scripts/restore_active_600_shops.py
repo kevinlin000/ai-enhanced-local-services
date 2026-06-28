@@ -9,6 +9,7 @@ from pathlib import Path
 import pymysql
 
 from app.normalizer import extract_district_from_address
+from app.price import resolved_avg_price, resolved_price_label
 from app.taxonomy import classify_shop
 
 
@@ -169,9 +170,9 @@ def restore(limit: int, dry_run: bool = False) -> None:
                 classified = classify_shop(shop)
                 type_id = int(classified["primary_type_id"])
                 category_name = clean_text(category_names.get(type_id, "餐廳"), 50)
-                price_level = shop.get("price_level")
                 media = media_manifest.get(str(shop_id), {})
                 image = clean_text(media.get("coverUrl") or "/icons/default.jpg", 1024)
+                price_level = shop.get("price_level")
 
                 cur.execute(
                     """
@@ -214,7 +215,7 @@ def restore(limit: int, dry_run: bool = False) -> None:
                         address,
                         float(shop.get("longitude") or 0),
                         float(shop.get("latitude") or 0),
-                        PRICE_LEVEL_TO_AVG.get(price_level),
+                        resolved_avg_price(shop, media, PRICE_LEVEL_TO_AVG),
                         comments_count(shop),
                         rating_score(shop),
                         district,
@@ -242,7 +243,7 @@ def restore(limit: int, dry_run: bool = False) -> None:
                         json.dumps([], ensure_ascii=False),
                         json.dumps(atmosphere_tags(shop), ensure_ascii=False),
                         booking_difficulty(shop),
-                        PRICE_LEVEL_TO_LABEL.get(price_level),
+                        resolved_price_label(shop, media, PRICE_LEVEL_TO_LABEL),
                         clean_text(shop.get("phone"), 50),
                         json.dumps(shop.get("opening_hours") or [], ensure_ascii=False),
                         now,

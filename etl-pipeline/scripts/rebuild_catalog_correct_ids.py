@@ -26,6 +26,7 @@ import pymysql
 from pymongo import MongoClient
 
 from app.normalizer import extract_district_from_address
+from app.price import resolved_avg_price
 from app.taxonomy import classify_shop
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -93,7 +94,6 @@ def build_canonical() -> list[dict]:
         address = str(ex.get("formatted_address") or ex.get("full_address") or "")[:255]
         district = str(extract_district_from_address(address, ex.get("district")) or "")[:20]
         type_id = int(classify_shop(ex)["primary_type_id"])
-        price_level = ex.get("price_level")
         media = manifest.get(str(sid), {})
         image = str(media.get("coverUrl") or "/icons/default.jpg")[:1024]
         rows.append({
@@ -105,11 +105,11 @@ def build_canonical() -> list[dict]:
             "address": address,
             "x": float(ex.get("longitude") or 0),
             "y": float(ex.get("latitude") or 0),
-            "avg_price": PRICE_LEVEL_TO_AVG.get(price_level),
+            "avg_price": resolved_avg_price(ex, media, PRICE_LEVEL_TO_AVG),
             "comments": int(ex.get("user_rating_count") or 0),
             "score": int(round(float(ex.get("rating") or 0) * 10)),
             "district": district,
-            "price_range": PRICE_LEVEL_TO_RANGE.get(price_level),
+            "price_range": PRICE_LEVEL_TO_RANGE.get(ex.get("price_level")),
             "place_id": str(ex.get("place_id") or "")[:255],
             "now": now,
         })
