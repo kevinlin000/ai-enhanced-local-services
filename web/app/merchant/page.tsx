@@ -61,6 +61,39 @@ const DEMO_STORY_BY_SHOP_ID: Record<number, { label: string; detail: string }> =
   10116: { label: "候位 Demo", detail: "酸菜魚" },
 };
 
+type MerchantSection = "overview" | "incidents" | "deposits" | "slots" | "shops";
+
+const MERCHANT_SECTION_COPY: Record<MerchantSection, { label: string; description: string }> = {
+  overview: {
+    label: "營運總覽",
+    description: "快速進入救場、訂金退款、時段容量與店家清單。",
+  },
+  incidents: {
+    label: "工作佇列",
+    description: "處理顧客晚到、現場等候過久與替代時段提案。",
+  },
+  deposits: {
+    label: "訂金退款",
+    description: "處理改單造成的補款、退款與人工確認。",
+  },
+  slots: {
+    label: "時段容量",
+    description: "調整可接待人數，直接影響 Web / LINE 訂位庫存。",
+  },
+  shops: {
+    label: "店家清單",
+    description: "切換 demo 店家並查看故事標籤。",
+  },
+};
+
+function merchantSectionFromHash(hash: string): MerchantSection {
+  if (hash === "#incident-queue") return "incidents";
+  if (hash === "#deposit-queue") return "deposits";
+  if (hash === "#slots") return "slots";
+  if (hash === "#shops") return "shops";
+  return "overview";
+}
+
 const INCIDENT_TYPE_LABEL: Record<string, string> = {
   CUSTOMER_LATE: "顧客晚到",
   RESTAURANT_DELAY: "顧客現場等候",
@@ -152,6 +185,7 @@ function refundNotificationPolicyLabel(policy: MerchantRefundNotificationPolicy 
 
 export default function MerchantPage() {
   const [token, setToken] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<MerchantSection>("overview");
   const [shops, setShops] = useState<MerchantShop[]>([]);
   const [selectedShopId, setSelectedShopId] = useState<number | null>(null);
   const [date, setDate] = useState(MIN_BOOKING_DATE);
@@ -193,6 +227,16 @@ export default function MerchantPage() {
       ),
     [slots],
   );
+
+  useEffect(() => {
+    function syncSection() {
+      setActiveSection(merchantSectionFromHash(window.location.hash));
+    }
+
+    syncSection();
+    window.addEventListener("hashchange", syncSection);
+    return () => window.removeEventListener("hashchange", syncSection);
+  }, []);
 
   useEffect(() => {
     // Merchant onboarding is not implemented yet; force demo merchant ownership.
@@ -689,6 +733,7 @@ export default function MerchantPage() {
   const refundReportAction =
     REFUND_REPORT_ACTION_LABEL[refundReport?.recommendedAction ?? ""] ?? refundReport?.recommendedAction ?? "";
   const refundPolicyLabel = refundNotificationPolicyLabel(refundNotificationPolicy);
+  const activeSectionCopy = MERCHANT_SECTION_COPY[activeSection];
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#f7f6f2] text-stone-950">
@@ -699,13 +744,15 @@ export default function MerchantPage() {
               <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-stone-500">
                 <span>營運總覽</span>
                 <span className="text-stone-300">/</span>
+                <span>{activeSectionCopy.label}</span>
+                <span className="text-stone-300">/</span>
                 <span>{selectedShop?.district ?? "展示環境"}</span>
               </div>
               <h1 className="mt-2 text-3xl font-semibold tracking-normal text-stone-950">
-                商家營運台
+                {activeSectionCopy.label}
               </h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-600">
-                管理店家時段容量、現場救場、訂金退款與空位通知。錄影時先選示範店家，再依序測 AI 推薦、訂位、事件處理與後台容量。
+                {activeSectionCopy.description}
               </p>
             </div>
 
@@ -724,6 +771,20 @@ export default function MerchantPage() {
                   {token ? "登入帳號" : "展示環境"}
                 </span>
               </div>
+              <label className="mt-3 block text-xs font-semibold text-stone-500">
+                切換店家
+                <select
+                  value={selectedShopId ?? ""}
+                  onChange={(event) => setSelectedShopId(Number(event.target.value) || null)}
+                  className="mt-1 h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-900 outline-none focus:border-emerald-500"
+                >
+                  {shops.map((shop) => (
+                    <option key={shop.id} value={shop.id}>
+                      {shop.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Metric label="總容量" value={totals.capacity} />
                 <Metric label="已訂" value={totals.booked} />
@@ -739,8 +800,15 @@ export default function MerchantPage() {
           </div>
         </header>
 
-        <section className="grid min-w-0 gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
-          <aside className="min-w-0 space-y-5">
+        <section
+          className={
+            activeSection === "overview"
+              ? "grid min-w-0 gap-5 lg:grid-cols-[360px_minmax(0,1fr)]"
+              : "min-w-0"
+          }
+        >
+          {activeSection === "overview" || activeSection === "shops" ? (
+          <aside className={activeSection === "shops" ? "min-w-0" : "min-w-0 space-y-5"}>
             <section id="shops" className="border border-stone-200 bg-white p-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-semibold">店家</h2>
@@ -796,9 +864,47 @@ export default function MerchantPage() {
               </div>
             </section>
           </aside>
+          ) : null}
 
+          {activeSection !== "shops" ? (
           <div className="min-w-0 space-y-5">
-            <section id="incident-queue" className="rounded-lg border border-stone-200 bg-white">
+            {activeSection === "overview" ? (
+              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <MerchantWorkCard
+                  title="工作佇列"
+                  description="晚到、現場等候與替代時段提案"
+                  count={`${incidents.length} 件`}
+                  href="#incident-queue"
+                  onClick={() => setActiveSection("incidents")}
+                />
+                <MerchantWorkCard
+                  title="訂金退款"
+                  description="補款、退款、人工確認"
+                  count={`${depositAdjustments.length} 件`}
+                  href="#deposit-queue"
+                  onClick={() => setActiveSection("deposits")}
+                />
+                <MerchantWorkCard
+                  title="時段容量"
+                  description="調整可接待人數與剩餘位子"
+                  count={`${totals.remaining} 位`}
+                  href="#slots"
+                  onClick={() => setActiveSection("slots")}
+                />
+                <MerchantWorkCard
+                  title="店家清單"
+                  description="切換示範店家與故事標籤"
+                  count={`${shops.length} 家`}
+                  href="#shops"
+                  onClick={() => setActiveSection("shops")}
+                />
+              </section>
+            ) : null}
+
+            <section
+              id="incident-queue"
+              className={activeSection === "incidents" ? "rounded-lg border border-stone-200 bg-white" : "hidden"}
+            >
               <div className="flex flex-col gap-4 border-b border-stone-200 p-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex min-w-0 items-start gap-3">
                   <div className="rounded-lg bg-stone-100 p-3 text-stone-700">
@@ -908,7 +1014,10 @@ export default function MerchantPage() {
               </div>
             </section>
 
-            <section id="deposit-queue" className="rounded-lg border border-stone-200 bg-white">
+            <section
+              id="deposit-queue"
+              className={activeSection === "deposits" ? "rounded-lg border border-stone-200 bg-white" : "hidden"}
+            >
               <div className="flex flex-col gap-4 border-b border-stone-200 p-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex min-w-0 items-start gap-3">
                   <div className="rounded-lg bg-stone-100 p-3 text-stone-700">
@@ -1274,7 +1383,10 @@ export default function MerchantPage() {
               </div>
             </section>
 
-            <section id="slots" className="rounded-lg border border-stone-200 bg-white">
+            <section
+              id="slots"
+              className={activeSection === "slots" ? "rounded-lg border border-stone-200 bg-white" : "hidden"}
+            >
               <div className="flex flex-col gap-4 border-b border-stone-200 p-5 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <h2 className="text-xl font-semibold">可訂時段</h2>
@@ -1415,9 +1527,42 @@ export default function MerchantPage() {
             </div>
             </section>
           </div>
+          ) : null}
         </section>
       </div>
     </main>
+  );
+}
+
+function MerchantWorkCard({
+  title,
+  description,
+  count,
+  href,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  count: string;
+  href: string;
+  onClick: () => void;
+}) {
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      className="rounded-lg border border-stone-200 bg-white p-5 transition hover:border-emerald-300 hover:bg-emerald-50/40"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-stone-950">{title}</h2>
+          <p className="mt-2 text-sm leading-6 text-stone-500">{description}</p>
+        </div>
+        <span className="shrink-0 rounded-lg bg-stone-100 px-3 py-1.5 text-sm font-semibold text-stone-700">
+          {count}
+        </span>
+      </div>
+    </a>
   );
 }
 
