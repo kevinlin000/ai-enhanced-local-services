@@ -1040,6 +1040,8 @@ def _query_is_clarification_followup(query: str) -> bool:
     normalized = str(query or "").strip()
     if not normalized:
         return False
+    if _complete_fresh_restaurant_query(normalized):
+        return False
     if _booking_intent(normalized) or _payment_intent(normalized) or _line_more_recommendation_intent(normalized):
         return False
     if _specific_shop_keyword(normalized):
@@ -3473,6 +3475,91 @@ def _apply_private_memory_to_recommendations(
     return next_recommended, next_rejected
 
 
+def _shop_matches_budget_ceiling(query: str, shop: dict) -> bool:
+    _low, high = _query_budget_range(query)
+    if high is None:
+        return True
+    shop_low, shop_high = _shop_price_bounds(shop)
+    if shop_low is None and shop_high is None:
+        return True
+    if shop_low is not None:
+        return shop_low <= high
+    return bool(shop_high is not None and shop_high <= high)
+
+
+def _hard_constraint_candidate_ids(query: str, shops: list[dict]) -> set[int]:
+    if not query or not shops:
+        return set()
+    constraints = _extract_query_constraints(query)
+
+    enforce_steak = _query_requests_steak(query) and any(_has_steak_semantics(shop) for shop in shops)
+    enforce_burger = bool(constraints.get("wants_burger")) and any(_is_burger_hit(shop) for shop in shops)
+    enforce_category = bool(
+        constraints.get("categories")
+        or constraints.get("specific_cuisines")
+        or constraints.get("wants_taiwanese_cuisine")
+    ) and any(_search_category_match(query, constraints, shop) for shop in shops)
+    enforce_district = bool(constraints.get("districts")) and any(_district_matches(constraints, shop) for shop in shops)
+    enforce_station = bool(constraints.get("stations")) and any(_station_proximity_score(constraints, shop) > 0 for shop in shops)
+    enforce_budget = _query_budget_range(query)[1] is not None and any(_shop_matches_budget_ceiling(query, shop) for shop in shops)
+
+    if not any((enforce_steak, enforce_burger, enforce_category, enforce_district, enforce_station, enforce_budget)):
+        return set()
+
+    valid_ids: list[int] = []
+    for shop in shops:
+        sid = _shop_id(shop)
+        if sid is None:
+            continue
+        if enforce_steak and not _has_steak_semantics(shop):
+            continue
+        if enforce_burger and not _is_burger_hit(shop):
+            continue
+        if enforce_category and not _search_category_match(query, constraints, shop):
+            continue
+        if enforce_district and not _district_matches(constraints, shop):
+            continue
+        if enforce_station and _station_proximity_score(constraints, shop) <= 0:
+            continue
+        if enforce_budget and not _shop_matches_budget_ceiling(query, shop):
+            continue
+        valid_ids.append(sid)
+    return set(valid_ids)
+
+
+def _apply_hard_constraints_to_recommendations(
+    query: str,
+    recommended: list[int],
+    rejected: list[int],
+    shops: list[dict],
+) -> tuple[list[int], list[int]]:
+    valid_hard_ids = _hard_constraint_candidate_ids(query, shops)
+    if not valid_hard_ids:
+        return recommended, rejected
+    if recommended and all(sid in valid_hard_ids for sid in recommended):
+        return recommended, rejected
+
+    target_count = max(1, min(len(recommended) or 3, len(valid_hard_ids)))
+    next_recommended = [sid for sid in recommended if sid in valid_hard_ids]
+    for shop in shops:
+        sid = _shop_id(shop)
+        if sid is None or sid not in valid_hard_ids or sid in next_recommended:
+            continue
+        next_recommended.append(sid)
+        if len(next_recommended) >= target_count:
+            break
+
+    if not next_recommended:
+        return recommended, rejected
+
+    next_rejected: list[int] = []
+    for sid in [*recommended, *rejected, *[_shop_id(shop) for shop in shops]]:
+        if sid is None or sid in next_recommended or sid in next_rejected:
+            continue
+        next_rejected.append(sid)
+    return next_recommended, next_rejected
+
+
 def _validate_agent_decision(
     decision: AgentRecommendationDecision,
     tool_result: dict,
@@ -3493,6 +3580,8 @@ def _validate_agent_decision(
     for sid in available_ids:
         if sid is not None and sid not in recommended and sid not in rejected:
             rejected.append(sid)
+    recommended, rejected = _apply_hard_constraints_to_recommendations(query, recommended, rejected, shops)
+    rejected = [sid for sid in rejected if sid not in recommended]
     recommended = _prioritize_contextual_recommended_ids(query, recommended, shops)
     rejected = [sid for sid in rejected if sid not in recommended]
     for sid in available_ids:
@@ -3505,6 +3594,8 @@ def _validate_agent_decision(
         shops,
         tool_result.get("private_memory") if isinstance(tool_result, dict) else None,
     )
+    recommended, rejected = _apply_hard_constraints_to_recommendations(query, recommended, rejected, shops)
+    rejected = [sid for sid in rejected if sid not in recommended]
     rejection_summary = decision.rejection_summary
     if rejection_summary:
         recommended_aliases: list[str] = []
@@ -3515,6 +3606,13 @@ def _validate_agent_decision(
             display_name = _agent_display_shop_name(shop, 0)
             raw_name = str(shop.get("name") or "")
             recommended_aliases.append(display_name)
+            recommended_aliases.append(raw_name)
+            compact_display = _normalized_name(display_name)
+            compact_raw = _normalized_name(raw_name)
+            if len(compact_display) >= 4:
+                recommended_aliases.append(compact_display[:4])
+            if len(compact_raw) >= 4:
+                recommended_aliases.append(compact_raw[:4])
             display_token = re.split(r"[\s（(|｜/]+", display_name.strip(), maxsplit=1)[0]
             if len(display_token) >= 3:
                 recommended_aliases.append(display_token)
@@ -3528,7 +3626,18 @@ def _validate_agent_decision(
             first_token = re.split(r"[\s（(|｜/]+", raw_name.strip(), maxsplit=1)[0]
             if len(first_token) >= 3:
                 recommended_aliases.append(first_token)
-        if any(alias and alias in rejection_summary for alias in recommended_aliases):
+        normalized_rejection_summary = _normalized_name(rejection_summary)
+        if any(
+            alias
+            and (
+                alias in rejection_summary
+                or (
+                    len(_normalized_name(alias)) >= 3
+                    and _normalized_name(alias) in normalized_rejection_summary
+                )
+            )
+            for alias in recommended_aliases
+        ):
             rejection_summary = None
 
     return AgentRecommendationDecision(
@@ -4280,6 +4389,39 @@ def _fresh_restaurant_recommendation_request(query: str) -> bool:
             "用餐",
         )
     )
+
+
+def _fresh_restaurant_query_signal_count(query: str) -> int:
+    normalized = str(query or "").strip()
+    if not normalized:
+        return 0
+    constraints = _extract_query_constraints(normalized)
+    signals = 0
+    if constraints.get("districts") or constraints.get("stations") or constraints.get("wants_nearby"):
+        signals += 1
+    if (
+        constraints.get("categories")
+        or constraints.get("specific_cuisines")
+        or constraints.get("wants_burger")
+        or _query_requests_steak(normalized)
+    ):
+        signals += 1
+    if _agent_query_context_labels(normalized) or constraints.get("wants_luxury") or constraints.get("wants_hot_seat"):
+        signals += 1
+    if _query_budget_range(normalized) != (None, None):
+        signals += 1
+    if any(phrase in normalized for phrase in ("推薦", "想找", "找", "想吃", "餐廳", "吃飯", "用餐", "聚餐")):
+        signals += 1
+    return signals
+
+
+def _complete_fresh_restaurant_query(query: str) -> bool:
+    normalized = str(query or "").strip()
+    if not _fresh_restaurant_recommendation_request(normalized):
+        return False
+    if _recommendation_followup_reference(normalized):
+        return False
+    return _fresh_restaurant_query_signal_count(normalized) >= 3
 
 
 def _booking_confirm_intent(query: str) -> bool:
