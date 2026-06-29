@@ -1346,6 +1346,90 @@ def _burger_sort_key(constraints: dict, hit: dict) -> tuple[int, float, int, int
     )
 
 
+def _query_requests_steak(query: str) -> bool:
+    return any(token in str(query or "").lower() for token in ("牛排", "排餐", "steak", "肋眼", "菲力"))
+
+
+def _steak_match_score(hit: dict) -> int:
+    text = _payload_text(hit)
+    name = str(hit.get("name") or "").lower()
+    dishes = " ".join(_parse_json_list(hit.get("signature_dishes"))).lower()
+    score = 0
+    if any(token in name for token in ("牛排", "steak", "排餐")):
+        score += 4
+    if any(token in dishes for token in ("牛排", "steak", "肋眼", "菲力", "牛小排", "肋排", "熟成牛")):
+        score += 3
+    if any(token in text for token in ("牛排", "steak", "肋眼", "菲力", "牛小排", "肋排", "排餐")):
+        score += 2
+    if any(token in name for token in ("漢堡", "burger", "早午餐", "brunch")):
+        score -= 2
+    return score
+
+
+def _has_steak_semantics(hit: dict) -> bool:
+    return _steak_match_score(hit) >= 3
+
+
+def _steak_sort_key(constraints: dict, hit: dict) -> tuple[int, int, int, int, float, int, float]:
+    tags = set(_parse_json_list(hit.get("atmosphere_tags")))
+    return (
+        1 if _district_matches(constraints, hit) else 0,
+        _steak_match_score(hit),
+        1 if "約會" in tags else 0,
+        int(hit.get("avg_price") or 0),
+        _normalized_rating(hit.get("rating")),
+        int(hit.get("comments") or 0),
+        float(hit.get("rerank_score") or hit.get("score") or 0.0),
+    )
+
+
+def _prioritize_steak_hits(query: str, constraints: dict, hits: list[dict]) -> list[dict]:
+    if not _query_requests_steak(query):
+        return hits
+    steak_hits = [hit for hit in hits if _has_steak_semantics(hit)]
+    if not steak_hits:
+        return hits
+    other_hits = [hit for hit in hits if hit not in steak_hits]
+    steak_hits.sort(key=lambda hit: _steak_sort_key(constraints, hit), reverse=True)
+    return steak_hits + other_hits
+
+
+def _dedupe_search_hits(hits: list[dict]) -> list[dict]:
+    deduped: list[dict] = []
+    positions: dict[int, int] = {}
+
+    def quality(hit: dict) -> tuple[int, int, float, int]:
+        return (
+            _steak_match_score(hit),
+            1 if _shop_has_rich_context(hit) else 0,
+            float(hit.get("rerank_score") or hit.get("score") or 0.0),
+            int(hit.get("comments") or 0),
+        )
+
+    for hit in hits:
+        try:
+            shop_id = int(hit.get("shop_id") or 0)
+        except (TypeError, ValueError):
+            shop_id = 0
+        if not shop_id:
+            deduped.append(hit)
+            continue
+        if shop_id not in positions:
+            positions[shop_id] = len(deduped)
+            deduped.append(hit)
+            continue
+        index = positions[shop_id]
+        if quality(hit) > quality(deduped[index]):
+            deduped[index] = hit
+    return deduped
+
+
+def _search_category_match(query: str, constraints: dict, hit: dict) -> bool:
+    if _query_requests_steak(query) and _has_steak_semantics(hit):
+        return True
+    return _matches_requested_category(hit, constraints)
+
+
 def _premium_hotpot_key(constraints: dict, hit: dict) -> tuple[int, int, int, int, int, float, int, int, float]:
     avg_price = hit.get("avg_price") or 0
     tags = set(hit.get("atmosphere_tags") or [])
@@ -1731,6 +1815,49 @@ async def _burger_supplements(constraints: dict, existing_ids: set[int], limit: 
     return supplements[:limit]
 
 
+async def _steak_supplements(query: str, constraints: dict, _existing_ids: set[int], limit: int = 8) -> list[dict]:
+    if not _query_requests_steak(query):
+        return []
+
+    try:
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            response = await client.get(
+                f"{settings.java_backend_url}/api/shop/search",
+                params={"q": "牛排", "page": 1, "size": max(limit, 12)},
+            )
+        if response.status_code != 200:
+            return []
+        payload = response.json()
+        data = payload.get("data") if isinstance(payload, dict) else {}
+        records = data.get("records") if isinstance(data, dict) else []
+    except Exception:
+        logger.exception("steak_supplement_failed")
+        return []
+
+    supplements: list[dict] = []
+    for shop in records or []:
+        if not isinstance(shop, dict):
+            continue
+        try:
+            shop_id = int(shop.get("id") or 0)
+        except (TypeError, ValueError):
+            continue
+        if not shop_id:
+            continue
+        metadata = await _fetch_java_ai_metadata(shop_id)
+        hit = _java_shop_to_search_hit(shop, metadata)
+        if constraints["districts"] and not _district_matches(constraints, hit):
+            continue
+        if not _has_steak_semantics(hit):
+            continue
+        hit["score"] = max(float(hit.get("score") or 0.0), 2.5)
+        hit["rerank_score"] = float(hit.get("score") or 0.0) + _metadata_bonus(query, hit)
+        supplements.append(hit)
+
+    supplements.sort(key=lambda hit: _steak_sort_key(constraints, hit), reverse=True)
+    return supplements[:limit]
+
+
 async def _java_shop_name_supplements(query: str, existing_ids: set[int], limit: int = 5) -> list[dict]:
     keyword = _specific_shop_keyword(query)
     if not keyword:
@@ -1845,6 +1972,13 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
     )
     if burger_hits:
         raw_hits.extend(burger_hits)
+    steak_hits = await _steak_supplements(
+        query,
+        constraints,
+        {int(hit["shop_id"]) for hit in raw_hits if hit.get("shop_id")},
+    )
+    if steak_hits:
+        raw_hits.extend(steak_hits)
     exact_name_hits = await _java_shop_name_supplements(
         query,
         {int(hit["shop_id"]) for hit in raw_hits if hit.get("shop_id")},
@@ -1858,6 +1992,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             [hit.get("name") for hit in exact_name_hits[:8]],
         )
 
+    raw_hits = _dedupe_search_hits(raw_hits)
     before_active_filter = len(raw_hits)
     raw_hits = [hit for hit in raw_hits if not _is_inactive_search_hit(hit)]
     if len(raw_hits) != before_active_filter:
@@ -1900,9 +2035,17 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             [hit.get("name") for hit in burger_other[:8]],
         )
 
+    if _query_requests_steak(query):
+        raw_hits = _prioritize_steak_hits(query, constraints, raw_hits)
+        logger.warning(
+            "search_steak_partition query=%r steak=%s",
+            query,
+            [hit.get("name") for hit in raw_hits[:8] if _has_steak_semantics(hit)],
+        )
+
     if constraints["categories"]:
         def category_match(hit: dict) -> bool:
-            return _matches_requested_category(hit, constraints)
+            return _search_category_match(query, constraints, hit)
 
         matching = [
             hit for hit in raw_hits
@@ -2095,7 +2238,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
         else:
             strict_category = [
                 hit for hit in raw_hits
-                if _matches_requested_category(hit, constraints)
+                if _search_category_match(query, constraints, hit)
             ]
             rejected_conflicts = [
                 hit for hit in raw_hits
@@ -2173,6 +2316,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             [hit.get("name") for hit in strict_station[:8]],
         )
 
+    raw_hits = _prioritize_steak_hits(query, constraints, raw_hits)
     raw_hits = _prefer_rich_hits(raw_hits, top_k)
     return raw_hits[:top_k]
 

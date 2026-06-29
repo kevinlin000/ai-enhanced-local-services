@@ -82,6 +82,69 @@ async def test_line_fresh_recommendation_resets_before_advice(monkeypatch):
     assert order == ["reset", "advice", "cards"]
 
 
+def test_steak_query_prioritizes_steak_hits_over_generic_american():
+    query = "大安區想吃牛排，適合約會聊天，也想知道附近停車"
+    constraints = main._extract_query_constraints(query)
+    hits = [
+        {
+            "shop_id": 10136,
+            "name": "Second Floor 貳樓敦南店",
+            "district": "大安",
+            "category_slug": "american",
+            "signature_dishes": ["曙光汁鮮蝦雞肉麵", "燕麥脆脆炸魚薯條"],
+            "atmosphere_tags": ["聚餐", "親子"],
+            "rerank_score": 4.0,
+        },
+        {
+            "shop_id": 10544,
+            "name": "茱莉金牛排餐酒館",
+            "district": "大安",
+            "category_slug": "american",
+            "signature_dishes": ["安格斯肋眼牛排", "酥烤法式半雞"],
+            "atmosphere_tags": ["約會", "聚餐"],
+            "avg_price": 1750,
+            "rerank_score": 3.0,
+        },
+        {
+            "shop_id": 10442,
+            "name": "At.First早寓",
+            "district": "大安",
+            "category_slug": "american",
+            "signature_dishes": ["加利亞香辣茄汁阪腱牛排義大利麵"],
+            "atmosphere_tags": ["聚餐"],
+            "rerank_score": 2.0,
+        },
+        {
+            "shop_id": 10638,
+            "name": "Takeout Burger&Cafe 延吉店",
+            "district": "大安",
+            "category_slug": "american",
+            "signature_dishes": ["蒜味乳酪漢堡", "松露漢堡"],
+            "atmosphere_tags": ["聚餐"],
+            "rerank_score": 3.5,
+        },
+    ]
+
+    ordered = main._prioritize_steak_hits(query, constraints, hits)
+
+    assert [hit["shop_id"] for hit in ordered[:2]] == [10544, 10442]
+    assert ordered[-1]["shop_id"] in {10136, 10638}
+
+
+def test_steak_query_keeps_steak_restaurant_with_broader_category():
+    query = "大安區想吃牛排，適合約會聊天"
+    constraints = main._extract_query_constraints(query)
+    hit = {
+        "shop_id": 10696,
+        "name": "Agusto奧古斯托 牛排龍蝦餐酒館 大安店",
+        "district": "大安",
+        "category_slug": "euro",
+        "signature_dishes": ["肋眼牛排", "龍蝦義大利麵"],
+    }
+
+    assert main._search_category_match(query, constraints, hit)
+
+
 def test_agent_response_contract_orders_shops_and_builds_comparison_rows():
     payload = main._agent_response_contract(
         {
