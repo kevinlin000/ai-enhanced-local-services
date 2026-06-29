@@ -8,6 +8,14 @@ import app.main as main
 from app.main import _line_should_force_recommendation_cards
 
 
+def _line_text_event(text: str, user_id: str = "test-line-user") -> dict:
+    return {
+        "type": "message",
+        "source": {"type": "user", "userId": user_id},
+        "message": {"type": "text", "text": text},
+    }
+
+
 def test_line_force_recommendation_cards_for_clear_restaurant_query():
     assert _line_should_force_recommendation_cards("推薦信義區高級火鍋")
     assert _line_should_force_recommendation_cards("信義區高級火鍋")
@@ -18,6 +26,60 @@ def test_line_force_recommendation_cards_for_clear_restaurant_query():
 def test_line_force_recommendation_cards_skips_booking_and_payment_queries():
     assert not _line_should_force_recommendation_cards("我要訂信義區火鍋")
     assert not _line_should_force_recommendation_cards("我要付款訂金")
+
+
+def test_line_fresh_recommendation_resets_agent_context():
+    assert main._line_should_reset_agent_context_for_query("大安區想吃牛排，適合約會聊天，也想知道附近停車")
+    assert main._line_should_reset_agent_context_for_query("韓式料理")
+    assert not main._line_should_reset_agent_context_for_query("還有嗎")
+    assert not main._line_should_reset_agent_context_for_query("我要訂第一間")
+    assert not main._line_should_reset_agent_context_for_query("付訂金")
+
+
+def test_reset_line_agent_context_clears_agent_and_recommendation_state(monkeypatch):
+    cleared_sessions = []
+    cleared_recommendations = []
+
+    monkeypatch.setattr(main.session_store, "clear_session", lambda session_id: cleared_sessions.append(session_id))
+    monkeypatch.setattr(main, "_clear_line_recommendation_state", lambda user_id: cleared_recommendations.append(user_id))
+
+    did_reset = main._reset_line_agent_context_for_fresh_query(
+        "U-test",
+        "大安區想吃牛排，適合約會聊天，也想知道附近停車",
+    )
+
+    assert did_reset is True
+    assert cleared_sessions == ["line:U-test"]
+    assert cleared_recommendations == ["U-test"]
+
+
+@pytest.mark.anyio
+async def test_line_fresh_recommendation_resets_before_advice(monkeypatch):
+    order = []
+
+    def fake_reset(user_id: str, text: str):
+        order.append("reset")
+        assert text == "大安區想吃牛排，適合約會聊天，也想知道附近停車"
+        return True
+
+    async def fake_advice(user_text: str, user_id: str):
+        order.append("advice")
+        return None
+
+    async def fake_cards(user_text: str, user_id: str):
+        order.append("cards")
+        return [main.build_text_message("cards")]
+
+    monkeypatch.setattr(main, "_reset_line_agent_context_for_fresh_query", fake_reset)
+    monkeypatch.setattr(main, "_build_line_recommendation_advice", fake_advice)
+    monkeypatch.setattr(main, "_build_line_fallback_recommendation_cards", fake_cards)
+
+    messages = await main._build_line_reply_messages(
+        _line_text_event("大安區想吃牛排，適合約會聊天，也想知道附近停車")
+    )
+
+    assert [message["text"] for message in messages] == ["cards"]
+    assert order == ["reset", "advice", "cards"]
 
 
 def test_agent_response_contract_orders_shops_and_builds_comparison_rows():

@@ -9109,6 +9109,25 @@ def _line_should_force_recommendation_cards(text: str) -> bool:
     return has_food_or_place and (has_request_phrase or has_specific_dining_need or (has_clear_category_only and not asks_definition))
 
 
+def _line_should_reset_agent_context_for_query(text: str) -> bool:
+    return bool(
+        _line_should_force_recommendation_cards(text)
+        and not _line_more_recommendation_intent(text)
+        and not _line_card_request_intent(text)
+    )
+
+
+def _reset_line_agent_context_for_fresh_query(user_id: str, text: str) -> bool:
+    if not _line_should_reset_agent_context_for_query(text):
+        return False
+    try:
+        session_store.clear_session(f"line:{user_id}")
+    except Exception:
+        logger.exception("line_agent_session_clear_failed user_id=%s", user_id)
+    _clear_line_recommendation_state(user_id)
+    return True
+
+
 async def _build_line_clarification_if_needed(user_text: str, user_id: str) -> list[dict] | None:
     if not _restaurant_need_clarification(user_text):
         return None
@@ -9409,6 +9428,7 @@ async def _build_line_agent_recommendation_messages(
 ) -> list[dict]:
     try:
         check_input(user_text)
+        _reset_line_agent_context_for_fresh_query(user_id, user_text)
         answer, _tools_used, tool_result = await _run_agent_turn(user_text, f"line:{user_id}")
     except GuardrailViolation:
         return [build_text_message("這個內容我不能協助處理。可以換一個餐廳或訂位相關的問法。")]
@@ -9984,6 +10004,8 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     booking_draft_update_messages = await _build_line_booking_draft_update(user_text, user_id)
     if booking_draft_update_messages is not None:
         return booking_draft_update_messages
+
+    _reset_line_agent_context_for_fresh_query(user_id, effective_user_text)
 
     advice_messages = await _build_line_recommendation_advice(user_text, user_id)
     if advice_messages is not None:
