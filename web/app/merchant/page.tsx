@@ -86,6 +86,8 @@ const MERCHANT_SECTION_COPY: Record<MerchantSection, { label: string; descriptio
   },
 };
 
+const MERCHANT_SECTION_EVENT = "bytebites:merchant-section-change";
+
 function merchantSectionFromHash(hash: string): MerchantSection {
   if (hash === "#incident-queue") return "incidents";
   if (hash === "#deposit-queue") return "deposits";
@@ -229,13 +231,19 @@ export default function MerchantPage() {
   );
 
   useEffect(() => {
-    function syncSection() {
-      setActiveSection(merchantSectionFromHash(window.location.hash));
+    function syncSection(event?: Event) {
+      const customHash =
+        event instanceof CustomEvent && typeof event.detail === "string" ? event.detail : window.location.hash;
+      setActiveSection(merchantSectionFromHash(customHash));
     }
 
     syncSection();
     window.addEventListener("hashchange", syncSection);
-    return () => window.removeEventListener("hashchange", syncSection);
+    window.addEventListener(MERCHANT_SECTION_EVENT, syncSection);
+    return () => {
+      window.removeEventListener("hashchange", syncSection);
+      window.removeEventListener(MERCHANT_SECTION_EVENT, syncSection);
+    };
   }, []);
 
   useEffect(() => {

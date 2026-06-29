@@ -91,6 +91,8 @@ const MERCHANT_NAV_ITEMS = [
   },
 ];
 
+const MERCHANT_SECTION_EVENT = "bytebites:merchant-section-change";
+
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/" || pathname === "/shops";
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -237,7 +239,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               }`;
 
               return (
-                <Link key={item.label} href={item.href} aria-current={active ? "page" : undefined} className={className}>
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={className}
+                  onClick={() => {
+                    setCurrentHash(itemHash);
+                    window.dispatchEvent(new CustomEvent(MERCHANT_SECTION_EVENT, { detail: itemHash }));
+                  }}
+                >
                   <Icon className="h-5 w-5" />
                   <span className="flex-1">{item.label}</span>
                   <ChevronRight className="h-4 w-4 opacity-60" />
