@@ -707,7 +707,7 @@ export default function MyBookingsPage() {
                 <div>
                   <h3 className="text-base font-semibold text-sky-950">待補款改單</h3>
                   <p className="mt-1 text-sm leading-6 text-sky-800">
-                    已付款訂位若改單造成訂金增加，先完成補款；店家確認後 Java 才會套用改單。
+                    已付款訂位若改單造成訂金增加，先完成補款；店家確認後才會套用改單。
                   </p>
                 </div>
                 <span className="w-fit rounded-full bg-white px-3 py-1 text-sm font-semibold text-sky-800">
@@ -745,7 +745,7 @@ export default function MyBookingsPage() {
                         </p>
                         {completed ? (
                           <p className="mt-1 truncate text-xs font-semibold text-emerald-700">
-                            PSP 交易編號：{adjustment.settlementTransId || "-"}
+                            補款交易編號：{adjustment.settlementTransId || "-"}
                           </p>
                         ) : null}
                       </div>
@@ -973,7 +973,7 @@ export default function MyBookingsPage() {
               </p>
               {topUpPayment ? (
                 <p className="mt-2 text-sm leading-6 text-zinc-500">
-                  補款完成後，此項目會變成 PSP 已完成，等待店家套用改單。
+                  補款完成後，店家會確認並套用改單。
                 </p>
               ) : null}
             </div>
@@ -1137,7 +1137,7 @@ export default function MyBookingsPage() {
                 <div className="grid gap-2 sm:grid-cols-2">
                   {[
                     { value: "CUSTOMER_LATE" as const, label: "我會晚到", helper: "通知店家保留座位" },
-                    { value: "RESTAURANT_DELAY" as const, label: "店家延誤", helper: "Demo 現場狀況通知" },
+                    { value: "RESTAURANT_DELAY" as const, label: "現場等候過久", helper: "請店家協助安排或改時段" },
                   ].map((item) => {
                     const active = incidentForm.incidentType === item.value;
                     return (
@@ -1180,13 +1180,13 @@ export default function MyBookingsPage() {
                   placeholder={
                     incidentForm.incidentType === "CUSTOMER_LATE"
                       ? "例如：我塞車會晚 15 分鐘，麻煩保留座位。"
-                      : "例如：前面桌用餐延長，預估 19:15 可入座。"
+                      : "例如：現場等候超過 15 分鐘，想請店家協助安排。"
                   }
                 />
               </label>
 
               <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-900">
-                建立後會寫入 Java 後端 incident 狀態，並透過 LINE 通知流程推送救場卡片。
+                建立後會同步給店家後台；店家可保留座位、提出替代時段，並透過 LINE 回覆你。
               </div>
 
               {incidentError ? (

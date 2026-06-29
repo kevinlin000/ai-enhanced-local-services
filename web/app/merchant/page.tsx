@@ -63,7 +63,7 @@ const DEMO_STORY_BY_SHOP_ID: Record<number, { label: string; detail: string }> =
 
 const INCIDENT_TYPE_LABEL: Record<string, string> = {
   CUSTOMER_LATE: "顧客晚到",
-  RESTAURANT_DELAY: "店家延誤",
+  RESTAURANT_DELAY: "顧客現場等候",
 };
 
 const BOOKING_STATUS_LABEL: Record<string, string> = {
@@ -86,16 +86,16 @@ const ADJUSTMENT_SOURCE_LABEL: Record<string, string> = {
 };
 
 const SETTLEMENT_STATUS_LABEL: Record<string, string> = {
-  PENDING: "等待 PSP 處理",
-  PROCESSING: "等待退款對帳",
-  COMPLETED: "PSP 已完成",
+  PENDING: "等待處理",
+  PROCESSING: "處理中",
+  COMPLETED: "金流完成",
   FAILED: "退款失敗",
 };
 
 const REFUND_REPORT_ACTION_LABEL: Record<string, string> = {
-  ESCALATE_FAILED_REFUNDS: "先升級失敗退款",
-  ESCALATE_STUCK_REFUNDS: "先升級逾時退款",
-  FOLLOW_UP_ESCALATED_REFUNDS: "追蹤已升級退款",
+  ESCALATE_FAILED_REFUNDS: "先處理失敗退款",
+  ESCALATE_STUCK_REFUNDS: "先處理逾時退款",
+  FOLLOW_UP_ESCALATED_REFUNDS: "追蹤人工處理退款",
   NO_REFUND_ACTION: "無需跟進",
 };
 
@@ -129,15 +129,23 @@ function refundReportTone(status: string) {
 
 function refundReasonLabel(reason?: string) {
   if (reason === "FAILED_REFUND") return "退款失敗";
-  if (reason === "STUCK_PROCESSING") return "逾時未回寫";
+  if (reason === "STUCK_PROCESSING") return "逾時未完成";
   return "退款注意";
+}
+
+function refundHeadlineCopy(headline?: string) {
+  return (headline || "")
+    .replaceAll("升級處理", "人工確認")
+    .replaceAll("未升級", "待人工確認")
+    .replaceAll("已升級", "已人工確認")
+    .replaceAll("未回寫", "未完成");
 }
 
 function refundNotificationPolicyLabel(policy: MerchantRefundNotificationPolicy | null) {
   if (!policy) return "";
-  if (policy.shouldNotify) return "排程可發送";
-  if (policy.reason === "COOLDOWN_ACTIVE") return "排程冷卻中";
-  if (policy.reason === "NO_REFUND_ATTENTION") return "無需排程通知";
+  if (policy.shouldNotify) return "可通知營運";
+  if (policy.reason === "COOLDOWN_ACTIVE") return "剛通知過，暫不重送";
+  if (policy.reason === "NO_REFUND_ATTENTION") return "無需通知";
   if (policy.reason === "MISSING_SHOP") return "缺少店家資訊";
   return policy.reason;
 }
@@ -308,13 +316,13 @@ export default function MerchantPage() {
           throw new Error(adjustmentResponse.errorMsg ?? "無法載入訂金差額處理");
         }
         if (!slaResponse.success) {
-          throw new Error(slaResponse.errorMsg ?? "無法載入退款 SLA");
+          throw new Error(slaResponse.errorMsg ?? "無法載入退款提醒");
         }
         if (!reportResponse.success) {
-          throw new Error(reportResponse.errorMsg ?? "無法載入退款營運摘要");
+          throw new Error(reportResponse.errorMsg ?? "無法載入退款處理摘要");
         }
         if (!policyResponse.success) {
-          throw new Error(policyResponse.errorMsg ?? "無法載入退款排程通知政策");
+          throw new Error(policyResponse.errorMsg ?? "無法載入營運提醒設定");
         }
         if (!cancelled) {
           setDepositAdjustments(adjustmentResponse.data.adjustments);
@@ -346,14 +354,14 @@ export default function MerchantPage() {
         javaApi.merchantRefundReport({ shopId, stuckMinutes: 30 }),
         javaApi.merchantRefundNotificationPolicy({ shopId, stuckMinutes: 30, cooldownMinutes: 120 }),
       ]);
-      if (!slaResponse.success) throw new Error(slaResponse.errorMsg ?? "無法載入退款 SLA");
-      if (!reportResponse.success) throw new Error(reportResponse.errorMsg ?? "無法載入退款營運摘要");
-      if (!policyResponse.success) throw new Error(policyResponse.errorMsg ?? "無法載入退款排程通知政策");
+      if (!slaResponse.success) throw new Error(slaResponse.errorMsg ?? "無法載入退款提醒");
+      if (!reportResponse.success) throw new Error(reportResponse.errorMsg ?? "無法載入退款處理摘要");
+      if (!policyResponse.success) throw new Error(policyResponse.errorMsg ?? "無法載入營運提醒設定");
       setRefundSla(slaResponse.data);
       setRefundReport(reportResponse.data);
       setRefundNotificationPolicy(policyResponse.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "載入退款 SLA 失敗");
+      setError(err instanceof Error ? err.message : "載入退款提醒失敗");
     } finally {
       setRefundSlaLoading(false);
     }
@@ -385,7 +393,7 @@ export default function MerchantPage() {
             : "目前沒有需要通知的退款異常。",
         );
       } else {
-        setMessage("退款營運摘要已送出 LINE 通知。");
+        setMessage("退款處理摘要已送出 LINE 通知。");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "退款摘要通知失敗");
@@ -405,23 +413,23 @@ export default function MerchantPage() {
         stuckMinutes: 30,
         cooldownMinutes: 120,
       });
-      if (!response.success) throw new Error(response.errorMsg ?? "排程通知判斷失敗");
+      if (!response.success) throw new Error(response.errorMsg ?? "營運提醒判斷失敗");
       if (response.data.report) setRefundReport(response.data.report);
       if (response.data.policy) setRefundNotificationPolicy(response.data.policy);
       if (response.data.skipped) {
         const reason = response.data.reason;
         setMessage(
           reason === "COOLDOWN_ACTIVE"
-            ? "排程通知仍在冷卻中，未重複推播。"
+            ? "剛通知過營運人員，這次不重複推播。"
             : reason === "NO_LINKED_LINE_USER"
-              ? "排程通知已判定需要發送；商家帳號尚未綁定 LINE，未送出。"
-              : "目前沒有需要排程通知的退款異常。",
+              ? "系統判定需要通知；商家帳號尚未綁定 LINE，未送出。"
+              : "目前沒有需要通知的退款異常。",
         );
       } else {
-        setMessage("排程通知判定需要發送，LINE 摘要已送出。");
+        setMessage("系統判定需要通知，LINE 摘要已送出。");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "排程通知判斷失敗");
+      setError(err instanceof Error ? err.message : "營運提醒判斷失敗");
     } finally {
       setRefundPolicyBusy(false);
     }
@@ -506,12 +514,12 @@ export default function MerchantPage() {
   async function recordDepositSettlement(adjustment: MerchantDepositAdjustment) {
     if (!selectedShopId) return;
     if (adjustment.adjustmentType === "REFUND") {
-      setError("退款請先建立退款請求，並等待 PSP 對帳回寫");
+      setError("退款請先送出請求，等待金流確認完成");
       return;
     }
     const settlementTransId = (settlementRefs[adjustment.id] ?? "").trim();
     if (!settlementTransId) {
-      setError("請輸入 PSP 交易編號");
+      setError("請輸入補款交易編號");
       return;
     }
 
@@ -525,9 +533,9 @@ export default function MerchantPage() {
         adjustmentId: adjustment.id,
         provider: "TAPPAY",
         settlementTransId,
-        settlementNote: `${actionLabel} ${currency(adjustment.deltaAmount)} 已由 PSP 完成`,
+        settlementNote: `${actionLabel} ${currency(adjustment.deltaAmount)} 已由金流完成`,
       });
-      if (!response.success) throw new Error(response.errorMsg ?? "PSP settlement 記錄失敗");
+      if (!response.success) throw new Error(response.errorMsg ?? "補款完成記錄失敗");
       setDepositAdjustments((current) =>
         current.map((item) => (item.id === adjustment.id ? response.data : item)),
       );
@@ -536,9 +544,9 @@ export default function MerchantPage() {
         delete next[adjustment.id];
         return next;
       });
-      setMessage("PSP settlement 已記錄，現在可以套用改單。");
+      setMessage("補款已記錄，現在可以套用改單。");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "PSP settlement 記錄失敗");
+      setError(err instanceof Error ? err.message : "補款完成記錄失敗");
     } finally {
       setAdjustmentBusyId(null);
     }
@@ -560,7 +568,7 @@ export default function MerchantPage() {
         current.map((item) => (item.id === adjustment.id ? response.data : item)),
       );
       await refreshRefundSlaSummary(selectedShopId);
-      setMessage("退款請求已建立，等待 PSP 對帳結果回寫。");
+      setMessage("退款請求已送出，等待金流確認。");
     } catch (err) {
       setError(err instanceof Error ? err.message : "退款請求建立失敗");
     } finally {
@@ -575,7 +583,7 @@ export default function MerchantPage() {
     if (!selectedShopId) return;
     const settlementTransId = (settlementRefs[adjustment.id] ?? "").trim();
     if (status === "COMPLETED" && !settlementTransId) {
-      setError("退款對帳成功時請輸入 PSP 退款編號");
+      setError("退款成功時請輸入退款交易編號");
       return;
     }
 
@@ -591,10 +599,10 @@ export default function MerchantPage() {
         settlementTransId: settlementTransId || undefined,
         settlementNote:
           status === "COMPLETED"
-            ? `PSP 退款對帳完成：${currency(adjustment.deltaAmount)}`
-            : `PSP 退款失敗：${currency(adjustment.deltaAmount)}`,
+            ? `退款完成：${currency(adjustment.deltaAmount)}`
+            : `退款失敗：${currency(adjustment.deltaAmount)}`,
       });
-      if (!response.success) throw new Error(response.errorMsg ?? "退款對帳回寫失敗");
+      if (!response.success) throw new Error(response.errorMsg ?? "退款結果記錄失敗");
       setDepositAdjustments((current) =>
         current.map((item) => (item.id === adjustment.id ? response.data : item)),
       );
@@ -604,9 +612,9 @@ export default function MerchantPage() {
         return next;
       });
       await refreshRefundSlaSummary(selectedShopId);
-      setMessage(status === "COMPLETED" ? "退款對帳已完成，現在可以套用改單。" : "退款對帳已標記失敗，可重新建立退款請求。");
+      setMessage(status === "COMPLETED" ? "退款已確認完成，現在可以套用改單。" : "退款已標記失敗，可重新送出退款請求。");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "退款對帳回寫失敗");
+      setError(err instanceof Error ? err.message : "退款結果記錄失敗");
     } finally {
       setAdjustmentBusyId(null);
     }
@@ -616,7 +624,7 @@ export default function MerchantPage() {
     if (!selectedShopId) return;
     const note =
       (refundEscalationNotes[adjustment.id] ?? "").trim() ||
-      `退款異常升級處理：${currency(adjustment.deltaAmount)}`;
+      `退款異常人工確認：${currency(adjustment.deltaAmount)}`;
 
     setAdjustmentBusyId(adjustment.id);
     setError(null);
@@ -627,7 +635,7 @@ export default function MerchantPage() {
         adjustmentId: adjustment.id,
         escalationNote: note,
       });
-      if (!response.success) throw new Error(response.errorMsg ?? "退款升級處理失敗");
+      if (!response.success) throw new Error(response.errorMsg ?? "退款人工確認失敗");
       setDepositAdjustments((current) =>
         current.map((item) => (item.id === adjustment.id ? response.data : item)),
       );
@@ -637,9 +645,9 @@ export default function MerchantPage() {
         return next;
       });
       await refreshRefundSlaSummary(selectedShopId);
-      setMessage("退款異常已標記為升級處理，Java 已留下 audit event。");
+      setMessage("退款異常已標記為人工確認。");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "退款升級處理失敗");
+      setError(err instanceof Error ? err.message : "退款人工確認失敗");
     } finally {
       setAdjustmentBusyId(null);
     }
@@ -653,8 +661,8 @@ export default function MerchantPage() {
     try {
       const note =
         adjustment.adjustmentType === "TOP_UP"
-          ? `PSP 補款已完成：${adjustment.settlementTransId ?? ""}`
-          : `PSP 退款已完成：${adjustment.settlementTransId ?? ""}`;
+          ? `補款已完成：${adjustment.settlementTransId ?? ""}`
+          : `退款已完成：${adjustment.settlementTransId ?? ""}`;
       const response = await javaApi.resolveMerchantDepositAdjustment({
         shopId: selectedShopId,
         adjustmentId: adjustment.id,
@@ -666,7 +674,7 @@ export default function MerchantPage() {
         setIncidents((current) => current.filter((incident) => incident.id !== adjustment.incidentId));
       }
       await refreshRefundSlaSummary(selectedShopId);
-      setMessage("訂金差額 settlement 已完成，Java 已套用改單並同步訂位狀態。");
+      setMessage("訂金差額已處理，改單已套用並同步訂位狀態。");
     } catch (err) {
       setError(err instanceof Error ? err.message : "訂金差額處理失敗");
     } finally {
@@ -799,7 +807,7 @@ export default function MerchantPage() {
                   <div className="min-w-0">
                     <h2 className="text-xl font-semibold">臨場救場</h2>
                     <p className="mt-1 break-words text-sm text-stone-500">
-                      追蹤顧客晚到與店家延誤；OPEN 事件由 Java incident state 統一管理。
+                      顧客晚到或現場等候過久時，店家可保留座位、提出替代時段，並同步 LINE 通知。
                     </p>
                   </div>
                 </div>
@@ -909,7 +917,7 @@ export default function MerchantPage() {
                   <div className="min-w-0">
                     <h2 className="text-xl font-semibold">訂金差額處理</h2>
                     <p className="mt-1 break-words text-sm text-stone-500">
-                      已付款訂位若改單需要補收或退款，會先停在這裡；PSP settlement 完成後才由 Java 套用改單。
+                      已付款訂位改人數或改時段後，若訂金變多就補收，變少就退款；完成後才套用改單。
                     </p>
                   </div>
                 </div>
@@ -920,7 +928,7 @@ export default function MerchantPage() {
 
               {refundSlaLoading ? (
                 <div className="border-b border-sky-100 bg-sky-50 px-5 py-3 text-sm font-medium text-sky-800">
-                  退款 SLA 讀取中
+                  退款提醒讀取中
                 </div>
               ) : refundSla ? (
                 <div
@@ -940,13 +948,13 @@ export default function MerchantPage() {
                       <div>
                         <p className="text-sm font-semibold">
                           {refundAttentionCount > 0
-                            ? `退款 SLA 注意：${refundAttentionCount} 件需處理`
-                            : "退款 SLA 正常"}
+                            ? `退款注意：${refundAttentionCount} 件需處理`
+                            : "退款狀態正常"}
                         </p>
                         <p className="mt-1 text-xs font-semibold">
                           {refundAttentionCount > 0
-                            ? `${refundSla.failedCount} 件失敗，${refundSla.stuckProcessingCount} 件超過 ${refundSla.stuckMinutes} 分鐘未回寫，${pendingRefundEscalationCount} 件尚未升級。`
-                            : `沒有失敗退款，也沒有超過 ${refundSla.stuckMinutes} 分鐘未回寫的退款。`}
+                            ? `${refundSla.failedCount} 件退款失敗，${refundSla.stuckProcessingCount} 件超過 ${refundSla.stuckMinutes} 分鐘未完成，${pendingRefundEscalationCount} 件尚未人工確認。`
+                            : `沒有失敗退款，也沒有超過 ${refundSla.stuckMinutes} 分鐘未完成的退款。`}
                         </p>
                       </div>
                     </div>
@@ -967,8 +975,8 @@ export default function MerchantPage() {
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                       )}
                       <div>
-                        <p className="text-sm font-semibold">退款營運摘要</p>
-                        <p className="mt-1 text-xs font-semibold">{refundReport.headline}</p>
+                        <p className="text-sm font-semibold">退款處理摘要</p>
+                        <p className="mt-1 text-xs font-semibold">{refundHeadlineCopy(refundReport.headline)}</p>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -986,7 +994,7 @@ export default function MerchantPage() {
                         disabled={refundNotifyBusy}
                         className="inline-flex items-center gap-2 rounded-md bg-stone-950 px-3 py-1 text-xs font-semibold text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {refundNotifyBusy ? "發送中" : "發送 LINE 摘要"}
+                        {refundNotifyBusy ? "發送中" : "通知營運"}
                       </button>
                       <button
                         type="button"
@@ -994,23 +1002,23 @@ export default function MerchantPage() {
                         disabled={refundPolicyBusy}
                         className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1 text-xs font-semibold text-stone-900 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {refundPolicyBusy ? "判斷中" : "執行排程判斷"}
+                        {refundPolicyBusy ? "判斷中" : "檢查是否需通知"}
                       </button>
                     </div>
                   </div>
 
                   <div className="mt-3 grid gap-2 sm:grid-cols-4">
-                    <RefundReportMetric label="未升級" value={refundReport.pendingEscalationCount} />
-                    <RefundReportMetric label="已升級" value={refundReport.escalatedCount} />
-                    <RefundReportMetric label="失敗" value={refundReport.failedCount} />
-                    <RefundReportMetric label="逾時" value={refundReport.stuckProcessingCount} />
+                    <RefundReportMetric label="待人工確認" value={refundReport.pendingEscalationCount} />
+                    <RefundReportMetric label="已人工確認" value={refundReport.escalatedCount} />
+                    <RefundReportMetric label="退款失敗" value={refundReport.failedCount} />
+                    <RefundReportMetric label="逾時未完成" value={refundReport.stuckProcessingCount} />
                   </div>
 
                   {refundNotificationPolicy ? (
                     <div className="mt-3 flex flex-col gap-1 rounded-lg bg-white/80 px-3 py-2 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between">
                       <span>
-                        排程通知 cooldown {refundNotificationPolicy.cooldownMinutes} 分鐘；
-                        {refundNotificationPolicy.shouldNotify ? "目前符合發送條件" : "目前不會自動發送"}
+                        營運提醒間隔 {refundNotificationPolicy.cooldownMinutes} 分鐘；
+                        {refundNotificationPolicy.shouldNotify ? "目前符合通知條件" : "目前不會重複通知"}
                       </span>
                       {refundNotificationPolicy.lastSentAt || refundNotificationPolicy.nextEligibleAt ? (
                         <span>
@@ -1045,7 +1053,7 @@ export default function MerchantPage() {
                         >
                           <span className="font-semibold">{item.bookingCode}</span>
                           <span>
-                            已升級 {item.refundEscalatedAt}
+                            已人工確認 {item.refundEscalatedAt}
                             {item.refundEscalationNote ? ` / ${item.refundEscalationNote}` : ""}
                           </span>
                         </div>
@@ -1098,13 +1106,13 @@ export default function MerchantPage() {
                         </p>
                         {settlementComplete ? (
                           <p className="mt-2 text-xs font-semibold text-emerald-700">
-                            PSP：{adjustment.settlementProvider || "TAPPAY"} /{" "}
+                            金流：{adjustment.settlementProvider || "TAPPAY"} /{" "}
                             {adjustment.settlementTransId || "-"}，金額{" "}
                             {currency(adjustment.settlementAmount || adjustment.deltaAmount)}
                           </p>
                         ) : isTopUp || settlementProcessing || settlementFailed ? (
                           <label className="mt-3 flex max-w-sm flex-col gap-1 text-xs font-medium text-stone-600">
-                            {isTopUp ? "PSP 交易編號" : "PSP 退款編號"}
+                            {isTopUp ? "補款交易編號" : "退款交易編號"}
                             <input
                               type="text"
                               value={settlementRefs[adjustment.id] ?? ""}
@@ -1114,24 +1122,24 @@ export default function MerchantPage() {
                                   [adjustment.id]: event.target.value,
                                 }))
                               }
-                              placeholder={isTopUp ? "TapPay top-up rec_trade_id" : "TapPay refund reference"}
+                              placeholder={isTopUp ? "例如：補款交易編號" : "例如：退款交易編號"}
                               className="h-10 rounded-lg border border-sky-200 bg-white px-3 text-sm text-stone-900 outline-none focus:border-sky-500"
                             />
                           </label>
                         ) : (
                           <p className="mt-3 text-xs font-semibold text-stone-500">
-                            建立退款請求後，需等待 PSP reconciliation 回寫成功才可套用改單。
+                            先送出退款請求，等金流確認完成後才套用改單。
                           </p>
                         )}
                         {isRefund && (settlementProcessing || settlementFailed) ? (
                           adjustment.refundEscalatedAt ? (
                             <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
-                              已升級處理：{adjustment.refundEscalatedAt}
+                              已人工確認：{adjustment.refundEscalatedAt}
                               {adjustment.refundEscalationNote ? `，${adjustment.refundEscalationNote}` : ""}
                             </p>
                           ) : (
                             <label className="mt-3 flex max-w-sm flex-col gap-1 text-xs font-medium text-stone-600">
-                              升級備註
+                              人工確認備註
                               <input
                                 type="text"
                                 value={refundEscalationNotes[adjustment.id] ?? ""}
@@ -1141,7 +1149,7 @@ export default function MerchantPage() {
                                     [adjustment.id]: event.target.value,
                                   }))
                                 }
-                                placeholder="例：已建立 TapPay 後台工單"
+                                placeholder="例：已通知金流客服協助處理"
                                 className="h-10 rounded-lg border border-amber-200 bg-white px-3 text-sm text-stone-900 outline-none focus:border-amber-500"
                               />
                             </label>
@@ -1173,7 +1181,7 @@ export default function MerchantPage() {
                             className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <CreditCard className="h-4 w-4" />
-                            {adjustmentBusyId === adjustment.id ? "記錄中" : "記錄 PSP 完成"}
+                            {adjustmentBusyId === adjustment.id ? "記錄中" : "記錄補款完成"}
                           </button>
                         ) : isRefund && settlementPending ? (
                           <button
@@ -1183,7 +1191,7 @@ export default function MerchantPage() {
                             className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <CreditCard className="h-4 w-4" />
-                            {adjustmentBusyId === adjustment.id ? "建立中" : "建立退款請求"}
+                            {adjustmentBusyId === adjustment.id ? "建立中" : "送出退款請求"}
                           </button>
                         ) : isRefund && settlementProcessing ? (
                           <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
@@ -1194,7 +1202,7 @@ export default function MerchantPage() {
                               className="inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               <CheckCheck className="h-4 w-4" />
-                              {adjustmentBusyId === adjustment.id ? "回寫中" : "對帳成功"}
+                              {adjustmentBusyId === adjustment.id ? "確認中" : "退款成功"}
                             </button>
                             <button
                               type="button"
@@ -1202,7 +1210,7 @@ export default function MerchantPage() {
                               disabled={adjustmentBusyId === adjustment.id}
                               className="inline-flex items-center gap-2 rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              標記失敗
+                              退款失敗
                             </button>
                           </div>
                         ) : isRefund && settlementFailed ? (
@@ -1221,14 +1229,14 @@ export default function MerchantPage() {
                               disabled={adjustmentBusyId === adjustment.id}
                               className="inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              對帳成功
+                              退款成功
                             </button>
                           </div>
                         ) : null}
                         {isRefund && (settlementProcessing || settlementFailed) ? (
                           adjustment.refundEscalatedAt ? (
                             <span className="rounded-md bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
-                              已升級處理
+                              已人工確認
                             </span>
                           ) : (
                             <button
@@ -1238,7 +1246,7 @@ export default function MerchantPage() {
                               className="inline-flex items-center gap-2 rounded-md border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               <AlertTriangle className="h-4 w-4" />
-                              {adjustmentBusyId === adjustment.id ? "處理中" : "升級處理"}
+                              {adjustmentBusyId === adjustment.id ? "處理中" : "人工確認"}
                             </button>
                           )
                         ) : null}
@@ -1246,12 +1254,12 @@ export default function MerchantPage() {
                           {settlementComplete
                             ? "已可安全套用改單"
                             : isTopUp
-                              ? "需先完成 PSP 補款"
+                              ? "需先完成補款"
                               : settlementFailed
                                 ? "退款失敗，可重送請求"
                                 : settlementProcessing
-                                  ? "等待 PSP 退款對帳"
-                                  : "需先建立退款請求"}
+                                  ? "等待退款完成"
+                                  : "需先送出退款請求"}
                         </span>
                       </div>
                     </div>
@@ -1260,7 +1268,7 @@ export default function MerchantPage() {
 
                 {!adjustmentLoading && depositAdjustments.length === 0 && (
                   <div className="rounded-lg bg-stone-50 p-6 text-sm text-stone-500">
-                    目前沒有待處理訂金差額。已付款訂位若改人數造成補收或退款，Java 會先擋下並建立 PSP settlement 處理項目。
+                    目前沒有待處理訂金差額。已付款訂位若改人數造成補收或退款，系統會先建立人工確認項目。
                   </div>
                 )}
               </div>
