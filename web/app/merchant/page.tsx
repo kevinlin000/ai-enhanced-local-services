@@ -778,6 +778,9 @@ export default function MerchantPage() {
                   onChange={(event) => setSelectedShopId(Number(event.target.value) || null)}
                   className="mt-1 h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-900 outline-none focus:border-emerald-500"
                 >
+                  {shops.length === 0 ? (
+                    <option value="">讀取店家中</option>
+                  ) : null}
                   {shops.map((shop) => (
                     <option key={shop.id} value={shop.id}>
                       {shop.name}
@@ -786,9 +789,9 @@ export default function MerchantPage() {
                 </select>
               </label>
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <Metric label="總容量" value={totals.capacity} />
-                <Metric label="已訂" value={totals.booked} />
-                <Metric label="剩餘" value={totals.remaining} />
+                <Metric label="總容量" value={loading ? "讀取中" : totals.capacity} />
+                <Metric label="已訂" value={loading ? "讀取中" : totals.booked} />
+                <Metric label="剩餘" value={loading ? "讀取中" : totals.remaining} />
               </div>
             </div>
           </div>
@@ -873,28 +876,28 @@ export default function MerchantPage() {
                 <MerchantWorkCard
                   title="工作佇列"
                   description="晚到、現場等候與替代時段提案"
-                  count={`${incidents.length} 件`}
+                  count={incidentLoading ? "讀取中" : `${incidents.length} 件`}
                   href="#incident-queue"
                   onClick={() => setActiveSection("incidents")}
                 />
                 <MerchantWorkCard
                   title="訂金退款"
                   description="補款、退款、人工確認"
-                  count={`${depositAdjustments.length} 件`}
+                  count={adjustmentLoading ? "讀取中" : `${depositAdjustments.length} 件`}
                   href="#deposit-queue"
                   onClick={() => setActiveSection("deposits")}
                 />
                 <MerchantWorkCard
                   title="時段容量"
                   description="調整可接待人數與剩餘位子"
-                  count={`${totals.remaining} 位`}
+                  count={loading ? "讀取中" : `${totals.remaining} 位`}
                   href="#slots"
                   onClick={() => setActiveSection("slots")}
                 />
                 <MerchantWorkCard
                   title="店家清單"
                   description="切換示範店家與故事標籤"
-                  count={`${shops.length} 家`}
+                  count={loading ? "讀取中" : `${shops.length} 家`}
                   href="#shops"
                   onClick={() => setActiveSection("shops")}
                 />
@@ -1566,7 +1569,7 @@ function MerchantWorkCard({
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-lg border border-stone-200 bg-white p-3">
       <p className="text-xs font-medium text-stone-500">{label}</p>
