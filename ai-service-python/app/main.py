@@ -7815,6 +7815,8 @@ async def line_booking_entry(
     tableType: str = "normal",
 ):
     line_user_id, line_token = _line_context(lt, lineUserId)
+    if not line_user_id or not line_token:
+        return _line_auth_required_page(shop_id, line_token)
     shop = await _fetch_java_shop(shop_id)
     if not shop:
         shop = _line_shop_fallback_from_query(shop_id, name, district, mrt, avgPrice)
@@ -7901,6 +7903,8 @@ async def line_booking_confirm(
     avgPrice: str = "",
 ):
     line_user_id, line_token = _line_context(lt, lineUserId)
+    if not line_user_id or not line_token:
+        return _line_auth_required_page(shop_id, line_token)
     shop = await _fetch_java_shop(shop_id)
     if not shop:
         shop = _line_shop_fallback_from_query(shop_id, name, district, mrt, avgPrice)
@@ -10310,6 +10314,18 @@ def _line_shop_minimal_fallback(shop_id: int) -> dict:
         "district": "台北",
         "mrtStation": "",
     }
+
+
+def _line_auth_required_page(shop_id: int, line_token: str = "") -> HTMLResponse:
+    detail_uri = _line_public_uri(f"/line/shop/{shop_id}?lt={quote_plus(line_token)}")
+    return HTMLResponse(
+        _line_html_page(
+            "LINE 授權未帶入",
+            "這個訂位連結缺少 LINE 授權。請回 LINE 聊天室，重新點推薦卡片裡的「填日期人數」。",
+            [("查看店家資訊", detail_uri)],
+        ),
+        status_code=401,
+    )
 
 
 async def _fetch_java_ai_metadata(shop_id: int) -> dict:

@@ -3964,6 +3964,39 @@ def test_line_booking_payment_page_has_selectable_methods(monkeypatch):
     assert "LINE Pay" in html
 
 
+@pytest.mark.anyio
+async def test_line_booking_entry_requires_line_action_token(monkeypatch):
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    response = await main.line_booking_entry(10009)
+    html = response.body.decode("utf-8")
+
+    assert response.status_code == 401
+    assert "LINE 授權未帶入" in html
+    assert "填寫訂位資訊" not in html
+    assert "送出並查看狀態" not in html
+
+
+@pytest.mark.anyio
+async def test_line_booking_confirm_requires_line_action_token(monkeypatch):
+    async def fail_reserve(*args, **kwargs):
+        raise AssertionError("confirm must not reserve without LINE token")
+
+    monkeypatch.setattr(main, "_reserve_line_booking", fail_reserve)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    response = await main.line_booking_confirm(
+        10009,
+        people=2,
+        date="2026-06-30",
+        time="19:00",
+    )
+    html = response.body.decode("utf-8")
+
+    assert response.status_code == 401
+    assert "LINE 授權未帶入" in html
+
+
 def test_line_booking_result_page_shows_paid_completion(monkeypatch):
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
     html = main._line_booking_result_page(
