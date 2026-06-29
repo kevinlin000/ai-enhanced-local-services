@@ -155,7 +155,8 @@ def test_build_line_flex_message_versions_photo_url():
     )
 
     hero_url = message["messages"][1]["contents"]["contents"][0]["hero"]["url"]
-    assert hero_url.startswith("https://bytebites.example.com/line/photo/10115?v=")
+    assert hero_url.startswith("https://bytebites.example.com/api/photo?src=")
+    assert "v=20260629b" in hero_url
 
 
 def test_build_line_flex_message_uses_media_alias_for_orange():
@@ -167,7 +168,7 @@ def test_build_line_flex_message_uses_media_alias_for_orange():
     )
 
     bubble = message["messages"][1]["contents"]["contents"][0]
-    assert bubble["hero"]["url"].startswith("https://bytebites.example.com/line/photo/10009?v=")
+    assert bubble["hero"]["url"].startswith("https://bytebites.example.com/api/photo?src=")
 
 
 def test_build_line_flex_message_booking_link_carries_line_action_token():
@@ -184,6 +185,19 @@ def test_build_line_flex_message_booking_link_carries_line_action_token():
     assert "lineUserId=" not in reserve_uri
     assert "lt=v1." in reserve_uri
     assert "name=" in reserve_uri
+
+
+def test_build_line_flex_message_uses_web_photo_proxy_for_xiti():
+    message = build_line_flex_message(
+        shops=[{"shop_id": 10159, "name": "西堤牛排台北羅斯福店"}],
+        recommended_shop_ids=[10159],
+        answer="",
+        public_web_url="https://bytebites.example.com",
+    )
+
+    bubble = message["messages"][1]["contents"]["contents"][0]
+    assert bubble["hero"]["url"].startswith("https://bytebites.example.com/api/photo?src=")
+    assert "APNQkAHZPIqfWKNJrsYivuErRnGPNjPd" in bubble["hero"]["url"]
 
 
 def test_line_context_upgrades_legacy_line_user_id_to_action_token():
