@@ -67,8 +67,13 @@ def verify_line_signature(
 def build_text_message(text: str) -> dict[str, Any]:
     return {
         "type": "text",
-        "text": (text or "目前沒有可回覆的內容。")[:5000],
+        "text": _line_text_message_body(text),
     }
+
+
+def _line_text_message_body(text: str) -> str:
+    cleaned = (text or "目前沒有可回覆的內容。").replace("**", "").replace("__", "")
+    return cleaned[:5000]
 
 
 def build_line_flex_message(

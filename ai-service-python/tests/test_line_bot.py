@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from app.line_bot import build_line_flex_message, push_messages, reply_messages, verify_line_signature
+from app.line_bot import build_line_flex_message, build_text_message, push_messages, reply_messages, verify_line_signature
 from app.main import _line_context, _line_user_id_from_token, settings
 
 
@@ -22,6 +22,12 @@ def test_verify_line_signature_accepts_valid_signature():
 
 def test_verify_line_signature_rejects_invalid_signature():
     assert not verify_line_signature(b"{}", "bad-signature", "test-secret")
+
+
+def test_build_text_message_strips_markdown_markers():
+    message = build_text_message("**結論**：選 **光司DATE**。\n__下一步__：補日期。")
+
+    assert message["text"] == "結論：選 光司DATE。\n下一步：補日期。"
 
 
 def test_build_line_flex_message_limits_to_three_cards():
