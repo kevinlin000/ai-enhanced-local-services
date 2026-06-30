@@ -118,5 +118,6 @@ web/lib/_generated/
 ai-service-python/evals/*_log.json
 ai-service-python/evals/*_log.jsonl
 backups/
+.runtime/
 .playwright-cli/
 output/
