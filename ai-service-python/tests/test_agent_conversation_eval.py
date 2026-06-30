@@ -59,6 +59,25 @@ def test_effective_agent_query_does_not_merge_complete_fresh_search():
     assert main._effective_agent_query(query, history) == query
 
 
+def test_fresh_steak_request_is_not_previous_recommendation_advice():
+    query = "大安區想吃牛排，適合約會聊天，也想知道附近停車"
+    history = [
+        {
+            "role": "model",
+            "content": "我整理了三間義式餐廳。",
+            "recommendation": {
+                "query": "大安區人均200到400義式餐廳，想約會聊天",
+                "shops": [
+                    {"shop_id": 10673, "name": "光司DATE 義大利麵 大安店", "district": "大安"},
+                ],
+            },
+        }
+    ]
+
+    assert main._recommendation_advice_intent(query)
+    assert main._agent_recommendation_advice_from_history(query, history) is None
+
+
 def test_validator_replaces_llm_choice_that_violates_steak_constraint():
     query = "大安區想吃牛排，適合約會聊天，也想知道附近停車"
     shops = [

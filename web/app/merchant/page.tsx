@@ -151,6 +151,10 @@ function currency(value: number) {
   return `NT$ ${Math.abs(Number(value ?? 0)).toLocaleString("zh-TW")}`;
 }
 
+function voucherCurrency(value: number) {
+  return currency(Math.round(Number(value ?? 0) / 100));
+}
+
 function settlementTone(status: string) {
   if (status === "COMPLETED") return "bg-emerald-100 text-emerald-800";
   if (status === "FAILED") return "bg-red-100 text-red-700";
@@ -232,6 +236,17 @@ export default function MerchantPage() {
         { capacity: 0, booked: 0, remaining: 0 },
       ),
     [slots],
+  );
+  const flashDealTotals = useMemo(
+    () =>
+      (flashDeals?.deals ?? []).reduce(
+        (acc, deal) => ({
+          claimedRevenue: acc.claimedRevenue + Number(deal.payValue ?? 0) * Number(deal.orderCount ?? 0),
+          remainingRevenue: acc.remainingRevenue + Number(deal.payValue ?? 0) * Number(deal.stock ?? 0),
+        }),
+        { claimedRevenue: 0, remainingRevenue: 0 },
+      ),
+    [flashDeals],
   );
 
   useEffect(() => {
@@ -936,7 +951,7 @@ export default function MerchantPage() {
                 />
                 <MerchantWorkCard
                   title="限時餐券"
-                  description="活動、庫存、已搶訂單"
+                  description="離峰補位、限量轉單"
                   count={flashDealLoading ? "讀取中" : `${flashDeals?.totalDeals ?? 0} 檔`}
                   href="#flash-deals"
                   onClick={() => setActiveSection("overview")}
@@ -961,14 +976,20 @@ export default function MerchantPage() {
                     <div className="min-w-0">
                       <h2 className="text-xl font-semibold">限時餐券</h2>
                       <p className="mt-1 break-words text-sm text-stone-500">
-                        顯示目前店家的活動、剩餘庫存與已搶訂單，對應 Redis/Lua/RabbitMQ 秒殺鏈路。
+                        把 AI 推薦流量導到限量餐券，協助離峰補位、熱門時段轉單，並追蹤庫存與已搶營收。
                       </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <Metric label="活動" value={flashDealLoading ? "讀取中" : flashDeals?.totalDeals ?? 0} />
-                    <Metric label="剩餘" value={flashDealLoading ? "讀取中" : flashDeals?.totalStock ?? 0} />
-                    <Metric label="已搶" value={flashDealLoading ? "讀取中" : flashDeals?.totalOrders ?? 0} />
+                    <Metric
+                      label="已搶營收"
+                      value={flashDealLoading ? "讀取中" : voucherCurrency(flashDealTotals.claimedRevenue)}
+                    />
+                    <Metric
+                      label="可售額"
+                      value={flashDealLoading ? "讀取中" : voucherCurrency(flashDealTotals.remainingRevenue)}
+                    />
                   </div>
                 </div>
 
@@ -976,7 +997,7 @@ export default function MerchantPage() {
                   {(flashDeals?.deals ?? []).map((deal) => (
                     <div
                       key={deal.dealId}
-                      className="grid gap-4 rounded-lg border border-emerald-100 bg-emerald-50/40 p-4 lg:grid-cols-[1fr_160px_160px]"
+                      className="grid gap-4 rounded-lg border border-emerald-100 bg-emerald-50/40 p-4 lg:grid-cols-[1fr_160px_160px_160px]"
                     >
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -987,9 +1008,13 @@ export default function MerchantPage() {
                         </div>
                         <p className="mt-3 truncate text-lg font-semibold">{deal.title}</p>
                         <p className="mt-1 text-sm text-stone-600">{deal.subTitle ?? "限時活動"}</p>
+                        <p className="mt-2 text-sm font-medium text-emerald-800">
+                          售價 {voucherCurrency(deal.payValue)} · 面額 {voucherCurrency(deal.actualValue)}
+                        </p>
                       </div>
                       <IncidentFact label="剩餘庫存" value={`${deal.stock} 張`} />
                       <IncidentFact label="已搶訂單" value={`${deal.orderCount} 筆`} />
+                      <IncidentFact label="已搶營收" value={voucherCurrency(deal.payValue * deal.orderCount)} />
                     </div>
                   ))}
                   {!flashDealLoading && (flashDeals?.deals ?? []).length === 0 ? (

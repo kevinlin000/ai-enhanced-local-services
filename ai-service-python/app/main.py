@@ -5002,7 +5002,7 @@ def _recommendation_advice_answer(query: str, shops: list[dict], context_query: 
 def _agent_recommendation_advice_from_history(query: str, history: list[dict]) -> ToolGuardResult | None:
     if not _recommendation_advice_intent(query):
         return None
-    if _fresh_restaurant_recommendation_request(query) and not _recommendation_followup_reference(query):
+    if _complete_fresh_restaurant_query(query) and not _recommendation_followup_reference(query):
         return None
     recommendation = _latest_recommendation_context(history)
     shops = recommendation.get("shops") if isinstance(recommendation, dict) else []
@@ -9218,6 +9218,8 @@ async def _build_line_card_request(user_text: str, user_id: str) -> list[dict] |
 
 async def _build_line_recommendation_advice(user_text: str, user_id: str) -> list[dict] | None:
     if not _recommendation_advice_intent(user_text):
+        return None
+    if _complete_fresh_restaurant_query(user_text) and not _recommendation_followup_reference(user_text):
         return None
     state = _load_line_recommendation_state(user_id)
     previous_query = str(state.get("query") or "").strip()

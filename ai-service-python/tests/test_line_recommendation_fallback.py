@@ -3103,6 +3103,27 @@ async def test_line_recommendation_advice_uses_previous_cards(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_line_fresh_recommendation_does_not_use_previous_advice_context(monkeypatch):
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "大安區人均200到400義式餐廳，想約會聊天", "shown_shop_ids": [10673]},
+    )
+    monkeypatch.setattr(
+        main,
+        "_semantic_hits",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("fresh query should not load old cards")),
+    )
+
+    messages = await main._build_line_recommendation_advice(
+        "大安區想吃牛排，適合約會聊天，也想知道附近停車",
+        "test-user",
+    )
+
+    assert messages is None
+
+
+@pytest.mark.anyio
 async def test_line_specific_shop_name_returns_only_that_shop(monkeypatch):
     captured = {}
 
