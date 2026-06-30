@@ -49,9 +49,18 @@ from app.line_html import (
     dedupe_text,
     html_escape,
     line_booking_path,
+    line_bullet_html,
+    line_display_rating,
     line_google_maps_uri,
+    line_hours_html,
     line_html_page,
+    line_parking_distance,
+    line_parking_spaces,
+    line_parse_hours,
+    line_pills_html,
     line_public_uri,
+    line_review_card_html,
+    line_review_rating,
     line_shell,
     truncate_words,
 )
@@ -11494,15 +11503,7 @@ def _line_media_shop(shop_id: int) -> dict:
 
 
 def _line_display_rating(raw) -> str:
-    try:
-        rating = float(raw)
-    except (TypeError, ValueError):
-        return ""
-    if rating <= 0:
-        return ""
-    if 5 < rating <= 50:
-        rating = rating / 10
-    return f"{rating:.1f}".rstrip("0").rstrip(".")
+    return line_display_rating(raw)
 
 
 def _line_business_hours(shop: dict, metadata: dict) -> list[str]:
@@ -11522,38 +11523,7 @@ def _line_business_hours(shop: dict, metadata: dict) -> list[str]:
 
 
 def _line_parse_hours(raw) -> list[str]:
-    if not raw:
-        return []
-    if isinstance(raw, list):
-        return [str(item).strip() for item in raw if str(item).strip()]
-    if isinstance(raw, dict):
-        labels = {
-            "mon": "週一",
-            "tue": "週二",
-            "wed": "週三",
-            "thu": "週四",
-            "fri": "週五",
-            "sat": "週六",
-            "sun": "週日",
-        }
-        hours = []
-        for key in ("mon", "tue", "wed", "thu", "fri", "sat", "sun"):
-            value = str(raw.get(key) or "").strip()
-            if value:
-                hours.append(f"{labels[key]} {value}")
-        return hours
-    text = str(raw).strip()
-    if not text:
-        return []
-    try:
-        parsed = json.loads(text)
-    except (TypeError, ValueError):
-        parsed = None
-    if parsed is not None:
-        return _line_parse_hours(parsed)
-    if re.fullmatch(r"\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}", text):
-        return [f"每日 {text}"]
-    return [text]
+    return line_parse_hours(raw)
 
 
 def _line_photo_candidates(shop_id: int) -> list[str]:
@@ -11625,10 +11595,7 @@ def _line_review_groups(shop_id: int) -> dict[str, list[dict]]:
 
 
 def _line_review_rating(review: dict) -> float:
-    try:
-        return float(review.get("rating") or 0)
-    except (TypeError, ValueError):
-        return 0.0
+    return line_review_rating(review)
 
 
 def _line_review_html(review_groups: dict[str, list[dict]]) -> str:
@@ -11644,31 +11611,19 @@ def _line_review_html(review_groups: dict[str, list[dict]]) -> str:
 
 
 def _line_review_card_html(label: str, review: dict) -> str:
-    rating = int(_line_review_rating(review))
-    text = _html_escape(_truncate_words(str(review.get("text") or ""), 90))
-    author = _html_escape(str(review.get("author") or "Google 評論"))
-    return f'<div class="review"><div><strong>{label}</strong> · {author} · {"★" * rating}</div><p>{text}</p></div>'
+    return line_review_card_html(label, review)
 
 
 def _line_bullet_html(items: list[str]) -> str:
-    clean = [_html_escape(str(item)) for item in items if str(item).strip()]
-    if not clean:
-        return "<p>目前資料不足，建議先查看評論與店家資訊。</p>"
-    return '<ul class="bullets">' + "".join(f"<li>{item}</li>" for item in clean[:5]) + "</ul>"
+    return line_bullet_html(items)
 
 
 def _line_pills_html(items: list[str]) -> str:
-    clean = [_html_escape(str(item)) for item in items if str(item).strip()]
-    if not clean:
-        return ""
-    return '<div class="pills">' + "".join(f"<span>{item}</span>" for item in clean[:6]) + "</div>"
+    return line_pills_html(items)
 
 
 def _line_hours_html(hours: list[str]) -> str:
-    clean = [_html_escape(str(item)) for item in hours if str(item).strip()]
-    if not clean:
-        return '<div class="hours"><p>營業時間資料未標示</p></div>'
-    return '<div class="hours">' + "".join(f"<p>{item}</p>" for item in clean[:7]) + "</div>"
+    return line_hours_html(hours)
 
 
 def _parking_reservation_key(booking_code: str, lot: dict) -> str:
@@ -11810,25 +11765,11 @@ def _line_parking_html(
 
 
 def _line_parking_distance(value: object) -> str:
-    try:
-        meters = int(round(float(value)))
-    except (TypeError, ValueError):
-        return ""
-    if meters >= 1000:
-        return f"{meters / 1000:.1f} km"
-    return f"{max(1, meters)} m"
+    return line_parking_distance(value)
 
 
 def _line_parking_spaces(lot: dict) -> str:
-    available = lot.get("availableCar")
-    total = lot.get("totalCar")
-    if isinstance(available, int) and isinstance(total, int):
-        return f"剩 {available} / {total} 格"
-    if isinstance(available, int):
-        return f"剩 {available} 格"
-    if isinstance(total, int):
-        return f"共 {total} 格"
-    return "車位資料更新中"
+    return line_parking_spaces(lot)
 
 
 def _line_public_uri(path: str) -> str:

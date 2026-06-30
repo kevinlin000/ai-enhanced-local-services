@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 from urllib.parse import quote_plus
 
 
@@ -128,3 +130,105 @@ def line_shell(title: str, body: str) -> str:
 def line_html_page(title: str, message: str, links: list[tuple[str, str]]) -> str:
     link_html = "".join(f'<a class="primary" href="{html_escape(href)}">{html_escape(label)}</a>' for label, href in links)
     return line_shell(title, f"<main><h1>{html_escape(title)}</h1><p>{html_escape(message)}</p>{link_html}</main>")
+
+
+def line_display_rating(raw) -> str:
+    try:
+        rating = float(raw)
+    except (TypeError, ValueError):
+        return ""
+    if rating <= 0:
+        return ""
+    if 5 < rating <= 50:
+        rating = rating / 10
+    return f"{rating:.1f}".rstrip("0").rstrip(".")
+
+
+def line_parse_hours(raw) -> list[str]:
+    if not raw:
+        return []
+    if isinstance(raw, list):
+        return [str(item).strip() for item in raw if str(item).strip()]
+    if isinstance(raw, dict):
+        labels = {
+            "mon": "週一",
+            "tue": "週二",
+            "wed": "週三",
+            "thu": "週四",
+            "fri": "週五",
+            "sat": "週六",
+            "sun": "週日",
+        }
+        hours = []
+        for key in ("mon", "tue", "wed", "thu", "fri", "sat", "sun"):
+            value = str(raw.get(key) or "").strip()
+            if value:
+                hours.append(f"{labels[key]} {value}")
+        return hours
+    text = str(raw).strip()
+    if not text:
+        return []
+    try:
+        parsed = json.loads(text)
+    except (TypeError, ValueError):
+        parsed = None
+    if parsed is not None:
+        return line_parse_hours(parsed)
+    return [f"每日 {text}"] if re.fullmatch(r"\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}", text) else [text]
+
+
+def line_review_rating(review: dict) -> float:
+    try:
+        return float(review.get("rating") or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def line_review_card_html(label: str, review: dict) -> str:
+    rating = int(line_review_rating(review))
+    text = html_escape(truncate_words(str(review.get("text") or ""), 90))
+    author = html_escape(str(review.get("author") or "Google 評論"))
+    return f'<div class="review"><div><strong>{label}</strong> · {author} · {"★" * rating}</div><p>{text}</p></div>'
+
+
+def line_bullet_html(items: list[str]) -> str:
+    clean = [html_escape(str(item)) for item in items if str(item).strip()]
+    if not clean:
+        return "<p>目前資料不足，建議先查看評論與店家資訊。</p>"
+    return '<ul class="bullets">' + "".join(f"<li>{item}</li>" for item in clean[:5]) + "</ul>"
+
+
+def line_pills_html(items: list[str]) -> str:
+    clean = [html_escape(str(item)) for item in items if str(item).strip()]
+    if not clean:
+        return ""
+    return '<div class="pills">' + "".join(f"<span>{item}</span>" for item in clean[:6]) + "</div>"
+
+
+def line_hours_html(hours: list[str]) -> str:
+    clean = [html_escape(str(item)) for item in hours if str(item).strip()]
+    if not clean:
+        return '<div class="hours"><p>營業時間資料未標示</p></div>'
+    return '<div class="hours">' + "".join(f"<p>{item}</p>" for item in clean[:7]) + "</div>"
+
+
+def line_parking_distance(value: object) -> str:
+    try:
+        meters = int(round(float(value)))
+    except (TypeError, ValueError):
+        return ""
+    if meters >= 1000:
+        return f"{meters / 1000:.1f} km"
+    return f"{max(1, meters)} m"
+
+
+def line_parking_spaces(lot: dict) -> str:
+    available = lot.get("availableCar")
+    total = lot.get("totalCar")
+    if isinstance(available, int) and isinstance(total, int):
+        return f"剩 {available} / {total} 格"
+    if isinstance(available, int):
+        return f"剩 {available} 格"
+    if isinstance(total, int):
+        return f"共 {total} 格"
+    return "車位資料更新中"
