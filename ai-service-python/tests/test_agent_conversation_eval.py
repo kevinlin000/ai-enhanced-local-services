@@ -894,8 +894,9 @@ async def test_eval_fresh_complex_request_ignores_previous_advice_context(monkey
     )
 
     assert done["tools_used"] == ["semantic_shop_search"]
-    assert done["answer"].startswith("**結論：我先用")
-    assert "**精選推薦**" in done["answer"]
+    assert done["answer"].startswith("結論：我先用")
+    assert "精選推薦" in done["answer"]
+    assert "**" not in done["answer"]
     assert "初樂燒肉" in done["answer"]
     assert "光司DATE" not in done["answer"]
 

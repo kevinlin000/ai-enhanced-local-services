@@ -748,6 +748,7 @@ def _extract_query_constraints(query: str) -> dict:
     wants_nearby = any(keyword in query_lower for keyword in ("附近", "nearby"))
     wants_luxury = any(keyword in query_lower for keyword in LUXURY_HINTS)
     wants_burger = any(keyword in query_lower for keyword in BURGER_QUERY_HINTS)
+    wants_steak = any(keyword in query_lower for keyword in ("牛排", "排餐", "steak", "肋眼", "菲力"))
     wants_taiwanese_cuisine = any(keyword.lower() in query_lower for keyword in TAIWANESE_CUISINE_QUERY_HINTS)
     specific_cuisines = [
         cuisine
@@ -769,6 +770,7 @@ def _extract_query_constraints(query: str) -> dict:
         "wants_nearby": wants_nearby,
         "wants_luxury": wants_luxury,
         "wants_burger": wants_burger,
+        "wants_steak": wants_steak,
         "wants_taiwanese_cuisine": wants_taiwanese_cuisine,
         "specific_cuisines": specific_cuisines,
     }
@@ -4035,7 +4037,7 @@ def _agent_shop_markdown_line(shop: dict, index: int, query: str = "") -> str:
         details.append(f"適合：{best_for}")
     if booking:
         details.append(f"訂位：{booking}")
-    return f"{index}. **{name}**\n   - " + "\n   - ".join(item for item in details if item)
+    return f"{index}. {name}\n   - " + "\n   - ".join(item for item in details if item)
 
 
 def _agent_missing_booking_fields(prefill: dict) -> list[str]:
@@ -4080,23 +4082,23 @@ def _agent_concierge_narrative(
     display_count = min(3, len(shops))
     if count == 1:
         if display_count > count:
-            lead = f"**結論：我先用「{basis}」篩，主推這 1 家，另保留 {display_count - count} 家備案比較。**"
+            lead = f"結論：我先用「{basis}」篩，主推這 1 家，另保留 {display_count - count} 家備案比較。"
         else:
-            lead = f"**結論：我先用「{basis}」篩，最值得先看這 1 家。**"
+            lead = f"結論：我先用「{basis}」篩，最值得先看這 1 家。"
     else:
         if display_count > count:
-            lead = f"**結論：我先用「{basis}」篩，主推這 {count} 家，另保留 {display_count - count} 家備案比較。**"
+            lead = f"結論：我先用「{basis}」篩，主推這 {count} 家，另保留 {display_count - count} 家備案比較。"
         else:
-            lead = f"**結論：我先用「{basis}」篩，優先看這 {count} 家。**"
+            lead = f"結論：我先用「{basis}」篩，優先看這 {count} 家。"
     lines = [lead]
     frame = _agent_story_frame(query)
     if frame:
         lines.extend(["", frame])
     bullets = _agent_constraint_bullets(query)
     if bullets:
-        lines.extend(["", "**我抓到的條件**"])
+        lines.extend(["", "我抓到的條件"])
         lines.extend(f"- {bullet}" for bullet in bullets)
-    lines.extend(["", "**精選推薦**"])
+    lines.extend(["", "精選推薦"])
     lines.extend(_agent_shop_markdown_line(shop, index, query) for index, shop in enumerate(selected, start=1))
     if len(selected) < 3 and (_query_has_shellfish_allergy(query) or _query_has_meat_lovers(query) or _query_budget_range(query)[0]):
         if decision.rejection_summary:
@@ -4104,8 +4106,8 @@ def _agent_concierge_narrative(
         else:
             tradeoff = "其餘選項不是預算、座位型態，就是過敏備註穩定性不夠適合這次聚餐"
         backup_note = "下方其他卡片只作備案比較。" if display_count > len(selected) else ""
-        lines.extend(["", f"**取捨**：主推名單先收斂，{tradeoff}。{backup_note}"])
-    lines.extend(["", f"**下一步**：{_agent_recommendation_cta(query).removeprefix('下一步：')}"])
+        lines.extend(["", f"取捨：主推名單先收斂，{tradeoff}。{backup_note}"])
+    lines.extend(["", f"下一步：{_agent_recommendation_cta(query).removeprefix('下一步：')}"])
     return "\n".join(lines)
 
 
@@ -9166,6 +9168,8 @@ def _line_scope_expansion_intro_from_note(note: str | None) -> str | None:
 
 def _category_label_for_constraints(constraints: dict) -> str:
     categories = constraints.get("categories") or []
+    if constraints.get("wants_steak"):
+        return "牛排餐廳"
     if constraints.get("wants_burger"):
         return "漢堡店"
     if "hotpot" in categories:

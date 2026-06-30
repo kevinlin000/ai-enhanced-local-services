@@ -364,18 +364,25 @@ def test_agent_concierge_narrative_uses_stable_decision_format():
         ),
     )
 
-    assert narrative.startswith("**結論：我先用「大安區 / 漢堡店」篩，優先看這 3 家。**")
-    assert "**我抓到的條件**" in narrative
-    assert "**精選推薦**" in narrative
-    assert "1. **Fa Burger**" in narrative
+    assert narrative.startswith("結論：我先用「大安區 / 漢堡店」篩，優先看這 3 家。")
+    assert "我抓到的條件" in narrative
+    assert "精選推薦" in narrative
+    assert "1. Fa Burger" in narrative
     assert "- 招牌 巧巴達粉嫩牛" in narrative
-    assert "2. **樂漢堡美式餐廳 台北大安店**" in narrative
+    assert "2. 樂漢堡美式餐廳 台北大安店" in narrative
     assert "- 訂位：可線上訂位，建議確認" in narrative
-    assert "3. **Takeout Burger&Cafe 延吉店**" in narrative
+    assert "3. Takeout Burger&Cafe 延吉店" in narrative
     assert "- 招牌 蒜味乳酪漢堡、塔塔醬炸魚堡" in narrative
     assert "最後點餐" not in narrative
     assert "大安區美食" not in narrative
-    assert "**下一步**：告訴我日期、時間與人數" in narrative
+    assert "下一步：告訴我日期、時間與人數" in narrative
+    assert "**" not in narrative
+
+
+def test_agent_query_basis_labels_explicit_steak_request_as_steakhouse():
+    basis = main._agent_query_basis_label("大安區想吃牛排，適合約會聊天，也想知道附近停車")
+
+    assert basis == "大安區 / 牛排餐廳 / 方便開車 / 安靜聊天"
 
 
 def test_agent_recommendation_cta_lists_only_missing_booking_fields(monkeypatch):
