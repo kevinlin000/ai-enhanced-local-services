@@ -45,6 +45,15 @@ from app.line_bot import (
     show_loading_animation,
     verify_line_signature,
 )
+from app.line_state import (
+    clear_state_key,
+    line_booking_draft_state_key,
+    line_booking_state_key,
+    line_location_state_key,
+    line_recommendation_state_key,
+    load_json_state,
+    save_json_state,
+)
 from google import genai
 from google.genai.errors import ClientError, ServerError
 from google.genai import types
@@ -9413,29 +9422,23 @@ def _line_plain_text(text: str) -> str:
 
 
 def _line_recommendation_state_key(user_id: str) -> str:
-    return f"line:recommendation:{user_id}"
+    return line_recommendation_state_key(user_id)
 
 
 def _load_line_recommendation_state(user_id: str) -> dict:
-    try:
-        raw = session_store.client().get(_line_recommendation_state_key(user_id))
-    except Exception:
-        logger.exception("line_recommendation_state_load_failed user_id=%s", user_id)
-        return {}
-    if not raw:
-        return {}
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-    return data if isinstance(data, dict) else {}
+    return load_json_state(
+        _line_recommendation_state_key(user_id),
+        "line_recommendation_state_load_failed",
+        user_id,
+    )
 
 
 def _clear_line_recommendation_state(user_id: str) -> None:
-    try:
-        session_store.client().delete(_line_recommendation_state_key(user_id))
-    except Exception:
-        logger.exception("line_recommendation_state_clear_failed user_id=%s", user_id)
+    clear_state_key(
+        _line_recommendation_state_key(user_id),
+        "line_recommendation_state_clear_failed",
+        user_id,
+    )
 
 
 def _save_line_recommendation_state(
@@ -9461,104 +9464,73 @@ def _save_line_recommendation_state(
     compact_prefill = _compact_booking_prefill(booking_prefill)
     if compact_prefill:
         payload["booking_prefill"] = compact_prefill
-    try:
-        session_store.client().setex(
-            _line_recommendation_state_key(user_id),
-            LINE_RECOMMENDATION_TTL_SECONDS,
-            json.dumps(payload, ensure_ascii=False),
-        )
-    except Exception:
-        logger.exception("line_recommendation_state_save_failed user_id=%s", user_id)
+    save_json_state(
+        _line_recommendation_state_key(user_id),
+        LINE_RECOMMENDATION_TTL_SECONDS,
+        payload,
+        "line_recommendation_state_save_failed",
+        user_id,
+    )
 
 
 def _line_booking_state_key(user_id: str) -> str:
-    return f"line:booking:{user_id}"
+    return line_booking_state_key(user_id)
 
 
 def _load_line_booking_state(user_id: str) -> dict:
-    try:
-        raw = session_store.client().get(_line_booking_state_key(user_id))
-    except Exception:
-        logger.exception("line_booking_state_load_failed user_id=%s", user_id)
-        return {}
-    if not raw:
-        return {}
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-    return data if isinstance(data, dict) else {}
+    return load_json_state(_line_booking_state_key(user_id), "line_booking_state_load_failed", user_id)
 
 
 def _save_line_booking_state(user_id: str, booking: dict, phase: str = "updated") -> None:
     if not user_id or not isinstance(booking, dict) or not booking.get("bookingCode"):
         return
-    try:
-        session_store.client().setex(
-            _line_booking_state_key(user_id),
-            LINE_BOOKING_TTL_SECONDS,
-            json.dumps({"phase": phase, "booking": booking}, ensure_ascii=False),
-        )
-    except Exception:
-        logger.exception("line_booking_state_save_failed user_id=%s", user_id)
+    save_json_state(
+        _line_booking_state_key(user_id),
+        LINE_BOOKING_TTL_SECONDS,
+        {"phase": phase, "booking": booking},
+        "line_booking_state_save_failed",
+        user_id,
+    )
 
 
 def _line_booking_draft_state_key(user_id: str) -> str:
-    return f"line:booking-draft:{user_id}"
+    return line_booking_draft_state_key(user_id)
 
 
 def _load_line_booking_draft_state(user_id: str) -> dict:
-    try:
-        raw = session_store.client().get(_line_booking_draft_state_key(user_id))
-    except Exception:
-        logger.exception("line_booking_draft_load_failed user_id=%s", user_id)
-        return {}
-    if not raw:
-        return {}
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-    return data if isinstance(data, dict) else {}
+    return load_json_state(
+        _line_booking_draft_state_key(user_id),
+        "line_booking_draft_load_failed",
+        user_id,
+    )
 
 
 def _save_line_booking_draft_state(user_id: str, draft: dict) -> None:
     if not user_id or not isinstance(draft, dict) or not draft.get("shop_id"):
         return
-    try:
-        session_store.client().setex(
-            _line_booking_draft_state_key(user_id),
-            LINE_BOOKING_TTL_SECONDS,
-            json.dumps(draft, ensure_ascii=False),
-        )
-    except Exception:
-        logger.exception("line_booking_draft_save_failed user_id=%s", user_id)
+    save_json_state(
+        _line_booking_draft_state_key(user_id),
+        LINE_BOOKING_TTL_SECONDS,
+        draft,
+        "line_booking_draft_save_failed",
+        user_id,
+    )
 
 
 def _clear_line_booking_draft_state(user_id: str) -> None:
-    try:
-        session_store.client().delete(_line_booking_draft_state_key(user_id))
-    except Exception:
-        logger.exception("line_booking_draft_clear_failed user_id=%s", user_id)
+    clear_state_key(
+        _line_booking_draft_state_key(user_id),
+        "line_booking_draft_clear_failed",
+        user_id,
+    )
 
 
 def _line_location_state_key(user_id: str) -> str:
-    return f"line:location:{user_id}"
+    return line_location_state_key(user_id)
 
 
 def _load_line_location_state(user_id: str) -> dict:
-    try:
-        raw = session_store.client().get(_line_location_state_key(user_id))
-    except Exception:
-        logger.exception("line_location_state_load_failed user_id=%s", user_id)
-        return {}
-    if not raw:
-        return {}
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-    return data if isinstance(data, dict) else {}
+    return load_json_state(_line_location_state_key(user_id), "line_location_state_load_failed", user_id)
 
 
 def _save_line_location_state(user_id: str, message: dict) -> dict:
@@ -9568,14 +9540,13 @@ def _save_line_location_state(user_id: str, message: dict) -> dict:
         "latitude": message.get("latitude"),
         "longitude": message.get("longitude"),
     }
-    try:
-        session_store.client().setex(
-            _line_location_state_key(user_id),
-            LINE_LOCATION_TTL_SECONDS,
-            json.dumps(state, ensure_ascii=False),
-        )
-    except Exception:
-        logger.exception("line_location_state_save_failed user_id=%s", user_id)
+    save_json_state(
+        _line_location_state_key(user_id),
+        LINE_LOCATION_TTL_SECONDS,
+        state,
+        "line_location_state_save_failed",
+        user_id,
+    )
     return state
 
 
