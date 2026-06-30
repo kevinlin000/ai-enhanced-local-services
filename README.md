@@ -2,6 +2,8 @@
 
 [English version](README.en.md)
 
+![Source Available](https://img.shields.io/badge/source%20available-portfolio%20review%20only-blue)
+
 ByteBites 是一個以台灣用餐場景為核心的 AI 輔助用餐營運系統。它不只回答「哪家餐廳適合我」，而是把推薦、訂位、付款狀態、對話式改單、臨場救場、LINE 通知、商家處理與退款營運串成同一個可驗證流程。
 
 核心原則很簡單：
@@ -238,6 +240,14 @@ ai-enhanced-local-services/
 ├── deploy/                # Prometheus / Grafana support and Nginx reverse-proxy overlay
 └── docs/                  # architecture, data reports, deployment notes, case studies
 ```
+
+## 授權
+
+This project is not open-source.
+
+Source code is available for portfolio and technical review only. No permission
+is granted to copy, modify, distribute, sublicense, publish, or reuse this
+project, in whole or in part, without explicit written permission.
 
 ## 上線邊界
 

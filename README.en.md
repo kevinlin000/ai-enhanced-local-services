@@ -2,6 +2,8 @@
 
 [中文 README](README.md)
 
+![Source Available](https://img.shields.io/badge/source%20available-portfolio%20review%20only-blue)
+
 ByteBites is an AI-assisted dining operations system for Taiwan restaurant scenarios. It extends restaurant discovery into booking, payment state, conversational rescheduling, real-time incident handling, LINE notifications, merchant operations, refund visibility, and verified data quality.
 
 The core boundary:
@@ -170,6 +172,14 @@ scripts/smoke-clean-mysql-migrations.sh --timeout 180
 - [Public Deployment Rehearsal](docs/case-studies/11-demo-deployment.md)
 
 Full list: [Engineering Case Studies](docs/case-studies/README.md)
+
+## License
+
+This project is not open-source.
+
+Source code is available for portfolio and technical review only. No permission
+is granted to copy, modify, distribute, sublicense, publish, or reuse this
+project, in whole or in part, without explicit written permission.
 
 ## Local Development
 
