@@ -58,6 +58,52 @@ public class MerchantController {
         return Result.ok(shops);
     }
 
+    @GetMapping("/shops/{shopId}/flash-deals")
+    public Result flashDeals(@PathVariable Long shopId) {
+        Long userId = requireUserId();
+        if (userId == null) return Result.fail("請先登入店家帳號");
+        if (!ownsShop(userId, shopId)) return Result.fail("沒有此店家的管理權限");
+
+        List<Map<String, Object>> deals = jdbcTemplate.queryForList(
+                """
+                SELECT v.id AS dealId,
+                       v.shop_id AS shopId,
+                       s.name AS shopName,
+                       v.title,
+                       v.sub_title AS subTitle,
+                       v.pay_value AS payValue,
+                       v.actual_value AS actualValue,
+                       sv.stock,
+                       sv.begin_time AS beginTime,
+                       sv.end_time AS endTime,
+                       COUNT(vo.id) AS orderCount
+                FROM tb_voucher v
+                JOIN tb_seckill_voucher sv ON sv.voucher_id = v.id
+                JOIN tb_shop s ON s.id = v.shop_id
+                LEFT JOIN tb_voucher_order vo ON vo.voucher_id = v.id
+                WHERE v.shop_id = ?
+                  AND v.type = 1
+                  AND v.status = 1
+                  AND sv.begin_time <= NOW()
+                  AND sv.end_time >= NOW()
+                GROUP BY v.id, v.shop_id, s.name, v.title, v.sub_title, v.pay_value,
+                         v.actual_value, sv.stock, sv.begin_time, sv.end_time
+                ORDER BY sv.end_time ASC, v.id ASC
+                """,
+                shopId
+        );
+
+        int totalStock = deals.stream().mapToInt(row -> toInt(row.get("stock"))).sum();
+        int totalOrders = deals.stream().mapToInt(row -> toInt(row.get("orderCount"))).sum();
+        return Result.ok(Map.of(
+                "shopId", shopId,
+                "deals", deals,
+                "totalDeals", deals.size(),
+                "totalStock", totalStock,
+                "totalOrders", totalOrders
+        ));
+    }
+
     @GetMapping("/shops/{shopId}/slots")
     @Transactional
     public Result slots(

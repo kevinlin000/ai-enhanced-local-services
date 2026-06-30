@@ -120,6 +120,16 @@ export type FlashDealClaimResult = {
   message: string;
 };
 
+export type FlashDealSummary = {
+  shopId: number;
+  count: number;
+  stock: number;
+  dealId: number;
+  title: string;
+  subTitle?: string | null;
+  label?: string;
+};
+
 export type NearbyParkingLot = {
   id: string;
   name: string;
@@ -142,6 +152,28 @@ export type MerchantShop = {
   district?: string;
   address?: string;
   role: string;
+};
+
+export type MerchantFlashDeal = {
+  dealId: number;
+  shopId: number;
+  shopName: string;
+  title: string;
+  subTitle?: string | null;
+  payValue: number;
+  actualValue: number;
+  stock: number;
+  beginTime?: string;
+  endTime?: string;
+  orderCount: number;
+};
+
+export type MerchantFlashDealSummary = {
+  shopId: number;
+  deals: MerchantFlashDeal[];
+  totalDeals: number;
+  totalStock: number;
+  totalOrders: number;
 };
 
 export type MerchantSlot = {
@@ -910,9 +942,18 @@ export const javaApi = {
       `${CLIENT_JAVA_API}/api/shop/search?${sp.toString()}`,
     );
   },
+  flashDealSummary: () =>
+    fetchJson<{ success: boolean; data: FlashDealSummary[] }>(
+      `${CLIENT_JAVA_API}/api/shop/flash-deal-summary`,
+    ),
   merchantShops: () =>
     fetchJson<{ success: boolean; data: MerchantShop[] }>(
       `${CLIENT_JAVA_API}/api/merchant/shops`,
+      { headers: merchantHeaders() },
+    ),
+  merchantFlashDeals: (shopId: number) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MerchantFlashDealSummary }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${shopId}/flash-deals`,
       { headers: merchantHeaders() },
     ),
   merchantSlots: (params: {

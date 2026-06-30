@@ -3,13 +3,13 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { SearchHit } from "@/lib/api";
+import type { FlashDealSummary, SearchHit } from "@/lib/api";
 import { javaApi } from "@/lib/api";
 import { getStyleByTypeId } from "@/lib/categoryStyle";
 import { isLegacySeedShop } from "@/lib/legacySeedShops";
 import { proxyImageUrl } from "@/lib/photoProxy";
 import { getBestShopCardPhoto, getShopDataQualityScore, getShopOverview } from "@/lib/shopPhotoManifest";
-import { ListFilter, MapPin, Search, Sparkles, Star, X } from "lucide-react";
+import { ListFilter, MapPin, Search, Sparkles, Star, TicketPercent, X } from "lucide-react";
 
 // AI search via Next.js rewrite proxy /api/ai/* → http://localhost:8000/api/ai/*
 const CLIENT_AI_API = "";
@@ -31,6 +31,10 @@ interface Shop {
   aiAtmosphereTags?: string[];
   aiSignatureDishes?: string[];
   aiHotSeatCount?: number;
+  flashDealCount?: number;
+  flashDealStock?: number;
+  flashDealTitle?: string;
+  flashDealSubTitle?: string | null;
 }
 
 interface FilterOptions {
@@ -115,6 +119,7 @@ function ShopsPageContent() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [categorySlugToId, setCategorySlugToId] = useState<Map<string, number>>(new Map());
+  const [flashDealSummary, setFlashDealSummary] = useState<Map<number, FlashDealSummary>>(new Map());
 
   // search mode — lazy init from URL (?mode=ai)
   const [searchMode, setSearchMode] = useState<"text" | "ai">(() =>
@@ -143,6 +148,7 @@ function ShopsPageContent() {
     return raw ? new Set(raw.split(",").filter(Boolean)) : new Set();
   });
   const [minScore, setMinScore] = useState<number | null>(null);
+  const [onlyFlashDeals, setOnlyFlashDeals] = useState(() => searchParams.get("deals") === "1");
   const [pageSize, setPageSize] = useState<PageSize>(24);
   const [page, setPage] = useState(1);
 
@@ -163,6 +169,10 @@ function ShopsPageContent() {
     });
     javaApi.shopSearch({ size: SEARCH_FETCH_SIZE }).then((r) => {
       if (r?.success) allShopsRef.current = hideLegacySeedShops(r.data.records ?? []);
+    });
+    javaApi.flashDealSummary().then((r) => {
+      if (!r?.success) return;
+      setFlashDealSummary(new Map((r.data ?? []).map((deal) => [deal.shopId, deal])));
     });
   }, []);
 
@@ -188,9 +198,10 @@ function ShopsPageContent() {
     if (selectedDistricts.size) params.set("districts", [...selectedDistricts].join(","));
     if (selectedMrt.size) params.set("mrt", [...selectedMrt].join(","));
     if (q) params.set("q", q);
+    if (onlyFlashDeals && searchMode === "text") params.set("deals", "1");
     if (searchMode === "ai") params.set("mode", "ai");
     router.replace(`/shops${params.size ? "?" + params.toString() : ""}`, { scroll: false });
-  }, [selectedTypes, selectedDistricts, selectedMrt, q, searchMode, router]);
+  }, [selectedTypes, selectedDistricts, selectedMrt, q, onlyFlashDeals, searchMode, router]);
 
   // debounce q
   useEffect(() => {
@@ -200,7 +211,7 @@ function ShopsPageContent() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchMode, debouncedQ, selectedTypes, selectedDistricts, selectedMrt, minScore, pageSize]);
+  }, [searchMode, debouncedQ, selectedTypes, selectedDistricts, selectedMrt, minScore, onlyFlashDeals, pageSize]);
 
   // ── Text mode search ──
   useEffect(() => {
@@ -298,6 +309,7 @@ function ShopsPageContent() {
     setSelectedDistricts(new Set());
     setSelectedMrt(new Set());
     setMinScore(null);
+    setOnlyFlashDeals(false);
     setQ("");
     // show all while waiting
     setShops(allShopsRef.current);
@@ -311,8 +323,9 @@ function ShopsPageContent() {
     c += selectedDistricts.size;
     c += selectedMrt.size;
     if (minScore) c++;
+    if (onlyFlashDeals) c++;
     return c;
-  }, [searchMode, debouncedQ, selectedTypes, selectedDistricts, selectedMrt, minScore]);
+  }, [searchMode, debouncedQ, selectedTypes, selectedDistricts, selectedMrt, minScore, onlyFlashDeals]);
 
   const typeNameById = useMemo(() => {
     const map = new Map<number, string>();
@@ -335,6 +348,7 @@ function ShopsPageContent() {
     setSelectedDistricts(new Set());
     setSelectedMrt(new Set());
     setMinScore(null);
+    setOnlyFlashDeals(false);
   };
 
   const toggle = <T,>(set: Set<T>, setter: (s: Set<T>) => void, item: T) => {
@@ -345,9 +359,31 @@ function ShopsPageContent() {
   };
 
   const isLoading = loading || aiLoading;
+  const shopsWithFlashDeals = useMemo(
+    () =>
+      shops.map((shop) => {
+        const deal = flashDealSummary.get(shop.id);
+        if (!deal) return shop;
+        return {
+          ...shop,
+          flashDealCount: deal.count,
+          flashDealStock: deal.stock,
+          flashDealTitle: deal.title,
+          flashDealSubTitle: deal.subTitle,
+          aiHotSeatCount: shop.aiHotSeatCount ?? deal.count,
+        };
+      }),
+    [shops, flashDealSummary],
+  );
   const visibleShops = useMemo(
-    () => (searchMode === "text" ? sortVisibleShops(shops) : shops),
-    [searchMode, shops],
+    () => {
+      const filtered =
+        searchMode === "text" && onlyFlashDeals
+          ? shopsWithFlashDeals.filter((shop) => (shop.flashDealCount ?? 0) > 0)
+          : shopsWithFlashDeals;
+      return searchMode === "text" ? sortVisibleShops(filtered) : filtered;
+    },
+    [searchMode, onlyFlashDeals, shopsWithFlashDeals],
   );
   const totalPages = useMemo(() => {
     if (pageSize === "all") return 1;
@@ -369,7 +405,7 @@ function ShopsPageContent() {
     if (shop.aiBookingDifficulty && shop.aiBookingDifficulty !== "未提及") parts.push(shop.aiBookingDifficulty);
     if (shop.aiPricePerPerson && shop.aiPricePerPerson !== "未提及") parts.push(shop.aiPricePerPerson);
     else if (shop.avgPrice) parts.push(`NT$ ${shop.avgPrice}`);
-    if (shop.aiHotSeatCount) parts.push(`限時餐券 ${shop.aiHotSeatCount} 張`);
+    if (shop.flashDealCount || shop.aiHotSeatCount) parts.push(`限時餐券 ${shop.flashDealCount ?? shop.aiHotSeatCount} 檔`);
     return parts.slice(0, 3).join(" · ");
   };
 
@@ -450,6 +486,15 @@ function ShopsPageContent() {
               className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-3 py-1 text-xs text-foreground"
             >
               搜尋：{debouncedQ}
+              <X className="h-3 w-3" />
+            </button>
+          ) : null}
+          {onlyFlashDeals ? (
+            <button
+              onClick={() => setOnlyFlashDeals(false)}
+              className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800"
+            >
+              限時餐券
               <X className="h-3 w-3" />
             </button>
           ) : null}
@@ -545,6 +590,29 @@ function ShopsPageContent() {
                 清除 {activeFilterCount}
               </button>
             ) : null}
+          </div>
+
+          {/* 限時餐券 */}
+          <div>
+            <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+              <TicketPercent className="h-4 w-4 text-muted-foreground" />
+              限時餐券
+            </p>
+            <button
+              type="button"
+              onClick={() => setOnlyFlashDeals((current) => !current)}
+              aria-pressed={onlyFlashDeals}
+              className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                onlyFlashDeals
+                  ? "border-emerald-700 bg-emerald-700 text-white"
+                  : "bg-background text-foreground hover:bg-muted"
+              }`}
+            >
+              <span className="font-medium">只看有餐券</span>
+              <span className={`text-xs ${onlyFlashDeals ? "text-white/80" : "text-muted-foreground"}`}>
+                {flashDealSummary.size} 家
+              </span>
+            </button>
           </div>
 
           {/* 評分 */}
@@ -775,6 +843,11 @@ function ShopsPageContent() {
                       <div className="absolute left-3 top-3 rounded-full bg-[rgb(255_253_248_/_0.88)] px-2.5 py-1 text-[11px] font-medium text-[var(--bb-ink)] backdrop-blur">
                         {style.label}
                       </div>
+                      {shop.flashDealCount ? (
+                        <div className="absolute right-3 top-3 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+                          限時餐券
+                        </div>
+                      ) : null}
                       {shop.score != null ? (
                         <div className="absolute bottom-3 right-3 rounded-full bg-[rgb(21_19_15_/_0.82)] px-2.5 py-1 font-mono text-xs text-white backdrop-blur">
                           {(shop.score / 10).toFixed(1)}
@@ -782,13 +855,13 @@ function ShopsPageContent() {
                       ) : null}
                     </div>
                     <div className="p-3.5">
-                      {searchMode === "ai" && shop.aiHotSeatCount ? (
-                        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2">
-                          <p className="text-[11px] font-medium text-amber-800">
-                            限時餐券可搶
+                      {shop.flashDealCount ? (
+                        <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2">
+                          <p className="text-[11px] font-semibold text-emerald-800">
+                            有限時餐券 · 剩 {shop.flashDealStock ?? 0} 張
                           </p>
-                          <p className="mt-0.5 text-[11px] text-amber-700">
-                            此店目前有 {shop.aiHotSeatCount} 張熱門時段餐券
+                          <p className="mt-0.5 truncate text-[11px] text-emerald-700">
+                            {shop.flashDealTitle}
                           </p>
                         </div>
                       ) : null}
@@ -839,9 +912,9 @@ function ShopsPageContent() {
                                 {tag}
                               </span>
                             ))}
-                            {shop.aiHotSeatCount ? (
-                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] text-amber-800">
-                                限時餐券 {shop.aiHotSeatCount} 張
+                            {shop.flashDealCount || shop.aiHotSeatCount ? (
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-800">
+                                限時餐券 {shop.flashDealStock ? `剩 ${shop.flashDealStock} 張` : `${shop.aiHotSeatCount} 檔`}
                               </span>
                             ) : null}
                           </div>

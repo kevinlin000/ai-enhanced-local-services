@@ -114,6 +114,8 @@ public class SecurityConfig {
                 "http://127.0.0.1:3000",
                 "http://localhost:5173",
                 "http://localhost:8080",
+                "http://localhost:8088",
+                "http://127.0.0.1:8088",
                 "https://localhost:3000",
                 "https://*.ngrok-free.app",
                 "https://*.ngrok-free.dev",

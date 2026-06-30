@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.annotation.Resource;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -279,6 +280,49 @@ public class ShopController {
     public Result countActiveShops() {
         long count = shopService.count(new QueryWrapper<Shop>().eq("is_active", 1));
         return Result.ok(count);
+    }
+
+    @GetMapping("/flash-deal-summary")
+    public Result flashDealSummary() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Voucher> vouchers = voucherService.list(
+                new LambdaQueryWrapper<Voucher>()
+                        .eq(Voucher::getType, 1)
+                        .eq(Voucher::getStatus, 1)
+        );
+        if (vouchers.isEmpty()) return Result.ok(Collections.emptyList());
+
+        List<Long> voucherIds = vouchers.stream().map(Voucher::getId).toList();
+        Map<Long, Voucher> voucherMap = vouchers.stream()
+                .collect(Collectors.toMap(Voucher::getId, v -> v, (a, b) -> a));
+        List<SeckillVoucher> activeSeckill = seckillVoucherService.list(
+                new LambdaQueryWrapper<SeckillVoucher>()
+                        .in(SeckillVoucher::getVoucherId, voucherIds)
+                        .gt(SeckillVoucher::getStock, 0)
+                        .le(SeckillVoucher::getBeginTime, now)
+                        .ge(SeckillVoucher::getEndTime, now)
+        );
+
+        Map<Long, Map<String, Object>> byShop = new LinkedHashMap<>();
+        activeSeckill.forEach(seckill -> {
+            Voucher voucher = voucherMap.get(seckill.getVoucherId());
+            if (voucher == null || voucher.getShopId() == null) return;
+            Map<String, Object> row = byShop.computeIfAbsent(voucher.getShopId(), shopId -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("shopId", shopId);
+                m.put("count", 0);
+                m.put("stock", 0);
+                m.put("dealId", voucher.getId());
+                m.put("title", voucher.getTitle());
+                m.put("subTitle", voucher.getSubTitle());
+                m.put("label", "限時餐券");
+                return m;
+            });
+            row.put("count", ((Number) row.get("count")).intValue() + 1);
+            row.put("stock", ((Number) row.get("stock")).intValue() + seckill.getStock());
+        });
+
+        return Result.ok(byShop.values().stream().toList());
     }
 
     @GetMapping("/{id}/ai-metadata")

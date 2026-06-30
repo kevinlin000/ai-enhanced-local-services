@@ -10,10 +10,12 @@ import {
   CreditCard,
   ReceiptText,
   Store,
+  TicketPercent,
 } from "lucide-react";
 import {
   javaApi,
   type MerchantDepositAdjustment,
+  type MerchantFlashDealSummary,
   type MerchantIncident,
   type MerchantRefundNotificationPolicy,
   type MerchantRefundOperationsReport,
@@ -195,6 +197,7 @@ export default function MerchantPage() {
   const [slots, setSlots] = useState<MerchantSlot[]>([]);
   const [incidents, setIncidents] = useState<MerchantIncident[]>([]);
   const [depositAdjustments, setDepositAdjustments] = useState<MerchantDepositAdjustment[]>([]);
+  const [flashDeals, setFlashDeals] = useState<MerchantFlashDealSummary | null>(null);
   const [refundSla, setRefundSla] = useState<MerchantRefundSlaSummary | null>(null);
   const [refundReport, setRefundReport] = useState<MerchantRefundOperationsReport | null>(null);
   const [refundNotificationPolicy, setRefundNotificationPolicy] = useState<MerchantRefundNotificationPolicy | null>(
@@ -204,6 +207,7 @@ export default function MerchantPage() {
   const [loading, setLoading] = useState(true);
   const [incidentLoading, setIncidentLoading] = useState(false);
   const [adjustmentLoading, setAdjustmentLoading] = useState(false);
+  const [flashDealLoading, setFlashDealLoading] = useState(false);
   const [refundSlaLoading, setRefundSlaLoading] = useState(false);
   const [incidentBusyId, setIncidentBusyId] = useState<number | null>(null);
   const [adjustmentBusyId, setAdjustmentBusyId] = useState<number | null>(null);
@@ -278,6 +282,34 @@ export default function MerchantPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedShopId) {
+      setFlashDeals(null);
+      return;
+    }
+    const shopId = selectedShopId;
+
+    let cancelled = false;
+    async function loadFlashDeals() {
+      setFlashDealLoading(true);
+      setError(null);
+      try {
+        const response = await javaApi.merchantFlashDeals(shopId);
+        if (!response.success) throw new Error(response.errorMsg ?? "無法載入限時餐券");
+        if (!cancelled) setFlashDeals(response.data);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "載入限時餐券失敗");
+      } finally {
+        if (!cancelled) setFlashDealLoading(false);
+      }
+    }
+
+    loadFlashDeals();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedShopId]);
 
   useEffect(() => {
     if (!selectedShopId) return;
@@ -880,7 +912,7 @@ export default function MerchantPage() {
           {activeSection !== "shops" ? (
           <div className="min-w-0 space-y-5">
             {activeSection === "overview" ? (
-              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <MerchantWorkCard
                   title="工作佇列"
                   description="晚到、現場等候與替代時段提案"
@@ -903,12 +935,69 @@ export default function MerchantPage() {
                   onClick={() => setActiveSection("slots")}
                 />
                 <MerchantWorkCard
+                  title="限時餐券"
+                  description="活動、庫存、已搶訂單"
+                  count={flashDealLoading ? "讀取中" : `${flashDeals?.totalDeals ?? 0} 檔`}
+                  href="#flash-deals"
+                  onClick={() => setActiveSection("overview")}
+                />
+                <MerchantWorkCard
                   title="店家清單"
                   description="切換示範店家與故事標籤"
                   count={loading ? "讀取中" : `${shops.length} 家`}
                   href="#shops"
                   onClick={() => setActiveSection("shops")}
                 />
+              </section>
+            ) : null}
+
+            {activeSection === "overview" ? (
+              <section id="flash-deals" className="rounded-lg border border-stone-200 bg-white">
+                <div className="flex flex-col gap-4 border-b border-stone-200 p-5 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="rounded-lg bg-emerald-50 p-3 text-emerald-700">
+                      <TicketPercent className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-xl font-semibold">限時餐券</h2>
+                      <p className="mt-1 break-words text-sm text-stone-500">
+                        顯示目前店家的活動、剩餘庫存與已搶訂單，對應 Redis/Lua/RabbitMQ 秒殺鏈路。
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <Metric label="活動" value={flashDealLoading ? "讀取中" : flashDeals?.totalDeals ?? 0} />
+                    <Metric label="剩餘" value={flashDealLoading ? "讀取中" : flashDeals?.totalStock ?? 0} />
+                    <Metric label="已搶" value={flashDealLoading ? "讀取中" : flashDeals?.totalOrders ?? 0} />
+                  </div>
+                </div>
+
+                <div className="grid gap-3 p-5">
+                  {(flashDeals?.deals ?? []).map((deal) => (
+                    <div
+                      key={deal.dealId}
+                      className="grid gap-4 rounded-lg border border-emerald-100 bg-emerald-50/40 p-4 lg:grid-cols-[1fr_160px_160px]"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
+                            限時餐券
+                          </span>
+                          <span className="text-xs font-semibold text-stone-500">#{deal.dealId}</span>
+                        </div>
+                        <p className="mt-3 truncate text-lg font-semibold">{deal.title}</p>
+                        <p className="mt-1 text-sm text-stone-600">{deal.subTitle ?? "限時活動"}</p>
+                      </div>
+                      <IncidentFact label="剩餘庫存" value={`${deal.stock} 張`} />
+                      <IncidentFact label="已搶訂單" value={`${deal.orderCount} 筆`} />
+                    </div>
+                  ))}
+                  {!flashDealLoading && (flashDeals?.deals ?? []).length === 0 ? (
+                    <div className="rounded-lg bg-stone-50 p-6 text-sm text-stone-500">
+                      目前店家沒有進行中的限時餐券。切換到 KiKi、辛殿、刁民、鼎泰豐等 demo 店家可查看活動資料。
+                    </div>
+                  ) : null}
+                </div>
               </section>
             ) : null}
 
