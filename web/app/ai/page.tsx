@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { AuthRequiredError, javaApi, type MyBooking } from "@/lib/api";
 import { streamAgentResponse, type AgentBookingDraft, type AgentComparisonRow, type AgentTransaction } from "@/lib/agentStream";
 import { useAuth } from "@/lib/auth";
+import { formatHoldCountdown } from "@/lib/myBookings";
 import { AgentShopCard } from "@/components/AgentShopCard";
 import type { AgentShop } from "@/lib/agentTypes";
 import { MarkdownMessage } from "@/components/MarkdownMessage";
@@ -350,16 +351,6 @@ const DEMO_PAYMENT_METHODS = [
     description: "錢包 demo flow",
   },
 ] as const;
-
-function formatHoldCountdown(holdExpiresAt: string | null | undefined, nowMs: number) {
-  if (!holdExpiresAt) return null;
-  const remainingMs = new Date(holdExpiresAt).getTime() - nowMs;
-  if (remainingMs <= 0) return "已逾期";
-  const totalSeconds = Math.ceil(remainingMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
 
 function bookingResponseToAgentTransaction(booking: MyBooking): AgentTransaction {
   return {
