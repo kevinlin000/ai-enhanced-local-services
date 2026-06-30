@@ -61,7 +61,7 @@ const AI_QUICK_QUERIES = [
   "大安區 約會餐廳 晚餐 氣氛好",
   "信義區 日式料理 高評價 難訂",
   "捷運站附近 火鍋 4 人聚餐",
-  "今晚可訂 熱門時段 Hot Seat",
+  "今晚可訂 熱門時段限時餐券",
 ];
 
 const SCORE_OPTIONS = [
@@ -369,7 +369,7 @@ function ShopsPageContent() {
     if (shop.aiBookingDifficulty && shop.aiBookingDifficulty !== "未提及") parts.push(shop.aiBookingDifficulty);
     if (shop.aiPricePerPerson && shop.aiPricePerPerson !== "未提及") parts.push(shop.aiPricePerPerson);
     else if (shop.avgPrice) parts.push(`NT$ ${shop.avgPrice}`);
-    if (shop.aiHotSeatCount) parts.push(`Hot Seat ${shop.aiHotSeatCount} 案`);
+    if (shop.aiHotSeatCount) parts.push(`限時餐券 ${shop.aiHotSeatCount} 張`);
     return parts.slice(0, 3).join(" · ");
   };
 
@@ -785,10 +785,10 @@ function ShopsPageContent() {
                       {searchMode === "ai" && shop.aiHotSeatCount ? (
                         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2">
                           <p className="text-[11px] font-medium text-amber-800">
-                            Hot Seat 限時搶位
+                            限時餐券可搶
                           </p>
                           <p className="mt-0.5 text-[11px] text-amber-700">
-                            此店目前有 {shop.aiHotSeatCount} 個熱門時段方案
+                            此店目前有 {shop.aiHotSeatCount} 張熱門時段餐券
                           </p>
                         </div>
                       ) : null}
@@ -841,7 +841,7 @@ function ShopsPageContent() {
                             ))}
                             {shop.aiHotSeatCount ? (
                               <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] text-amber-800">
-                                Hot Seat {shop.aiHotSeatCount} 案
+                                限時餐券 {shop.aiHotSeatCount} 張
                               </span>
                             ) : null}
                           </div>

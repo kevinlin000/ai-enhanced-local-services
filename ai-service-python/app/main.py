@@ -741,7 +741,10 @@ def _extract_query_constraints(query: str) -> dict:
             if canonical_category not in categories:
                 categories.append(canonical_category)
 
-    wants_hot_seat = any(keyword in query_lower for keyword in ("hot seat", "熱座", "搶位", "限量", "秒殺"))
+    wants_hot_seat = any(
+        keyword in query_lower
+        for keyword in ("hot seat", "flash deal", "熱座", "搶位", "限量", "秒殺", "限時餐券", "餐券", "優惠券", "折扣券")
+    )
     wants_nearby = any(keyword in query_lower for keyword in ("附近", "nearby"))
     wants_luxury = any(keyword in query_lower for keyword in LUXURY_HINTS)
     wants_burger = any(keyword in query_lower for keyword in BURGER_QUERY_HINTS)
@@ -1580,7 +1583,7 @@ def _metadata_bonus(query: str, payload: dict) -> float:
     if any(keyword in query_lower for keyword in ("難訂", "熱門", "搶位")):
         if "困難" in booking_difficulty:
             bonus += 0.12
-    if any(keyword in query_lower for keyword in ("套餐", "折扣", "優惠", "hot seat", "熱座", "搶位")):
+    if any(keyword in query_lower for keyword in ("套餐", "折扣", "優惠", "hot seat", "flash deal", "熱座", "搶位", "限時餐券", "餐券", "優惠券", "折扣券")):
         if payload.get("hot_seat_vouchers"):
             bonus += 0.35
         elif constraints["wants_hot_seat"]:
@@ -1645,7 +1648,7 @@ def _fallback_keyword_score(query: str, payload: dict) -> float:
             if canonical.lower() == str(payload.get("district") or "").lower():
                 score += 0.28
 
-    if any(keyword in query_lower for keyword in ("hot seat", "熱座", "搶位", "限量", "秒殺")) and payload.get("hot_seat_vouchers"):
+    if any(keyword in query_lower for keyword in ("hot seat", "flash deal", "熱座", "搶位", "限量", "秒殺", "限時餐券", "餐券", "優惠券", "折扣券")) and payload.get("hot_seat_vouchers"):
         score += 0.25
 
     return score
@@ -2329,7 +2332,9 @@ async def _fetch_hot_seat_vouchers(shop_ids: list[int]) -> dict[int, list]:
     async with httpx.AsyncClient(timeout=5.0) as client:
         for sid in shop_ids:
             try:
-                r = await client.get(f"{settings.java_backend_url}/api/shop/{sid}/hot-seat-vouchers")
+                r = await client.get(f"{settings.java_backend_url}/api/shop/{sid}/flash-deals")
+                if r.status_code == 404:
+                    r = await client.get(f"{settings.java_backend_url}/api/shop/{sid}/hot-seat-vouchers")
                 out[sid] = r.json().get("data", []) if r.status_code == 200 else []
             except Exception:
                 out[sid] = []
@@ -2365,7 +2370,7 @@ async def tool_create_hot_seat_order(voucher_id: int) -> dict:
     return {
         "success": True,
         "voucher_order_id": data.get("data"),
-        "message": "已為您搶到 Hot Seat 名額，可在「我的訂單」查看",
+        "message": "已為您搶到限時餐券，可在「我的訂單」查看",
     }
 
 
@@ -2682,7 +2687,7 @@ TOOLS = [
             },
             {
                 "name": "semantic_shop_search",
-                "description": "語意搜尋店家。當使用者描述抽象需求（如「想吃手搖飲」「適合約會」「有沒有 Hot Seat 限時搶位」），用此 tool。回應含 hot_seat_vouchers 欄位。",
+                "description": "語意搜尋店家。當使用者描述抽象需求（如「想吃手搖飲」「適合約會」「有沒有限時餐券或秒殺優惠」），用此 tool。回應含 hot_seat_vouchers 欄位。",
                 "parameters": {
                     "type": "OBJECT",
                     "properties": {
@@ -2693,15 +2698,15 @@ TOOLS = [
             },
             {
                 "name": "create_hot_seat_order",
-                "description": """為用戶搶 Hot Seat 限時名額。當用戶明確說想訂位、想搶位、想下訂某個 Hot Seat 時呼叫。
-回應含 voucher_order_id。僅支援已啟動 Hot Seat 的方案。
+                "description": """為用戶搶限時餐券名額。當用戶明確說想搶餐券、想搶優惠、想下訂某個限時餐券時呼叫。
+回應含 voucher_order_id。僅支援已啟動限時餐券的方案。
 若用戶尚未指定 voucher_id，應先呼叫 semantic_shop_search 找店，再從回應的 hot_seat_vouchers 挑一個。""",
                 "parameters": {
                     "type": "OBJECT",
                     "properties": {
                         "voucher_id": {
                             "type": "INTEGER",
-                            "description": "Hot Seat 方案 ID（從 search 結果 hot_seat_vouchers 取得，不要瞎猜）",
+                            "description": "限時餐券方案 ID（從 search 結果 hot_seat_vouchers 取得，不要瞎猜）",
                         },
                     },
                     "required": ["voucher_id"],
@@ -2820,11 +2825,11 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 - 訂位建立後，回應要包含 bookingCode；只有使用者明確支付完成後才包含 rec_trade_id
 - 若使用者只指定品牌但未指定分店，而候選中有多間同品牌分店，必須先詢問使用者選哪間分店；禁止直接替使用者挑分店下訂
 
-==== Hot Seat 搶位流程（create_hot_seat_order）====
-- 用戶說「幫我搶」「搶位」「想搶熱座」→ 呼叫 create_hot_seat_order
+==== 限時餐券搶購流程（create_hot_seat_order）====
+- 用戶說「幫我搶」「搶餐券」「想搶優惠」「想搶熱座」→ 呼叫 create_hot_seat_order
 - 若不知道 voucher_id，先 semantic_shop_search 找到 hot_seat_vouchers，再取其中一個 id
 - 訂單成功後，回應要包含 voucher_order_id，並提示用戶到「我的訂單」查看
-- 一個 query 最多訂 1 個 Hot Seat 方案
+- 一個 query 最多訂 1 個限時餐券方案
 
 ==== AI 私密配對優惠 ====
 - 若候選資料有 private_ai_offers，描述為「AI 已替你保留/配對的私密優惠」，不要說成公開優惠券或全站折扣。
@@ -4169,7 +4174,7 @@ def _agent_comparison_best_for(shop: dict) -> str:
 
 def _agent_comparison_booking_status(shop: dict) -> str:
     if shop.get("hot_seat_vouchers"):
-        return "Hot Seat 可搶"
+        return "限時餐券可搶"
     booking = str(shop.get("booking_difficulty") or "").strip()
     if booking and "未提及" not in booking:
         return booking

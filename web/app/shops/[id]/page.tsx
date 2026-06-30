@@ -4,6 +4,7 @@ import { ArrowLeft, DollarSign, MapPin, MessageSquare, Star } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { BookingButton } from "@/components/BookingButton";
 import { FavoriteShopButton } from "@/components/FavoriteShopButton";
+import { FlashDealClaimButton } from "@/components/FlashDealClaimButton";
 import { ShopDetailTabs } from "@/components/ShopDetailTabs";
 import { javaApi, type AbsaAspect, type NearbyParkingLot, type Shop, type ShopAiMetadata, type ShopAbsa, type VoucherOffer } from "@/lib/api";
 import { proxyImageUrl } from "@/lib/photoProxy";
@@ -692,24 +693,24 @@ export default async function ShopDetailPage({
       const stock = bestHotSeatOffer.stock ?? 0;
       if (stock <= 10) {
         return {
-          title: "現在最適合先搶 Hot Seat",
-          body: `這家店目前有熱門時段限量名額，剩 ${stock} 席，先鎖位通常比現場碰運氣更穩。`,
+          title: "現在最適合先搶限時餐券",
+          body: `這家店目前有熱門時段限量餐券，剩 ${stock} 張，先搶餐券可以保留優惠與訂位優先權。`,
         };
       }
       return {
-        title: "熱門時段建議先看 Hot Seat",
-        body: `目前還有 ${stock} 個限量名額，若你想訂晚餐熱門時段，先搶位通常比一般訂位更有把握。`,
+        title: "熱門時段建議先看限時餐券",
+        body: `目前還有 ${stock} 張限量餐券，若你想訂晚餐熱門時段，可以先鎖定優惠再安排用餐。`,
       };
     }
     if (ai?.bookingDifficulty === "預約困難") {
       return {
         title: "這家店熱門時段較難訂",
-        body: "目前雖然沒有上架 Hot Seat 方案，但晚餐尖峰時段仍建議提早安排。",
+        body: "目前雖然沒有上架限時餐券，但晚餐尖峰時段仍建議提早安排。",
       };
     }
     return {
       title: "目前可直接一般訂位",
-      body: "如果你只是想先卡位，直接走一般訂位流程即可；若後續有 Hot Seat 方案上架，也會在此頁顯示。",
+      body: "如果你只是想先訂位，直接走一般訂位流程即可；若後續有餐券上架，也會在此頁顯示。",
     };
   })();
 
@@ -843,7 +844,7 @@ export default async function ShopDetailPage({
                   href="#offers"
                   className="inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium hover:bg-background"
                 >
-                  查看 Hot Seat 方案
+                  查看限時餐券
                 </a>
               ) : null}
             </div>
@@ -852,9 +853,9 @@ export default async function ShopDetailPage({
           {hotSeatOffers.length > 0 ? (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium">Hot Seat 限時搶位</h3>
+                <h3 className="font-medium">限時餐券</h3>
                 <span className="text-xs rounded-full bg-primary/10 text-primary px-2 py-1">
-                  熱門時段限量
+                  秒殺優惠 / 限量庫存
                 </span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -881,14 +882,14 @@ export default async function ShopDetailPage({
                           ) : null}
                         </div>
                         <div className={`shrink-0 rounded-lg border px-3 py-2 text-right ${getUrgencyTone(stock)}`}>
-                          <div className="text-xs text-muted-foreground">剩餘名額</div>
+                          <div className="text-xs text-muted-foreground">剩餘餐券</div>
                           <div className="text-xl font-medium">{stock}</div>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4 text-sm">
                         <div className="rounded-lg bg-background p-3 border">
-                          <div className="text-xs text-muted-foreground">搶位價</div>
+                          <div className="text-xs text-muted-foreground">餐券價</div>
                           <div className="mt-1 font-medium">{formatCurrency(offer.payValue)}</div>
                         </div>
                         <div className="rounded-lg bg-background p-3 border">
@@ -909,6 +910,7 @@ export default async function ShopDetailPage({
                         {offer.endTime ? <p>最後可搶：{formatShortDate(offer.endTime)}</p> : null}
                         {offer.rules ? <p>使用規則：{offer.rules}</p> : null}
                       </div>
+                      <FlashDealClaimButton dealId={offer.id} />
                     </div>
                   );
                 })}
@@ -983,7 +985,7 @@ export default async function ShopDetailPage({
             <div className="truncate font-medium">{shop.name}</div>
             <div className="text-muted-foreground text-xs">
               {bestHotSeatOffer
-                ? `Hot Seat 剩 ${bestHotSeatOffer.stock} 席`
+                ? `限時餐券剩 ${bestHotSeatOffer.stock} 張`
                 : ai?.bookingDifficulty === "預約困難"
                   ? "熱門時段需提前預約"
                   : "可線上訂位"}
@@ -996,7 +998,7 @@ export default async function ShopDetailPage({
                 href="#offers"
                 className="hidden md:inline-flex rounded-lg border px-3 py-2 text-sm hover:bg-muted"
               >
-                看 Hot Seat
+                看限時餐券
               </a>
             ) : null}
             <BookingButton shop={{ id: shop.id, name: shop.name, avgPrice: shop.avgPrice }} />

@@ -295,7 +295,7 @@ public class ShopController {
                 .orElse(Result.ok(null));
     }
 
-    @GetMapping("/{id}/hot-seat-vouchers")
+    @GetMapping({"/{id}/hot-seat-vouchers", "/{id}/flash-deals"})
     public Result hotSeatVouchers(@PathVariable("id") Long id) {
         List<Voucher> vouchers = voucherService.list(
                 new LambdaQueryWrapper<Voucher>()
@@ -314,6 +314,8 @@ public class ShopController {
 
         Map<Long, Integer> stockMap = seckillList.stream()
                 .collect(Collectors.toMap(SeckillVoucher::getVoucherId, SeckillVoucher::getStock));
+        Map<Long, SeckillVoucher> seckillMap = seckillList.stream()
+                .collect(Collectors.toMap(SeckillVoucher::getVoucherId, s -> s));
 
         Set<Long> activeIds = stockMap.keySet();
         List<Map<String, Object>> result = vouchers.stream()
@@ -322,9 +324,15 @@ public class ShopController {
                     Map<String, Object> m = new LinkedHashMap<>();
                     m.put("id", v.getId());
                     m.put("title", v.getTitle());
+                    m.put("sub_title", v.getSubTitle());
+                    m.put("rules", v.getRules());
                     m.put("pay_value", v.getPayValue());
                     m.put("actual_value", v.getActualValue());
                     m.put("stock", stockMap.getOrDefault(v.getId(), 0));
+                    SeckillVoucher seckill = seckillMap.get(v.getId());
+                    m.put("begin_time", seckill == null ? null : seckill.getBeginTime());
+                    m.put("end_time", seckill == null ? null : seckill.getEndTime());
+                    m.put("label", "限時餐券");
                     return m;
                 })
                 .toList();

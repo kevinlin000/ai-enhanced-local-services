@@ -80,6 +80,7 @@ public class SecurityConfig {
         return new String[]{
                 "/api/merchant/**",
                 "/merchant/**",
+                "/api/flash-deals/**",
                 "/voucher-order/seckill/**",
                 "/api/voucher-order/seckill/**",
                 "/payment/**",
