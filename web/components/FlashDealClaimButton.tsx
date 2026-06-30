@@ -21,6 +21,10 @@ export function FlashDealClaimButton({ dealId }: Props) {
     try {
       const result = await javaApi.claimFlashDeal(dealId);
       if (!result.success) {
+        if (result.errorMsg?.includes("不能重複下單")) {
+          setMessage("已搶過餐券，本次不會重複扣庫存");
+          return;
+        }
         setError(result.errorMsg ?? "餐券搶購失敗，請稍後再試");
         return;
       }
