@@ -810,7 +810,7 @@ export default function MerchantPage() {
                   description="離峰補位、限量轉單"
                   count={flashDealLoading ? "讀取中" : `${flashDeals?.totalDeals ?? 0} 檔`}
                   href="#flash-deals"
-                  onClick={() => setActiveSection("overview")}
+                  onClick={() => setActiveSection("flashDeals")}
                 />
                 <MerchantWorkCard
                   title="店家清單"
@@ -822,7 +822,7 @@ export default function MerchantPage() {
               </section>
             ) : null}
 
-            {activeSection === "overview" ? (
+            {activeSection === "overview" || activeSection === "flashDeals" ? (
               <section id="flash-deals" className="rounded-lg border border-stone-200 bg-white">
                 <div className="flex flex-col gap-4 border-b border-stone-200 p-5 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex min-w-0 items-start gap-3">

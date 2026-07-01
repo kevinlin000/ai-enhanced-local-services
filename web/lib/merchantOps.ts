@@ -41,7 +41,7 @@ export const DEMO_STORY_BY_SHOP_ID: Record<number, { label: string; detail: stri
   10116: { label: "候位 Demo", detail: "酸菜魚" },
 };
 
-export type MerchantSection = "overview" | "incidents" | "deposits" | "slots" | "shops";
+export type MerchantSection = "overview" | "incidents" | "deposits" | "slots" | "flashDeals" | "shops";
 
 export const MERCHANT_SECTION_COPY: Record<MerchantSection, { label: string; description: string }> = {
   overview: {
@@ -60,6 +60,10 @@ export const MERCHANT_SECTION_COPY: Record<MerchantSection, { label: string; des
     label: "時段容量",
     description: "調整可接待人數，直接影響 Web / LINE 訂位庫存。",
   },
+  flashDeals: {
+    label: "限時餐券",
+    description: "查看離峰補位活動、庫存與已搶營收。",
+  },
   shops: {
     label: "店家清單",
     description: "切換 demo 店家並查看故事標籤。",
@@ -72,6 +76,7 @@ export function merchantSectionFromHash(hash: string): MerchantSection {
   if (hash === "#incident-queue") return "incidents";
   if (hash === "#deposit-queue") return "deposits";
   if (hash === "#slots") return "slots";
+  if (hash === "#flash-deals") return "flashDeals";
   if (hash === "#shops") return "shops";
   return "overview";
 }
