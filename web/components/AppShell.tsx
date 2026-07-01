@@ -309,7 +309,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
               <div className="hidden min-w-0 md:block">
                 <p className="text-sm font-semibold text-stone-900">商家營運台</p>
-                <p className="text-xs font-medium text-zinc-500">時段容量、救場事件、訂金退款</p>
+                <p className="text-xs font-medium text-zinc-500">工作佇列、訂金退款、時段容量、限時餐券</p>
               </div>
             </div>
             <div className="flex items-center gap-2">

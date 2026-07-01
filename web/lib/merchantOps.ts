@@ -45,8 +45,8 @@ export type MerchantSection = "overview" | "incidents" | "deposits" | "slots" | 
 
 export const MERCHANT_SECTION_COPY: Record<MerchantSection, { label: string; description: string }> = {
   overview: {
-    label: "營運總覽",
-    description: "快速進入救場、訂金退款、時段容量與店家清單。",
+    label: "營運指揮台",
+    description: "先處理會阻塞訂位、付款與通知同步的事項，再檢查容量、餐券與店家設定。",
   },
   incidents: {
     label: "工作佇列",
@@ -62,7 +62,7 @@ export const MERCHANT_SECTION_COPY: Record<MerchantSection, { label: string; des
   },
   flashDeals: {
     label: "限時餐券",
-    description: "查看離峰補位活動、庫存與已搶營收。",
+    description: "管理離峰補位活動、限量庫存、已搶訂單與可售營收。",
   },
   shops: {
     label: "店家清單",

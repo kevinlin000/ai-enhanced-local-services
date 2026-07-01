@@ -708,9 +708,9 @@ export default function MerchantPage() {
           </div>
 
           <div className="grid border-t border-stone-200 text-sm text-stone-600 md:grid-cols-3">
-            <DemoNote title="Story 1" detail="部門聚餐、熱門時段、候位通知" />
-            <DemoNote title="Story 2" detail="家庭用餐、開車抵達、停車提醒" />
-            <DemoNote title="現場測試" detail="調低 19:00 容量即可模擬額滿" />
+            <DemoNote title="Story 1" detail="部門聚餐、熱門時段、候位通知、免訂金" />
+            <DemoNote title="Story 2" detail="家庭用餐、訂金付款、開車停車、LINE 同步" />
+            <DemoNote title="現場測試" detail="調低容量即可模擬額滿與空位釋出" />
           </div>
         </header>
 
@@ -786,14 +786,14 @@ export default function MerchantPage() {
               <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <MerchantWorkCard
                   title="工作佇列"
-                  description="晚到、現場等候與替代時段提案"
+                  description="晚到、現場等候、替代時段"
                   count={incidentLoading ? "讀取中" : `${incidents.length} 件`}
                   href="#incident-queue"
                   onClick={() => setActiveSection("incidents")}
                 />
                 <MerchantWorkCard
                   title="訂金退款"
-                  description="補款、退款、人工確認"
+                  description="改單後補款、退款、人工確認"
                   count={adjustmentLoading ? "讀取中" : `${depositAdjustments.length} 件`}
                   href="#deposit-queue"
                   onClick={() => setActiveSection("deposits")}
@@ -807,7 +807,7 @@ export default function MerchantPage() {
                 />
                 <MerchantWorkCard
                   title="限時餐券"
-                  description="離峰補位、限量轉單"
+                  description="離峰補位、庫存、已搶營收"
                   count={flashDealLoading ? "讀取中" : `${flashDeals?.totalDeals ?? 0} 檔`}
                   href="#flash-deals"
                   onClick={() => setActiveSection("flashDeals")}
