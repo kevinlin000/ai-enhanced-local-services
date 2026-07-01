@@ -20,6 +20,7 @@ import {
   ReceiptText,
   Search,
   Store,
+  TicketPercent,
   UserCircle,
   X,
 } from "lucide-react";
@@ -83,6 +84,11 @@ const MERCHANT_NAV_ITEMS = [
     label: "時段容量",
     href: "/merchant#slots",
     icon: CalendarDays,
+  },
+  {
+    label: "限時餐券",
+    href: "/merchant#flash-deals",
+    icon: TicketPercent,
   },
   {
     label: "店家清單",
