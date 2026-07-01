@@ -17,19 +17,19 @@
 
 ### P0 — 現在就該做
 
-#### 1. Voucher → HotSeatVoucher 業務語意（rename + 故事）
+#### 1. Voucher / seckill → 限時餐券業務語意（rename + 故事）
 
-- **結論**：要做，而且應該先做。
+- **結論**：已完成第一版，後續只保留內部相容命名，不再把 `HotSeat` 當對外產品名。
 - **原因**：
-  - 現在 Java / Python / 前端混用 `voucher`、`seckill`、`hot-seat`，對外敘事不一致。
-  - 對使用者與面試官來說，「Hot Seat / 熱門時段搶位券」比「優惠券秒殺」更貼近 Inline-like 餐廳場景。
+  - Java / Python / 前端仍保留 `voucher`、`seckill`、`hot-seat` 等內部相容語意，但使用者與面試官只看 `限時餐券`。
+  - 對使用者與面試官來說，「限時餐券」比「優惠券秒殺」更貼近餐廳離峰補位與熱門時段轉單場景。
   - 這是後續文件、demo、影片、AWS 展示的語意底座。
 - **現況證據**：
-  - Java 秒殺入口仍是 `/voucher-order/seckill/{id}`。
-  - Python tool 已開始用 `hot_seat_vouchers` 語意，但 message 仍寫 voucher。
-  - 店家頁與 Agent 已有訂位 / 熱座概念，尚未完全統一。
+  - Java 舊入口 `/voucher-order/seckill/{id}` 保留，並新增 `/api/flash-deals/{id}/claim` 對外 alias。
+  - Python tool 內部仍用 `hot_seat_vouchers` 欄位避免破壞 payload，相同內容對外顯示為 `限時餐券`。
+  - 探索頁、AI 卡片、店家詳情、商家後台已統一使用 `限時餐券`。
 - **完成定義**：
-  - 使用者可見文案統一為 `Hot Seat` / `熱門時段搶位`。
+  - 使用者可見文案統一為 `限時餐券`。
   - README / roadmap / API 敘事一致。
   - 程式內部可暫保留舊欄位與資料表名，先做 façade rename，不急著大搬 schema。
 
@@ -90,7 +90,7 @@
 
 - **結論**：延後。
 - **原因**：
-  - 現在錄，之後 HotSeat 故事、SSE、資料展示一變，影片就報廢。
+  - 現在錄，之後限時餐券故事、SSE、資料展示一變，影片就報廢。
 
 #### 7. I3 AWS 部署
 
@@ -130,7 +130,7 @@
 
 ## 建議執行順序
 
-1. 統一 HotSeat 業務語意與文案
+1. 統一限時餐券業務語意與文案
 2. 打通 ETL metadata → DB / Qdrant / AI 搜尋排序
 3. 補強店家 detail 頁的決策資訊
 4. 做 SSE streaming
@@ -146,7 +146,7 @@
 - `/shops` 與 `/ai` 的主流程已穩
 - 103 家資料展示沒有明顯破洞
 - AI 搜尋能合理回答場景型 query
-- HotSeat / 訂位 / 支付 demo 故事已一致
+- 限時餐券 / 訂位 / 支付 demo 故事已一致
 - README / roadmap / demo script 已同步
 
 滿足後，才評估 LIFF、跨縣市、店家後台、自動化爬蟲。

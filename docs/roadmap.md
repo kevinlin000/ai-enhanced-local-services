@@ -57,7 +57,7 @@ These are the highest-value next steps after the presentation.
    - Next: add merchant notification preferences and provider-specific refund operations.
 
 3. **Private AI-Matched Offers — first slice completed**
-   - ✅ Avoid public coupon pages by storing offers in `tb_private_ai_offer`, separate from public voucher/Hot Seat tables.
+   - ✅ Avoid public coupon pages by storing offers in `tb_private_ai_offer`, separate from public voucher / seckill tables.
    - ✅ Trigger private offers only for explicit discount/save-money/off-peak intent from AI recommendation flow.
    - ✅ Reuse active per-user/per-shop offers instead of creating duplicates.
    - Next: add restaurant-side quota controls, redemption at checkout, and merchant analytics for off-peak fill rate.
@@ -198,7 +198,7 @@ The section below preserves earlier planning context. Some items have already be
 
 ### v1.0 現在最該補的是什麼？
 
-- HotSeat / 訂位 / 支付 demo 的業務語意一致
+- 限時餐券 / 訂位 / 支付 demo 的業務語意一致
 - ETL 評論抽取 → AI metadata → 檢索 / rerank / 展示閉環
 - Inline-like 主流程體驗
 - 文件真實性與面試敘事一致性
