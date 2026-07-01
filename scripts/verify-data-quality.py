@@ -25,6 +25,32 @@ EXPECTED_CONVERSATION_CASE_IDS = {
     "hard_constraint_korean_cuisine",
 }
 
+CONVERSATION_EXECUTABLE_GATE_FIELDS = {
+    "expect_clarifying",
+    "expect_clarifying_or_recommendation",
+    "expect_table",
+    "must_use_tools",
+    "must_not_use_tools",
+    "must_contain_any",
+    "must_contain_all",
+    "must_not_contain",
+    "min_recommended_count",
+    "max_recommended_count",
+    "expected_recommended_shop_ids",
+    "expected_booking_draft",
+    "expected_line_card",
+    "ranking_guard",
+}
+
+CONVERSATION_LIST_GATE_FIELDS = {
+    "must_use_tools",
+    "must_not_use_tools",
+    "must_contain_any",
+    "must_contain_all",
+    "must_not_contain",
+    "expected_recommended_shop_ids",
+}
+
 COVERAGE_THRESHOLDS = {
     "Cover image/media": 100.0,
     "Price signal": 85.0,
@@ -189,6 +215,15 @@ def verify_conversation_quality_cases() -> None:
     for case in cases:
         if not case.get("surface") or not case.get("query") or not case.get("quality_gate"):
             fail(f"conversation case is missing surface/query/quality_gate: {case.get('id')}")
+        if not any(case.get(field) not in (None, False, "", [], {}) for field in CONVERSATION_EXECUTABLE_GATE_FIELDS):
+            fail(f"conversation case has no executable gate: {case.get('id')}")
+        for field in CONVERSATION_LIST_GATE_FIELDS:
+            if field in case and (not isinstance(case[field], list) or not case[field]):
+                fail(f"conversation case {case.get('id')} has invalid non-empty list gate {field}")
+        if "expected_booking_draft" in case and (
+            not isinstance(case["expected_booking_draft"], dict) or not case["expected_booking_draft"]
+        ):
+            fail(f"conversation case {case.get('id')} has invalid expected_booking_draft")
     print(f"conversation quality cases: {len(cases)} cases passed")
 
 

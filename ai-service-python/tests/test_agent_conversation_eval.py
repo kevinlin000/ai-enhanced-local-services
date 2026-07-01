@@ -21,6 +21,32 @@ EXPECTED_CASE_IDS = {
     "hard_constraint_korean_cuisine",
 }
 
+EXECUTABLE_GATE_FIELDS = {
+    "expect_clarifying",
+    "expect_clarifying_or_recommendation",
+    "expect_table",
+    "must_use_tools",
+    "must_not_use_tools",
+    "must_contain_any",
+    "must_contain_all",
+    "must_not_contain",
+    "min_recommended_count",
+    "max_recommended_count",
+    "expected_recommended_shop_ids",
+    "expected_booking_draft",
+    "expected_line_card",
+    "ranking_guard",
+}
+
+LIST_GATE_FIELDS = {
+    "must_use_tools",
+    "must_not_use_tools",
+    "must_contain_any",
+    "must_contain_all",
+    "must_not_contain",
+    "expected_recommended_shop_ids",
+}
+
 
 async def _collect_web_done(query: str, session_id: str) -> dict:
     events = [event async for event in main._run_agent_turn_stream(query, session_id)]
@@ -43,6 +69,18 @@ def test_conversation_quality_eval_manifest_is_complete():
 
     assert {case["id"] for case in cases} == EXPECTED_CASE_IDS
     assert all(case.get("query") and case.get("quality_gate") for case in cases)
+    assert all(
+        any(case.get(field) not in (None, False, "", [], {}) for field in EXECUTABLE_GATE_FIELDS)
+        for case in cases
+    )
+    for case in cases:
+        for field in LIST_GATE_FIELDS:
+            if field in case:
+                assert isinstance(case[field], list)
+                assert case[field], f"{case['id']} has an empty {field} gate"
+        if "expected_booking_draft" in case:
+            assert isinstance(case["expected_booking_draft"], dict)
+            assert case["expected_booking_draft"], f"{case['id']} has an empty expected_booking_draft"
 
 
 def test_effective_agent_query_does_not_merge_complete_fresh_search():
