@@ -146,7 +146,7 @@ Use-case tags:
 - `#景觀`
 - `#親子`
 - `#免訂金`
-- `#HotSeat`
+- `#限時餐券`
 
 ### 3.2 Promotion Rule
 

@@ -44,6 +44,6 @@
     { "code": "景觀",    "slug": "view",          "name": "景觀",    "group": "occasion" },
     { "code": "親子",    "slug": "family",        "name": "親子",    "group": "occasion" },
     { "code": "免訂金",   "slug": "no_deposit",    "name": "免訂金",  "group": "feature" },
-    { "code": "HotSeat", "slug": "hotseat",       "name": "HotSeat", "group": "feature" }
+    { "code": "HotSeat", "slug": "hotseat",       "name": "限時餐券", "group": "feature" }
   ]
 }
