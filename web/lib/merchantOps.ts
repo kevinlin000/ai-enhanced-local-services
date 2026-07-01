@@ -3,6 +3,7 @@ import type {
   MerchantShop,
   MerchantSlot,
 } from "@/lib/api";
+import { formatCurrencyAbs } from "@/lib/money";
 
 export function addDaysIso(days: number) {
   const value = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
@@ -125,7 +126,7 @@ export function slotHealth(slot: MerchantSlot) {
 }
 
 export function currency(value: number) {
-  return `NT$ ${Math.abs(Number(value ?? 0)).toLocaleString("zh-TW")}`;
+  return formatCurrencyAbs(value);
 }
 
 export function voucherCurrency(value: number) {

@@ -1,4 +1,5 @@
 import type { CustomerTopUpAdjustment, MyBooking } from "@/lib/api";
+import { formatCurrencyAbs } from "@/lib/money";
 
 export type PaymentMethod = "credit_card" | "line_pay" | "apple_pay" | "jkopay";
 
@@ -90,7 +91,7 @@ export function formatDateTime(booking: MyBooking) {
 }
 
 export function currency(value: number) {
-  return `NT$ ${Math.abs(Number(value ?? 0)).toLocaleString("zh-TW")}`;
+  return formatCurrencyAbs(value);
 }
 
 export function topUpBusyKey(adjustment: CustomerTopUpAdjustment) {
