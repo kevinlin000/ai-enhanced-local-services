@@ -18,6 +18,7 @@ EXPECTED_CONVERSATION_CASE_IDS = {
     "line_exact_recommended_shop_booking_draft",
     "line_booking_draft_edit_time",
     "line_negative_selection_more_results",
+    "fresh_steak_request_ignores_previous_budget_italian_context",
     "demo_story_department_group_recommends_with_reasons",
     "demo_story_family_driving_recommends_with_parking",
     "hard_constraint_business_taiwanese",
