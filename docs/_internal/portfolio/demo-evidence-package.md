@@ -6,13 +6,15 @@ Use this document before interviews, portfolio submission, or a recorded walkthr
 
 ## Evidence Folder
 
-Recommended local folder:
+Primary local folders:
 
 ```text
-output/playwright/demo-evidence/
+output/playwright/full-demo/
+output/playwright/flash-deals/
+output/playwright/final-demo/
 ```
 
-The folder may contain screenshots, short clips, and exported slides. The repo does not need to commit large binary captures unless they are intentionally small and stable.
+These folders contain the current Consumer / LINE / Merchant / AI / Voucher screenshots. The repo does not need to commit new large binary captures unless they are intentionally small and stable.
 
 ## Required Evidence
 
@@ -29,7 +31,7 @@ The folder may contain screenshots, short clips, and exported slides. The repo d
 | `09-architecture-overview.png` | Architecture is understandable at a glance. | Shows Web, Java, AI, LINE, ETL, Qdrant, data stores, and Nginx boundary. |
 | `10-er-model-booking-operations.png` | Core relational model is explainable. | Shows users, shops, booking, incidents, deposit adjustments, refund audit, and merchant notification state. |
 
-Current local captures live under `output/playwright/demo-evidence/`. The LINE image is a rendered Flex-card preview from the Java incident proposal payload, not a phone screenshot. The CI and clean-migration images are rendered evidence cards from `gh run list` and the live migration smoke output. The ER model is documented in `docs/er-model-booking-operations.md`.
+Current local captures live under `output/playwright/full-demo/`, `output/playwright/flash-deals/`, and `output/playwright/final-demo/`. LINE evidence now includes real LINE app screenshots plus rendered state proofs. The CI and clean-migration images are rendered evidence cards from `gh run list` and the live migration smoke output. The ER model is documented in `docs/er-model-booking-operations.md`.
 
 ## Optional Short Video
 
