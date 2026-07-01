@@ -24,6 +24,13 @@ test("app shell keeps AI search as a toolbar control", () => {
   assert.doesNotMatch(source, /w-\[280px\].*rounded-full.*font-bold/s);
 });
 
+test("merchant shell exposes flash deals as primary operations nav", () => {
+  const source = readFileSync(join(root, "components/AppShell.tsx"), "utf8");
+
+  assert.match(source, /label:\s*"限時餐券"[\s\S]*href:\s*"\/merchant#flash-deals"/);
+  assert.match(source, /TicketPercent/);
+});
+
 test("app shell constrains remote profile photos", () => {
   const shell = readFileSync(join(root, "components/AppShell.tsx"), "utf8");
   const css = readFileSync(join(root, "app/globals.css"), "utf8");
