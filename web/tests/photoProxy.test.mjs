@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
+import { allowedPhotoSource } from "../lib/photoSource.mjs";
 
 const root = join(import.meta.dirname, "..");
 
@@ -12,6 +13,23 @@ test("photo proxy degrades to a cacheable placeholder instead of 502", () => {
   assert.match(source, /image\/svg\+xml/);
   assert.match(source, /Cache-Control/);
   assert.doesNotMatch(source, /status:\s*502/);
+});
+
+test("photo proxy only accepts HTTPS Google image hosts", () => {
+  assert.equal(
+    allowedPhotoSource("https://lh3.googleusercontent.com/photo.jpg")?.hostname,
+    "lh3.googleusercontent.com",
+  );
+
+  for (const source of [
+    "http://lh3.googleusercontent.com/photo.jpg",
+    "https://lh3.googleusercontent.com.evil.example/photo.jpg",
+    "http://127.0.0.1:8081/actuator/health",
+    "http://169.254.169.254/latest/meta-data/",
+    "not-a-url",
+  ]) {
+    assert.equal(allowedPhotoSource(source), null, source);
+  }
 });
 
 test("consumer shell has a restrained product footer while merchant stays separate", () => {

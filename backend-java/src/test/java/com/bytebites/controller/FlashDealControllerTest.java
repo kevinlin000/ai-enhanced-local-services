@@ -1,5 +1,6 @@
 package com.bytebites.controller;
 
+import com.bytebites.annotation.Idempotent;
 import com.bytebites.dto.Result;
 import com.bytebites.service.IVoucherOrderService;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,14 @@ class FlashDealControllerTest {
 
     private final IVoucherOrderService voucherOrderService = mock(IVoucherOrderService.class);
     private final FlashDealController controller = new FlashDealController(voucherOrderService);
+
+    @Test
+    void claimDefersPerUserDuplicateProtectionToTheAtomicLuaOrderCheck() throws Exception {
+        assertThat(FlashDealController.class.getMethod("claim", Long.class)
+                .isAnnotationPresent(Idempotent.class)).isFalse();
+        assertThat(VoucherOrderController.class.getMethod("seckillVoucher", Long.class)
+                .isAnnotationPresent(Idempotent.class)).isFalse();
+    }
 
     @Test
     void claimWrapsQueuedFlashDealOrder() {

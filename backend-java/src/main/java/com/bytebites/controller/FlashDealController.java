@@ -1,6 +1,5 @@
 package com.bytebites.controller;
 
-import com.bytebites.annotation.Idempotent;
 import com.bytebites.annotation.RateLimit;
 import com.bytebites.dto.Result;
 import com.bytebites.service.IVoucherOrderService;
@@ -23,7 +22,6 @@ public class FlashDealController {
     }
 
     @PostMapping("/{id}/claim")
-    @Idempotent(key = "flashDeal:#voucherId", ttlSeconds = 5)
     @RateLimit(key = "flashDeal:#voucherId", capacity = 100, refillPerSecond = 10)
     public Result claim(@PathVariable("id") Long voucherId) {
         Result seckillResult = voucherOrderService.seckillVoucher(voucherId);

@@ -1,7 +1,6 @@
 package com.bytebites.controller;
 
 
-import com.bytebites.annotation.Idempotent;
 import com.bytebites.annotation.RateLimit;
 import com.bytebites.dto.Result;
 import com.bytebites.domain.jpa.VoucherOrderJpa;
@@ -40,7 +39,6 @@ public class VoucherOrderController {
     private Counter seckillAttempts;
 
     @PostMapping("seckill/{id}")
-    @Idempotent(key = "seckill:#voucherId", ttlSeconds = 5)
     @RateLimit(key = "secKill:#voucherId", capacity = 100, refillPerSecond = 10)
     public Result seckillVoucher(@PathVariable("id") Long voucherId) {
         seckillAttempts.increment();

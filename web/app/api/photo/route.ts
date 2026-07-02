@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { allowedPhotoSource } from "@/lib/photoSource.mjs";
 
 export const runtime = "nodejs";
 
@@ -26,8 +27,13 @@ export async function GET(request: NextRequest) {
     return new Response("missing src", { status: 400 });
   }
 
+  const photoSource = allowedPhotoSource(src);
+  if (!photoSource) {
+    return fallbackImage();
+  }
+
   try {
-    const upstream = await fetch(src, {
+    const upstream = await fetch(photoSource, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
@@ -35,6 +41,7 @@ export async function GET(request: NextRequest) {
         Referer: "https://www.google.com/",
       },
       cache: "force-cache",
+      redirect: "error",
     });
 
     if (!upstream.ok) {
