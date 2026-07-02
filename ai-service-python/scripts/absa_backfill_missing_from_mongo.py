@@ -80,6 +80,15 @@ MONGO_URI = ENV.get("MONGO_URI", "mongodb://localhost:27017")
 MONGO_DB = ENV.get("MONGO_DB", "bytebites_reviews")
 MONGO_COLLECTION = ENV.get("MONGO_REVIEWS_COLLECTION", "google_reviews")
 
+# DB shop_id 與 Mongo shop_id 不一致（catalog 重編號造成）。
+# 這張表把「現在 DB 的 shop_id」翻成「Mongo 內該餐廳真正的 shop_id」。
+# 沒有對應的店 = Mongo 沒抓過它的評論 → 必須跳過，絕不可拿同號別家的評論。
+_ID_MAP_PATH = ROOT.parent / "etl-pipeline" / "data" / "mongo_shop_id_map.json"
+if _ID_MAP_PATH.exists():
+    DB_TO_MONGO_ID = {int(k): int(v) for k, v in json.loads(_ID_MAP_PATH.read_text()).items()}
+else:
+    DB_TO_MONGO_ID = {}
+
 
 ABSA_SYSTEM = """\
 你是一個專業的餐廳評論分析師，任務是對單一餐廳的 Google 顧客評論進行 aspect-based sentiment analysis (ABSA)。
@@ -263,7 +272,14 @@ def balanced_review_selection(docs: list[dict[str, Any]], max_reviews: int) -> l
 
 
 def load_reviews(collection, shop_id: int, max_reviews: int) -> tuple[list[Review], int]:
-    docs = list(collection.find({"shop_id": shop_id}))
+    # 翻成 Mongo 真正的 shop_id。沒對應 = Mongo 沒這家評論，回空讓上游跳過。
+    if DB_TO_MONGO_ID:
+        mongo_shop_id = DB_TO_MONGO_ID.get(shop_id)
+        if mongo_shop_id is None:
+            return [], 0
+    else:
+        mongo_shop_id = shop_id
+    docs = list(collection.find({"shop_id": mongo_shop_id}))
     selected = balanced_review_selection(docs, max_reviews)
     reviews: list[Review] = []
     for idx, doc in enumerate(selected):

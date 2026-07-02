@@ -6,8 +6,11 @@ import com.bytebites.dto.UserDTO;
 import com.bytebites.service.jpa.UserJpaService;
 import com.bytebites.utils.UserHolder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -41,6 +44,12 @@ public class AuthMeController {
                 user.getLineUserId() != null,
                 user.getLineUserId()
         ));
+    }
+
+    @PostMapping("/logout")
+    public Result logout(HttpServletResponse response) {
+        response.addHeader("Set-Cookie", AuthController.AUTH_COOKIE + "=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0");
+        return Result.ok();
     }
 
     private String firstNonBlank(String... values) {

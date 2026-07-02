@@ -5,115 +5,25 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { javaApi, type CustomerTopUpAdjustment, type DiningMemory, type MyBooking } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import {
+  currency,
+  feedbackTagOptions,
+  formatDateTime,
+  formatHoldCountdown,
+  paymentMethods,
+  statusCopy,
+  tableTypeOptions,
+  topUpBusyKey,
+  type FeedbackForm,
+  type IncidentForm,
+  type PaymentMethod,
+  type RescheduleForm,
+} from "@/lib/myBookings";
 
 declare global {
   interface Window {
     TPDirect: any;
   }
-}
-
-type PaymentMethod = "credit_card" | "line_pay" | "apple_pay" | "jkopay";
-type RescheduleForm = {
-  date: string;
-  time: string;
-  people: string;
-  tableType: string;
-};
-type FeedbackForm = {
-  rating: 1 | 2 | 3;
-  tags: string[];
-  note: string;
-  doNotRecommend: boolean;
-};
-type IncidentForm = {
-  incidentType: "RESTAURANT_DELAY" | "CUSTOMER_LATE";
-  delayMinutes: string;
-  message: string;
-};
-
-const statusCopy: Record<MyBooking["status"], { label: string; tone: string; helper: string }> = {
-  PENDING_PAYMENT: {
-    label: "待付訂金",
-    tone: "border-amber-200 bg-amber-50 text-amber-900",
-    helper: "位子已保留，完成訂金後才算付款完成。",
-  },
-  PAID: {
-    label: "已付款",
-    tone: "border-emerald-200 bg-emerald-50 text-emerald-900",
-    helper: "訂金已完成，此訂位已成立。",
-  },
-  CONFIRMED: {
-    label: "已確認",
-    tone: "border-emerald-200 bg-emerald-50 text-emerald-900",
-    helper: "此店家免訂金，訂位已成立。",
-  },
-  CANCELED: {
-    label: "已取消",
-    tone: "border-zinc-200 bg-zinc-50 text-zinc-600",
-    helper: "訂位已取消，店家容量已釋放。",
-  },
-  EXPIRED: {
-    label: "已逾期",
-    tone: "border-red-200 bg-red-50 text-red-700",
-    helper: "付款保留時間已過，店家容量已釋放。",
-  },
-};
-
-const paymentMethods: { id: PaymentMethod; label: string; helper: string; badge: string }[] = [
-  {
-    id: "credit_card",
-    label: "信用卡",
-    helper: "TapPay sandbox 測試卡",
-    badge: "測試卡",
-  },
-  {
-    id: "line_pay",
-    label: "LINE Pay",
-    helper: "Demo wallet authorization",
-    badge: "demo",
-  },
-  {
-    id: "apple_pay",
-    label: "Apple Pay",
-    helper: "Demo wallet authorization",
-    badge: "demo",
-  },
-  {
-    id: "jkopay",
-    label: "街口支付",
-    helper: "Demo wallet authorization",
-    badge: "demo",
-  },
-];
-
-const tableTypeOptions = [
-  { value: "normal", label: "一般座位" },
-  { value: "bar", label: "吧台" },
-  { value: "private", label: "包廂" },
-];
-
-const feedbackTagOptions = ["安靜", "份量大", "服務快", "太吵", "適合聚餐", "價格合理", "停車方便", "不再推薦"];
-
-function formatDateTime(booking: MyBooking) {
-  return `${booking.date} ${booking.time}`;
-}
-
-function currency(value: number) {
-  return `NT$ ${Math.abs(Number(value ?? 0)).toLocaleString("zh-TW")}`;
-}
-
-function topUpBusyKey(adjustment: CustomerTopUpAdjustment) {
-  return `TOPUP-${adjustment.id}`;
-}
-
-function formatHoldCountdown(holdExpiresAt: string | null | undefined, nowMs: number) {
-  if (!holdExpiresAt) return null;
-  const remainingMs = new Date(holdExpiresAt).getTime() - nowMs;
-  if (remainingMs <= 0) return "已逾期";
-  const totalSeconds = Math.ceil(remainingMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 export default function MyBookingsPage() {
@@ -707,7 +617,7 @@ export default function MyBookingsPage() {
                 <div>
                   <h3 className="text-base font-semibold text-sky-950">待補款改單</h3>
                   <p className="mt-1 text-sm leading-6 text-sky-800">
-                    已付款訂位若改單造成訂金增加，先完成補款；店家確認後 Java 才會套用改單。
+                    已付款訂位若改單造成訂金增加，先完成補款；店家確認後才會套用改單。
                   </p>
                 </div>
                 <span className="w-fit rounded-full bg-white px-3 py-1 text-sm font-semibold text-sky-800">
@@ -745,7 +655,7 @@ export default function MyBookingsPage() {
                         </p>
                         {completed ? (
                           <p className="mt-1 truncate text-xs font-semibold text-emerald-700">
-                            PSP 交易編號：{adjustment.settlementTransId || "-"}
+                            補款交易編號：{adjustment.settlementTransId || "-"}
                           </p>
                         ) : null}
                       </div>
@@ -973,7 +883,7 @@ export default function MyBookingsPage() {
               </p>
               {topUpPayment ? (
                 <p className="mt-2 text-sm leading-6 text-zinc-500">
-                  補款完成後，此項目會變成 PSP 已完成，等待店家套用改單。
+                  補款完成後，店家會確認並套用改單。
                 </p>
               ) : null}
             </div>
@@ -1137,7 +1047,7 @@ export default function MyBookingsPage() {
                 <div className="grid gap-2 sm:grid-cols-2">
                   {[
                     { value: "CUSTOMER_LATE" as const, label: "我會晚到", helper: "通知店家保留座位" },
-                    { value: "RESTAURANT_DELAY" as const, label: "店家延誤", helper: "Demo 現場狀況通知" },
+                    { value: "RESTAURANT_DELAY" as const, label: "現場等候過久", helper: "請店家協助安排或改時段" },
                   ].map((item) => {
                     const active = incidentForm.incidentType === item.value;
                     return (
@@ -1180,13 +1090,13 @@ export default function MyBookingsPage() {
                   placeholder={
                     incidentForm.incidentType === "CUSTOMER_LATE"
                       ? "例如：我塞車會晚 15 分鐘，麻煩保留座位。"
-                      : "例如：前面桌用餐延長，預估 19:15 可入座。"
+                      : "例如：現場等候超過 15 分鐘，想請店家協助安排。"
                   }
                 />
               </label>
 
               <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-900">
-                建立後會寫入 Java 後端 incident 狀態，並透過 LINE 通知流程推送救場卡片。
+                建立後會同步給店家後台；店家可保留座位、提出替代時段，並透過 LINE 回覆你。
               </div>
 
               {incidentError ? (

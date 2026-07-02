@@ -1,9 +1,11 @@
 package com.bytebites.security;
 
+import com.bytebites.controller.AuthController;
 import com.bytebites.dto.UserDTO;
 import com.bytebites.utils.UserHolder;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -61,6 +63,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String legacy = req.getHeader("authorization");
         if (legacy != null && !legacy.isBlank() && !legacy.startsWith("Bearer ")) {
             return legacy;
+        }
+        Cookie[] cookies = req.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (AuthController.AUTH_COOKIE.equals(cookie.getName()) && !cookie.getValue().isBlank()) {
+                    return cookie.getValue();
+                }
+            }
         }
         return null;
     }

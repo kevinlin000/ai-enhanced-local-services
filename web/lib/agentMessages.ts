@@ -36,7 +36,7 @@ export type AgentChatMessage = {
 const DEFAULT_TOOL_LABELS: Record<string, string> = {
   search_shops_by_mrt: "搜尋捷運附近",
   semantic_shop_search: "比對餐廳資料",
-  create_hot_seat_order: "建立 Hot Seat 訂單",
+  create_hot_seat_order: "建立限時餐券訂單",
   create_booking: "檢查並建立訂位",
   pay_booking_with_test_card: "確認訂金付款",
   cancel_booking: "取消訂位",

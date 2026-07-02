@@ -83,7 +83,7 @@ AI 推薦不可能只靠 prompt。資料少、分類錯、照片缺、評論不�
 
 ### 重要數字
 
-- 600 active Taipei shops。
+- 599 active Taipei shops。
 - media coverage 100%。
 - AI summary coverage 100%。
 - ABSA / Mongo review coverage 99.8%。

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { javaApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { formatHoldCountdown } from "@/lib/myBookings";
 
 declare global {
   interface Window { TPDirect: any }
@@ -43,16 +44,6 @@ const TABLE_TYPES = [
   { label: "吧台", value: "bar" },
   { label: "包廂", value: "private" },
 ];
-
-function formatHoldCountdown(holdExpiresAt: string | null, nowMs: number) {
-  if (!holdExpiresAt) return "10:00";
-  const remainingMs = new Date(holdExpiresAt).getTime() - nowMs;
-  if (remainingMs <= 0) return "已逾期";
-  const totalSeconds = Math.ceil(remainingMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
 
 function bookingHeaders(): HeadersInit | null {
   const token = typeof window !== "undefined"
@@ -603,7 +594,7 @@ export function BookingButton({
                 </p>
               </div>
               <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-amber-800">
-                {holdExpired ? "已逾期" : `剩餘 ${formatHoldCountdown(holdExpiresAt, nowMs)}`}
+                {holdExpired ? "已逾期" : `剩餘 ${formatHoldCountdown(holdExpiresAt, nowMs) ?? "10:00"}`}
               </span>
             </div>
             {bookingCode ? (

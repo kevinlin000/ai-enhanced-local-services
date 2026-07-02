@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import base64
 import contextvars
 import hashlib
 import hmac
@@ -9,7 +8,6 @@ import json
 import logging
 import os
 import re
-import time
 import httpx
 from dataclasses import dataclass, field
 from datetime import date as date_cls, datetime, timedelta
@@ -29,6 +27,13 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.guardrail import GuardrailViolation, check_input, filter_output
+from app.line_auth import (
+    decode_urlsafe,
+    line_user_id_from_token_with_secret,
+    line_user_id_from_unsigned_legacy_token,
+    resolve_line_context,
+)
+from app.line_booking_text import line_booking_prefill_from_text, zh_number_to_int
 from app.line_bot import (
     LINE_PHOTO_VERSION,
     best_shop_photo_url,
@@ -39,6 +44,34 @@ from app.line_bot import (
     reply_messages,
     show_loading_animation,
     verify_line_signature,
+)
+from app.line_html import (
+    dedupe_text,
+    html_escape,
+    line_booking_path,
+    line_bullet_html,
+    line_display_rating,
+    line_google_maps_uri,
+    line_hours_html,
+    line_html_page,
+    line_parking_distance,
+    line_parking_spaces,
+    line_parse_hours,
+    line_pills_html,
+    line_public_uri,
+    line_review_card_html,
+    line_review_rating,
+    line_shell,
+    truncate_words,
+)
+from app.line_state import (
+    clear_state_key,
+    line_booking_draft_state_key,
+    line_booking_state_key,
+    line_location_state_key,
+    line_recommendation_state_key,
+    load_json_state,
+    save_json_state,
 )
 from google import genai
 from google.genai.errors import ClientError, ServerError
@@ -134,33 +167,11 @@ def _line_token_for_user(line_user_id: str) -> str:
 
 
 def _decode_urlsafe(value: str) -> bytes:
-    padding = "=" * (-len(value) % 4)
-    return base64.urlsafe_b64decode((value + padding).encode("utf-8"))
+    return decode_urlsafe(value)
 
 
 def _line_user_id_from_token_with_secret(token: str, secret: bytes) -> str:
-    normalized = str(token or "").strip()
-    if not normalized:
-        return ""
-    try:
-        parts = normalized.split(".")
-        if len(parts) != 3 or parts[0] != "v1":
-            return ""
-        payload_b64 = parts[1]
-        expected_sig = base64.urlsafe_b64encode(
-            hmac.new(secret, payload_b64.encode("utf-8"), hashlib.sha256).digest()
-        ).decode("utf-8").rstrip("=")
-        if not hmac.compare_digest(expected_sig, parts[2]):
-            return ""
-        payload = _decode_urlsafe(payload_b64).decode("utf-8")
-        line_user_id, scope, expires_at = payload.split("|", 2)
-        if scope != "line_action":
-            return ""
-        if int(time.time()) > int(expires_at):
-            return ""
-        return line_user_id.strip()
-    except Exception:
-        return ""
+    return line_user_id_from_token_with_secret(token, secret)
 
 
 def _line_user_id_from_token(token: str) -> str:
@@ -168,44 +179,17 @@ def _line_user_id_from_token(token: str) -> str:
 
 
 def _line_user_id_from_unsigned_legacy_token(token: str) -> str:
-    normalized = str(token or "").strip()
-    try:
-        parts = normalized.split(".")
-        if len(parts) != 3 or parts[0] != "v1":
-            return ""
-        payload = _decode_urlsafe(parts[1]).decode("utf-8")
-        line_user_id, scope, expires_at = payload.split("|", 2)
-        user_id = line_user_id.strip()
-        if not user_id or len(user_id) > 128:
-            return ""
-        if scope != "line_action":
-            return ""
-        if int(time.time()) > int(expires_at):
-            return ""
-        return user_id
-    except Exception:
-        return ""
+    return line_user_id_from_unsigned_legacy_token(token)
 
 
 def _line_context(lt: str = "", line_user_id: str = "") -> tuple[str, str]:
-    token = str(lt or "").strip()
-    resolved_user_id = _line_user_id_from_token(token)
-    if resolved_user_id:
-        return resolved_user_id, token
-    legacy_channel_secret = str(settings.line_channel_secret or "").strip()
-    if legacy_channel_secret:
-        legacy_user_id = _line_user_id_from_token_with_secret(token, legacy_channel_secret.encode("utf-8"))
-        if legacy_user_id:
-            return legacy_user_id, _line_token_for_user(legacy_user_id)
-    legacy_user_id = _line_user_id_from_unsigned_legacy_token(token)
-    if legacy_user_id:
-        return legacy_user_id, _line_token_for_user(legacy_user_id)
-    legacy_user_id = str(line_user_id or "").strip()
-    if legacy_user_id and len(legacy_user_id) <= 128:
-        # Backward compatibility for LINE cards issued before lt signed tokens existed.
-        # Newly generated cards still use lt, but old cards can self-upgrade after one click.
-        return legacy_user_id, _line_token_for_user(legacy_user_id)
-    return "", ""
+    return resolve_line_context(
+        lt,
+        line_user_id,
+        action_secret=_line_action_secret(),
+        legacy_channel_secret=settings.line_channel_secret,
+        token_for_user=_line_token_for_user,
+    )
 PREMIUM_HOTPOT_SUPPLEMENT_IDS: tuple[int, ...] = ()
 LEGACY_SEED_SHOP_IDS = {
     10001, 10002, 10003, 10004, 10005,
@@ -741,10 +725,14 @@ def _extract_query_constraints(query: str) -> dict:
             if canonical_category not in categories:
                 categories.append(canonical_category)
 
-    wants_hot_seat = any(keyword in query_lower for keyword in ("hot seat", "熱座", "搶位", "限量", "秒殺"))
+    wants_hot_seat = any(
+        keyword in query_lower
+        for keyword in ("hot seat", "flash deal", "熱座", "搶位", "限量", "秒殺", "限時餐券", "餐券", "優惠券", "折扣券")
+    )
     wants_nearby = any(keyword in query_lower for keyword in ("附近", "nearby"))
     wants_luxury = any(keyword in query_lower for keyword in LUXURY_HINTS)
     wants_burger = any(keyword in query_lower for keyword in BURGER_QUERY_HINTS)
+    wants_steak = any(keyword in query_lower for keyword in ("牛排", "排餐", "steak", "肋眼", "菲力"))
     wants_taiwanese_cuisine = any(keyword.lower() in query_lower for keyword in TAIWANESE_CUISINE_QUERY_HINTS)
     specific_cuisines = [
         cuisine
@@ -766,6 +754,7 @@ def _extract_query_constraints(query: str) -> dict:
         "wants_nearby": wants_nearby,
         "wants_luxury": wants_luxury,
         "wants_burger": wants_burger,
+        "wants_steak": wants_steak,
         "wants_taiwanese_cuisine": wants_taiwanese_cuisine,
         "specific_cuisines": specific_cuisines,
     }
@@ -1039,6 +1028,8 @@ def _last_clarified_restaurant_query(history: list[dict]) -> str:
 def _query_is_clarification_followup(query: str) -> bool:
     normalized = str(query or "").strip()
     if not normalized:
+        return False
+    if _complete_fresh_restaurant_query(normalized):
         return False
     if _booking_intent(normalized) or _payment_intent(normalized) or _line_more_recommendation_intent(normalized):
         return False
@@ -1346,6 +1337,90 @@ def _burger_sort_key(constraints: dict, hit: dict) -> tuple[int, float, int, int
     )
 
 
+def _query_requests_steak(query: str) -> bool:
+    return any(token in str(query or "").lower() for token in ("牛排", "排餐", "steak", "肋眼", "菲力"))
+
+
+def _steak_match_score(hit: dict) -> int:
+    text = _payload_text(hit)
+    name = str(hit.get("name") or "").lower()
+    dishes = " ".join(_parse_json_list(hit.get("signature_dishes"))).lower()
+    score = 0
+    if any(token in name for token in ("牛排", "steak", "排餐")):
+        score += 4
+    if any(token in dishes for token in ("牛排", "steak", "肋眼", "菲力", "牛小排", "肋排", "熟成牛")):
+        score += 3
+    if any(token in text for token in ("牛排", "steak", "肋眼", "菲力", "牛小排", "肋排", "排餐")):
+        score += 2
+    if any(token in name for token in ("漢堡", "burger", "早午餐", "brunch")):
+        score -= 2
+    return score
+
+
+def _has_steak_semantics(hit: dict) -> bool:
+    return _steak_match_score(hit) >= 3
+
+
+def _steak_sort_key(constraints: dict, hit: dict) -> tuple[int, int, int, int, float, int, float]:
+    tags = set(_parse_json_list(hit.get("atmosphere_tags")))
+    return (
+        1 if _district_matches(constraints, hit) else 0,
+        _steak_match_score(hit),
+        1 if "約會" in tags else 0,
+        int(hit.get("avg_price") or 0),
+        _normalized_rating(hit.get("rating")),
+        int(hit.get("comments") or 0),
+        float(hit.get("rerank_score") or hit.get("score") or 0.0),
+    )
+
+
+def _prioritize_steak_hits(query: str, constraints: dict, hits: list[dict]) -> list[dict]:
+    if not _query_requests_steak(query):
+        return hits
+    steak_hits = [hit for hit in hits if _has_steak_semantics(hit)]
+    if not steak_hits:
+        return hits
+    other_hits = [hit for hit in hits if hit not in steak_hits]
+    steak_hits.sort(key=lambda hit: _steak_sort_key(constraints, hit), reverse=True)
+    return steak_hits + other_hits
+
+
+def _dedupe_search_hits(hits: list[dict]) -> list[dict]:
+    deduped: list[dict] = []
+    positions: dict[int, int] = {}
+
+    def quality(hit: dict) -> tuple[int, int, float, int]:
+        return (
+            _steak_match_score(hit),
+            1 if _shop_has_rich_context(hit) else 0,
+            float(hit.get("rerank_score") or hit.get("score") or 0.0),
+            int(hit.get("comments") or 0),
+        )
+
+    for hit in hits:
+        try:
+            shop_id = int(hit.get("shop_id") or 0)
+        except (TypeError, ValueError):
+            shop_id = 0
+        if not shop_id:
+            deduped.append(hit)
+            continue
+        if shop_id not in positions:
+            positions[shop_id] = len(deduped)
+            deduped.append(hit)
+            continue
+        index = positions[shop_id]
+        if quality(hit) > quality(deduped[index]):
+            deduped[index] = hit
+    return deduped
+
+
+def _search_category_match(query: str, constraints: dict, hit: dict) -> bool:
+    if _query_requests_steak(query) and _has_steak_semantics(hit):
+        return True
+    return _matches_requested_category(hit, constraints)
+
+
 def _premium_hotpot_key(constraints: dict, hit: dict) -> tuple[int, int, int, int, int, float, int, int, float]:
     avg_price = hit.get("avg_price") or 0
     tags = set(hit.get("atmosphere_tags") or [])
@@ -1494,7 +1569,7 @@ def _metadata_bonus(query: str, payload: dict) -> float:
     if any(keyword in query_lower for keyword in ("難訂", "熱門", "搶位")):
         if "困難" in booking_difficulty:
             bonus += 0.12
-    if any(keyword in query_lower for keyword in ("套餐", "折扣", "優惠", "hot seat", "熱座", "搶位")):
+    if any(keyword in query_lower for keyword in ("套餐", "折扣", "優惠", "hot seat", "flash deal", "熱座", "搶位", "限時餐券", "餐券", "優惠券", "折扣券")):
         if payload.get("hot_seat_vouchers"):
             bonus += 0.35
         elif constraints["wants_hot_seat"]:
@@ -1559,7 +1634,7 @@ def _fallback_keyword_score(query: str, payload: dict) -> float:
             if canonical.lower() == str(payload.get("district") or "").lower():
                 score += 0.28
 
-    if any(keyword in query_lower for keyword in ("hot seat", "熱座", "搶位", "限量", "秒殺")) and payload.get("hot_seat_vouchers"):
+    if any(keyword in query_lower for keyword in ("hot seat", "flash deal", "熱座", "搶位", "限量", "秒殺", "限時餐券", "餐券", "優惠券", "折扣券")) and payload.get("hot_seat_vouchers"):
         score += 0.25
 
     return score
@@ -1731,6 +1806,49 @@ async def _burger_supplements(constraints: dict, existing_ids: set[int], limit: 
     return supplements[:limit]
 
 
+async def _steak_supplements(query: str, constraints: dict, _existing_ids: set[int], limit: int = 8) -> list[dict]:
+    if not _query_requests_steak(query):
+        return []
+
+    try:
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            response = await client.get(
+                f"{settings.java_backend_url}/api/shop/search",
+                params={"q": "牛排", "page": 1, "size": max(limit, 12)},
+            )
+        if response.status_code != 200:
+            return []
+        payload = response.json()
+        data = payload.get("data") if isinstance(payload, dict) else {}
+        records = data.get("records") if isinstance(data, dict) else []
+    except Exception:
+        logger.exception("steak_supplement_failed")
+        return []
+
+    supplements: list[dict] = []
+    for shop in records or []:
+        if not isinstance(shop, dict):
+            continue
+        try:
+            shop_id = int(shop.get("id") or 0)
+        except (TypeError, ValueError):
+            continue
+        if not shop_id:
+            continue
+        metadata = await _fetch_java_ai_metadata(shop_id)
+        hit = _java_shop_to_search_hit(shop, metadata)
+        if constraints["districts"] and not _district_matches(constraints, hit):
+            continue
+        if not _has_steak_semantics(hit):
+            continue
+        hit["score"] = max(float(hit.get("score") or 0.0), 2.5)
+        hit["rerank_score"] = float(hit.get("score") or 0.0) + _metadata_bonus(query, hit)
+        supplements.append(hit)
+
+    supplements.sort(key=lambda hit: _steak_sort_key(constraints, hit), reverse=True)
+    return supplements[:limit]
+
+
 async def _java_shop_name_supplements(query: str, existing_ids: set[int], limit: int = 5) -> list[dict]:
     keyword = _specific_shop_keyword(query)
     if not keyword:
@@ -1845,6 +1963,13 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
     )
     if burger_hits:
         raw_hits.extend(burger_hits)
+    steak_hits = await _steak_supplements(
+        query,
+        constraints,
+        {int(hit["shop_id"]) for hit in raw_hits if hit.get("shop_id")},
+    )
+    if steak_hits:
+        raw_hits.extend(steak_hits)
     exact_name_hits = await _java_shop_name_supplements(
         query,
         {int(hit["shop_id"]) for hit in raw_hits if hit.get("shop_id")},
@@ -1858,6 +1983,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             [hit.get("name") for hit in exact_name_hits[:8]],
         )
 
+    raw_hits = _dedupe_search_hits(raw_hits)
     before_active_filter = len(raw_hits)
     raw_hits = [hit for hit in raw_hits if not _is_inactive_search_hit(hit)]
     if len(raw_hits) != before_active_filter:
@@ -1900,9 +2026,17 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             [hit.get("name") for hit in burger_other[:8]],
         )
 
+    if _query_requests_steak(query):
+        raw_hits = _prioritize_steak_hits(query, constraints, raw_hits)
+        logger.warning(
+            "search_steak_partition query=%r steak=%s",
+            query,
+            [hit.get("name") for hit in raw_hits[:8] if _has_steak_semantics(hit)],
+        )
+
     if constraints["categories"]:
         def category_match(hit: dict) -> bool:
-            return _matches_requested_category(hit, constraints)
+            return _search_category_match(query, constraints, hit)
 
         matching = [
             hit for hit in raw_hits
@@ -2095,7 +2229,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
         else:
             strict_category = [
                 hit for hit in raw_hits
-                if _matches_requested_category(hit, constraints)
+                if _search_category_match(query, constraints, hit)
             ]
             rejected_conflicts = [
                 hit for hit in raw_hits
@@ -2173,6 +2307,7 @@ async def _semantic_hits(query: str, top_k: int) -> list[dict]:
             [hit.get("name") for hit in strict_station[:8]],
         )
 
+    raw_hits = _prioritize_steak_hits(query, constraints, raw_hits)
     raw_hits = _prefer_rich_hits(raw_hits, top_k)
     return raw_hits[:top_k]
 
@@ -2183,7 +2318,9 @@ async def _fetch_hot_seat_vouchers(shop_ids: list[int]) -> dict[int, list]:
     async with httpx.AsyncClient(timeout=5.0) as client:
         for sid in shop_ids:
             try:
-                r = await client.get(f"{settings.java_backend_url}/api/shop/{sid}/hot-seat-vouchers")
+                r = await client.get(f"{settings.java_backend_url}/api/shop/{sid}/flash-deals")
+                if r.status_code == 404:
+                    r = await client.get(f"{settings.java_backend_url}/api/shop/{sid}/hot-seat-vouchers")
                 out[sid] = r.json().get("data", []) if r.status_code == 200 else []
             except Exception:
                 out[sid] = []
@@ -2219,7 +2356,7 @@ async def tool_create_hot_seat_order(voucher_id: int) -> dict:
     return {
         "success": True,
         "voucher_order_id": data.get("data"),
-        "message": "已為您搶到 Hot Seat 名額，可在「我的訂單」查看",
+        "message": "已為您搶到限時餐券，可在「我的訂單」查看",
     }
 
 
@@ -2536,7 +2673,7 @@ TOOLS = [
             },
             {
                 "name": "semantic_shop_search",
-                "description": "語意搜尋店家。當使用者描述抽象需求（如「想吃手搖飲」「適合約會」「有沒有 Hot Seat 限時搶位」），用此 tool。回應含 hot_seat_vouchers 欄位。",
+                "description": "語意搜尋店家。當使用者描述抽象需求（如「想吃手搖飲」「適合約會」「有沒有限時餐券或秒殺優惠」），用此 tool。回應含 hot_seat_vouchers 欄位。",
                 "parameters": {
                     "type": "OBJECT",
                     "properties": {
@@ -2547,15 +2684,15 @@ TOOLS = [
             },
             {
                 "name": "create_hot_seat_order",
-                "description": """為用戶搶 Hot Seat 限時名額。當用戶明確說想訂位、想搶位、想下訂某個 Hot Seat 時呼叫。
-回應含 voucher_order_id。僅支援已啟動 Hot Seat 的方案。
+                "description": """為用戶搶限時餐券名額。當用戶明確說想搶餐券、想搶優惠、想下訂某個限時餐券時呼叫。
+回應含 voucher_order_id。僅支援已啟動限時餐券的方案。
 若用戶尚未指定 voucher_id，應先呼叫 semantic_shop_search 找店，再從回應的 hot_seat_vouchers 挑一個。""",
                 "parameters": {
                     "type": "OBJECT",
                     "properties": {
                         "voucher_id": {
                             "type": "INTEGER",
-                            "description": "Hot Seat 方案 ID（從 search 結果 hot_seat_vouchers 取得，不要瞎猜）",
+                            "description": "限時餐券方案 ID（從 search 結果 hot_seat_vouchers 取得，不要瞎猜）",
                         },
                     },
                     "required": ["voucher_id"],
@@ -2674,11 +2811,11 @@ AGENT_SYSTEM_PROMPT = """你是台灣店家推薦助手。根據使用者的問�
 - 訂位建立後，回應要包含 bookingCode；只有使用者明確支付完成後才包含 rec_trade_id
 - 若使用者只指定品牌但未指定分店，而候選中有多間同品牌分店，必須先詢問使用者選哪間分店；禁止直接替使用者挑分店下訂
 
-==== Hot Seat 搶位流程（create_hot_seat_order）====
-- 用戶說「幫我搶」「搶位」「想搶熱座」→ 呼叫 create_hot_seat_order
+==== 限時餐券搶購流程（create_hot_seat_order）====
+- 用戶說「幫我搶」「搶餐券」「想搶優惠」「想搶熱座」→ 呼叫 create_hot_seat_order
 - 若不知道 voucher_id，先 semantic_shop_search 找到 hot_seat_vouchers，再取其中一個 id
 - 訂單成功後，回應要包含 voucher_order_id，並提示用戶到「我的訂單」查看
-- 一個 query 最多訂 1 個 Hot Seat 方案
+- 一個 query 最多訂 1 個限時餐券方案
 
 ==== AI 私密配對優惠 ====
 - 若候選資料有 private_ai_offers，描述為「AI 已替你保留/配對的私密優惠」，不要說成公開優惠券或全站折扣。
@@ -3329,6 +3466,91 @@ def _apply_private_memory_to_recommendations(
     return next_recommended, next_rejected
 
 
+def _shop_matches_budget_ceiling(query: str, shop: dict) -> bool:
+    _low, high = _query_budget_range(query)
+    if high is None:
+        return True
+    shop_low, shop_high = _shop_price_bounds(shop)
+    if shop_low is None and shop_high is None:
+        return True
+    if shop_low is not None:
+        return shop_low <= high
+    return bool(shop_high is not None and shop_high <= high)
+
+
+def _hard_constraint_candidate_ids(query: str, shops: list[dict]) -> set[int]:
+    if not query or not shops:
+        return set()
+    constraints = _extract_query_constraints(query)
+
+    enforce_steak = _query_requests_steak(query) and any(_has_steak_semantics(shop) for shop in shops)
+    enforce_burger = bool(constraints.get("wants_burger")) and any(_is_burger_hit(shop) for shop in shops)
+    enforce_category = bool(
+        constraints.get("categories")
+        or constraints.get("specific_cuisines")
+        or constraints.get("wants_taiwanese_cuisine")
+    ) and any(_search_category_match(query, constraints, shop) for shop in shops)
+    enforce_district = bool(constraints.get("districts")) and any(_district_matches(constraints, shop) for shop in shops)
+    enforce_station = bool(constraints.get("stations")) and any(_station_proximity_score(constraints, shop) > 0 for shop in shops)
+    enforce_budget = _query_budget_range(query)[1] is not None and any(_shop_matches_budget_ceiling(query, shop) for shop in shops)
+
+    if not any((enforce_steak, enforce_burger, enforce_category, enforce_district, enforce_station, enforce_budget)):
+        return set()
+
+    valid_ids: list[int] = []
+    for shop in shops:
+        sid = _shop_id(shop)
+        if sid is None:
+            continue
+        if enforce_steak and not _has_steak_semantics(shop):
+            continue
+        if enforce_burger and not _is_burger_hit(shop):
+            continue
+        if enforce_category and not _search_category_match(query, constraints, shop):
+            continue
+        if enforce_district and not _district_matches(constraints, shop):
+            continue
+        if enforce_station and _station_proximity_score(constraints, shop) <= 0:
+            continue
+        if enforce_budget and not _shop_matches_budget_ceiling(query, shop):
+            continue
+        valid_ids.append(sid)
+    return set(valid_ids)
+
+
+def _apply_hard_constraints_to_recommendations(
+    query: str,
+    recommended: list[int],
+    rejected: list[int],
+    shops: list[dict],
+) -> tuple[list[int], list[int]]:
+    valid_hard_ids = _hard_constraint_candidate_ids(query, shops)
+    if not valid_hard_ids:
+        return recommended, rejected
+    if recommended and all(sid in valid_hard_ids for sid in recommended):
+        return recommended, rejected
+
+    target_count = max(1, min(len(recommended) or 3, len(valid_hard_ids)))
+    next_recommended = [sid for sid in recommended if sid in valid_hard_ids]
+    for shop in shops:
+        sid = _shop_id(shop)
+        if sid is None or sid not in valid_hard_ids or sid in next_recommended:
+            continue
+        next_recommended.append(sid)
+        if len(next_recommended) >= target_count:
+            break
+
+    if not next_recommended:
+        return recommended, rejected
+
+    next_rejected: list[int] = []
+    for sid in [*recommended, *rejected, *[_shop_id(shop) for shop in shops]]:
+        if sid is None or sid in next_recommended or sid in next_rejected:
+            continue
+        next_rejected.append(sid)
+    return next_recommended, next_rejected
+
+
 def _validate_agent_decision(
     decision: AgentRecommendationDecision,
     tool_result: dict,
@@ -3349,6 +3571,8 @@ def _validate_agent_decision(
     for sid in available_ids:
         if sid is not None and sid not in recommended and sid not in rejected:
             rejected.append(sid)
+    recommended, rejected = _apply_hard_constraints_to_recommendations(query, recommended, rejected, shops)
+    rejected = [sid for sid in rejected if sid not in recommended]
     recommended = _prioritize_contextual_recommended_ids(query, recommended, shops)
     rejected = [sid for sid in rejected if sid not in recommended]
     for sid in available_ids:
@@ -3361,6 +3585,8 @@ def _validate_agent_decision(
         shops,
         tool_result.get("private_memory") if isinstance(tool_result, dict) else None,
     )
+    recommended, rejected = _apply_hard_constraints_to_recommendations(query, recommended, rejected, shops)
+    rejected = [sid for sid in rejected if sid not in recommended]
     rejection_summary = decision.rejection_summary
     if rejection_summary:
         recommended_aliases: list[str] = []
@@ -3371,6 +3597,13 @@ def _validate_agent_decision(
             display_name = _agent_display_shop_name(shop, 0)
             raw_name = str(shop.get("name") or "")
             recommended_aliases.append(display_name)
+            recommended_aliases.append(raw_name)
+            compact_display = _normalized_name(display_name)
+            compact_raw = _normalized_name(raw_name)
+            if len(compact_display) >= 4:
+                recommended_aliases.append(compact_display[:4])
+            if len(compact_raw) >= 4:
+                recommended_aliases.append(compact_raw[:4])
             display_token = re.split(r"[\s（(|｜/]+", display_name.strip(), maxsplit=1)[0]
             if len(display_token) >= 3:
                 recommended_aliases.append(display_token)
@@ -3384,7 +3617,18 @@ def _validate_agent_decision(
             first_token = re.split(r"[\s（(|｜/]+", raw_name.strip(), maxsplit=1)[0]
             if len(first_token) >= 3:
                 recommended_aliases.append(first_token)
-        if any(alias and alias in rejection_summary for alias in recommended_aliases):
+        normalized_rejection_summary = _normalized_name(rejection_summary)
+        if any(
+            alias
+            and (
+                alias in rejection_summary
+                or (
+                    len(_normalized_name(alias)) >= 3
+                    and _normalized_name(alias) in normalized_rejection_summary
+                )
+            )
+            for alias in recommended_aliases
+        ):
             rejection_summary = None
 
     return AgentRecommendationDecision(
@@ -3777,7 +4021,7 @@ def _agent_shop_markdown_line(shop: dict, index: int, query: str = "") -> str:
         details.append(f"適合：{best_for}")
     if booking:
         details.append(f"訂位：{booking}")
-    return f"{index}. **{name}**\n   - " + "\n   - ".join(item for item in details if item)
+    return f"{index}. {name}\n   - " + "\n   - ".join(item for item in details if item)
 
 
 def _agent_missing_booking_fields(prefill: dict) -> list[str]:
@@ -3822,23 +4066,23 @@ def _agent_concierge_narrative(
     display_count = min(3, len(shops))
     if count == 1:
         if display_count > count:
-            lead = f"**結論：我先用「{basis}」篩，主推這 1 家，另保留 {display_count - count} 家備案比較。**"
+            lead = f"結論：我先用「{basis}」篩，主推這 1 家，另保留 {display_count - count} 家備案比較。"
         else:
-            lead = f"**結論：我先用「{basis}」篩，最值得先看這 1 家。**"
+            lead = f"結論：我先用「{basis}」篩，最值得先看這 1 家。"
     else:
         if display_count > count:
-            lead = f"**結論：我先用「{basis}」篩，主推這 {count} 家，另保留 {display_count - count} 家備案比較。**"
+            lead = f"結論：我先用「{basis}」篩，主推這 {count} 家，另保留 {display_count - count} 家備案比較。"
         else:
-            lead = f"**結論：我先用「{basis}」篩，優先看這 {count} 家。**"
+            lead = f"結論：我先用「{basis}」篩，優先看這 {count} 家。"
     lines = [lead]
     frame = _agent_story_frame(query)
     if frame:
         lines.extend(["", frame])
     bullets = _agent_constraint_bullets(query)
     if bullets:
-        lines.extend(["", "**我抓到的條件**"])
+        lines.extend(["", "我抓到的條件"])
         lines.extend(f"- {bullet}" for bullet in bullets)
-    lines.extend(["", "**精選推薦**"])
+    lines.extend(["", "精選推薦"])
     lines.extend(_agent_shop_markdown_line(shop, index, query) for index, shop in enumerate(selected, start=1))
     if len(selected) < 3 and (_query_has_shellfish_allergy(query) or _query_has_meat_lovers(query) or _query_budget_range(query)[0]):
         if decision.rejection_summary:
@@ -3846,8 +4090,8 @@ def _agent_concierge_narrative(
         else:
             tradeoff = "其餘選項不是預算、座位型態，就是過敏備註穩定性不夠適合這次聚餐"
         backup_note = "下方其他卡片只作備案比較。" if display_count > len(selected) else ""
-        lines.extend(["", f"**取捨**：主推名單先收斂，{tradeoff}。{backup_note}"])
-    lines.extend(["", f"**下一步**：{_agent_recommendation_cta(query).removeprefix('下一步：')}"])
+        lines.extend(["", f"取捨：主推名單先收斂，{tradeoff}。{backup_note}"])
+    lines.extend(["", f"下一步：{_agent_recommendation_cta(query).removeprefix('下一步：')}"])
     return "\n".join(lines)
 
 
@@ -3916,7 +4160,7 @@ def _agent_comparison_best_for(shop: dict) -> str:
 
 def _agent_comparison_booking_status(shop: dict) -> str:
     if shop.get("hot_seat_vouchers"):
-        return "Hot Seat 可搶"
+        return "限時餐券可搶"
     booking = str(shop.get("booking_difficulty") or "").strip()
     if booking and "未提及" not in booking:
         return booking
@@ -4136,6 +4380,39 @@ def _fresh_restaurant_recommendation_request(query: str) -> bool:
             "用餐",
         )
     )
+
+
+def _fresh_restaurant_query_signal_count(query: str) -> int:
+    normalized = str(query or "").strip()
+    if not normalized:
+        return 0
+    constraints = _extract_query_constraints(normalized)
+    signals = 0
+    if constraints.get("districts") or constraints.get("stations") or constraints.get("wants_nearby"):
+        signals += 1
+    if (
+        constraints.get("categories")
+        or constraints.get("specific_cuisines")
+        or constraints.get("wants_burger")
+        or _query_requests_steak(normalized)
+    ):
+        signals += 1
+    if _agent_query_context_labels(normalized) or constraints.get("wants_luxury") or constraints.get("wants_hot_seat"):
+        signals += 1
+    if _query_budget_range(normalized) != (None, None):
+        signals += 1
+    if any(phrase in normalized for phrase in ("推薦", "想找", "找", "想吃", "餐廳", "吃飯", "用餐", "聚餐")):
+        signals += 1
+    return signals
+
+
+def _complete_fresh_restaurant_query(query: str) -> bool:
+    normalized = str(query or "").strip()
+    if not _fresh_restaurant_recommendation_request(normalized):
+        return False
+    if _recommendation_followup_reference(normalized):
+        return False
+    return _fresh_restaurant_query_signal_count(normalized) >= 3
 
 
 def _booking_confirm_intent(query: str) -> bool:
@@ -4711,7 +4988,7 @@ def _recommendation_advice_answer(query: str, shops: list[dict], context_query: 
 def _agent_recommendation_advice_from_history(query: str, history: list[dict]) -> ToolGuardResult | None:
     if not _recommendation_advice_intent(query):
         return None
-    if _fresh_restaurant_recommendation_request(query) and not _recommendation_followup_reference(query):
+    if _complete_fresh_restaurant_query(query) and not _recommendation_followup_reference(query):
         return None
     recommendation = _latest_recommendation_context(history)
     shops = recommendation.get("shops") if isinstance(recommendation, dict) else []
@@ -7671,6 +7948,8 @@ async def line_booking_entry(
     tableType: str = "normal",
 ):
     line_user_id, line_token = _line_context(lt, lineUserId)
+    if not line_user_id or not line_token:
+        return _line_auth_required_page(shop_id, line_token)
     shop = await _fetch_java_shop(shop_id)
     if not shop:
         shop = _line_shop_fallback_from_query(shop_id, name, district, mrt, avgPrice)
@@ -7757,6 +8036,8 @@ async def line_booking_confirm(
     avgPrice: str = "",
 ):
     line_user_id, line_token = _line_context(lt, lineUserId)
+    if not line_user_id or not line_token:
+        return _line_auth_required_page(shop_id, line_token)
     shop = await _fetch_java_shop(shop_id)
     if not shop:
         shop = _line_shop_fallback_from_query(shop_id, name, district, mrt, avgPrice)
@@ -8871,6 +9152,8 @@ def _line_scope_expansion_intro_from_note(note: str | None) -> str | None:
 
 def _category_label_for_constraints(constraints: dict) -> str:
     categories = constraints.get("categories") or []
+    if constraints.get("wants_steak"):
+        return "牛排餐廳"
     if constraints.get("wants_burger"):
         return "漢堡店"
     if "hotpot" in categories:
@@ -8923,6 +9206,8 @@ async def _build_line_card_request(user_text: str, user_id: str) -> list[dict] |
 
 async def _build_line_recommendation_advice(user_text: str, user_id: str) -> list[dict] | None:
     if not _recommendation_advice_intent(user_text):
+        return None
+    if _complete_fresh_restaurant_query(user_text) and not _recommendation_followup_reference(user_text):
         return None
     state = _load_line_recommendation_state(user_id)
     previous_query = str(state.get("query") or "").strip()
@@ -9109,6 +9394,25 @@ def _line_should_force_recommendation_cards(text: str) -> bool:
     return has_food_or_place and (has_request_phrase or has_specific_dining_need or (has_clear_category_only and not asks_definition))
 
 
+def _line_should_reset_agent_context_for_query(text: str) -> bool:
+    return bool(
+        _line_should_force_recommendation_cards(text)
+        and not _line_more_recommendation_intent(text)
+        and not _line_card_request_intent(text)
+    )
+
+
+def _reset_line_agent_context_for_fresh_query(user_id: str, text: str) -> bool:
+    if not _line_should_reset_agent_context_for_query(text):
+        return False
+    try:
+        session_store.clear_session(f"line:{user_id}")
+    except Exception:
+        logger.exception("line_agent_session_clear_failed user_id=%s", user_id)
+    _clear_line_recommendation_state(user_id)
+    return True
+
+
 async def _build_line_clarification_if_needed(user_text: str, user_id: str) -> list[dict] | None:
     if not _restaurant_need_clarification(user_text):
         return None
@@ -9137,29 +9441,23 @@ def _line_plain_text(text: str) -> str:
 
 
 def _line_recommendation_state_key(user_id: str) -> str:
-    return f"line:recommendation:{user_id}"
+    return line_recommendation_state_key(user_id)
 
 
 def _load_line_recommendation_state(user_id: str) -> dict:
-    try:
-        raw = session_store.client().get(_line_recommendation_state_key(user_id))
-    except Exception:
-        logger.exception("line_recommendation_state_load_failed user_id=%s", user_id)
-        return {}
-    if not raw:
-        return {}
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-    return data if isinstance(data, dict) else {}
+    return load_json_state(
+        _line_recommendation_state_key(user_id),
+        "line_recommendation_state_load_failed",
+        user_id,
+    )
 
 
 def _clear_line_recommendation_state(user_id: str) -> None:
-    try:
-        session_store.client().delete(_line_recommendation_state_key(user_id))
-    except Exception:
-        logger.exception("line_recommendation_state_clear_failed user_id=%s", user_id)
+    clear_state_key(
+        _line_recommendation_state_key(user_id),
+        "line_recommendation_state_clear_failed",
+        user_id,
+    )
 
 
 def _save_line_recommendation_state(
@@ -9185,104 +9483,73 @@ def _save_line_recommendation_state(
     compact_prefill = _compact_booking_prefill(booking_prefill)
     if compact_prefill:
         payload["booking_prefill"] = compact_prefill
-    try:
-        session_store.client().setex(
-            _line_recommendation_state_key(user_id),
-            LINE_RECOMMENDATION_TTL_SECONDS,
-            json.dumps(payload, ensure_ascii=False),
-        )
-    except Exception:
-        logger.exception("line_recommendation_state_save_failed user_id=%s", user_id)
+    save_json_state(
+        _line_recommendation_state_key(user_id),
+        LINE_RECOMMENDATION_TTL_SECONDS,
+        payload,
+        "line_recommendation_state_save_failed",
+        user_id,
+    )
 
 
 def _line_booking_state_key(user_id: str) -> str:
-    return f"line:booking:{user_id}"
+    return line_booking_state_key(user_id)
 
 
 def _load_line_booking_state(user_id: str) -> dict:
-    try:
-        raw = session_store.client().get(_line_booking_state_key(user_id))
-    except Exception:
-        logger.exception("line_booking_state_load_failed user_id=%s", user_id)
-        return {}
-    if not raw:
-        return {}
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-    return data if isinstance(data, dict) else {}
+    return load_json_state(_line_booking_state_key(user_id), "line_booking_state_load_failed", user_id)
 
 
 def _save_line_booking_state(user_id: str, booking: dict, phase: str = "updated") -> None:
     if not user_id or not isinstance(booking, dict) or not booking.get("bookingCode"):
         return
-    try:
-        session_store.client().setex(
-            _line_booking_state_key(user_id),
-            LINE_BOOKING_TTL_SECONDS,
-            json.dumps({"phase": phase, "booking": booking}, ensure_ascii=False),
-        )
-    except Exception:
-        logger.exception("line_booking_state_save_failed user_id=%s", user_id)
+    save_json_state(
+        _line_booking_state_key(user_id),
+        LINE_BOOKING_TTL_SECONDS,
+        {"phase": phase, "booking": booking},
+        "line_booking_state_save_failed",
+        user_id,
+    )
 
 
 def _line_booking_draft_state_key(user_id: str) -> str:
-    return f"line:booking-draft:{user_id}"
+    return line_booking_draft_state_key(user_id)
 
 
 def _load_line_booking_draft_state(user_id: str) -> dict:
-    try:
-        raw = session_store.client().get(_line_booking_draft_state_key(user_id))
-    except Exception:
-        logger.exception("line_booking_draft_load_failed user_id=%s", user_id)
-        return {}
-    if not raw:
-        return {}
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-    return data if isinstance(data, dict) else {}
+    return load_json_state(
+        _line_booking_draft_state_key(user_id),
+        "line_booking_draft_load_failed",
+        user_id,
+    )
 
 
 def _save_line_booking_draft_state(user_id: str, draft: dict) -> None:
     if not user_id or not isinstance(draft, dict) or not draft.get("shop_id"):
         return
-    try:
-        session_store.client().setex(
-            _line_booking_draft_state_key(user_id),
-            LINE_BOOKING_TTL_SECONDS,
-            json.dumps(draft, ensure_ascii=False),
-        )
-    except Exception:
-        logger.exception("line_booking_draft_save_failed user_id=%s", user_id)
+    save_json_state(
+        _line_booking_draft_state_key(user_id),
+        LINE_BOOKING_TTL_SECONDS,
+        draft,
+        "line_booking_draft_save_failed",
+        user_id,
+    )
 
 
 def _clear_line_booking_draft_state(user_id: str) -> None:
-    try:
-        session_store.client().delete(_line_booking_draft_state_key(user_id))
-    except Exception:
-        logger.exception("line_booking_draft_clear_failed user_id=%s", user_id)
+    clear_state_key(
+        _line_booking_draft_state_key(user_id),
+        "line_booking_draft_clear_failed",
+        user_id,
+    )
 
 
 def _line_location_state_key(user_id: str) -> str:
-    return f"line:location:{user_id}"
+    return line_location_state_key(user_id)
 
 
 def _load_line_location_state(user_id: str) -> dict:
-    try:
-        raw = session_store.client().get(_line_location_state_key(user_id))
-    except Exception:
-        logger.exception("line_location_state_load_failed user_id=%s", user_id)
-        return {}
-    if not raw:
-        return {}
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-    return data if isinstance(data, dict) else {}
+    return load_json_state(_line_location_state_key(user_id), "line_location_state_load_failed", user_id)
 
 
 def _save_line_location_state(user_id: str, message: dict) -> dict:
@@ -9292,14 +9559,13 @@ def _save_line_location_state(user_id: str, message: dict) -> dict:
         "latitude": message.get("latitude"),
         "longitude": message.get("longitude"),
     }
-    try:
-        session_store.client().setex(
-            _line_location_state_key(user_id),
-            LINE_LOCATION_TTL_SECONDS,
-            json.dumps(state, ensure_ascii=False),
-        )
-    except Exception:
-        logger.exception("line_location_state_save_failed user_id=%s", user_id)
+    save_json_state(
+        _line_location_state_key(user_id),
+        LINE_LOCATION_TTL_SECONDS,
+        state,
+        "line_location_state_save_failed",
+        user_id,
+    )
     return state
 
 
@@ -9409,6 +9675,7 @@ async def _build_line_agent_recommendation_messages(
 ) -> list[dict]:
     try:
         check_input(user_text)
+        _reset_line_agent_context_for_fresh_query(user_id, user_text)
         answer, _tools_used, tool_result = await _run_agent_turn(user_text, f"line:{user_id}")
     except GuardrailViolation:
         return [build_text_message("這個內容我不能協助處理。可以換一個餐廳或訂位相關的問法。")]
@@ -9547,116 +9814,11 @@ def _line_merge_followup_query(previous_query: str, user_text: str) -> str:
 
 
 def _zh_number_to_int(value: str) -> int | None:
-    digits = re.sub(r"\D", "", value)
-    if digits:
-        try:
-            return int(digits)
-        except ValueError:
-            return None
-    mapping = {"一": 1, "二": 2, "兩": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
-    if value == "十":
-        return 10
-    if value.startswith("十") and len(value) == 2:
-        return 10 + mapping.get(value[1], 0)
-    if value.endswith("十") and len(value) == 2:
-        return mapping.get(value[0], 0) * 10
-    if "十" in value and len(value) == 3:
-        return mapping.get(value[0], 0) * 10 + mapping.get(value[2], 0)
-    return mapping.get(value)
-
-
-def _weekday_booking_date_from_text(text: str, today: date_cls) -> str:
-    normalized = str(text or "").strip()
-    match = re.search(r"(?P<prefix>下|這|本)?(?:週|星期|禮拜)(?P<day>[一二三四五六日天])", normalized)
-    if not match:
-        return ""
-
-    weekday_map = {"一": 0, "二": 1, "三": 2, "四": 3, "五": 4, "六": 5, "日": 6, "天": 6}
-    target_weekday = weekday_map.get(match.group("day"))
-    if target_weekday is None:
-        return ""
-
-    prefix = match.group("prefix") or ""
-    current_weekday = today.weekday()
-    if prefix == "下":
-        days_until_next_monday = 7 - current_weekday
-        return (today + timedelta(days=days_until_next_monday + target_weekday)).isoformat()
-
-    days_until = target_weekday - current_weekday
-    if days_until <= 0:
-        days_until += 7
-    return (today + timedelta(days=days_until)).isoformat()
-
-
-def _explicit_booking_date_from_text(text: str, today: date_cls) -> str:
-    normalized = str(text or "").strip()
-    full_date = re.search(
-        r"(?P<year>20\d{2})\s*[年/\-.]\s*(?P<month>1[0-2]|0?[1-9])\s*[月/\-.]\s*(?P<day>3[01]|[12]\d|0?[1-9])\s*日?",
-        normalized,
-    )
-    if full_date:
-        try:
-            return date_cls(
-                int(full_date.group("year")),
-                int(full_date.group("month")),
-                int(full_date.group("day")),
-            ).isoformat()
-        except ValueError:
-            return ""
-
-    month_day = re.search(r"(?P<month>1[0-2]|0?[1-9])\s*月\s*(?P<day>3[01]|[12]\d|0?[1-9])\s*日?", normalized)
-    if not month_day:
-        return ""
-
-    try:
-        parsed = date_cls(today.year, int(month_day.group("month")), int(month_day.group("day")))
-    except ValueError:
-        return ""
-    if parsed <= today:
-        parsed = date_cls(today.year + 1, parsed.month, parsed.day)
-    return parsed.isoformat()
+    return zh_number_to_int(value)
 
 
 def _line_booking_prefill_from_text(text: str) -> dict:
-    normalized = str(text or "").strip()
-    today = taipei_today()
-    booking_date = ""
-    if "後天" in normalized:
-        booking_date = (today + timedelta(days=2)).isoformat()
-    elif "明天" in normalized or "明晚" in normalized:
-        booking_date = (today + timedelta(days=1)).isoformat()
-    else:
-        booking_date = _weekday_booking_date_from_text(normalized, today)
-        if not booking_date:
-            booking_date = _explicit_booking_date_from_text(normalized, today)
-
-    booking_time = ""
-    explicit_time = re.search(r"([0-2]?\d)[:：]([0-5]\d)", normalized)
-    if explicit_time:
-        hour = int(explicit_time.group(1))
-        minute = int(explicit_time.group(2))
-        booking_time = f"{hour:02d}:{minute:02d}"
-    else:
-        hour_match = re.search(r"([0-2]?\d)\s*點\s*(半)?", normalized)
-        if hour_match:
-            hour = int(hour_match.group(1))
-            if hour <= 11 and any(token in normalized for token in ("晚", "晚上", "晚餐")):
-                hour += 12
-            minute = 30 if hour_match.group(2) else 0
-            booking_time = f"{hour:02d}:{minute:02d}"
-        elif any(token in normalized for token in ("晚上", "晚餐", "明晚")):
-            booking_time = "19:00"
-        elif any(token in normalized for token in ("中午", "午餐")):
-            booking_time = "12:00"
-
-    people = None
-    people_match = re.search(r"([一二兩三四五六七八九十\d]{1,3})\s*(個)?[人位]", normalized)
-    if people_match:
-        people = _zh_number_to_int(people_match.group(1))
-        if people is not None:
-            people = min(12, max(1, people))
-
-    return {"date": booking_date, "time": booking_time, "people": people}
+    return line_booking_prefill_from_text(text, today=taipei_today())
 
 
 def _line_booking_followup_intent(text: str) -> bool:
@@ -9985,6 +10147,8 @@ async def _build_line_reply_messages(event: dict) -> list[dict]:
     if booking_draft_update_messages is not None:
         return booking_draft_update_messages
 
+    _reset_line_agent_context_for_fresh_query(user_id, effective_user_text)
+
     advice_messages = await _build_line_recommendation_advice(user_text, user_id)
     if advice_messages is not None:
         return advice_messages
@@ -10144,6 +10308,18 @@ def _line_shop_minimal_fallback(shop_id: int) -> dict:
         "district": "台北",
         "mrtStation": "",
     }
+
+
+def _line_auth_required_page(shop_id: int, line_token: str = "") -> HTMLResponse:
+    detail_uri = _line_public_uri(f"/line/shop/{shop_id}?lt={quote_plus(line_token)}")
+    return HTMLResponse(
+        _line_html_page(
+            "LINE 授權未帶入",
+            "這個訂位連結缺少 LINE 授權。請回 LINE 聊天室，重新點推薦卡片裡的「填日期人數」。",
+            [("查看店家資訊", detail_uri)],
+        ),
+        status_code=401,
+    )
 
 
 async def _fetch_java_ai_metadata(shop_id: int) -> dict:
@@ -11327,15 +11503,7 @@ def _line_media_shop(shop_id: int) -> dict:
 
 
 def _line_display_rating(raw) -> str:
-    try:
-        rating = float(raw)
-    except (TypeError, ValueError):
-        return ""
-    if rating <= 0:
-        return ""
-    if 5 < rating <= 50:
-        rating = rating / 10
-    return f"{rating:.1f}".rstrip("0").rstrip(".")
+    return line_display_rating(raw)
 
 
 def _line_business_hours(shop: dict, metadata: dict) -> list[str]:
@@ -11355,38 +11523,7 @@ def _line_business_hours(shop: dict, metadata: dict) -> list[str]:
 
 
 def _line_parse_hours(raw) -> list[str]:
-    if not raw:
-        return []
-    if isinstance(raw, list):
-        return [str(item).strip() for item in raw if str(item).strip()]
-    if isinstance(raw, dict):
-        labels = {
-            "mon": "週一",
-            "tue": "週二",
-            "wed": "週三",
-            "thu": "週四",
-            "fri": "週五",
-            "sat": "週六",
-            "sun": "週日",
-        }
-        hours = []
-        for key in ("mon", "tue", "wed", "thu", "fri", "sat", "sun"):
-            value = str(raw.get(key) or "").strip()
-            if value:
-                hours.append(f"{labels[key]} {value}")
-        return hours
-    text = str(raw).strip()
-    if not text:
-        return []
-    try:
-        parsed = json.loads(text)
-    except (TypeError, ValueError):
-        parsed = None
-    if parsed is not None:
-        return _line_parse_hours(parsed)
-    if re.fullmatch(r"\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}", text):
-        return [f"每日 {text}"]
-    return [text]
+    return line_parse_hours(raw)
 
 
 def _line_photo_candidates(shop_id: int) -> list[str]:
@@ -11458,10 +11595,7 @@ def _line_review_groups(shop_id: int) -> dict[str, list[dict]]:
 
 
 def _line_review_rating(review: dict) -> float:
-    try:
-        return float(review.get("rating") or 0)
-    except (TypeError, ValueError):
-        return 0.0
+    return line_review_rating(review)
 
 
 def _line_review_html(review_groups: dict[str, list[dict]]) -> str:
@@ -11477,31 +11611,19 @@ def _line_review_html(review_groups: dict[str, list[dict]]) -> str:
 
 
 def _line_review_card_html(label: str, review: dict) -> str:
-    rating = int(_line_review_rating(review))
-    text = _html_escape(_truncate_words(str(review.get("text") or ""), 90))
-    author = _html_escape(str(review.get("author") or "Google 評論"))
-    return f'<div class="review"><div><strong>{label}</strong> · {author} · {"★" * rating}</div><p>{text}</p></div>'
+    return line_review_card_html(label, review)
 
 
 def _line_bullet_html(items: list[str]) -> str:
-    clean = [_html_escape(str(item)) for item in items if str(item).strip()]
-    if not clean:
-        return "<p>目前資料不足，建議先查看評論與店家資訊。</p>"
-    return '<ul class="bullets">' + "".join(f"<li>{item}</li>" for item in clean[:5]) + "</ul>"
+    return line_bullet_html(items)
 
 
 def _line_pills_html(items: list[str]) -> str:
-    clean = [_html_escape(str(item)) for item in items if str(item).strip()]
-    if not clean:
-        return ""
-    return '<div class="pills">' + "".join(f"<span>{item}</span>" for item in clean[:6]) + "</div>"
+    return line_pills_html(items)
 
 
 def _line_hours_html(hours: list[str]) -> str:
-    clean = [_html_escape(str(item)) for item in hours if str(item).strip()]
-    if not clean:
-        return '<div class="hours"><p>營業時間資料未標示</p></div>'
-    return '<div class="hours">' + "".join(f"<p>{item}</p>" for item in clean[:7]) + "</div>"
+    return line_hours_html(hours)
 
 
 def _parking_reservation_key(booking_code: str, lot: dict) -> str:
@@ -11643,32 +11765,15 @@ def _line_parking_html(
 
 
 def _line_parking_distance(value: object) -> str:
-    try:
-        meters = int(round(float(value)))
-    except (TypeError, ValueError):
-        return ""
-    if meters >= 1000:
-        return f"{meters / 1000:.1f} km"
-    return f"{max(1, meters)} m"
+    return line_parking_distance(value)
 
 
 def _line_parking_spaces(lot: dict) -> str:
-    available = lot.get("availableCar")
-    total = lot.get("totalCar")
-    if isinstance(available, int) and isinstance(total, int):
-        return f"剩 {available} / {total} 格"
-    if isinstance(available, int):
-        return f"剩 {available} 格"
-    if isinstance(total, int):
-        return f"共 {total} 格"
-    return "車位資料更新中"
+    return line_parking_spaces(lot)
 
 
 def _line_public_uri(path: str) -> str:
-    base = settings.line_public_web_url.rstrip("/")
-    if not path.startswith("/"):
-        path = f"/{path}"
-    return f"{base}{path}"
+    return line_public_uri(settings.line_public_web_url, path)
 
 
 def _line_booking_path(
@@ -11679,24 +11784,11 @@ def _line_booking_path(
     mrt: str = "",
     avg_price: str = "",
 ) -> str:
-    params = {
-        "lt": line_token,
-        "name": name,
-        "district": district,
-        "mrt": mrt,
-        "avgPrice": avg_price,
-    }
-    query = "&".join(
-        f"{key}={quote_plus(str(value))}"
-        for key, value in params.items()
-        if str(value or "").strip()
-    )
-    return f"/line/book/{shop_id}?{query}" if query else f"/line/book/{shop_id}"
+    return line_booking_path(shop_id, line_token, name, district, mrt, avg_price)
 
 
 def _line_google_maps_uri(name: str, address: str) -> str:
-    query = " ".join(part for part in [name.strip(), address.strip()] if part)
-    return f"https://www.google.com/maps/search/?api=1&query={quote_plus(query or name or address or '台北餐廳')}"
+    return line_google_maps_uri(name, address)
 
 
 def _category_from_shop(shop: dict) -> str:
@@ -11721,95 +11813,23 @@ def _category_from_shop(shop: dict) -> str:
 
 
 def _dedupe_text(items: list[str]) -> list[str]:
-    seen: set[str] = set()
-    deduped: list[str] = []
-    for item in items:
-        text = str(item).strip()
-        if not text or text in seen:
-            continue
-        seen.add(text)
-        deduped.append(text)
-    return deduped
+    return dedupe_text(items)
 
 
 def _truncate_words(text: str, max_length: int) -> str:
-    clean = " ".join(text.split())
-    if len(clean) <= max_length:
-        return clean
-    return clean[: max_length - 1].rstrip() + "…"
+    return truncate_words(text, max_length)
 
 
 def _line_shell(title: str, body: str) -> str:
-    return f"""<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Cache-Control" content="no-store">
-  <meta http-equiv="Pragma" content="no-cache">
-  <title>{_html_escape(title)}</title>
-  <style>
-    body {{ margin:0; background:#f7f3ec; color:#171512; font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif; }}
-    .hero {{ position:relative; width:100%; aspect-ratio:16/10; overflow:hidden; background:#e8e1d5; }}
-    .hero img {{ width:100%; height:100%; object-fit:cover; display:block; }}
-    .hero span {{ display:none; }}
-    .hero-fallback {{ display:flex; align-items:center; justify-content:center; color:#16833a; font-size:18px; font-weight:900; letter-spacing:0; }}
-    .hero-fallback span {{ display:block; }}
-    main {{ padding:24px 20px 36px; }}
-    .eyebrow {{ margin:0 0 8px; color:#16833a; font-size:12px; font-weight:800; letter-spacing:0; }}
-    h1 {{ margin:0; font-size:30px; line-height:1.18; letter-spacing:0; }}
-    h2 {{ margin:0 0 8px; font-size:16px; }}
-    .meta {{ margin-top:10px; color:#6f6a62; font-weight:700; }}
-    section {{ margin-top:22px; padding:16px; border:1px solid rgba(0,0,0,.08); border-radius:8px; background:rgba(255,255,255,.72); }}
-    p {{ line-height:1.7; }}
-    a {{ color:#16833a; font-weight:800; text-decoration:none; }}
-    .pills {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }}
-    .pills span {{ border-radius:999px; background:#eaf4ec; color:#16833a; font-size:12px; font-weight:900; padding:6px 10px; }}
-    .bullets {{ margin:10px 0 0; padding-left:18px; line-height:1.65; }}
-    .bullets li + li {{ margin-top:6px; }}
-    .review {{ margin-top:12px; padding-left:12px; border-left:3px solid #f1c45c; }}
-    .review p {{ margin:6px 0 0; color:#514d47; }}
-    .parking-list {{ display:grid; gap:10px; margin-top:12px; }}
-    .parking-card {{ padding:12px; border:1px solid rgba(0,0,0,.08); border-radius:8px; background:#fff; }}
-    .parking-card p {{ margin:6px 0 0; color:#514d47; font-size:14px; }}
-    .parking-card a {{ display:inline-flex; margin-top:10px; margin-right:10px; }}
-    .parking-card .parking-reserve {{ align-items:center; justify-content:center; min-height:36px; border-radius:8px; background:#16833a; color:#fff; padding:0 12px; }}
-    .hours p {{ margin:4px 0; }}
-    .status-list p {{ margin:6px 0; }}
-    .booking-form {{ display:grid; gap:14px; margin-top:12px; }}
-    .payment-options {{ display:grid; gap:10px; margin-top:12px; }}
-    .payment-option {{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; padding:12px 14px; border:1px solid rgba(0,0,0,.12); border-radius:8px; background:#fff; cursor:pointer; }}
-    .payment-option input {{ width:18px; height:18px; min-height:18px; margin:0; padding:0; accent-color:#16833a; }}
-    .payment-option span {{ color:#6f6a62; font-size:13px; font-weight:700; text-align:right; }}
-    .payment-option:has(input:checked) {{ border-color:#16833a; background:#eef8f1; }}
-    label {{ display:grid; gap:6px; color:#514d47; font-size:13px; font-weight:800; }}
-    input, select {{ min-height:48px; border:1px solid rgba(0,0,0,.14); border-radius:8px; background:#fff; color:#171512; font:inherit; font-size:16px; padding:0 12px; }}
-    button {{ border:0; font:inherit; cursor:pointer; }}
-    .actions {{ display:grid; gap:10px; margin-top:22px; }}
-    .primary, .secondary {{ display:flex; align-items:center; justify-content:center; min-height:52px; border-radius:8px; font-weight:900; text-decoration:none; width:100%; box-sizing:border-box; }}
-    main > .primary, main > .secondary {{ margin-top:22px; }}
-    .primary {{ background:#16833a; color:#fff; }}
-    .secondary {{ background:#e3e5e9; color:#171512; }}
-    strong {{ font-weight:900; }}
-  </style>
-</head>
-<body>{body}</body>
-</html>"""
+    return line_shell(title, body)
 
 
 def _line_html_page(title: str, message: str, links: list[tuple[str, str]]) -> str:
-    link_html = "".join(f'<a class="primary" href="{_html_escape(href)}">{_html_escape(label)}</a>' for label, href in links)
-    return _line_shell(title, f"<main><h1>{_html_escape(title)}</h1><p>{_html_escape(message)}</p>{link_html}</main>")
+    return line_html_page(title, message, links)
 
 
 def _html_escape(value: str) -> str:
-    return (
-        value.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&#39;")
-    )
+    return html_escape(value)
 
 
 @app.delete("/api/ai/session/{session_id}")

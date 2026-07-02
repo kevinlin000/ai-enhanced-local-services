@@ -1,6 +1,5 @@
 package com.bytebites.controller;
 
-import com.bytebites.dto.Result;
 import com.bytebites.service.IUserService;
 import com.bytebites.service.oauth.LineOAuthService;
 import com.bytebites.service.oauth.LineOAuthService.LineProfile;
@@ -24,6 +23,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthController {
     private static final String STATE_COOKIE = "bb_line_oauth_state";
+    public static final String AUTH_COOKIE = "bytebites_token";
 
     private final LineOAuthService lineOAuthService;
     private final IUserService userService;
@@ -33,6 +33,12 @@ public class AuthController {
 
     @Value("${line.oauth.cookie-path:/api/auth/line}")
     private String oauthCookiePath;
+
+    @Value("${line.oauth.auth-cookie-secure:false}")
+    private boolean authCookieSecure;
+
+    @Value("${jwt.ttl-hours:168}")
+    private long jwtTtlHours;
 
     @GetMapping("/login")
     public void startLogin(HttpServletResponse resp) throws IOException {
@@ -80,6 +86,7 @@ public class AuthController {
     private void redirectToFrontend(HttpServletResponse resp, String token, String error) throws IOException {
         StringBuilder url = new StringBuilder(frontendUrl).append("/auth/callback");
         if (token != null && !token.isBlank()) {
+            setAuthCookie(resp, token);
             url.append("#token=").append(encode(token));
         } else {
             url.append("?error=").append(encode(error != null ? error : "LINE login failed"));
@@ -104,5 +111,12 @@ public class AuthController {
 
     private void clearStateCookie(HttpServletResponse resp) {
         resp.addHeader("Set-Cookie", STATE_COOKIE + "=; Path=" + oauthCookiePath + "; HttpOnly; SameSite=Lax; Max-Age=0");
+    }
+
+    private void setAuthCookie(HttpServletResponse resp, String token) {
+        long maxAgeSeconds = Math.max(1, jwtTtlHours) * 60 * 60;
+        resp.addHeader("Set-Cookie", AUTH_COOKIE + "=" + token
+                + "; Path=/; HttpOnly; SameSite=Lax; Max-Age=" + maxAgeSeconds
+                + (authCookieSecure ? "; Secure" : ""));
     }
 }

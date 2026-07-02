@@ -8,6 +8,14 @@ import app.main as main
 from app.main import _line_should_force_recommendation_cards
 
 
+def _line_text_event(text: str, user_id: str = "test-line-user") -> dict:
+    return {
+        "type": "message",
+        "source": {"type": "user", "userId": user_id},
+        "message": {"type": "text", "text": text},
+    }
+
+
 def test_line_force_recommendation_cards_for_clear_restaurant_query():
     assert _line_should_force_recommendation_cards("推薦信義區高級火鍋")
     assert _line_should_force_recommendation_cards("信義區高級火鍋")
@@ -18,6 +26,123 @@ def test_line_force_recommendation_cards_for_clear_restaurant_query():
 def test_line_force_recommendation_cards_skips_booking_and_payment_queries():
     assert not _line_should_force_recommendation_cards("我要訂信義區火鍋")
     assert not _line_should_force_recommendation_cards("我要付款訂金")
+
+
+def test_line_fresh_recommendation_resets_agent_context():
+    assert main._line_should_reset_agent_context_for_query("大安區想吃牛排，適合約會聊天，也想知道附近停車")
+    assert main._line_should_reset_agent_context_for_query("韓式料理")
+    assert not main._line_should_reset_agent_context_for_query("還有嗎")
+    assert not main._line_should_reset_agent_context_for_query("我要訂第一間")
+    assert not main._line_should_reset_agent_context_for_query("付訂金")
+
+
+def test_reset_line_agent_context_clears_agent_and_recommendation_state(monkeypatch):
+    cleared_sessions = []
+    cleared_recommendations = []
+
+    monkeypatch.setattr(main.session_store, "clear_session", lambda session_id: cleared_sessions.append(session_id))
+    monkeypatch.setattr(main, "_clear_line_recommendation_state", lambda user_id: cleared_recommendations.append(user_id))
+
+    did_reset = main._reset_line_agent_context_for_fresh_query(
+        "U-test",
+        "大安區想吃牛排，適合約會聊天，也想知道附近停車",
+    )
+
+    assert did_reset is True
+    assert cleared_sessions == ["line:U-test"]
+    assert cleared_recommendations == ["U-test"]
+
+
+@pytest.mark.anyio
+async def test_line_fresh_recommendation_resets_before_advice(monkeypatch):
+    order = []
+
+    def fake_reset(user_id: str, text: str):
+        order.append("reset")
+        assert text == "大安區想吃牛排，適合約會聊天，也想知道附近停車"
+        return True
+
+    async def fake_advice(user_text: str, user_id: str):
+        order.append("advice")
+        return None
+
+    async def fake_cards(user_text: str, user_id: str):
+        order.append("cards")
+        return [main.build_text_message("cards")]
+
+    monkeypatch.setattr(main, "_reset_line_agent_context_for_fresh_query", fake_reset)
+    monkeypatch.setattr(main, "_build_line_recommendation_advice", fake_advice)
+    monkeypatch.setattr(main, "_build_line_fallback_recommendation_cards", fake_cards)
+
+    messages = await main._build_line_reply_messages(
+        _line_text_event("大安區想吃牛排，適合約會聊天，也想知道附近停車")
+    )
+
+    assert [message["text"] for message in messages] == ["cards"]
+    assert order == ["reset", "advice", "cards"]
+
+
+def test_steak_query_prioritizes_steak_hits_over_generic_american():
+    query = "大安區想吃牛排，適合約會聊天，也想知道附近停車"
+    constraints = main._extract_query_constraints(query)
+    hits = [
+        {
+            "shop_id": 10136,
+            "name": "Second Floor 貳樓敦南店",
+            "district": "大安",
+            "category_slug": "american",
+            "signature_dishes": ["曙光汁鮮蝦雞肉麵", "燕麥脆脆炸魚薯條"],
+            "atmosphere_tags": ["聚餐", "親子"],
+            "rerank_score": 4.0,
+        },
+        {
+            "shop_id": 10544,
+            "name": "茱莉金牛排餐酒館",
+            "district": "大安",
+            "category_slug": "american",
+            "signature_dishes": ["安格斯肋眼牛排", "酥烤法式半雞"],
+            "atmosphere_tags": ["約會", "聚餐"],
+            "avg_price": 1750,
+            "rerank_score": 3.0,
+        },
+        {
+            "shop_id": 10442,
+            "name": "At.First早寓",
+            "district": "大安",
+            "category_slug": "american",
+            "signature_dishes": ["加利亞香辣茄汁阪腱牛排義大利麵"],
+            "atmosphere_tags": ["聚餐"],
+            "rerank_score": 2.0,
+        },
+        {
+            "shop_id": 10638,
+            "name": "Takeout Burger&Cafe 延吉店",
+            "district": "大安",
+            "category_slug": "american",
+            "signature_dishes": ["蒜味乳酪漢堡", "松露漢堡"],
+            "atmosphere_tags": ["聚餐"],
+            "rerank_score": 3.5,
+        },
+    ]
+
+    ordered = main._prioritize_steak_hits(query, constraints, hits)
+
+    assert [hit["shop_id"] for hit in ordered[:2]] == [10544, 10442]
+    assert ordered[-1]["shop_id"] in {10136, 10638}
+
+
+def test_steak_query_keeps_steak_restaurant_with_broader_category():
+    query = "大安區想吃牛排，適合約會聊天"
+    constraints = main._extract_query_constraints(query)
+    hit = {
+        "shop_id": 10696,
+        "name": "Agusto奧古斯托 牛排龍蝦餐酒館 大安店",
+        "district": "大安",
+        "category_slug": "euro",
+        "signature_dishes": ["肋眼牛排", "龍蝦義大利麵"],
+    }
+
+    assert main._search_category_match(query, constraints, hit)
 
 
 def test_agent_response_contract_orders_shops_and_builds_comparison_rows():
@@ -239,18 +364,25 @@ def test_agent_concierge_narrative_uses_stable_decision_format():
         ),
     )
 
-    assert narrative.startswith("**結論：我先用「大安區 / 漢堡店」篩，優先看這 3 家。**")
-    assert "**我抓到的條件**" in narrative
-    assert "**精選推薦**" in narrative
-    assert "1. **Fa Burger**" in narrative
+    assert narrative.startswith("結論：我先用「大安區 / 漢堡店」篩，優先看這 3 家。")
+    assert "我抓到的條件" in narrative
+    assert "精選推薦" in narrative
+    assert "1. Fa Burger" in narrative
     assert "- 招牌 巧巴達粉嫩牛" in narrative
-    assert "2. **樂漢堡美式餐廳 台北大安店**" in narrative
+    assert "2. 樂漢堡美式餐廳 台北大安店" in narrative
     assert "- 訂位：可線上訂位，建議確認" in narrative
-    assert "3. **Takeout Burger&Cafe 延吉店**" in narrative
+    assert "3. Takeout Burger&Cafe 延吉店" in narrative
     assert "- 招牌 蒜味乳酪漢堡、塔塔醬炸魚堡" in narrative
     assert "最後點餐" not in narrative
     assert "大安區美食" not in narrative
-    assert "**下一步**：告訴我日期、時間與人數" in narrative
+    assert "下一步：告訴我日期、時間與人數" in narrative
+    assert "**" not in narrative
+
+
+def test_agent_query_basis_labels_explicit_steak_request_as_steakhouse():
+    basis = main._agent_query_basis_label("大安區想吃牛排，適合約會聊天，也想知道附近停車")
+
+    assert basis == "大安區 / 牛排餐廳 / 方便開車 / 安靜聊天"
 
 
 def test_agent_recommendation_cta_lists_only_missing_booking_fields(monkeypatch):
@@ -2978,6 +3110,27 @@ async def test_line_recommendation_advice_uses_previous_cards(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_line_fresh_recommendation_does_not_use_previous_advice_context(monkeypatch):
+    monkeypatch.setattr(
+        main,
+        "_load_line_recommendation_state",
+        lambda user_id: {"query": "大安區人均200到400義式餐廳，想約會聊天", "shown_shop_ids": [10673]},
+    )
+    monkeypatch.setattr(
+        main,
+        "_semantic_hits",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("fresh query should not load old cards")),
+    )
+
+    messages = await main._build_line_recommendation_advice(
+        "大安區想吃牛排，適合約會聊天，也想知道附近停車",
+        "test-user",
+    )
+
+    assert messages is None
+
+
+@pytest.mark.anyio
 async def test_line_specific_shop_name_returns_only_that_shop(monkeypatch):
     captured = {}
 
@@ -3837,6 +3990,39 @@ def test_line_booking_payment_page_has_selectable_methods(monkeypatch):
     assert 'name="paymentMethod" value="apple_pay"' in html
     assert 'name="paymentMethod" value="jkos_pay"' in html
     assert "LINE Pay" in html
+
+
+@pytest.mark.anyio
+async def test_line_booking_entry_requires_line_action_token(monkeypatch):
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    response = await main.line_booking_entry(10009)
+    html = response.body.decode("utf-8")
+
+    assert response.status_code == 401
+    assert "LINE 授權未帶入" in html
+    assert "填寫訂位資訊" not in html
+    assert "送出並查看狀態" not in html
+
+
+@pytest.mark.anyio
+async def test_line_booking_confirm_requires_line_action_token(monkeypatch):
+    async def fail_reserve(*args, **kwargs):
+        raise AssertionError("confirm must not reserve without LINE token")
+
+    monkeypatch.setattr(main, "_reserve_line_booking", fail_reserve)
+    monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
+
+    response = await main.line_booking_confirm(
+        10009,
+        people=2,
+        date="2026-06-30",
+        time="19:00",
+    )
+    html = response.body.decode("utf-8")
+
+    assert response.status_code == 401
+    assert "LINE 授權未帶入" in html
 
 
 def test_line_booking_result_page_shows_paid_completion(monkeypatch):

@@ -78,9 +78,15 @@ def main() -> None:
         "ai prefix preserve": "proxy_pass http://bytebites_ai;",
         "line webhook path": "location /api/line/",
         "line action path": "location /line/",
+        "server tokens disabled": "server_tokens off;",
         "java health": "location = /health/java",
         "ai health": "location = /health/ai",
         "sse buffering disabled": "proxy_buffering off;",
+        "content type security header": 'add_header X-Content-Type-Options "nosniff" always;',
+        "frame security header": 'add_header X-Frame-Options "DENY" always;',
+        "referrer security header": 'add_header Referrer-Policy "strict-origin-when-cross-origin" always;',
+        "permissions policy header": 'add_header Permissions-Policy "camera=(), microphone=(), payment=()" always;',
+        "csp report only header": "add_header Content-Security-Policy-Report-Only",
     }
     for label, snippet in required_template_snippets.items():
         require(template, snippet, label)
@@ -164,6 +170,8 @@ def main() -> None:
         "ngrok/nginx boundary": "ngrok | Local, temporary demo tunnels",
         "login callback": "LINE_REDIRECT_URI=https://<domain>/api/java/api/auth/line/callback",
         "oauth cookie path": "LINE_OAUTH_COOKIE_PATH=/api/java/api/auth/line",
+        "auth cookie secure": "LINE_AUTH_COOKIE_SECURE=true",
+        "http-only auth cookie": "httpOnly `bytebites_token` cookie",
         "line webhook": "https://<domain>/api/line/webhook",
         "trusted proxy": "REFUND_WEBHOOK_TRUSTED_PROXIES=127.0.0.1/32",
         "ai public url": "LINE_PUBLIC_WEB_URL=https://<domain>",
@@ -174,6 +182,10 @@ def main() -> None:
         "readiness script": "scripts/demo-readiness.sh",
         "public url config script": "scripts/configure-public-url.sh",
         "public url env verifier": "scripts/verify-public-url-env.sh",
+        "strict security mode": "SECURITY_STRICT_MODE=true",
+        "jwt secret": "JWT_SECRET=<at-least-32-random-bytes>",
+        "strict startup guard": "Java fails startup",
+        "actuator strict note": "/actuator/prometheus",
     }
     for label, snippet in required_doc_snippets.items():
         require(doc, snippet, label)

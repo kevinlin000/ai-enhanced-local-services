@@ -11,7 +11,6 @@ import com.bytebites.entity.Shop;
 import com.bytebites.enums.LockType;
 import com.bytebites.mapper.ShopMapper;
 import com.bytebites.service.IShopService;
-import com.bytebites.utils.CacheClient;
 import com.bytebites.utils.RedisConstants;
 import com.bytebites.utils.RedisData;
 import com.bytebites.utils.SystemConstants;
@@ -30,8 +29,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static com.bytebites.utils.RedisConstants.*;
@@ -53,9 +50,6 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
-
-    @Resource
-    private CacheClient cacheClient;
 
     @Resource
     private Cache<Long, Shop> shopLocalCache;
@@ -134,22 +128,6 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         }
         return null;
     }
-
-    /**
-     * @deprecated Legacy cache warm-up fallback kept only as a comparison path; not used by the main query flow.
-     */
-    @Deprecated
-    private Shop queryByIdWithLegacyCache(Long id) {
-        Shop shop = cacheClient
-                .queryWithLogicalExpire(CACHE_SHOP_KEY, id, Shop.class, this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
-        if (shop == null) {
-            shop = cacheClient
-                    .queryWithPassThrough(CACHE_SHOP_KEY, id, Shop.class, this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
-        }
-        return shop;
-    }
-
-    private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);
 
     public void saveShop2redis(Long id, Long expireSeconds){
         //1.查詢店家數據

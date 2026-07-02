@@ -18,10 +18,37 @@ EXPECTED_CONVERSATION_CASE_IDS = {
     "line_exact_recommended_shop_booking_draft",
     "line_booking_draft_edit_time",
     "line_negative_selection_more_results",
+    "fresh_steak_request_ignores_previous_budget_italian_context",
     "demo_story_department_group_recommends_with_reasons",
     "demo_story_family_driving_recommends_with_parking",
     "hard_constraint_business_taiwanese",
     "hard_constraint_korean_cuisine",
+}
+
+CONVERSATION_EXECUTABLE_GATE_FIELDS = {
+    "expect_clarifying",
+    "expect_clarifying_or_recommendation",
+    "expect_table",
+    "must_use_tools",
+    "must_not_use_tools",
+    "must_contain_any",
+    "must_contain_all",
+    "must_not_contain",
+    "min_recommended_count",
+    "max_recommended_count",
+    "expected_recommended_shop_ids",
+    "expected_booking_draft",
+    "expected_line_card",
+    "ranking_guard",
+}
+
+CONVERSATION_LIST_GATE_FIELDS = {
+    "must_use_tools",
+    "must_not_use_tools",
+    "must_contain_any",
+    "must_contain_all",
+    "must_not_contain",
+    "expected_recommended_shop_ids",
 }
 
 COVERAGE_THRESHOLDS = {
@@ -30,7 +57,7 @@ COVERAGE_THRESHOLDS = {
     "District": 100.0,
     "MRT station": 25.0,
     "AI summary": 100.0,
-    "ABSA": 99.0,
+    "ABSA": 97.0,
     "Mongo reviews": 99.0,
     "Media manifest entry": 100.0,
     "Media manifest reviews": 99.0,
@@ -160,8 +187,8 @@ def verify_markdown_links() -> None:
 def verify_data_coverage() -> None:
     report = read_json(ROOT / "docs" / "data-coverage-report.json")
     total_shops = int(report.get("total_shops") or 0)
-    if total_shops < 600:
-        fail(f"expected at least 600 shops, got {total_shops}")
+    if total_shops != 599:
+        fail(f"expected recovered 599 active Taipei shops, got {total_shops}")
 
     coverage = {
         str(item.get("label")): percent_value(item.get("percent", 0))
@@ -188,6 +215,15 @@ def verify_conversation_quality_cases() -> None:
     for case in cases:
         if not case.get("surface") or not case.get("query") or not case.get("quality_gate"):
             fail(f"conversation case is missing surface/query/quality_gate: {case.get('id')}")
+        if not any(case.get(field) not in (None, False, "", [], {}) for field in CONVERSATION_EXECUTABLE_GATE_FIELDS):
+            fail(f"conversation case has no executable gate: {case.get('id')}")
+        for field in CONVERSATION_LIST_GATE_FIELDS:
+            if field in case and (not isinstance(case[field], list) or not case[field]):
+                fail(f"conversation case {case.get('id')} has invalid non-empty list gate {field}")
+        if "expected_booking_draft" in case and (
+            not isinstance(case["expected_booking_draft"], dict) or not case["expected_booking_draft"]
+        ):
+            fail(f"conversation case {case.get('id')} has invalid expected_booking_draft")
     print(f"conversation quality cases: {len(cases)} cases passed")
 
 

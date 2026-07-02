@@ -20,7 +20,7 @@ LINE_PUSH_ENDPOINT = "https://api.line.me/v2/bot/message/push"
 LINE_LOADING_ENDPOINT = "https://api.line.me/v2/bot/chat/loading/start"
 MAX_LINE_MESSAGES = 5
 MAX_FLEX_CARDS = 3
-LINE_PHOTO_VERSION = "20260607b"
+LINE_PHOTO_VERSION = "20260629b"
 LINE_ACTION_TOKEN_TTL_SECONDS = 60 * 60 * 24
 
 _SHOP_MEDIA_CACHE: dict[str, Any] | None = None
@@ -43,8 +43,6 @@ _COVER_INDEX_OVERRIDES: dict[int, int] = {
     10169: 3,
     10171: 4,
 }
-
-
 def verify_line_signature(
     body_bytes: bytes,
     signature: str | None,
@@ -69,8 +67,13 @@ def verify_line_signature(
 def build_text_message(text: str) -> dict[str, Any]:
     return {
         "type": "text",
-        "text": (text or "目前沒有可回覆的內容。")[:5000],
+        "text": _line_text_message_body(text),
     }
+
+
+def _line_text_message_body(text: str) -> str:
+    cleaned = (text or "目前沒有可回覆的內容。").replace("**", "").replace("__", "")
+    return cleaned[:5000]
 
 
 def build_line_flex_message(
@@ -548,7 +551,7 @@ def _shop_image_uri(shop_id: int, public_web_url: str) -> str | None:
     raw_url = _best_shop_photo(shop_id)
     if not raw_url:
         return None
-    return _web_uri(public_web_url, f"/line/photo/{shop_id}?v={LINE_PHOTO_VERSION}")
+    return _web_uri(public_web_url, _with_query("/api/photo", {"src": raw_url, "v": LINE_PHOTO_VERSION}))
 
 
 def _best_shop_photo(shop_id: int) -> str | None:

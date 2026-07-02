@@ -2,6 +2,8 @@
 
 [English version](README.en.md)
 
+![Source Available](https://img.shields.io/badge/source%20available-portfolio%20review%20only-blue)
+
 ByteBites 是一個以台灣用餐場景為核心的 AI 輔助用餐營運系統。它不只回答「哪家餐廳適合我」，而是把推薦、訂位、付款狀態、對話式改單、臨場救場、LINE 通知、商家處理與退款營運串成同一個可驗證流程。
 
 核心原則很簡單：
@@ -20,7 +22,7 @@ Java 後端負責訂位、付款、臨場事件、退款等業務狀態。
 | 產品定位 | AI 用餐營運平台，不是單輪餐廳推薦聊天機器人。 |
 | 狀態邊界 | Web / LINE / AI 都只是入口；Java 是訂位、付款、臨場事件與退款的權威資料來源。 |
 | AI 可靠性 | 模型負責理解語意；訂位、改單、臨場救場都走可重現的後端合約。 |
-| 資料基礎 | 600 家台北 active shops，含 media coverage、review sync、ABSA、taxonomy audit、Qdrant payload sync。 |
+| 資料基礎 | 599 家台北 active shops，含 media coverage、review sync、ABSA、taxonomy audit、Qdrant payload sync。 |
 | 驗證方式 | `scripts/verify-portfolio.sh`、Portfolio CI、release readiness、clean MySQL migration smoke。 |
 | 設計證據 | 架構文件、dbdiagram DBML ER Model、hot query / index evidence、14 篇工程案例。 |
 
@@ -86,7 +88,7 @@ AI 層處理語意理解、推薦整理、對話上下文與 LINE Flex cards；�
 
 | 指標 | 狀態 |
 |---|---|
-| Active Taipei shops | 600 |
+| Active Taipei shops | 599 |
 | Cover image / media manifest | 100% |
 | AI summary coverage | 100% |
 | ABSA / Mongo review coverage | 99%+ |
@@ -185,7 +187,7 @@ CI 位於 `.github/workflows/portfolio-ci.yml`。乾淨 MySQL schema 啟動驗�
 
 - [AI Agent 真實串流 — 從假串流到可量測 TTFT](docs/case-studies/01-sse-streaming-debug.md)
 - [ABSA 評論分析 Pipeline — 可溯源評論智能](docs/case-studies/02-absa-pipeline.md)
-- [資料爬蟲與覆蓋率 — 600 家可用店的資料基礎](docs/case-studies/06-data-crawler-coverage.md)
+- [資料爬蟲與覆蓋率 — 599 家可用店的資料基礎](docs/case-studies/06-data-crawler-coverage.md)
 - [Web / LINE 訂位同步 — 從兩套身份到同一個交易狀態](docs/case-studies/07-web-line-booking-sync.md)
 - [AI 對話狀態 — 從單輪問答到可完成任務的 Agent](docs/case-studies/10-ai-dialogue-state.md)
 - [公開展示部署 — 從本機可跑到外部可開](docs/case-studies/11-demo-deployment.md)
@@ -238,6 +240,14 @@ ai-enhanced-local-services/
 ├── deploy/                # Prometheus / Grafana support and Nginx reverse-proxy overlay
 └── docs/                  # architecture, data reports, deployment notes, case studies
 ```
+
+## 授權
+
+This project is not open-source.
+
+Source code is available for portfolio and technical review only. No permission
+is granted to copy, modify, distribute, sublicense, publish, or reuse this
+project, in whole or in part, without explicit written permission.
 
 ## 上線邊界
 

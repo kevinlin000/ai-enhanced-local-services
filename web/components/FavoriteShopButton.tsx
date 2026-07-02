@@ -18,24 +18,27 @@ export function FavoriteShopButton({ shopId, compact = false, inverted = false }
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (mounted && isAuthLoading) return;
-    if (mounted && !isLoggedIn) {
+    if (!mounted || isAuthLoading) {
+      setLoading(true);
+      return;
+    }
+    if (!isLoggedIn) {
       setFavorited(false);
       setLoading(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
-    javaApi.favoriteStatus(shopId)
-      .then((response) => {
+    void (async () => {
+      try {
+        const response = await javaApi.favoriteStatus(shopId);
         if (!cancelled && response.success) setFavorited(Boolean(response.data.favorited));
-      })
-      .catch(() => {
+      } catch {
         // Keep the restaurant page usable even if favorite status is unavailable.
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -43,8 +46,8 @@ export function FavoriteShopButton({ shopId, compact = false, inverted = false }
 
   const toggle = async () => {
     if (busy) return;
-    if (mounted && isAuthLoading) return;
-    if (mounted && !isLoggedIn) {
+    if (!mounted || isAuthLoading) return;
+    if (!isLoggedIn) {
       login();
       return;
     }

@@ -113,6 +113,23 @@ export type VoucherOffer = {
   endTime?: string;
 };
 
+export type FlashDealClaimResult = {
+  dealId: number;
+  orderId: number;
+  status: "QUEUED" | string;
+  message: string;
+};
+
+export type FlashDealSummary = {
+  shopId: number;
+  count: number;
+  stock: number;
+  dealId: number;
+  title: string;
+  subTitle?: string | null;
+  label?: string;
+};
+
 export type NearbyParkingLot = {
   id: string;
   name: string;
@@ -135,6 +152,28 @@ export type MerchantShop = {
   district?: string;
   address?: string;
   role: string;
+};
+
+export type MerchantFlashDeal = {
+  dealId: number;
+  shopId: number;
+  shopName: string;
+  title: string;
+  subTitle?: string | null;
+  payValue: number;
+  actualValue: number;
+  stock: number;
+  beginTime?: string;
+  endTime?: string;
+  orderCount: number;
+};
+
+export type MerchantFlashDealSummary = {
+  shopId: number;
+  deals: MerchantFlashDeal[];
+  totalDeals: number;
+  totalStock: number;
+  totalOrders: number;
 };
 
 export type MerchantSlot = {
@@ -494,17 +533,63 @@ export const javaApi = {
     fetchJson<{ success: boolean; data: VoucherOffer[] }>(
       `${JAVA_API}/voucher/list/${shopId}`,
     ),
-  hotSeatVouchers: (shopId: number) =>
-    fetchJson<{
+  hotSeatVouchers: async (shopId: number) => {
+    type FlashDealListResult = {
       success: boolean;
       data: {
         id: number;
         title: string;
+        sub_title?: string;
+        rules?: string;
         pay_value: number;
         actual_value: number;
         stock: number;
+        begin_time?: string | null;
+        end_time?: string | null;
+        label?: string;
       }[];
-    }>(`${JAVA_API}/api/shop/${shopId}/hot-seat-vouchers`),
+    };
+    try {
+      return await fetchJson<FlashDealListResult>(`${JAVA_API}/api/shop/${shopId}/flash-deals`);
+    } catch {
+      return fetchJson<FlashDealListResult>(`${JAVA_API}/api/shop/${shopId}/hot-seat-vouchers`);
+    }
+  },
+  claimFlashDeal: async (dealId: number) => {
+    try {
+      return await fetchJson<{ success: boolean; errorMsg?: string; data?: FlashDealClaimResult }>(
+        `${CLIENT_JAVA_API}/api/flash-deals/${dealId}/claim`,
+        {
+          method: "POST",
+          headers: {
+            "X-Demo-Mode": "true",
+          },
+        },
+      );
+    } catch {
+      const legacy = await fetchJson<{ success: boolean; errorMsg?: string; data?: number }>(
+        `${CLIENT_JAVA_API}/voucher-order/seckill/${dealId}`,
+        {
+          method: "POST",
+          headers: {
+            "X-Demo-Mode": "true",
+          },
+        },
+      );
+      return {
+        success: legacy.success,
+        errorMsg: legacy.errorMsg,
+        data: legacy.success && legacy.data != null
+          ? {
+              dealId,
+              orderId: legacy.data,
+              status: "QUEUED",
+              message: "限時餐券已搶到，訂單建立中",
+            }
+          : undefined,
+      };
+    }
+  },
   paymentMethods: () =>
     fetchJson<{ success: boolean; data: { code: number; label: string }[] }>(
       `${JAVA_API}/api/payment/methods`,
@@ -857,9 +942,18 @@ export const javaApi = {
       `${CLIENT_JAVA_API}/api/shop/search?${sp.toString()}`,
     );
   },
+  flashDealSummary: () =>
+    fetchJson<{ success: boolean; data: FlashDealSummary[] }>(
+      `${CLIENT_JAVA_API}/api/shop/flash-deal-summary`,
+    ),
   merchantShops: () =>
     fetchJson<{ success: boolean; data: MerchantShop[] }>(
       `${CLIENT_JAVA_API}/api/merchant/shops`,
+      { headers: merchantHeaders() },
+    ),
+  merchantFlashDeals: (shopId: number) =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MerchantFlashDealSummary }>(
+      `${CLIENT_JAVA_API}/api/merchant/shops/${shopId}/flash-deals`,
       { headers: merchantHeaders() },
     ),
   merchantSlots: (params: {

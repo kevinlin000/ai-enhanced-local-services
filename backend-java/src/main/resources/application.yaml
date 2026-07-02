@@ -68,6 +68,10 @@ bytebites:
   ai-service-url: ${AI_SERVICE_URL:http://localhost:8000}
   line-internal-secret: ${LINE_INTERNAL_WEBHOOK_SECRET:}
   line-action-secret: ${LINE_ACTION_SECRET:${LINE_INTERNAL_WEBHOOK_SECRET:}}
+  demo-mode:
+    enabled: ${DEMO_MODE_ENABLED:true}
+  security:
+    strict-mode: ${SECURITY_STRICT_MODE:false}
   cors:
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:}
   refund:
@@ -85,6 +89,7 @@ line:
     redirect-uri: ${LINE_REDIRECT_URI:http://localhost:8081/api/auth/line/callback}
     frontend-url: ${FRONTEND_URL:http://localhost:3000}
     cookie-path: ${LINE_OAUTH_COOKIE_PATH:/api/auth/line}
+    auth-cookie-secure: ${LINE_AUTH_COOKIE_SECURE:false}
     authorize-url: https://access.line.me/oauth2/v2.1/authorize
     token-url: https://api.line.me/oauth2/v2.1/token
     verify-url: https://api.line.me/oauth2/v2.1/verify

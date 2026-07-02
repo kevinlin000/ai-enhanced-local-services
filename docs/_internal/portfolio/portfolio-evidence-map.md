@@ -110,6 +110,21 @@ Use this track when applying for AI application engineer roles.
 | Eval manifests | `ai-service-python/evals/conversation_quality_cases.jsonl`, `ai-service-python/evals/agent_concierge_cases.jsonl` |
 | Agent event contract | `docs/ai-agent-event-contract.md` |
 
+### Quality Gates To Mention
+
+The AI quality story is now reviewer-checkable:
+
+```text
+fresh user intent
+  -> no stale session merge unless the new turn is a clarification
+  -> semantic search only when needed
+  -> deterministic booking draft edits
+  -> validator rejects cuisine/price/category drift
+  -> manifest cases require executable gates
+```
+
+Use `ai-service-python/evals/conversation_quality_cases.jsonl` to show the product bar, then `ai-service-python/tests/test_agent_conversation_eval.py` to show it is executable.
+
 ### Interview sentence
 
 ```text

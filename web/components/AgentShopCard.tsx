@@ -179,7 +179,7 @@ export function AgentShopCard({ shop, rank }: Props) {
 
   return (
     <div data-testid="agent-shop-card" className="bb-premium-surface overflow-hidden rounded-lg">
-      {/* Header row: rank + name + hot seat badge */}
+      {/* Header row: rank + name + flash deal badge */}
       <div className="flex items-center gap-2 border-b px-4 py-2.5">
         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--bb-gold)] text-[10px] font-medium text-white">
           {rank}
@@ -199,7 +199,7 @@ export function AgentShopCard({ shop, rank }: Props) {
             {hasHotSeat && (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
                 <Flame className="h-3 w-3" />
-                Hot Seat 可搶
+                限時餐券可搶
               </span>
             )}
           </div>

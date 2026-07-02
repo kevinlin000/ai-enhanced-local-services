@@ -47,6 +47,17 @@ uv run python scripts/run_rag_eval.py evals/dataset.jsonl
 - negative selections such as "不要第二間，換一家" must request more candidates, not accidentally book the rejected shop
 - cuisine hard constraints must keep Taiwanese/business and Korean cuisine intent from being swallowed by noisy vector matches
 
+Each case must include at least one executable gate, not only prose. Supported gates include:
+
+- `must_use_tools` / `must_not_use_tools`
+- `must_contain_any` / `must_contain_all` / `must_not_contain`
+- `expected_booking_draft`
+- `expected_line_card`
+- `min_recommended_count` / `max_recommended_count`
+- `ranking_guard`
+
+This keeps the eval manifest useful in interviews: the quality bar is visible as a product requirement and also protected by tests.
+
 Run the executable regression suite:
 
 ```bash

@@ -4,8 +4,39 @@ const javaApiProxyTarget = process.env.JAVA_API_PROXY_TARGET ?? "http://localhos
 const aiApiProxyTarget = process.env.AI_API_PROXY_TARGET ?? "http://localhost:8000";
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+
   // 允許 ngrok tunnel 做為 dev origin（HMR WebSocket + hydration）
   allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev", "*.ngrok.io"],
+
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), payment=()" },
+          {
+            key: "Content-Security-Policy-Report-Only",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+              "style-src 'self' 'unsafe-inline' https:",
+              "img-src 'self' data: blob: https:",
+              "font-src 'self' data: https:",
+              "connect-src 'self' http://localhost:* http://127.0.0.1:* https: ws: wss:",
+              "frame-src https:",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "frame-ancestors 'none'",
+            ].join("; "),
+          },
+        ],
+      },
+    ];
+  },
 
   // Server-side proxy：/api/java/* → Java API.
   // 解決 HTTPS dev 環境下 mixed content（HTTPS 頁面不能打 HTTP API）

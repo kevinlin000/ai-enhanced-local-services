@@ -2,7 +2,7 @@
 
 Status: active. V37 completes the manual taxonomy audit and removes misleading Korean tags.
 
-Data baseline: 600 active shops in MySQL taxonomy audit on 2026-06-09.
+Data baseline: 600 active shops in MySQL taxonomy audit on 2026-06-09; recovered active catalog is 599 shops after the 2026-06-24 data repair.
 
 ## 1. Main Categories
 
@@ -146,7 +146,7 @@ Use-case tags:
 - `#景觀`
 - `#親子`
 - `#免訂金`
-- `#HotSeat`
+- `#限時餐券`
 
 ### 3.2 Promotion Rule
 

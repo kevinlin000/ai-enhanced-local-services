@@ -14,10 +14,37 @@ EXPECTED_CASE_IDS = {
     "line_exact_recommended_shop_booking_draft",
     "line_booking_draft_edit_time",
     "line_negative_selection_more_results",
+    "fresh_steak_request_ignores_previous_budget_italian_context",
     "demo_story_department_group_recommends_with_reasons",
     "demo_story_family_driving_recommends_with_parking",
     "hard_constraint_business_taiwanese",
     "hard_constraint_korean_cuisine",
+}
+
+EXECUTABLE_GATE_FIELDS = {
+    "expect_clarifying",
+    "expect_clarifying_or_recommendation",
+    "expect_table",
+    "must_use_tools",
+    "must_not_use_tools",
+    "must_contain_any",
+    "must_contain_all",
+    "must_not_contain",
+    "min_recommended_count",
+    "max_recommended_count",
+    "expected_recommended_shop_ids",
+    "expected_booking_draft",
+    "expected_line_card",
+    "ranking_guard",
+}
+
+LIST_GATE_FIELDS = {
+    "must_use_tools",
+    "must_not_use_tools",
+    "must_contain_any",
+    "must_contain_all",
+    "must_not_contain",
+    "expected_recommended_shop_ids",
 }
 
 
@@ -42,6 +69,113 @@ def test_conversation_quality_eval_manifest_is_complete():
 
     assert {case["id"] for case in cases} == EXPECTED_CASE_IDS
     assert all(case.get("query") and case.get("quality_gate") for case in cases)
+    assert all(
+        any(case.get(field) not in (None, False, "", [], {}) for field in EXECUTABLE_GATE_FIELDS)
+        for case in cases
+    )
+    for case in cases:
+        for field in LIST_GATE_FIELDS:
+            if field in case:
+                assert isinstance(case[field], list)
+                assert case[field], f"{case['id']} has an empty {field} gate"
+        if "expected_booking_draft" in case:
+            assert isinstance(case["expected_booking_draft"], dict)
+            assert case["expected_booking_draft"], f"{case['id']} has an empty expected_booking_draft"
+
+
+def test_effective_agent_query_does_not_merge_complete_fresh_search():
+    history = [
+        {"role": "user", "content": "大安區人均200到400義式餐廳"},
+        {
+            "role": "model",
+            "content": "還需要日期或時段。",
+            "clarification_query": "大安區人均200到400義式餐廳",
+        },
+    ]
+    query = "大安區想吃牛排，適合約會聊天，也想知道附近停車"
+
+    assert main._complete_fresh_restaurant_query(query)
+    assert main._effective_agent_query(query, history) == query
+
+
+def test_fresh_steak_request_is_not_previous_recommendation_advice():
+    query = "大安區想吃牛排，適合約會聊天，也想知道附近停車"
+    history = [
+        {
+            "role": "model",
+            "content": "我整理了三間義式餐廳。",
+            "recommendation": {
+                "query": "大安區人均200到400義式餐廳，想約會聊天",
+                "shops": [
+                    {"shop_id": 10673, "name": "光司DATE 義大利麵 大安店", "district": "大安"},
+                ],
+            },
+        }
+    ]
+
+    assert main._recommendation_advice_intent(query)
+    assert main._agent_recommendation_advice_from_history(query, history) is None
+
+
+def test_validator_replaces_llm_choice_that_violates_steak_constraint():
+    query = "大安區想吃牛排，適合約會聊天，也想知道附近停車"
+    shops = [
+        {
+            "shop_id": 10673,
+            "name": "光司DATE 義大利麵 大安店",
+            "district": "大安",
+            "category_slug": "euro",
+            "avg_price": 300,
+            "signature_dishes": ["煙燻培根白醬", "松露燉飯"],
+            "atmosphere_tags": ["約會", "安靜聊天"],
+        },
+        {
+            "shop_id": 10544,
+            "name": "茱莉金牛排餐酒館",
+            "district": "大安",
+            "category_slug": "american",
+            "avg_price": 1750,
+            "signature_dishes": ["安格斯肋眼牛排", "酥烤法式半雞"],
+            "atmosphere_tags": ["約會", "聚餐"],
+        },
+        {
+            "shop_id": 10696,
+            "name": "Agusto奧古斯托 牛排龍蝦餐酒館 大安店",
+            "district": "大安",
+            "category_slug": "euro",
+            "avg_price": 1500,
+            "signature_dishes": ["肋眼牛排", "龍蝦義大利麵"],
+            "atmosphere_tags": ["約會", "聚餐"],
+        },
+    ]
+    decision = main.AgentRecommendationDecision(
+        recommended_shop_ids=[10673],
+        rejected_shop_ids=[10544, 10696],
+        narrative="推薦光司DATE。",
+    )
+
+    validated = main._validate_agent_decision(decision, {"shops": shops}, query)
+
+    assert validated.recommended_shop_ids == [10544, 10696]
+    assert 10673 in validated.rejected_shop_ids
+
+
+def test_validator_drops_rejection_summary_that_mentions_recommended_shop():
+    shops = [
+        {"shop_id": 10544, "name": "茱莉金牛排餐酒館", "district": "大安", "signature_dishes": ["安格斯肋眼牛排"]},
+        {"shop_id": 10159, "name": "西堤牛排台北羅斯福店", "district": "大安", "signature_dishes": ["鴨胸"]},
+        {"shop_id": 10765, "name": "AW Cafe Wine Bistro", "district": "大安", "signature_dishes": ["牛排"]},
+    ]
+    decision = main.AgentRecommendationDecision(
+        recommended_shop_ids=[10544, 10159],
+        rejected_shop_ids=[10765],
+        narrative="推薦茱莉金與西堤。",
+        rejection_summary="西堤牛排定位較偏大眾化連鎖，AW Cafe Wine Bistro 則以輕食與餐酒為主。",
+    )
+
+    validated = main._validate_agent_decision(decision, {"shops": shops}, "大安區想吃牛排，適合約會聊天")
+
+    assert validated.rejection_summary is None
 
 
 @pytest.mark.anyio
@@ -799,8 +933,9 @@ async def test_eval_fresh_complex_request_ignores_previous_advice_context(monkey
     )
 
     assert done["tools_used"] == ["semantic_shop_search"]
-    assert done["answer"].startswith("**結論：我先用")
-    assert "**精選推薦**" in done["answer"]
+    assert done["answer"].startswith("結論：我先用")
+    assert "精選推薦" in done["answer"]
+    assert "**" not in done["answer"]
     assert "初樂燒肉" in done["answer"]
     assert "光司DATE" not in done["answer"]
 

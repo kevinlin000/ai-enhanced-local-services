@@ -2,6 +2,8 @@
 
 [中文 README](README.md)
 
+![Source Available](https://img.shields.io/badge/source%20available-portfolio%20review%20only-blue)
+
 ByteBites is an AI-assisted dining operations system for Taiwan restaurant scenarios. It extends restaurant discovery into booking, payment state, conversational rescheduling, real-time incident handling, LINE notifications, merchant operations, refund visibility, and verified data quality.
 
 The core boundary:
@@ -19,7 +21,7 @@ This repository is not positioned as a chatbot demo. It is a contract-tested ful
 |---|---|
 | Product | AI dining operations platform, not one-shot restaurant recommendation. |
 | State ownership | Web, LINE, and AI are entry points; Java owns business state. |
-| Data | 600 active Taipei shops, media coverage, review sync, ABSA, taxonomy audit, Qdrant payload sync. |
+| Data | 599 active Taipei shops, media coverage, review sync, ABSA, taxonomy audit, Qdrant payload sync. |
 | Verification | `scripts/verify-portfolio.sh`, Portfolio CI, release readiness, clean MySQL migration smoke. |
 | Design | Architecture docs, dbdiagram DBML ER model, query/index evidence, engineering case studies. |
 
@@ -83,7 +85,7 @@ Recommendation quality is backed by data coverage and repeatable checks, not jus
 
 | Metric | Status |
 |---|---|
-| Active Taipei shops | 600 |
+| Active Taipei shops | 599 |
 | Cover image / media manifest | 100% |
 | AI summary coverage | 100% |
 | ABSA / Mongo review coverage | 99%+ |
@@ -170,6 +172,14 @@ scripts/smoke-clean-mysql-migrations.sh --timeout 180
 - [Public Deployment Rehearsal](docs/case-studies/11-demo-deployment.md)
 
 Full list: [Engineering Case Studies](docs/case-studies/README.md)
+
+## License
+
+This project is not open-source.
+
+Source code is available for portfolio and technical review only. No permission
+is granted to copy, modify, distribute, sublicense, publish, or reuse this
+project, in whole or in part, without explicit written permission.
 
 ## Local Development
 

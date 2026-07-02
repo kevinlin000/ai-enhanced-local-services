@@ -6,13 +6,15 @@ Use this document before interviews, portfolio submission, or a recorded walkthr
 
 ## Evidence Folder
 
-Recommended local folder:
+Primary local folders:
 
 ```text
-output/playwright/demo-evidence/
+output/playwright/full-demo/
+output/playwright/flash-deals/
+output/playwright/final-demo/
 ```
 
-The folder may contain screenshots, short clips, and exported slides. The repo does not need to commit large binary captures unless they are intentionally small and stable.
+These folders contain the current Consumer / LINE / Merchant / AI / Voucher screenshots. The repo does not need to commit new large binary captures unless they are intentionally small and stable.
 
 ## Required Evidence
 
@@ -29,7 +31,21 @@ The folder may contain screenshots, short clips, and exported slides. The repo d
 | `09-architecture-overview.png` | Architecture is understandable at a glance. | Shows Web, Java, AI, LINE, ETL, Qdrant, data stores, and Nginx boundary. |
 | `10-er-model-booking-operations.png` | Core relational model is explainable. | Shows users, shops, booking, incidents, deposit adjustments, refund audit, and merchant notification state. |
 
-Current local captures live under `output/playwright/demo-evidence/`. The LINE image is a rendered Flex-card preview from the Java incident proposal payload, not a phone screenshot. The CI and clean-migration images are rendered evidence cards from `gh run list` and the live migration smoke output. The ER model is documented in `docs/er-model-booking-operations.md`.
+Current local captures live under `output/playwright/full-demo/`, `output/playwright/flash-deals/`, and `output/playwright/final-demo/`. LINE evidence now includes real LINE app screenshots plus rendered state proofs. The CI and clean-migration images are rendered evidence cards from `gh run list` and the live migration smoke output. The ER model is documented in `docs/er-model-booking-operations.md`.
+
+## Workbench Evidence Runbook
+
+Use the workbench framing from the merchant UI: start with the blocker, show the state owner, then show the proof artifact.
+
+| Story | Reviewer question | Evidence path | Verification |
+|---|---|---|---|
+| Consumer booking | Can a user move from AI recommendation to booking/payment/parking? | `output/playwright/full-demo/02-ai-recommendation.png`, `06-booking-no-deposit-success.png`, `07-booking-deposit-paid.png`, `08-parking-reminder-booking.png` | `scripts/demo-readiness.sh --base-url http://localhost:8088 --live-smoke --strict` |
+| LINE sync | Is LINE connected to the same booking state as Web? | `output/playwright/full-demo/21-line-booking-hold.png`, `22-line-booking-paid.png`, `23-line-parking-reminder.png`, `27-web-line-linked-booking.png` | `BookingLineNotificationServiceTest`, `BookingSyncContractTest` |
+| Merchant workbench | Can merchants see and resolve operational blockers? | `output/playwright/full-demo/10-merchant-overview.png`, `11-merchant-work-queue.png`, `12-merchant-deposit-refund.png`, `18-merchant-rescue-queue.png`, `19-merchant-deposit-delta.png` | `backend-java/src/test/java/com/bytebites/controller/MerchantControllerTest.java` |
+| AI quality | Does the AI preserve intent without stale-session bleed? | `ai-service-python/evals/conversation_quality_cases.jsonl`, `ai-service-python/tests/test_agent_conversation_eval.py`, `ai-service-python/tests/test_line_recommendation_fallback.py` | `cd ai-service-python && uv run pytest tests/test_agent_conversation_eval.py tests/test_line_recommendation_fallback.py -q` |
+| Voucher seckill | Is the limited voucher path real product logic, not just a badge? | `output/playwright/flash-deals/`, `output/playwright/final-demo/` voucher captures | Redis/Lua/RabbitMQ path tests and merchant voucher summary before AWS release |
+
+For interviews, open these in order. Do not start with implementation details. Start with the workbench question, then show the screenshot, then name the state owner.
 
 ## Optional Short Video
 
