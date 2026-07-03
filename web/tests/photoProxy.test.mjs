@@ -43,6 +43,16 @@ test("local materialized photos bypass the remote proxy", () => {
   assert.match(source, /!url\.startsWith\("\/\/"\)/);
 });
 
+test("local shop covers take priority over legacy remote overrides", () => {
+  const source = readFileSync(join(root, "lib/shopPhotoManifest.ts"), "utf8");
+  const functionStart = source.indexOf("export function getShopCoverPhoto");
+  const localCover = source.indexOf("if (shop?.coverUrl)", functionStart);
+  const legacyOverride = source.indexOf("if (override?.coverIndex", functionStart);
+
+  assert.ok(localCover > functionStart);
+  assert.ok(localCover < legacyOverride);
+});
+
 test("consumer shell has a restrained product footer while merchant stays separate", () => {
   const source = readFileSync(join(root, "components/AppShell.tsx"), "utf8");
   const merchantBranch = source.slice(source.indexOf('if (pathname.startsWith("/merchant"))'), source.indexOf("return (", source.indexOf('if (pathname.startsWith("/merchant"))') + 1));

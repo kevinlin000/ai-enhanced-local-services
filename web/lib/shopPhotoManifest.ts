@@ -30,6 +30,7 @@ type PhotoPayload = {
 };
 
 const PHOTO_DATA = payload as PhotoPayload;
+// Legacy remote choices only apply when no materialized local cover exists.
 const COVER_OVERRIDES: Record<number, { coverIndex?: number; coverUrl?: string; disableReviewPhotos?: boolean }> = {
   10100: { coverIndex: 0 }, // 一蘭別館：先用現有評論圖，不退回 icon
   10104: { coverIndex: 0 }, // 饗饗：用 overview 正圖
@@ -107,10 +108,10 @@ export function getShopCoverPhoto(shopId: number): string | null {
   if (override?.disableReviewPhotos) return null;
   const shop = PHOTO_DATA.shops?.[String(shopId)];
   const urls = getShopPhotoUrlsFromManifest(shopId);
+  if (shop?.coverUrl) return shop.coverUrl;
   if (override?.coverIndex != null && urls[override.coverIndex]) {
     return urls[override.coverIndex]!;
   }
-  if (shop?.coverUrl) return shop.coverUrl;
   if (!urls.length) return null;
   return [...urls].sort((a, b) => photoScore(b) - photoScore(a))[0] ?? null;
 }
