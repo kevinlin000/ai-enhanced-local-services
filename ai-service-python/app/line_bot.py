@@ -551,6 +551,8 @@ def _shop_image_uri(shop_id: int, public_web_url: str) -> str | None:
     raw_url = _best_shop_photo(shop_id)
     if not raw_url:
         return None
+    if raw_url.startswith("/") and not raw_url.startswith("//"):
+        return _web_uri(public_web_url, _with_query(raw_url, {"v": LINE_PHOTO_VERSION}))
     return _web_uri(public_web_url, _with_query("/api/photo", {"src": raw_url, "v": LINE_PHOTO_VERSION}))
 
 
