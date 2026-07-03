@@ -1767,6 +1767,27 @@ class GoogleReviewsScraper:
                     overview.get("price_overview"),
                     overview.get("popular_time"),
                 )
+                if shop_id_meta is not None and self.config.get("materialize_overview_cover"):
+                    from modules.cover_materializer import (
+                        DEFAULT_MANIFEST,
+                        materialize_from_driver,
+                        update_manifest_cover,
+                    )
+
+                    overview_urls = [
+                        overview.get("overview_cover_url"),
+                        *(overview.get("overview_photo_urls") or []),
+                    ]
+                    local_url = materialize_from_driver(
+                        driver,
+                        str(shop_id_meta),
+                        [url for url in overview_urls if url],
+                    )
+                    if local_url:
+                        update_manifest_cover(DEFAULT_MANIFEST, str(shop_id_meta), local_url)
+                        log.info("Materialized overview cover: %s", local_url)
+                    else:
+                        log.warning("Could not materialize overview cover for shop %s", shop_id_meta)
 
             if overview_only:
                 if session_id:

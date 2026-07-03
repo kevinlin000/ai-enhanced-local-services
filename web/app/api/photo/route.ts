@@ -16,7 +16,9 @@ function fallbackImage() {
     status: 200,
     headers: {
       "Content-Type": "image/svg+xml; charset=utf-8",
-      "Cache-Control": "public, max-age=3600, s-maxage=3600",
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+      "X-Photo-Fallback": "1",
     },
   });
 }
@@ -40,15 +42,19 @@ export async function GET(request: NextRequest) {
         Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
         Referer: "https://www.google.com/",
       },
-      cache: "force-cache",
+      cache: "no-store",
       redirect: "error",
+      signal: AbortSignal.timeout(8_000),
     });
 
     if (!upstream.ok) {
       return fallbackImage();
     }
 
-    const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
+    const contentType = upstream.headers.get("content-type") ?? "";
+    if (!contentType.toLowerCase().startsWith("image/")) {
+      return fallbackImage();
+    }
     const arrayBuffer = await upstream.arrayBuffer();
 
     return new Response(arrayBuffer, {
@@ -56,6 +62,7 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": contentType,
         "Cache-Control": "public, max-age=86400, s-maxage=86400",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch {

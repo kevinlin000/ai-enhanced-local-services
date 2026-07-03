@@ -40,6 +40,7 @@ dependencies = [
     "requests>=2.31.0",
     "PyYAML>=6.0",
     "PyMySQL>=1.1.1",
+    "Pillow>=11.0.0",
 ]
 
 [project.urls]

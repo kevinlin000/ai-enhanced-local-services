@@ -24,6 +24,7 @@ DEFAULT_CONFIG = {
     "sort_by": "relevance",
     "scrape_mode": "update",
     "overview_only": False,
+    "materialize_overview_cover": False,
     "stop_on_match": False,
     "overwrite_existing": False,
     "max_reviews": 0,

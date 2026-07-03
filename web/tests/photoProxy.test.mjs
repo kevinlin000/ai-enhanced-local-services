@@ -6,12 +6,16 @@ import { allowedPhotoSource } from "../lib/photoSource.mjs";
 
 const root = join(import.meta.dirname, "..");
 
-test("photo proxy degrades to a cacheable placeholder instead of 502", () => {
+test("photo proxy degrades to a non-cacheable placeholder instead of 502", () => {
   const source = readFileSync(join(root, "app/api/photo/route.ts"), "utf8");
 
   assert.match(source, /function fallbackImage/);
   assert.match(source, /image\/svg\+xml/);
-  assert.match(source, /Cache-Control/);
+  assert.match(source, /"Cache-Control": "no-store"/);
+  assert.match(source, /"X-Photo-Fallback": "1"/);
+  assert.match(source, /signal: AbortSignal\.timeout\(8_000\)/);
+  assert.match(source, /startsWith\("image\/"\)/);
+  assert.match(source, /redirect: "error"/);
   assert.doesNotMatch(source, /status:\s*502/);
 });
 
@@ -30,6 +34,13 @@ test("photo proxy only accepts HTTPS Google image hosts", () => {
   ]) {
     assert.equal(allowedPhotoSource(source), null, source);
   }
+});
+
+test("local materialized photos bypass the remote proxy", () => {
+  const source = readFileSync(join(root, "lib/photoProxy.ts"), "utf8");
+
+  assert.match(source, /url\.startsWith\("\/"\)/);
+  assert.match(source, /!url\.startsWith\("\/\/"\)/);
 });
 
 test("consumer shell has a restrained product footer while merchant stays separate", () => {
