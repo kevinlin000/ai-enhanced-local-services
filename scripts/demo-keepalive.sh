@@ -52,14 +52,27 @@ start_infra_once() {
   (cd "$ROOT_DIR" && docker compose up -d) >>"$LOG_DIR/docker.log" 2>&1
 }
 
+# WEB_MODE=prod（預設）：build + next start，demo 速度快 5-10 倍；
+# WEB_MODE=dev：開發時熱更新用
+WEB_MODE="${WEB_MODE:-prod}"
+
 restart_web() {
-  log "starting web on port $WEB_PORT"
+  log "starting web on port $WEB_PORT (mode=$WEB_MODE)"
   local existing
   existing="$(lsof -tiTCP:"$WEB_PORT" -sTCP:LISTEN 2>/dev/null || true)"
   if [ -n "$existing" ]; then
     log "killing stale web listener: $existing"
     kill $existing >/dev/null 2>&1 || true
     sleep 2
+  fi
+  if [ "$WEB_MODE" = "prod" ]; then
+    if (cd "$ROOT_DIR/web" && npm run build) >>"$LOG_DIR/web.log" 2>&1; then
+      (cd "$ROOT_DIR/web" && npm run start -- --port "$WEB_PORT") >>"$LOG_DIR/web.log" 2>&1 &
+      echo "$!" >"$LOG_DIR/web.pid"
+      sleep 8
+      return
+    fi
+    log "web build failed; falling back to dev mode"
   fi
   (cd "$ROOT_DIR/web" && npm run dev -- --port "$WEB_PORT") >>"$LOG_DIR/web.log" 2>&1 &
   echo "$!" >"$LOG_DIR/web.pid"
