@@ -161,7 +161,8 @@ def test_build_line_flex_message_versions_photo_url():
     )
 
     hero_url = message["messages"][1]["contents"]["contents"][0]["hero"]["url"]
-    assert hero_url.startswith("https://bytebites.example.com/api/photo?src=")
+    # 9f46785 起封面直接走本地 /images/shops/*，不再經 photo proxy
+    assert hero_url.startswith("https://bytebites.example.com/images/shops/")
     assert "v=20260629b" in hero_url
 
 

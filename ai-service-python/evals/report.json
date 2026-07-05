@@ -1,169 +1,286 @@
 {
-  "timestamp": "2026-05-23T23:29:40.243864",
-  "total_cases": 10,
-  "hits": 0,
-  "hit_rate_at_k": 0.0,
+  "timestamp": "2026-07-05T18:39:38.451173",
+  "total_cases": 15,
+  "hits": 10,
+  "hit_rate_at_k": 0.667,
   "top_k": 5,
   "cases": [
     {
-      "query": "中山站附近的咖啡店",
-      "rationale": "mrt + cafe",
+      "query": "信義區麻辣火鍋",
+      "rationale": "district + mala hot pot brand match",
       "hit_ids": [
-        10150,
+        10115,
+        10556,
+        10102,
+        10333,
+        10313
+      ],
+      "expected": [
+        10115,
+        10102
+      ],
+      "matched": [
+        10115,
+        10102
+      ],
+      "hit_at_k": true
+    },
+    {
+      "query": "想吃一蘭拉麵",
+      "rationale": "exact brand match, 2 stores",
+      "hit_ids": [
+        10403,
+        10100,
+        10099,
+        10516,
+        10372
+      ],
+      "expected": [
+        10099,
+        10100
+      ],
+      "matched": [
+        10100,
+        10099
+      ],
+      "hit_at_k": true
+    },
+    {
+      "query": "鼎泰豐小籠包",
+      "rationale": "brand + dish match, 3 stores",
+      "hit_ids": [
+        10198,
+        10425,
+        10191,
+        10101,
+        10114
+      ],
+      "expected": [
+        10114,
+        10101,
+        10111
+      ],
+      "matched": [
+        10101,
+        10114
+      ],
+      "hit_at_k": true
+    },
+    {
+      "query": "適合約會的鐵板燒",
+      "rationale": "atmosphere=約會 + teppanyaki category",
+      "hit_ids": [],
+      "expected": [
         10125,
-        10129,
-        10133,
-        10121
-      ],
-      "expected": [
-        10018
-      ],
-      "matched": [],
-      "hit_at_k": false
-    },
-    {
-      "query": "想吃春水堂",
-      "rationale": "exact brand match",
-      "hit_ids": [
-        10157,
-        10117,
-        10170,
-        10122,
-        10115
-      ],
-      "expected": [
-        10003
-      ],
-      "matched": [],
-      "hit_at_k": false
-    },
-    {
-      "query": "市政府站旁的牛肉麵",
-      "rationale": "mrt + category",
-      "hit_ids": [
-        10157,
-        10154,
-        10133,
-        10171,
-        10132
-      ],
-      "expected": [
-        10001
-      ],
-      "matched": [],
-      "hit_at_k": false
-    },
-    {
-      "query": "信義區的滷味",
-      "rationale": "district + category",
-      "hit_ids": [
-        10109,
-        10116,
-        10154,
-        10111,
-        10107
-      ],
-      "expected": [
-        10002
-      ],
-      "matched": [],
-      "hit_at_k": false
-    },
-    {
-      "query": "中山區的手搖飲",
-      "rationale": "district + category",
-      "hit_ids": [
-        10125,
-        10157,
-        10122,
-        10121,
-        10168
-      ],
-      "expected": [
-        10016
-      ],
-      "matched": [],
-      "hit_at_k": false
-    },
-    {
-      "query": "象山站的咖啡店",
-      "rationale": "negative case; no coffee shop at 象山 in seeded data",
-      "hit_ids": [
-        10133,
-        10150,
-        10168,
-        10108,
         10149
       ],
-      "expected": [],
       "matched": [],
       "hit_at_k": false
     },
     {
-      "query": "雙連站附近",
-      "rationale": "mrt only",
+      "query": "壽喜燒吃到飽",
+      "rationale": "dish + buffet format keyword in name and summary",
       "hit_ids": [
-        10130,
-        10122,
-        10143,
+        10231,
+        10550,
+        10166,
+        10156,
+        10152
+      ],
+      "expected": [
+        10156,
+        10166
+      ],
+      "matched": [
+        10166,
+        10156
+      ],
+      "hit_at_k": true
+    },
+    {
+      "query": "一個人可以吃的燒肉",
+      "rationale": "atmosphere=一人 + personal yakiniku concept",
+      "hit_ids": [
+        10173,
+        10171,
+        10758,
+        10593,
+        10632
+      ],
+      "expected": [
+        10171
+      ],
+      "matched": [
+        10171
+      ],
+      "hit_at_k": true
+    },
+    {
+      "query": "中山區熱炒聚餐",
+      "rationale": "district + stir-fry casual dining",
+      "hit_ids": [
         10129,
+        10121,
+        10123,
+        10124,
+        10119
+      ],
+      "expected": [
+        10121,
+        10129
+      ],
+      "matched": [
+        10129,
+        10121
+      ],
+      "hit_at_k": true
+    },
+    {
+      "query": "米其林必比登推薦台式料理",
+      "rationale": "michelin keyword in ai_summary of 5 shops",
+      "hit_ids": [
+        10120,
+        10119,
+        10343,
+        10250,
         10124
       ],
       "expected": [
-        10024,
-        10017,
-        10015
-      ],
-      "matched": [],
-      "hit_at_k": false
-    },
-    {
-      "query": "想吃日式料理",
-      "rationale": "category only",
-      "hit_ids": [
-        10103,
-        10125,
-        10144,
-        10156,
-        10149
-      ],
-      "expected": [
-        10019,
-        10006
-      ],
-      "matched": [],
-      "hit_at_k": false
-    },
-    {
-      "query": "晚餐想吃火鍋",
-      "rationale": "category only",
-      "hit_ids": [
-        10144,
-        10137,
-        10115,
-        10102,
-        10127
-      ],
-      "expected": [
-        10009,
-        10022
-      ],
-      "matched": [],
-      "hit_at_k": false
-    },
-    {
-      "query": "中山區豆漿",
-      "rationale": "negative case; no 豆漿 shop in 中山區 seeded data",
-      "hit_ids": [
+        10119,
+        10120,
         10122,
         10124,
-        10118,
-        10121,
-        10123
+        10126
       ],
-      "expected": [],
+      "matched": [
+        10120,
+        10119,
+        10124
+      ],
+      "hit_at_k": true
+    },
+    {
+      "query": "帶小孩去的親子餐廳",
+      "rationale": "atmosphere=親子 in metadata",
+      "hit_ids": [
+        10158,
+        10489,
+        10241,
+        10451,
+        10379
+      ],
+      "expected": [
+        10136,
+        10128,
+        10158
+      ],
+      "matched": [
+        10158
+      ],
+      "hit_at_k": true
+    },
+    {
+      "query": "高級日式吃到飽",
+      "rationale": "premium + buffet + japanese keyword match",
+      "hit_ids": [
+        10257,
+        10617,
+        10399,
+        10683,
+        10668
+      ],
+      "expected": [
+        10104,
+        10103
+      ],
       "matched": [],
       "hit_at_k": false
+    },
+    {
+      "query": "跟客戶談生意的高檔餐廳",
+      "rationale": "atmosphere=商務 in metadata — only 2 shops have this tag",
+      "hit_ids": [],
+      "expected": [
+        10160,
+        10135
+      ],
+      "matched": [],
+      "hit_at_k": false
+    },
+    {
+      "query": "晚上想吃辣的",
+      "rationale": "辣/麻辣 appears in signature_dishes or ai_summary — indirect keyword",
+      "hit_ids": [
+        10602,
+        10236,
+        10666,
+        10342,
+        10211
+      ],
+      "expected": [
+        10115,
+        10116,
+        10109
+      ],
+      "matched": [],
+      "hit_at_k": false
+    },
+    {
+      "query": "信義區一人快速用餐",
+      "rationale": "atmosphere=一人 + 信義 district + solo booth concept in summary",
+      "hit_ids": [
+        10747,
+        10237,
+        10365,
+        10106,
+        10109
+      ],
+      "expected": [
+        10099,
+        10100
+      ],
+      "matched": [],
+      "hit_at_k": false
+    },
+    {
+      "query": "中山國小附近吃台式料理",
+      "rationale": "mrt=中山國小 + Taiwanese cuisine — location + category multi-dim",
+      "hit_ids": [
+        10124,
+        10120,
+        10119,
+        10343,
+        10123
+      ],
+      "expected": [
+        10126,
+        10118,
+        10119
+      ],
+      "matched": [
+        10119
+      ],
+      "hit_at_k": true
+    },
+    {
+      "query": "人均超過千元的約會餐廳",
+      "rationale": "atmosphere=約會 + price_per_person >1000 — price in ai_summary text only",
+      "hit_ids": [
+        10341,
+        10675,
+        10149,
+        10530,
+        10445
+      ],
+      "expected": [
+        10144,
+        10125,
+        10149
+      ],
+      "matched": [
+        10149
+      ],
+      "hit_at_k": true
     }
   ]
 }
