@@ -64,7 +64,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/auth/line/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/shop/**", "/shop-type/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shop/**", "/api/shop-type/**").permitAll()
-                        .requestMatchers("/upload/**", "/voucher/**", "/voucher/list/**", "/blog/hot").permitAll()
+                        // hmdp 遺留的 /upload/**（免認證上傳/刪檔）與 POST /voucher（免認證建券）
+                        // 不再開放；voucher 只留讀取。前端與 ETL 皆無依賴（ETL 直寫 DB）。
+                        .requestMatchers(HttpMethod.GET, "/voucher/list/**", "/blog/hot").permitAll()
                         .requestMatchers("/user/login", "/user/code", "/error", "/actuator/health").permitAll()
                         .requestMatchers(protectedDemoRoutes()).access((authentication, context) -> {
                             Authentication current = authentication.get();
