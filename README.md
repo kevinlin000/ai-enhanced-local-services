@@ -180,6 +180,7 @@ scripts/verify-portfolio.sh
 | Release boundary | `python3 scripts/verify-release-boundary.py` | release handoff、verification ladder、production-gap framing |
 | Query evidence | `python3 scripts/verify-performance-query-evidence.py` | hot query paths、indexes、code anchors |
 | Web | `pnpm test` / `pnpm build:ci` | UI contract tests 與 production build |
+| 檢索品質 | `ai-service-python/evals/run_eval.py` | Hit@5 回歸防護網（15 案例，[最新報告](ai-service-python/evals/report.md)）；改 ranking 前後必跑 |
 
 CI 位於 `.github/workflows/portfolio-ci.yml`。乾淨 MySQL schema 啟動驗證位於 `.github/workflows/clean-mysql-migration-smoke.yml`，採手動觸發，因為它會啟 MySQL、Redis、RabbitMQ 與 Java process。
 
@@ -191,6 +192,7 @@ CI 位於 `.github/workflows/portfolio-ci.yml`。乾淨 MySQL schema 啟動驗�
 - [Web / LINE 訂位同步 — 從兩套身份到同一個交易狀態](docs/case-studies/07-web-line-booking-sync.md)
 - [AI 對話狀態 — 從單輪問答到可完成任務的 Agent](docs/case-studies/10-ai-dialogue-state.md)
 - [公開展示部署 — 從本機可跑到外部可開](docs/case-studies/11-demo-deployment.md)
+- [AI 回答不穩定 — 從「越修越壞」到 eval 回歸防護網](docs/case-studies/15-ranking-eval-regression-gate.md)
 
 完整列表：[工程案例索引](docs/case-studies/README.md)
 
