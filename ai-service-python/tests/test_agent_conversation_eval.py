@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 import app.main as main
+from conftest import patch_modules
 
 
 EXPECTED_CASE_IDS = {
@@ -183,7 +184,7 @@ async def test_eval_web_vague_group_need_clarifies(monkeypatch):
     def fail_generate(*args, **kwargs):
         raise AssertionError("vague restaurant need must clarify before model/search")
 
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     done = await _collect_web_done("推薦7人聚餐餐廳", "eval-web-vague-group")
 
@@ -220,9 +221,9 @@ async def test_eval_web_exact_recommended_shop_booking_draft(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
-    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should bypass model")))
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "tool_create_booking", fail_create_booking)
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should bypass model")))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     done = await _collect_web_done(
         "我要訂位 辛殿麻辣鍋｜信義店 明天 2人 晚上19:00",
@@ -280,8 +281,8 @@ async def test_eval_web_booking_draft_edits_time_and_switches_shop(monkeypatch):
 
     monkeypatch.setattr(main.session_store, "load_history", lambda session_id: history)
     monkeypatch.setattr(main.session_store, "save_history", lambda session_id, new_history: saved.update({"history": new_history}))
-    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should bypass model")))
+    patch_modules(monkeypatch, "tool_create_booking", fail_create_booking)
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should bypass model")))
 
     time_done = await _collect_web_done("改成 20:00", "eval-web-draft-edit-time")
     assert time_done["booking_draft"]["shop_id"] == 10102
@@ -308,9 +309,9 @@ async def test_eval_line_exact_recommended_shop_booking_draft(monkeypatch):
         assert shop_id == 10115
         return {"id": shop_id, "name": "辛殿麻辣鍋｜信義店"}
 
-    monkeypatch.setattr(main, "_load_line_booking_state", lambda user_id: {})
-    monkeypatch.setattr(
-        main,
+    patch_modules(monkeypatch, "_load_line_booking_state", lambda user_id: {})
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {
             "query": "信義區高級火鍋",
@@ -322,11 +323,11 @@ async def test_eval_line_exact_recommended_shop_booking_draft(monkeypatch):
             ],
         },
     )
-    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
-    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
-    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda user_id, draft: saved_draft.update(draft))
+    patch_modules(monkeypatch, "_fetch_java_shop", fake_fetch_java_shop)
+    patch_modules(monkeypatch, "_line_token_for_user", lambda user_id: "line-token")
+    patch_modules(monkeypatch, "_save_line_booking_draft_state", lambda user_id, draft: saved_draft.update(draft))
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     messages = await main._build_line_reply_messages(
         _line_text_event("我要訂位 辛殿麻辣鍋｜信義店 明天 2人 晚上19:00")
@@ -374,13 +375,13 @@ async def test_eval_line_draft_update_and_negative_selection(monkeypatch):
         ],
     }
 
-    monkeypatch.setattr(main, "_load_line_booking_state", lambda user_id: {})
-    monkeypatch.setattr(main, "_load_line_booking_draft_state", lambda user_id: draft)
-    monkeypatch.setattr(main, "_load_line_recommendation_state", lambda user_id: state)
-    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
-    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda user_id, updated: saved_draft.update(updated))
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_load_line_booking_state", lambda user_id: {})
+    patch_modules(monkeypatch, "_load_line_booking_draft_state", lambda user_id: draft)
+    patch_modules(monkeypatch, "_load_line_recommendation_state", lambda user_id: state)
+    patch_modules(monkeypatch, "_fetch_java_shop", fake_fetch_java_shop)
+    patch_modules(monkeypatch, "_save_line_booking_draft_state", lambda user_id, updated: saved_draft.update(updated))
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     update_messages = await main._build_line_reply_messages(_line_text_event("改成 20:00"))
@@ -458,8 +459,8 @@ async def test_eval_demo_story_department_group_recommendation(monkeypatch):
             },
         ]
 
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: FakeResponse())
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: FakeResponse())
     monkeypatch.setattr(main.session_store, "load_history", lambda session_id: [])
     monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: None)
 
@@ -530,8 +531,8 @@ async def test_eval_demo_story_department_prefers_koji_for_chat(monkeypatch):
             },
         ]
 
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: FakeResponse())
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: FakeResponse())
     monkeypatch.setattr(main.session_store, "load_history", lambda session_id: [])
     monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: None)
 
@@ -596,11 +597,11 @@ async def test_eval_demo_story_complex_department_briefing(monkeypatch):
             },
         ]
 
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: FakeResponse())
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: FakeResponse())
     monkeypatch.setattr(main.session_store, "load_history", lambda session_id: [])
     monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: None)
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 12))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 12))
 
     done = await _collect_web_done(
         "明天晚上七點，我們部門 7 個人要聚餐。想找大安區適合聊天、不用講話用吼的義式餐廳。有人不能吃蝦蟹，兩位無肉不歡，預算一人 500 到 700。",
@@ -786,7 +787,7 @@ async def test_eval_recommendation_advice_uses_previous_demo_context(monkeypatch
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("advice should bypass model")))
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("advice should bypass model")))
 
     done = await _collect_web_done("這三家你會怎麼幫我選？推薦什麼菜，有什麼要避雷？", "eval-demo-advice-koji")
 
@@ -852,7 +853,7 @@ async def test_eval_recommendation_advice_handles_allergy_meat_budget_and_execut
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("advice should bypass model")))
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("advice should bypass model")))
 
     done = await _collect_web_done(
         "主管也會去，幫我看服務節奏、適合聊天程度、推薦菜、避雷跟預算。",
@@ -906,8 +907,8 @@ async def test_eval_fresh_complex_request_ignores_previous_advice_context(monkey
             },
         ]
 
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: FakeResponse())
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: FakeResponse())
     monkeypatch.setattr(
         main.session_store,
         "load_history",
@@ -925,7 +926,7 @@ async def test_eval_fresh_complex_request_ignores_previous_advice_context(monkey
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 12))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 12))
 
     done = await _collect_web_done(
         "明天晚上七點，我們部門 7 個人要聚餐。想找大安區適合聊天、不用講話用吼的燒肉或肉類餐廳。有一位同事對甲殼類過敏，不能吃蝦蟹，兩位無肉不歡，預算一人 700 到 1200。",
@@ -981,8 +982,8 @@ async def test_eval_demo_story_family_driving_recommendation(monkeypatch):
             },
         ]
 
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: FakeResponse())
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: FakeResponse())
     monkeypatch.setattr(main.session_store, "load_history", lambda session_id: [])
     monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: None)
 
@@ -1042,8 +1043,8 @@ async def test_eval_fresh_recommendation_ignores_stale_booking_draft(monkeypatch
         ]
 
     saved = {}
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: FakeResponse())
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: FakeResponse())
     monkeypatch.setattr(
         main.session_store,
         "load_history",

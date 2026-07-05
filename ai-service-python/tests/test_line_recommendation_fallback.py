@@ -4,6 +4,7 @@ import json
 import pytest
 
 import app.main as main
+from conftest import patch_modules
 
 from app.main import _line_should_force_recommendation_cards
 
@@ -41,7 +42,7 @@ def test_reset_line_agent_context_clears_agent_and_recommendation_state(monkeypa
     cleared_recommendations = []
 
     monkeypatch.setattr(main.session_store, "clear_session", lambda session_id: cleared_sessions.append(session_id))
-    monkeypatch.setattr(main, "_clear_line_recommendation_state", lambda user_id: cleared_recommendations.append(user_id))
+    patch_modules(monkeypatch, "_clear_line_recommendation_state", lambda user_id: cleared_recommendations.append(user_id))
 
     did_reset = main._reset_line_agent_context_for_fresh_query(
         "U-test",
@@ -70,9 +71,9 @@ async def test_line_fresh_recommendation_resets_before_advice(monkeypatch):
         order.append("cards")
         return [main.build_text_message("cards")]
 
-    monkeypatch.setattr(main, "_reset_line_agent_context_for_fresh_query", fake_reset)
-    monkeypatch.setattr(main, "_build_line_recommendation_advice", fake_advice)
-    monkeypatch.setattr(main, "_build_line_fallback_recommendation_cards", fake_cards)
+    patch_modules(monkeypatch, "_reset_line_agent_context_for_fresh_query", fake_reset)
+    patch_modules(monkeypatch, "_build_line_recommendation_advice", fake_advice)
+    patch_modules(monkeypatch, "_build_line_fallback_recommendation_cards", fake_cards)
 
     messages = await main._build_line_reply_messages(
         _line_text_event("大安區想吃牛排，適合約會聊天，也想知道附近停車")
@@ -305,9 +306,9 @@ def test_enrich_agent_search_result_attaches_private_ai_offers(monkeypatch):
     async def fake_hydrate(shops, selected_ids):
         return shops
 
-    monkeypatch.setattr(main, "_fetch_private_dining_memory", fake_fetch_memory)
-    monkeypatch.setattr(main, "_fetch_private_ai_offers", fake_fetch_offers)
-    monkeypatch.setattr(main, "_hydrate_agent_search_shops", fake_hydrate)
+    patch_modules(monkeypatch, "_fetch_private_dining_memory", fake_fetch_memory)
+    patch_modules(monkeypatch, "_fetch_private_ai_offers", fake_fetch_offers)
+    patch_modules(monkeypatch, "_hydrate_agent_search_shops", fake_hydrate)
 
     result = asyncio.run(
         main._enrich_agent_search_result(
@@ -386,7 +387,7 @@ def test_agent_query_basis_labels_explicit_steak_request_as_steakhouse():
 
 
 def test_agent_recommendation_cta_lists_only_missing_booking_fields(monkeypatch):
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 12))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 12))
 
     cta = main._agent_recommendation_cta("週六晚上要帶爸媽吃飯，想找信義區附近適合家庭聚餐、方便開車的餐廳。")
 
@@ -824,7 +825,7 @@ def test_booking_shop_keyword_allows_full_name_with_cuisine_terms():
 
 
 def test_booking_prefill_parses_weekday_dates(monkeypatch):
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     assert main._line_booking_prefill_from_text("下週五晚上7點 4人") == {
         "date": "2026-06-19",
@@ -844,7 +845,7 @@ def test_booking_prefill_parses_weekday_dates(monkeypatch):
 
 
 def test_booking_prefill_parses_explicit_dates(monkeypatch):
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 12))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 12))
 
     assert main._line_booking_prefill_from_text("2026-06-13 晚上19:00 7人") == {
         "date": "2026-06-13",
@@ -883,7 +884,7 @@ async def test_web_agent_stream_clarifies_vague_group_need(monkeypatch):
     def fail_generate(*args, **kwargs):
         raise AssertionError("vague restaurant needs should be clarified before model search")
 
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     events = [
         event
@@ -936,10 +937,10 @@ async def test_web_agent_stream_merges_clarification_followup(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: EmptyResponse())
-    monkeypatch.setattr(main, "tool_semantic_search", fake_tool_semantic_search)
-    monkeypatch.setattr(
-        main,
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: EmptyResponse())
+    patch_modules(monkeypatch, "tool_semantic_search", fake_tool_semantic_search)
+    patch_modules(
+        monkeypatch,
         "_build_agent_recommendation_decision",
         lambda query, tool_result: main.AgentRecommendationDecision(
             recommended_shop_ids=[10101],
@@ -987,10 +988,10 @@ async def test_web_agent_stream_forces_clear_recommendation_search_before_model(
 
     monkeypatch.setattr(main.session_store, "load_history", lambda session_id: [])
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "generate", fail_generate)
-    monkeypatch.setattr(main, "tool_semantic_search", fake_tool_semantic_search)
-    monkeypatch.setattr(
-        main,
+    patch_modules(monkeypatch, "generate", fail_generate)
+    patch_modules(monkeypatch, "tool_semantic_search", fake_tool_semantic_search)
+    patch_modules(
+        monkeypatch,
         "_build_agent_recommendation_decision",
         lambda query, tool_result: main.AgentRecommendationDecision(
             recommended_shop_ids=[10549],
@@ -1034,7 +1035,7 @@ async def test_web_agent_stream_keeps_partial_clarification_draft(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     events = [
         event
@@ -1086,9 +1087,9 @@ async def test_web_agent_stream_books_from_single_recommendation_followup(monkey
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
-    monkeypatch.setattr(main, "tool_create_booking", fake_create_booking)
-    monkeypatch.setattr(main, "generate", fail_generate)
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "tool_create_booking", fake_create_booking)
+    patch_modules(monkeypatch, "generate", fail_generate)
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     events = [
         event
@@ -1141,9 +1142,9 @@ async def test_web_agent_stream_books_exact_shop_from_recommendation_name(monkey
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
-    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
-    monkeypatch.setattr(main, "generate", fail_generate)
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "tool_create_booking", fail_create_booking)
+    patch_modules(monkeypatch, "generate", fail_generate)
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     events = [
         event
@@ -1208,10 +1209,10 @@ async def test_web_agent_stream_books_exact_shop_without_history(monkeypatch):
 
     monkeypatch.setattr(main.session_store, "load_history", lambda session_id: [])
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "tool_create_booking", fake_create_booking)
-    monkeypatch.setattr(main, "generate", fail_generate)
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "tool_create_booking", fake_create_booking)
+    patch_modules(monkeypatch, "generate", fail_generate)
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     events = [
         event
@@ -1254,9 +1255,9 @@ async def test_web_agent_stream_exact_shop_booking_asks_missing_fields(monkeypat
 
     monkeypatch.setattr(main.session_store, "load_history", lambda session_id: [])
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "tool_create_booking", fail_create_booking)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     events = [
         event
@@ -1294,9 +1295,9 @@ async def test_web_agent_stream_rejects_same_day_booking_followup(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
-    monkeypatch.setattr(main, "generate", fail_generate)
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "tool_create_booking", fail_create_booking)
+    patch_modules(monkeypatch, "generate", fail_generate)
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     events = [
         event
@@ -1343,8 +1344,8 @@ async def test_web_agent_stream_locks_ordinal_booking_and_asks_missing_fields(mo
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
-    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "tool_create_booking", fail_create_booking)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     events = [
         event
@@ -1404,8 +1405,8 @@ async def test_web_agent_stream_merges_booking_draft_after_locked_selection(monk
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "tool_create_booking", fake_create_booking)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("booking draft should bypass model")))
+    patch_modules(monkeypatch, "tool_create_booking", fake_create_booking)
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("booking draft should bypass model")))
 
     events = [
         event
@@ -1450,8 +1451,8 @@ async def test_web_agent_stream_updates_booking_draft_time(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
-    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("draft edit should bypass model")))
+    patch_modules(monkeypatch, "tool_create_booking", fail_create_booking)
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("draft edit should bypass model")))
 
     events = [
         event
@@ -1513,8 +1514,8 @@ async def test_web_agent_stream_switches_booking_draft_shop(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
-    monkeypatch.setattr(main, "tool_create_booking", fail_create_booking)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("draft shop switch should bypass model")))
+    patch_modules(monkeypatch, "tool_create_booking", fail_create_booking)
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("draft shop switch should bypass model")))
 
     events = [
         event
@@ -1571,8 +1572,8 @@ async def test_web_agent_stream_confirms_booking_draft_after_explicit_confirmati
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "tool_create_booking", fake_create_booking)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("booking confirmation should bypass model")))
+    patch_modules(monkeypatch, "tool_create_booking", fake_create_booking)
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("booking confirmation should bypass model")))
 
     events = [
         event
@@ -1620,7 +1621,7 @@ async def test_web_agent_stream_answers_latest_booking_status(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     events = [
         event
@@ -1677,8 +1678,8 @@ async def test_web_agent_stream_pays_latest_pending_booking(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "tool_pay_booking_with_test_card", fake_pay_booking_with_test_card)
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "tool_pay_booking_with_test_card", fake_pay_booking_with_test_card)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     events = [
         event
@@ -1725,8 +1726,8 @@ async def test_web_agent_stream_cancel_requires_confirmation(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "tool_cancel_booking", fail_cancel_booking)
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "tool_cancel_booking", fail_cancel_booking)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     events = [
         event
@@ -1785,8 +1786,8 @@ async def test_web_agent_stream_confirm_cancel_latest_booking(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "tool_cancel_booking", fake_cancel_booking)
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "tool_cancel_booking", fake_cancel_booking)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     events = [
         event
@@ -1862,8 +1863,8 @@ async def test_web_agent_stream_reschedules_latest_booking(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "tool_update_booking", fake_update_booking)
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "tool_update_booking", fake_update_booking)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     events = [
         event
@@ -1945,8 +1946,8 @@ async def test_web_agent_stream_creates_booking_incident_for_late_arrival(monkey
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "tool_create_booking_incident", fake_create_booking_incident)
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "tool_create_booking_incident", fake_create_booking_incident)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     events = [
         event
@@ -2003,8 +2004,8 @@ async def test_web_agent_stream_reschedule_keeps_original_booking_when_full(monk
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "tool_update_booking", fake_update_booking)
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "tool_update_booking", fake_update_booking)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     events = [
         event
@@ -2060,9 +2061,9 @@ async def test_web_agent_stream_books_ordinal_recommendation_followup(monkeypatc
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "tool_create_booking", fake_create_booking)
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("ordinal booking should bypass model")))
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "tool_create_booking", fake_create_booking)
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("ordinal booking should bypass model")))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     events = [
         event
@@ -2100,8 +2101,8 @@ async def test_web_agent_stream_asks_missing_booking_people(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "generate", fail_generate)
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "generate", fail_generate)
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     events = [
         event
@@ -2148,9 +2149,9 @@ async def test_web_agent_stream_more_recommendations_excludes_seen(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(
-        main,
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(
+        monkeypatch,
         "_build_agent_recommendation_decision",
         lambda query, tool_result: main.AgentRecommendationDecision(
             recommended_shop_ids=[10220, 10221],
@@ -2210,7 +2211,7 @@ async def test_web_agent_stream_answers_recommendation_advice(monkeypatch):
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     events = [
         event
@@ -2262,10 +2263,10 @@ async def test_web_agent_stream_forces_cards_when_model_skips_search(monkeypatch
             ]
         }
 
-    monkeypatch.setattr(main, "generate", lambda *args, **kwargs: EmptyResponse())
-    monkeypatch.setattr(main, "tool_semantic_search", fake_tool_semantic_search)
-    monkeypatch.setattr(
-        main,
+    patch_modules(monkeypatch, "generate", lambda *args, **kwargs: EmptyResponse())
+    patch_modules(monkeypatch, "tool_semantic_search", fake_tool_semantic_search)
+    patch_modules(
+        monkeypatch,
         "_build_agent_recommendation_decision",
         lambda query, tool_result: main.AgentRecommendationDecision(
             recommended_shop_ids=[10022, 10123],
@@ -2342,8 +2343,8 @@ async def test_web_agent_stream_exact_shop_correction_bypasses_model(monkeypatch
         ],
     )
     monkeypatch.setattr(main.session_store, "save_history", lambda session_id, history: saved.update({"history": history}))
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "generate", fail_generate)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "generate", fail_generate)
 
     events = [
         event
@@ -2396,8 +2397,8 @@ async def test_tool_semantic_search_returns_hydrated_shops_and_scope_note(monkey
             "pricePerPerson": "NT$ 300-600",
         }
 
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_fetch_java_ai_metadata", fake_fetch_metadata)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_fetch_java_ai_metadata", fake_fetch_metadata)
 
     result = await main.tool_semantic_search("推薦中山區高級漢堡店")
 
@@ -2423,9 +2424,9 @@ async def test_line_reply_falls_back_to_flex_when_agent_skips_search(monkeypatch
             }
         ]
 
-    monkeypatch.setattr(main, "_run_agent_turn", fake_run_agent_turn)
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_run_agent_turn", fake_run_agent_turn)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -2459,10 +2460,10 @@ async def test_line_user_recommendation_returns_cards_without_agent(monkeypatch)
             }
         ]
 
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_run_agent_turn", fail_run_agent_turn)
-    monkeypatch.setattr(main, "_start_line_background_recommendation", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_run_agent_turn", fail_run_agent_turn)
+    patch_modules(monkeypatch, "_start_line_background_recommendation", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_background_push_enabled", True)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
@@ -2500,9 +2501,9 @@ async def test_line_cards_hydrate_selected_shop_metadata(monkeypatch):
             "pricePerPerson": "NT$ 300-600",
         }
 
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_fetch_java_ai_metadata", fake_fetch_metadata)
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_fetch_java_ai_metadata", fake_fetch_metadata)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_cards_for_query("推薦中山區高級漢堡店", "test-user")
@@ -2551,9 +2552,9 @@ async def test_line_cards_use_shared_agent_search_result(monkeypatch):
             "scope_note": "中山區符合條件較少，我先擴大到台北漢堡店，整理 3 間符合需求的餐廳。",
         }
 
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_build_agent_search_result", fake_build_agent_search_result)
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_build_agent_search_result", fake_build_agent_search_result)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_cards_for_query("推薦中山區高級漢堡店", "test-user")
@@ -2595,9 +2596,9 @@ async def test_line_burger_reply_explains_expanded_scope(monkeypatch):
             },
         ]
 
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_run_agent_turn", fail_run_agent_turn)
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_run_agent_turn", fail_run_agent_turn)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -2643,8 +2644,8 @@ async def test_line_agent_cards_explain_station_scope_expansion(monkeypatch):
             },
         )
 
-    monkeypatch.setattr(main, "_run_agent_turn", fake_run_agent_turn)
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_run_agent_turn", fake_run_agent_turn)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_agent_recommendation_messages("我想吃芝山站附近的火鍋", "test-user")
@@ -2684,10 +2685,10 @@ async def test_line_text_uses_saved_location_context(monkeypatch):
             }
         ]
 
-    monkeypatch.setattr(main, "_load_line_location_state", lambda user_id: {"address": "台北市信義區市府路45號"})
-    monkeypatch.setattr(main, "_run_agent_turn", fake_run_agent_turn)
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_load_line_location_state", lambda user_id: {"address": "台北市信義區市府路45號"})
+    patch_modules(monkeypatch, "_run_agent_turn", fake_run_agent_turn)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -2719,13 +2720,13 @@ async def test_line_card_request_replays_previous_cards(monkeypatch):
             }
         ]
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009]},
     )
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -2748,9 +2749,9 @@ async def test_line_vague_need_clarifies_and_saves_context(monkeypatch):
     async def fail_run_agent_turn(query: str, session_id: str):
         raise AssertionError("vague line requests should not wait for model output")
 
-    monkeypatch.setattr(main, "_load_line_recommendation_state", lambda user_id: {})
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda user_id, query, shown_shop_ids: saved.update({"user_id": user_id, "query": query, "shown": shown_shop_ids}))
-    monkeypatch.setattr(main, "_run_agent_turn", fail_run_agent_turn)
+    patch_modules(monkeypatch, "_load_line_recommendation_state", lambda user_id: {})
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda user_id, query, shown_shop_ids: saved.update({"user_id": user_id, "query": query, "shown": shown_shop_ids}))
+    patch_modules(monkeypatch, "_run_agent_turn", fail_run_agent_turn)
 
     messages = await main._build_line_reply_messages(
         {
@@ -2772,14 +2773,14 @@ async def test_line_nearby_without_location_clarifies(monkeypatch):
     async def fail_semantic_hits(query: str, top_k: int):
         raise AssertionError("nearby without location should not search")
 
-    monkeypatch.setattr(main, "_load_line_recommendation_state", lambda user_id: {})
-    monkeypatch.setattr(main, "_load_line_location_state", lambda user_id: {})
-    monkeypatch.setattr(
-        main,
+    patch_modules(monkeypatch, "_load_line_recommendation_state", lambda user_id: {})
+    patch_modules(monkeypatch, "_load_line_location_state", lambda user_id: {})
+    patch_modules(
+        monkeypatch,
         "_save_line_recommendation_state",
         lambda user_id, query, shown_shop_ids: saved.update({"user_id": user_id, "query": query, "shown": shown_shop_ids}),
     )
-    monkeypatch.setattr(main, "_semantic_hits", fail_semantic_hits)
+    patch_modules(monkeypatch, "_semantic_hits", fail_semantic_hits)
 
     messages = await main._build_line_reply_messages(
         {
@@ -2809,14 +2810,14 @@ async def test_line_nearby_with_saved_location_recommends_cards(monkeypatch):
             }
         ]
 
-    monkeypatch.setattr(main, "_load_line_recommendation_state", lambda user_id: {})
-    monkeypatch.setattr(
-        main,
+    patch_modules(monkeypatch, "_load_line_recommendation_state", lambda user_id: {})
+    patch_modules(
+        monkeypatch,
         "_load_line_location_state",
         lambda user_id: {"title": "台北 101", "address": "台北市信義區信義路五段7號"},
     )
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -2838,17 +2839,17 @@ async def test_line_partial_clarification_followup_updates_context(monkeypatch):
     async def fail_semantic_hits(query: str, top_k: int):
         raise AssertionError("partial clarification should not search yet")
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "推薦7人聚餐餐廳", "shown_shop_ids": []},
     )
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_save_line_recommendation_state",
         lambda user_id, query, shown_shop_ids: saved.update({"user_id": user_id, "query": query, "shown": shown_shop_ids}),
     )
-    monkeypatch.setattr(main, "_semantic_hits", fail_semantic_hits)
+    patch_modules(monkeypatch, "_semantic_hits", fail_semantic_hits)
 
     messages = await main._build_line_reply_messages(
         {
@@ -2883,13 +2884,13 @@ async def test_line_completed_clarification_followup_searches(monkeypatch):
             }
         ]
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "推薦7人聚餐餐廳，補充條件：明天晚上", "shown_shop_ids": []},
     )
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -2920,13 +2921,13 @@ async def test_line_followup_after_clarification_merges_previous_need(monkeypatc
             }
         ]
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "推薦7人聚餐餐廳", "shown_shop_ids": []},
     )
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -2963,13 +2964,13 @@ async def test_line_short_name_selects_previous_recommendation(monkeypatch):
             },
         ]
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009, 10115]},
     )
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -3006,13 +3007,13 @@ async def test_line_ordinal_selects_previous_recommendation(monkeypatch):
             },
         ]
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009, 10115]},
     )
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -3041,13 +3042,13 @@ async def test_line_negative_ordinal_gets_more_recommendations(monkeypatch):
             {"shop_id": 10220, "name": "麻凡麻辣火鍋", "district": "中山", "ai_summary": "新候選。"},
         ]
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009, 10115]},
     )
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -3089,12 +3090,12 @@ async def test_line_recommendation_advice_uses_previous_cards(monkeypatch):
             },
         ]
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009, 10115]},
     )
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
 
     messages = await main._build_line_reply_messages(
         {
@@ -3111,13 +3112,13 @@ async def test_line_recommendation_advice_uses_previous_cards(monkeypatch):
 
 @pytest.mark.anyio
 async def test_line_fresh_recommendation_does_not_use_previous_advice_context(monkeypatch):
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "大安區人均200到400義式餐廳，想約會聊天", "shown_shop_ids": [10673]},
     )
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_semantic_hits",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("fresh query should not load old cards")),
     )
@@ -3154,9 +3155,9 @@ async def test_line_specific_shop_name_returns_only_that_shop(monkeypatch):
             },
         ]
 
-    monkeypatch.setattr(main, "_load_line_recommendation_state", lambda user_id: {})
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_load_line_recommendation_state", lambda user_id: {})
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -3178,16 +3179,16 @@ async def test_line_booking_followup_uses_selected_single_shop(monkeypatch):
     async def fake_fetch_java_shop(shop_id: int):
         return {"id": shop_id, "name": "青田七六"}
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "青田七六", "shown_shop_ids": [10222]},
     )
-    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
-    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
-    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_fetch_java_shop", fake_fetch_java_shop)
+    patch_modules(monkeypatch, "_line_token_for_user", lambda user_id: "line-token")
+    patch_modules(monkeypatch, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     messages = await main._build_line_reply_messages(
         {
@@ -3230,16 +3231,16 @@ async def test_line_exact_shop_booking_without_history(monkeypatch):
             },
         ]
 
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
-    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
-    monkeypatch.setattr(
-        main,
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_line_token_for_user", lambda user_id: "line-token")
+    patch_modules(monkeypatch, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
+    patch_modules(
+        monkeypatch,
         "_save_line_recommendation_state",
         lambda *args, **kwargs: saved_state.update({"args": args, "kwargs": kwargs}),
     )
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     messages = await main._build_line_reply_messages(
         {
@@ -3273,12 +3274,12 @@ async def test_line_exact_shop_booking_asks_missing_fields(monkeypatch):
             }
         ]
 
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
-    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_line_token_for_user", lambda user_id: "line-token")
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     messages = await main._build_line_reply_messages(
         {
@@ -3298,8 +3299,8 @@ async def test_line_exact_shop_booking_rejects_same_day(monkeypatch):
     async def fail_semantic_hits(query: str, top_k: int):
         raise AssertionError("same-day booking should be rejected before search")
 
-    monkeypatch.setattr(main, "_semantic_hits", fail_semantic_hits)
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "_semantic_hits", fail_semantic_hits)
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     messages = await main._build_line_reply_messages(
         {
@@ -3316,8 +3317,8 @@ async def test_line_exact_shop_booking_rejects_same_day(monkeypatch):
 
 @pytest.mark.anyio
 async def test_line_booking_action_uses_latest_booking_state(monkeypatch):
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_booking_state",
         lambda user_id: {
             "phase": "created",
@@ -3354,8 +3355,8 @@ async def test_line_booking_action_uses_latest_booking_state(monkeypatch):
 
 @pytest.mark.anyio
 async def test_line_booking_action_without_state_links_my_bookings(monkeypatch):
-    monkeypatch.setattr(main, "_load_line_booking_state", lambda user_id: {})
-    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    patch_modules(monkeypatch, "_load_line_booking_state", lambda user_id: {})
+    patch_modules(monkeypatch, "_line_token_for_user", lambda user_id: "line-token")
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -3403,9 +3404,9 @@ async def test_line_booking_draft_confirmation_creates_booking(monkeypatch):
             },
         }
 
-    monkeypatch.setattr(main, "_load_line_booking_state", lambda user_id: {})
-    monkeypatch.setattr(
-        main,
+    patch_modules(monkeypatch, "_load_line_booking_state", lambda user_id: {})
+    patch_modules(
+        monkeypatch,
         "_load_line_booking_draft_state",
         lambda user_id: {
             "shop_id": 10222,
@@ -3416,10 +3417,10 @@ async def test_line_booking_draft_confirmation_creates_booking(monkeypatch):
             "table_type": "normal",
         },
     )
-    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
-    monkeypatch.setattr(main, "_reserve_line_booking", fake_reserve_line_booking)
-    monkeypatch.setattr(main, "_clear_line_booking_draft_state", lambda user_id: cleared.update({"user_id": user_id}))
-    monkeypatch.setattr(main, "_save_line_booking_state", lambda user_id, booking, phase: saved.update({"user_id": user_id, "booking": booking, "phase": phase}))
+    patch_modules(monkeypatch, "_line_token_for_user", lambda user_id: "line-token")
+    patch_modules(monkeypatch, "_reserve_line_booking", fake_reserve_line_booking)
+    patch_modules(monkeypatch, "_clear_line_booking_draft_state", lambda user_id: cleared.update({"user_id": user_id}))
+    patch_modules(monkeypatch, "_save_line_booking_state", lambda user_id, booking, phase: saved.update({"user_id": user_id, "booking": booking, "phase": phase}))
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -3451,9 +3452,9 @@ async def test_line_booking_draft_confirmation_creates_booking(monkeypatch):
 async def test_line_booking_draft_update_changes_time(monkeypatch):
     saved_draft = {}
 
-    monkeypatch.setattr(main, "_load_line_booking_state", lambda user_id: {})
-    monkeypatch.setattr(
-        main,
+    patch_modules(monkeypatch, "_load_line_booking_state", lambda user_id: {})
+    patch_modules(
+        monkeypatch,
         "_load_line_booking_draft_state",
         lambda user_id: {
             "shop_id": 10222,
@@ -3464,8 +3465,8 @@ async def test_line_booking_draft_update_changes_time(monkeypatch):
             "table_type": "normal",
         },
     )
-    monkeypatch.setattr(main, "_load_line_recommendation_state", lambda user_id: {})
-    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda user_id, draft: saved_draft.update(draft))
+    patch_modules(monkeypatch, "_load_line_recommendation_state", lambda user_id: {})
+    patch_modules(monkeypatch, "_save_line_booking_draft_state", lambda user_id, draft: saved_draft.update(draft))
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -3494,9 +3495,9 @@ async def test_line_booking_draft_update_switches_shop(monkeypatch):
         assert shop_id == 10103
         return {"id": shop_id, "name": "七転八起"}
 
-    monkeypatch.setattr(main, "_load_line_booking_state", lambda user_id: {})
-    monkeypatch.setattr(
-        main,
+    patch_modules(monkeypatch, "_load_line_booking_state", lambda user_id: {})
+    patch_modules(
+        monkeypatch,
         "_load_line_booking_draft_state",
         lambda user_id: {
             "shop_id": 10102,
@@ -3507,8 +3508,8 @@ async def test_line_booking_draft_update_switches_shop(monkeypatch):
             "table_type": "normal",
         },
     )
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {
             "query": "中山區適合聚餐",
@@ -3520,8 +3521,8 @@ async def test_line_booking_draft_update_switches_shop(monkeypatch):
             ],
         },
     )
-    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
-    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda user_id, draft: saved_draft.update(draft))
+    patch_modules(monkeypatch, "_fetch_java_shop", fake_fetch_java_shop)
+    patch_modules(monkeypatch, "_save_line_booking_draft_state", lambda user_id, draft: saved_draft.update(draft))
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -3563,8 +3564,8 @@ async def test_line_confirm_cancel_uses_latest_booking_state(monkeypatch):
             },
         }
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_booking_state",
         lambda user_id: {
             "phase": "created",
@@ -3579,9 +3580,9 @@ async def test_line_confirm_cancel_uses_latest_booking_state(monkeypatch):
             },
         },
     )
-    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
-    monkeypatch.setattr(main, "_cancel_line_booking", fake_cancel_line_booking)
-    monkeypatch.setattr(main, "_save_line_booking_state", lambda *args, **kwargs: saved.update({"args": args}))
+    patch_modules(monkeypatch, "_line_token_for_user", lambda user_id: "line-token")
+    patch_modules(monkeypatch, "_cancel_line_booking", fake_cancel_line_booking)
+    patch_modules(monkeypatch, "_save_line_booking_state", lambda *args, **kwargs: saved.update({"args": args}))
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -3607,16 +3608,16 @@ async def test_line_booking_followup_uses_ordinal_shop(monkeypatch):
     async def fake_fetch_java_shop(shop_id: int):
         return {"id": shop_id, "name": "辛殿麻辣鍋｜信義店"}
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009, 10115]},
     )
-    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
-    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
-    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_fetch_java_shop", fake_fetch_java_shop)
+    patch_modules(monkeypatch, "_line_token_for_user", lambda user_id: "line-token")
+    patch_modules(monkeypatch, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     messages = await main._build_line_reply_messages(
         {
@@ -3642,8 +3643,8 @@ async def test_line_booking_followup_uses_exact_recommended_shop_name(monkeypatc
         assert shop_id == 10115
         return {"id": shop_id, "name": "辛殿麻辣鍋｜信義店"}
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {
             "query": "信義區高級火鍋",
@@ -3655,11 +3656,11 @@ async def test_line_booking_followup_uses_exact_recommended_shop_name(monkeypatc
             ],
         },
     )
-    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
-    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
-    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda user_id, draft: saved_draft.update(draft))
+    patch_modules(monkeypatch, "_fetch_java_shop", fake_fetch_java_shop)
+    patch_modules(monkeypatch, "_line_token_for_user", lambda user_id: "line-token")
+    patch_modules(monkeypatch, "_save_line_booking_draft_state", lambda user_id, draft: saved_draft.update(draft))
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     messages = await main._build_line_reply_messages(
         {
@@ -3689,14 +3690,14 @@ async def test_line_booking_followup_locks_ordinal_and_asks_missing_fields(monke
         assert shop_id == 10115
         return {"id": shop_id, "name": "辛殿麻辣鍋｜信義店"}
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10009, 10115]},
     )
-    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
-    monkeypatch.setattr(
-        main,
+    patch_modules(monkeypatch, "_fetch_java_shop", fake_fetch_java_shop)
+    patch_modules(
+        monkeypatch,
         "_save_line_recommendation_state",
         lambda *args, **kwargs: saved.update({"args": args, "kwargs": kwargs}),
     )
@@ -3721,8 +3722,8 @@ async def test_line_booking_followup_merges_saved_prefill(monkeypatch):
     async def fake_fetch_java_shop(shop_id: int):
         return {"id": shop_id, "name": "辛殿麻辣鍋｜信義店"}
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {
             "query": "信義區高級火鍋",
@@ -3730,9 +3731,9 @@ async def test_line_booking_followup_merges_saved_prefill(monkeypatch):
             "booking_prefill": {"date": "2026-06-19", "time": "19:00"},
         },
     )
-    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
-    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
-    monkeypatch.setattr(main, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_fetch_java_shop", fake_fetch_java_shop)
+    patch_modules(monkeypatch, "_line_token_for_user", lambda user_id: "line-token")
+    patch_modules(monkeypatch, "_save_line_booking_draft_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -3758,15 +3759,15 @@ async def test_line_booking_followup_asks_people_when_missing(monkeypatch):
     async def fake_fetch_java_shop(shop_id: int):
         return {"id": shop_id, "name": "青田七六"}
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "青田七六", "shown_shop_ids": [10222]},
     )
-    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_java_shop)
-    monkeypatch.setattr(main, "_line_token_for_user", lambda user_id: "line-token")
+    patch_modules(monkeypatch, "_fetch_java_shop", fake_fetch_java_shop)
+    patch_modules(monkeypatch, "_line_token_for_user", lambda user_id: "line-token")
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     messages = await main._build_line_reply_messages(
         {
@@ -3785,13 +3786,13 @@ async def test_line_booking_followup_rejects_same_day_short_reply(monkeypatch):
     async def fail_fetch_java_shop(shop_id: int):
         raise AssertionError("same-day booking followup should stop before fetching shop")
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "青田七六", "shown_shop_ids": [10222]},
     )
-    monkeypatch.setattr(main, "_fetch_java_shop", fail_fetch_java_shop)
-    monkeypatch.setattr(main, "taipei_today", lambda: main.date_cls(2026, 6, 10))
+    patch_modules(monkeypatch, "_fetch_java_shop", fail_fetch_java_shop)
+    patch_modules(monkeypatch, "taipei_today", lambda: main.date_cls(2026, 6, 10))
 
     messages = await main._build_line_reply_messages(
         {
@@ -3823,13 +3824,13 @@ async def test_line_followup_adjustment_reuses_previous_query(monkeypatch):
             }
         ]
 
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10115]},
     )
-    monkeypatch.setattr(main, "_save_line_recommendation_state", lambda *args, **kwargs: None)
-    monkeypatch.setattr(main, "_semantic_hits", fake_semantic_hits)
+    patch_modules(monkeypatch, "_save_line_recommendation_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "_semantic_hits", fake_semantic_hits)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     messages = await main._build_line_reply_messages(
@@ -3847,12 +3848,12 @@ async def test_line_followup_adjustment_reuses_previous_query(monkeypatch):
 @pytest.mark.anyio
 async def test_line_followup_cancel_clears_previous_query(monkeypatch):
     cleared = {}
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_load_line_recommendation_state",
         lambda user_id: {"query": "信義區高級火鍋", "shown_shop_ids": [10115]},
     )
-    monkeypatch.setattr(main, "_clear_line_recommendation_state", lambda user_id: cleared.setdefault("user_id", user_id))
+    patch_modules(monkeypatch, "_clear_line_recommendation_state", lambda user_id: cleared.setdefault("user_id", user_id))
 
     messages = await main._build_line_reply_messages(
         {
@@ -3867,8 +3868,8 @@ async def test_line_followup_cancel_clears_previous_query(monkeypatch):
 
 
 def test_line_detail_helpers_use_manifest_reviews_and_photo_fallbacks(monkeypatch):
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_LINE_MEDIA_CACHE",
         {
             "shops": {
@@ -3883,7 +3884,7 @@ def test_line_detail_helpers_use_manifest_reviews_and_photo_fallbacks(monkeypatc
             }
         },
     )
-    monkeypatch.setattr(main, "best_shop_photo_url", lambda shop_id: "https://img.example/cover.jpg")
+    patch_modules(monkeypatch, "best_shop_photo_url", lambda shop_id: "https://img.example/cover.jpg")
 
     candidates = main._line_photo_candidates(123)
     assert candidates == [
@@ -3905,8 +3906,8 @@ def test_line_detail_helpers_use_manifest_reviews_and_photo_fallbacks(monkeypatc
 
 
 def test_line_detail_helpers_use_orange_media_alias(monkeypatch):
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_LINE_MEDIA_CACHE",
         {
             "shops": {
@@ -3920,7 +3921,7 @@ def test_line_detail_helpers_use_orange_media_alias(monkeypatch):
             }
         },
     )
-    monkeypatch.setattr(main, "best_shop_photo_url", lambda shop_id: None)
+    patch_modules(monkeypatch, "best_shop_photo_url", lambda shop_id: None)
 
     assert main._line_photo_candidates(10009) == ["https://img.example/orange.jpg"]
     review_html = main._line_review_html(main._line_review_groups(10009))
@@ -4010,7 +4011,7 @@ async def test_line_booking_confirm_requires_line_action_token(monkeypatch):
     async def fail_reserve(*args, **kwargs):
         raise AssertionError("confirm must not reserve without LINE token")
 
-    monkeypatch.setattr(main, "_reserve_line_booking", fail_reserve)
+    patch_modules(monkeypatch, "_reserve_line_booking", fail_reserve)
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
     response = await main.line_booking_confirm(
@@ -4081,7 +4082,7 @@ async def test_internal_availability_released_pushes_line_card(monkeypatch):
         pushed["messages"] = messages
         return {"ok": True}
 
-    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    patch_modules(monkeypatch, "push_messages", fake_push_messages)
     monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
 
     class FakeRequest:
@@ -4134,8 +4135,8 @@ async def test_internal_booking_updated_pushes_cancel_card(monkeypatch):
         pushed["messages"] = messages
         return {"ok": True}
 
-    monkeypatch.setattr(main, "push_messages", fake_push_messages)
-    monkeypatch.setattr(main, "_save_line_booking_state", lambda *args, **kwargs: saved.update({"args": args}))
+    patch_modules(monkeypatch, "push_messages", fake_push_messages)
+    patch_modules(monkeypatch, "_save_line_booking_state", lambda *args, **kwargs: saved.update({"args": args}))
     monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
 
     class FakeRequest:
@@ -4175,8 +4176,8 @@ async def test_internal_booking_updated_uses_background_push_switch(monkeypatch)
         pushed["enabled"] = enabled
         return {"ok": True}
 
-    monkeypatch.setattr(main, "push_messages", fake_push_messages)
-    monkeypatch.setattr(main, "_save_line_booking_state", lambda *args, **kwargs: None)
+    patch_modules(monkeypatch, "push_messages", fake_push_messages)
+    patch_modules(monkeypatch, "_save_line_booking_state", lambda *args, **kwargs: None)
     monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
     monkeypatch.setattr(main.settings, "line_reply_enabled", False)
     monkeypatch.setattr(main.settings, "line_background_push_enabled", True)
@@ -4244,7 +4245,7 @@ async def test_internal_booking_incident_pushes_line_card(monkeypatch):
         pushed["enabled"] = enabled
         return {"ok": True}
 
-    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    patch_modules(monkeypatch, "push_messages", fake_push_messages)
     monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
     monkeypatch.setattr(main.settings, "line_reply_enabled", False)
     monkeypatch.setattr(main.settings, "line_background_push_enabled", True)
@@ -4320,7 +4321,7 @@ async def test_internal_booking_incident_proposal_pushes_line_card(monkeypatch):
         pushed["enabled"] = enabled
         return {"ok": True}
 
-    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    patch_modules(monkeypatch, "push_messages", fake_push_messages)
     monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
     monkeypatch.setattr(main.settings, "line_reply_enabled", False)
     monkeypatch.setattr(main.settings, "line_background_push_enabled", True)
@@ -4400,7 +4401,7 @@ async def test_internal_refund_operations_digest_pushes_line_card(monkeypatch):
         pushed["enabled"] = enabled
         return {"ok": True}
 
-    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    patch_modules(monkeypatch, "push_messages", fake_push_messages)
     monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
     monkeypatch.setattr(main.settings, "line_reply_enabled", False)
     monkeypatch.setattr(main.settings, "line_background_push_enabled", True)
@@ -4477,7 +4478,7 @@ async def test_internal_parking_reminder_pushes_line_card(monkeypatch):
         pushed["messages"] = messages
         return {"ok": True}
 
-    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    patch_modules(monkeypatch, "push_messages", fake_push_messages)
     monkeypatch.setattr(main.settings, "line_internal_webhook_secret", "secret")
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
 
@@ -4583,11 +4584,11 @@ async def test_line_parking_reserve_success_pushes_confirmation(monkeypatch):
             }
         ]
 
-    monkeypatch.setattr(main, "_line_context", lambda lt="", line_user_id="": ("Uabc123", "token"))
-    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_shop)
-    monkeypatch.setattr(main, "_fetch_line_booking", fake_fetch_booking)
-    monkeypatch.setattr(main, "_fetch_java_nearby_parking", fake_fetch_parking)
-    monkeypatch.setattr(main, "push_messages", fake_push_messages)
+    patch_modules(monkeypatch, "_line_context", lambda lt="", line_user_id="": ("Uabc123", "token"))
+    patch_modules(monkeypatch, "_fetch_java_shop", fake_fetch_shop)
+    patch_modules(monkeypatch, "_fetch_line_booking", fake_fetch_booking)
+    patch_modules(monkeypatch, "_fetch_java_nearby_parking", fake_fetch_parking)
+    patch_modules(monkeypatch, "push_messages", fake_push_messages)
 
     response = await main.line_booking_parking_reserve(
         10009,
@@ -4636,13 +4637,13 @@ async def test_line_shop_detail_renders_concierge_sections(monkeypatch):
     async def fake_fetch_policy(shop_id: int):
         return {"needsDeposit": True, "depositPerPerson": 300, "reason": "熱門時段保留座位"}
 
-    monkeypatch.setattr(main, "_fetch_java_shop", fake_fetch_shop)
-    monkeypatch.setattr(main, "_fetch_java_ai_metadata", fake_fetch_metadata)
-    monkeypatch.setattr(main, "_fetch_java_booking_policy", fake_fetch_policy)
-    monkeypatch.setattr(main, "_line_photo_candidates", lambda shop_id: ["https://img.example/cover.jpg"])
+    patch_modules(monkeypatch, "_fetch_java_shop", fake_fetch_shop)
+    patch_modules(monkeypatch, "_fetch_java_ai_metadata", fake_fetch_metadata)
+    patch_modules(monkeypatch, "_fetch_java_booking_policy", fake_fetch_policy)
+    patch_modules(monkeypatch, "_line_photo_candidates", lambda shop_id: ["https://img.example/cover.jpg"])
     monkeypatch.setattr(main.settings, "line_public_web_url", "https://bytebites.example.com")
-    monkeypatch.setattr(
-        main,
+    patch_modules(
+        monkeypatch,
         "_LINE_MEDIA_CACHE",
         {
             "shops": {
