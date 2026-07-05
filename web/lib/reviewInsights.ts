@@ -1,5 +1,5 @@
 import { getExtractedShop } from "@/lib/extractedShops";
-import { getShopManifestReviews } from "@/lib/shopPhotoManifest";
+import { getShopManifestReviews } from "@/lib/shopReviews.server";
 
 export type ReviewLanguage = "zh" | "ja" | "ko" | "en";
 

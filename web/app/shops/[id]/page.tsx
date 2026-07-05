@@ -8,7 +8,7 @@ import { FlashDealClaimButton } from "@/components/FlashDealClaimButton";
 import { ShopDetailTabs } from "@/components/ShopDetailTabs";
 import { javaApi, type AbsaAspect, type NearbyParkingLot, type Shop, type ShopAiMetadata, type ShopAbsa, type VoucherOffer } from "@/lib/api";
 import { proxyImageUrl } from "@/lib/photoProxy";
-import { getBestShopCardPhoto, getShopDataQualityScore, getShopGalleryPhotos, getShopManifestReviews, getShopOverview } from "@/lib/shopPhotoManifest";
+import { getBestShopCardPhoto, getShopDataQualityScore, getShopGalleryPhotos, getShopManifestReviewCount, getShopOverview } from "@/lib/shopPhotoManifest";
 import { getShopReviewInsights } from "@/lib/reviewInsights";
 import { getSlugByTypeId, getStyleByTypeId } from "@/lib/categoryStyle";
 import { isLegacySeedShop } from "@/lib/legacySeedShops";
@@ -186,7 +186,7 @@ function normalizeBrandName(name?: string | null) {
 
 function getCandidateDataQuality(shopId: number, fallbackImage?: string | null, comments?: number | null) {
   const hasPhoto = Boolean(getBestShopCardPhoto(shopId, fallbackImage));
-  const reviewCount = getShopManifestReviews(shopId).length;
+  const reviewCount = getShopManifestReviewCount(shopId);
   const hasPrice = Boolean(getShopOverview(shopId)?.price_overview);
   const score = getShopDataQualityScore(shopId, fallbackImage, comments);
   return {

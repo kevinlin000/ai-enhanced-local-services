@@ -1,4 +1,7 @@
-import payload from "@/data/shop-media.json";
+// 瘦身版 manifest（由 scripts/build-client-media.mjs 產生）：
+// 只含照片 URL、overview、評論數，可安全進 client bundle。
+// 評論全文請走 server-only 的 lib/shopReviews.server.ts。
+import payload from "./_generated/shop-media.client.json";
 
 export type ShopOverview = {
   price_overview?: string;
@@ -8,14 +11,6 @@ export type ShopOverview = {
   visit_duration?: string;
 };
 
-export type ManifestReview = {
-  author?: string;
-  rating?: number;
-  text?: string;
-  publishTime?: string | null;
-  source?: string;
-};
-
 type PhotoPayload = {
   shops?: Record<
     string,
@@ -23,8 +18,8 @@ type PhotoPayload = {
       photoUrls?: string[];
       coverUrl?: string | null;
       galleryUrls?: string[];
-      overview?: ShopOverview;
-      reviews?: ManifestReview[];
+      overview?: ShopOverview | null;
+      reviewCount?: number;
     }
   >;
 };
@@ -72,8 +67,8 @@ export function getShopOverview(shopId: number): ShopOverview | null {
   return PHOTO_DATA.shops?.[String(shopId)]?.overview ?? null;
 }
 
-export function getShopManifestReviews(shopId: number): ManifestReview[] {
-  return PHOTO_DATA.shops?.[String(shopId)]?.reviews?.filter((review) => review.text) ?? [];
+export function getShopManifestReviewCount(shopId: number): number {
+  return PHOTO_DATA.shops?.[String(shopId)]?.reviewCount ?? 0;
 }
 
 export function getShopDataQualityScore(
@@ -83,13 +78,13 @@ export function getShopDataQualityScore(
 ) {
   const hasPhoto = Boolean(getBestShopCardPhoto(shopId, fallbackImage));
   const overview = getShopOverview(shopId);
-  const reviews = getShopManifestReviews(shopId);
+  const reviewCount = getShopManifestReviewCount(shopId);
 
   let score = 0;
   if (hasPhoto) score += 4;
-  if (reviews.length >= 10) score += 4;
-  else if (reviews.length >= 3) score += 3;
-  else if (reviews.length > 0) score += 1;
+  if (reviewCount >= 10) score += 4;
+  else if (reviewCount >= 3) score += 3;
+  else if (reviewCount > 0) score += 1;
   if (overview?.price_overview) score += 2;
   if ((comments ?? 0) >= 1000) score += 1;
   return score;
@@ -99,7 +94,7 @@ export function isCuratedShopData(
   shopId: number,
   fallbackImage?: string | null,
 ) {
-  return Boolean(getBestShopCardPhoto(shopId, fallbackImage)) && getShopManifestReviews(shopId).length >= 3;
+  return Boolean(getBestShopCardPhoto(shopId, fallbackImage)) && getShopManifestReviewCount(shopId) >= 3;
 }
 
 export function getShopCoverPhoto(shopId: number): string | null {
