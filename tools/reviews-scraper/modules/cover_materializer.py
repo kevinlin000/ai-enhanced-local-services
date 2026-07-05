@@ -1,8 +1,9 @@
-"""Materialize remote shop covers as bounded local WebP assets."""
+"""Materialize six clear shop photos as bounded local WebP assets."""
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -22,6 +23,10 @@ DEFAULT_RAW_DIR = ROOT / "etl-pipeline" / "data" / "raw"
 ALLOWED_HOSTS = {"lh3.googleusercontent.com"}
 MAX_DOWNLOAD_BYTES = 10 * 1024 * 1024
 MAX_IMAGE_PIXELS = 40_000_000
+GALLERY_SIZE = 6
+TARGET_IMAGE_SIZE = 1200
+MIN_LONG_EDGE = 900
+MIN_SHORT_EDGE = 600
 HEADERS = {
     "Accept": "image/avif,image/webp,image/*,*/*;q=0.8",
     "Referer": "https://www.google.com/maps/",
@@ -47,11 +52,48 @@ def candidate_urls(payload: dict) -> list[str]:
         *(payload.get("galleryUrls") or []),
         *(payload.get("photoUrls") or []),
     ]
-    return list(dict.fromkeys(value for value in values if isinstance(value, str) and value))
+    candidates = []
+    seen = set()
+    for value in values:
+        if not isinstance(value, str) or not value or not is_allowed_source(value):
+            continue
+        key = value.split("=", 1)[0]
+        if key in seen:
+            continue
+        seen.add(key)
+        candidates.append(value)
+    return candidates
+
+
+def high_resolution_url(raw: str) -> str | None:
+    if not is_allowed_source(raw):
+        return None
+    return raw.split("=", 1)[0] + f"=w{TARGET_IMAGE_SIZE}-h{TARGET_IMAGE_SIZE}-no"
 
 
 def local_cover_url(shop_id: str) -> str:
     return f"/images/shops/{shop_id}.webp"
+
+
+def local_gallery_urls(shop_id: str, count: int = GALLERY_SIZE) -> list[str]:
+    return [
+        local_cover_url(shop_id)
+        if index == 0
+        else f"/images/shops/{shop_id}-{index + 1}.webp"
+        for index in range(count)
+    ]
+
+
+def _output_path(output_dir: Path, shop_id: str, index: int) -> Path:
+    suffix = "" if index == 0 else f"-{index + 1}"
+    return output_dir / f"{shop_id}{suffix}.webp"
+
+
+def _is_clear_image(content: bytes) -> bool:
+    with Image.open(BytesIO(content)) as image:
+        long_edge = max(image.size)
+        short_edge = min(image.size)
+    return long_edge >= MIN_LONG_EDGE and short_edge >= MIN_SHORT_EDGE
 
 
 def load_overview_candidates(path: Path) -> dict[str, list[str]]:
@@ -135,6 +177,23 @@ def materialize_from_driver(
     candidates: list[str],
     output_dir: Path = DEFAULT_OUTPUT_DIR,
 ) -> str | None:
+    urls = materialize_gallery_from_driver(
+        driver,
+        shop_id,
+        candidates,
+        output_dir,
+        limit=1,
+    )
+    return urls[0] if urls else None
+
+
+def materialize_gallery_from_driver(
+    driver,
+    shop_id: str,
+    candidates: list[str],
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    limit: int = GALLERY_SIZE,
+) -> list[str]:
     script = """
         const [url, done] = arguments;
         const image = new Image();
@@ -158,24 +217,44 @@ def materialize_from_driver(
         image.src = url;
         setTimeout(() => finish(null), 8000);
     """
-    for url in candidates:
-        if not is_allowed_source(url):
+    local_urls = []
+    seen = set()
+    seen_content = set()
+    for candidate in candidates:
+        if len(local_urls) >= limit:
+            break
+        url = high_resolution_url(candidate)
+        if not url:
             continue
-        element = driver.execute_async_script(script, url)
+        source_key = url.split("=", 1)[0]
+        if source_key in seen:
+            continue
+        seen.add(source_key)
+        try:
+            element = driver.execute_async_script(script, url)
+        except Exception:
+            continue
         if element is None:
             continue
         try:
             screenshot = element.screenshot_as_png
-            with Image.open(BytesIO(screenshot)) as image:
-                if image.width < 280 or image.height < 180:
-                    continue
-            save_webp(screenshot, output_dir / f"{shop_id}.webp")
+            if not _is_clear_image(screenshot):
+                continue
+            content_hash = hashlib.sha256(screenshot).digest()
+            if content_hash in seen_content:
+                continue
+            seen_content.add(content_hash)
+            output = _output_path(output_dir, shop_id, len(local_urls))
+            save_webp(screenshot, output)
+            local_urls.append(local_gallery_urls(shop_id, limit)[len(local_urls)])
         except (OSError, ValueError, Image.UnidentifiedImageError):
             continue
         finally:
-            driver.execute_script("arguments[0].remove()", element)
-        return local_cover_url(shop_id)
-    return None
+            try:
+                driver.execute_script("arguments[0].remove()", element)
+            except Exception:
+                pass
+    return local_urls
 
 
 def update_manifest_cover(path: Path, shop_id: str, local_url: str) -> None:
@@ -187,16 +266,37 @@ def update_manifest_cover(path: Path, shop_id: str, local_url: str) -> None:
     write_manifest(path, manifest)
 
 
+def update_manifest_gallery(path: Path, shop_id: str, local_urls: list[str]) -> None:
+    if len(local_urls) != GALLERY_SIZE:
+        raise ValueError(f"expected {GALLERY_SIZE} local photos")
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    shop = manifest.get("shops", {}).get(str(shop_id))
+    if shop is None:
+        return
+    shop["coverUrl"] = local_urls[0]
+    shop["galleryUrls"] = local_urls
+    shop["photoUrls"] = local_urls
+    write_manifest(path, manifest)
+
+
 def build_rescue_businesses(shops: dict, places: dict[str, str]) -> list[dict]:
     return [
         {"url": places[shop_id], "custom_params": {"shop_id": int(shop_id)}}
         for shop_id, payload in shops.items()
-        if not str(payload.get("coverUrl") or "").startswith("/images/shops/")
+        if not _has_local_gallery(payload)
         and shop_id in places
     ]
 
 
-def save_webp(content: bytes, output: Path, max_width: int = 960) -> None:
+def _has_local_gallery(payload: dict) -> bool:
+    urls = payload.get("galleryUrls") or []
+    return len(urls) >= GALLERY_SIZE and all(
+        isinstance(url, str) and url.startswith("/images/shops/")
+        for url in urls[:GALLERY_SIZE]
+    )
+
+
+def save_webp(content: bytes, output: Path, max_width: int = TARGET_IMAGE_SIZE) -> None:
     with Image.open(BytesIO(content)) as source:
         source.verify()
     with Image.open(BytesIO(content)) as source:
@@ -207,7 +307,7 @@ def save_webp(content: bytes, output: Path, max_width: int = 960) -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
         temporary = output.with_suffix(".webp.tmp")
         try:
-            image.save(temporary, "WEBP", quality=80, method=6)
+            image.save(temporary, "WEBP", quality=82, method=6)
             temporary.replace(output)
         finally:
             temporary.unlink(missing_ok=True)
@@ -242,21 +342,36 @@ def download(url: str) -> bytes | None:
         return None
 
 
-def materialize(shop_id: str, payload: dict, output_dir: Path) -> tuple[str, str | None, int]:
-    output = output_dir / f"{shop_id}.webp"
-    if payload.get("coverUrl") == local_cover_url(shop_id) and output.is_file():
-        return shop_id, payload["coverUrl"], output.stat().st_size
+def materialize(shop_id: str, payload: dict, output_dir: Path) -> tuple[str, list[str], int]:
+    expected_urls = local_gallery_urls(shop_id)
+    expected_paths = [_output_path(output_dir, shop_id, index) for index in range(GALLERY_SIZE)]
+    if _has_local_gallery(payload) and all(path.is_file() for path in expected_paths):
+        return shop_id, expected_urls, sum(path.stat().st_size for path in expected_paths)
 
-    for url in candidate_urls(payload):
+    written_paths = []
+    seen_content = set()
+    for candidate in candidate_urls(payload):
+        url = high_resolution_url(candidate)
+        if not url:
+            continue
         content = download(url)
         if content is None:
             continue
         try:
+            if not _is_clear_image(content):
+                continue
+            content_hash = hashlib.sha256(content).digest()
+            if content_hash in seen_content:
+                continue
+            seen_content.add(content_hash)
+            output = _output_path(output_dir, shop_id, len(written_paths))
             save_webp(content, output)
         except (OSError, ValueError, Image.UnidentifiedImageError):
             continue
-        return shop_id, local_cover_url(shop_id), output.stat().st_size
-    return shop_id, None, 0
+        written_paths.append(output)
+        if len(written_paths) == GALLERY_SIZE:
+            return shop_id, expected_urls, sum(path.stat().st_size for path in written_paths)
+    return shop_id, [], sum(path.stat().st_size for path in written_paths)
 
 
 def write_manifest(path: Path, payload: dict) -> None:
@@ -297,7 +412,7 @@ def main() -> None:
             "db_path": str(args.overview_db),
             "headless": True,
             "overview_only": True,
-            "materialize_overview_cover": True,
+            "materialize_overview_gallery": True,
             "download_images": False,
             "use_mongodb": False,
             "backup_to_json": False,
@@ -346,11 +461,13 @@ def main() -> None:
     written = 0
     total_bytes = 0
     failed = []
-    for shop_id, local_url, size in results:
-        if local_url is None:
+    for shop_id, local_urls, size in results:
+        if len(local_urls) != GALLERY_SIZE:
             failed.append(shop_id)
             continue
-        shops[shop_id]["coverUrl"] = local_url
+        shops[shop_id]["coverUrl"] = local_urls[0]
+        shops[shop_id]["galleryUrls"] = local_urls
+        shops[shop_id]["photoUrls"] = local_urls
         written += 1
         total_bytes += size
     if written:

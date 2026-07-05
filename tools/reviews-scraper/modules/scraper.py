@@ -555,7 +555,7 @@ class GoogleReviewsScraper:
             urls.append((url, score))
         if urls:
             ranked = [url for url, _ in sorted(urls, key=lambda item: item[1], reverse=True)]
-            overview["overview_photo_urls"] = ranked[:8]
+            overview["overview_photo_urls"] = ranked[:16]
             overview["overview_cover_url"] = ranked[0]
 
         return overview
@@ -1767,27 +1767,49 @@ class GoogleReviewsScraper:
                     overview.get("price_overview"),
                     overview.get("popular_time"),
                 )
-                if shop_id_meta is not None and self.config.get("materialize_overview_cover"):
+                materialize_gallery = self.config.get("materialize_overview_gallery")
+                materialize_cover = self.config.get("materialize_overview_cover")
+                if shop_id_meta is not None and (materialize_gallery or materialize_cover):
                     from modules.cover_materializer import (
                         DEFAULT_MANIFEST,
+                        GALLERY_SIZE,
                         materialize_from_driver,
+                        materialize_gallery_from_driver,
                         update_manifest_cover,
+                        update_manifest_gallery,
                     )
 
                     overview_urls = [
                         overview.get("overview_cover_url"),
                         *(overview.get("overview_photo_urls") or []),
                     ]
-                    local_url = materialize_from_driver(
-                        driver,
-                        str(shop_id_meta),
-                        [url for url in overview_urls if url],
-                    )
-                    if local_url:
-                        update_manifest_cover(DEFAULT_MANIFEST, str(shop_id_meta), local_url)
-                        log.info("Materialized overview cover: %s", local_url)
+                    candidates = [url for url in overview_urls if url]
+                    if materialize_gallery:
+                        local_urls = materialize_gallery_from_driver(
+                            driver,
+                            str(shop_id_meta),
+                            candidates,
+                        )
+                        if len(local_urls) == GALLERY_SIZE:
+                            update_manifest_gallery(DEFAULT_MANIFEST, str(shop_id_meta), local_urls)
+                            log.info("Materialized overview gallery: %s", local_urls)
+                        else:
+                            log.warning(
+                                "Could not materialize six overview photos for shop %s: got %s",
+                                shop_id_meta,
+                                len(local_urls),
+                            )
                     else:
-                        log.warning("Could not materialize overview cover for shop %s", shop_id_meta)
+                        local_url = materialize_from_driver(
+                            driver,
+                            str(shop_id_meta),
+                            candidates,
+                        )
+                        if local_url:
+                            update_manifest_cover(DEFAULT_MANIFEST, str(shop_id_meta), local_url)
+                            log.info("Materialized overview cover: %s", local_url)
+                        else:
+                            log.warning("Could not materialize overview cover for shop %s", shop_id_meta)
 
             if overview_only:
                 if session_id:

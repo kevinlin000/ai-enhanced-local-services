@@ -25,6 +25,7 @@ DEFAULT_CONFIG = {
     "scrape_mode": "update",
     "overview_only": False,
     "materialize_overview_cover": False,
+    "materialize_overview_gallery": False,
     "stop_on_match": False,
     "overwrite_existing": False,
     "max_reviews": 0,
