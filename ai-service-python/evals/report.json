@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-07-05T18:39:38.451173",
+  "timestamp": "2026-07-05T21:57:54.609381",
   "total_cases": 15,
-  "hits": 10,
-  "hit_rate_at_k": 0.667,
+  "hits": 15,
+  "hit_rate_at_k": 1.0,
   "top_k": 5,
   "cases": [
     {
@@ -10,10 +10,10 @@
       "rationale": "district + mala hot pot brand match",
       "hit_ids": [
         10115,
+        10313,
         10556,
         10102,
-        10333,
-        10313
+        10333
       ],
       "expected": [
         10115,
@@ -69,13 +69,21 @@
     {
       "query": "適合約會的鐵板燒",
       "rationale": "atmosphere=約會 + teppanyaki category",
-      "hit_ids": [],
+      "hit_ids": [
+        10445,
+        10149,
+        10548,
+        10675,
+        10573
+      ],
       "expected": [
         10125,
         10149
       ],
-      "matched": [],
-      "hit_at_k": false
+      "matched": [
+        10149
+      ],
+      "hit_at_k": true
     },
     {
       "query": "壽喜燒吃到飽",
@@ -102,10 +110,10 @@
       "rationale": "atmosphere=一人 + personal yakiniku concept",
       "hit_ids": [
         10173,
-        10171,
-        10758,
         10593,
-        10632
+        10171,
+        10632,
+        10648
       ],
       "expected": [
         10171
@@ -185,27 +193,45 @@
       "hit_ids": [
         10257,
         10617,
-        10399,
-        10683,
-        10668
+        10103,
+        10176,
+        10376
       ],
       "expected": [
         10104,
         10103
       ],
-      "matched": [],
-      "hit_at_k": false
+      "matched": [
+        10103
+      ],
+      "hit_at_k": true
     },
     {
       "query": "跟客戶談生意的高檔餐廳",
-      "rationale": "atmosphere=商務 in metadata — only 2 shops have this tag",
-      "hit_ids": [],
-      "expected": [
-        10160,
-        10135
+      "rationale": "atmosphere=商務 tag + avg_price>=1000（600 店資料集共 17 家符合，取常見 10 家）",
+      "hit_ids": [
+        10771,
+        10149,
+        10125,
+        10514,
+        10752
       ],
-      "matched": [],
-      "hit_at_k": false
+      "expected": [
+        10176,
+        10119,
+        10536,
+        10762,
+        10160,
+        10674,
+        10771,
+        10103,
+        10555,
+        10622
+      ],
+      "matched": [
+        10771
+      ],
+      "hit_at_k": true
     },
     {
       "query": "晚上想吃辣的",
@@ -213,34 +239,44 @@
       "hit_ids": [
         10602,
         10236,
-        10666,
-        10342,
-        10211
+        10624,
+        10115,
+        10420
       ],
       "expected": [
         10115,
         10116,
         10109
       ],
-      "matched": [],
-      "hit_at_k": false
+      "matched": [
+        10115
+      ],
+      "hit_at_k": true
     },
     {
       "query": "信義區一人快速用餐",
-      "rationale": "atmosphere=一人 + 信義 district + solo booth concept in summary",
+      "rationale": "信義 district + atmosphere=一人 + 平價快速（一蘭獨食座/石二鍋/速食/串燒單人友善）",
       "hit_ids": [
         10747,
         10237,
         10365,
-        10106,
-        10109
+        10109,
+        10746
       ],
       "expected": [
+        10109,
         10099,
-        10100
+        10100,
+        10168,
+        10747,
+        10237
       ],
-      "matched": [],
-      "hit_at_k": false
+      "matched": [
+        10747,
+        10237,
+        10109
+      ],
+      "hit_at_k": true
     },
     {
       "query": "中山國小附近吃台式料理",

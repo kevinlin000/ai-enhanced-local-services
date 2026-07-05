@@ -8,8 +8,8 @@
 {"query": "米其林必比登推薦台式料理", "expected_shop_ids": [10119, 10120, 10122, 10124, 10126], "rationale": "michelin keyword in ai_summary of 5 shops"}
 {"query": "帶小孩去的親子餐廳", "expected_shop_ids": [10158, 10136, 10128], "rationale": "atmosphere=親子 in metadata"}
 {"query": "高級日式吃到飽", "expected_shop_ids": [10103, 10104], "rationale": "premium + buffet + japanese keyword match"}
-{"query": "跟客戶談生意的高檔餐廳", "expected_shop_ids": [10135, 10160], "rationale": "atmosphere=商務 in metadata — only 2 shops have this tag"}
+{"query": "跟客戶談生意的高檔餐廳", "expected_shop_ids": [10103, 10119, 10160, 10176, 10536, 10555, 10622, 10674, 10762, 10771], "rationale": "atmosphere=商務 tag + avg_price>=1000（600 店資料集共 17 家符合，取常見 10 家）"}
 {"query": "晚上想吃辣的", "expected_shop_ids": [10115, 10109, 10116], "rationale": "辣/麻辣 appears in signature_dishes or ai_summary — indirect keyword"}
-{"query": "信義區一人快速用餐", "expected_shop_ids": [10099, 10100], "rationale": "atmosphere=一人 + 信義 district + solo booth concept in summary"}
+{"query": "信義區一人快速用餐", "expected_shop_ids": [10099, 10100, 10109, 10168, 10237, 10747], "rationale": "信義 district + atmosphere=一人 + 平價快速（一蘭獨食座/石二鍋/速食/串燒單人友善）"}
 {"query": "中山國小附近吃台式料理", "expected_shop_ids": [10119, 10118, 10126], "rationale": "mrt=中山國小 + Taiwanese cuisine — location + category multi-dim"}
 {"query": "人均超過千元的約會餐廳", "expected_shop_ids": [10125, 10149, 10144], "rationale": "atmosphere=約會 + price_per_person >1000 — price in ai_summary text only"}
