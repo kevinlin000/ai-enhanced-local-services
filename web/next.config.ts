@@ -6,8 +6,8 @@ const aiApiProxyTarget = process.env.AI_API_PROXY_TARGET ?? "http://localhost:80
 const nextConfig: NextConfig = {
   poweredByHeader: false,
 
-  // 允許 ngrok tunnel 做為 dev origin（HMR WebSocket + hydration）
-  allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev", "*.ngrok.io"],
+  // 允許本機驗證與 ngrok tunnel 做為 dev origin（HMR WebSocket + hydration）
+  allowedDevOrigins: ["127.0.0.1", "*.ngrok-free.app", "*.ngrok-free.dev", "*.ngrok.io"],
 
   async headers() {
     return [

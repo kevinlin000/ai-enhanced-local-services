@@ -19,6 +19,26 @@ const HOT_STATIONS = [
 
 const AI_PROMPTS = ["中山區 4 人台菜包廂", "明晚 7 點可訂火鍋", "大安區適合聊天聚餐", "訂位後需要停車提醒"];
 
+const CATEGORY_ILLUSTRATIONS: Record<string, string> = {
+  chinese: "chinese",
+  hotpot: "hotpot",
+  american: "american",
+  brunch: "american",
+  korean: "korean",
+  international: "international",
+  euro: "european",
+  european: "european",
+  cafe: "cafe",
+  "cafe-premium": "cafe",
+  yakiniku: "yakiniku",
+  buffet: "buffet",
+  "fine-dining": "buffet",
+  vegetarian: "vegetarian",
+  omakase: "vegetarian",
+  izakaya: "izakaya",
+  japanese: "japanese",
+};
+
 function parseTags(raw?: string): string[] {
   if (!raw) return [];
   try {
@@ -139,17 +159,46 @@ function CategoryRail({ categories }: { categories: Category[] }) {
     <section className="border-b border-[#ded7c9] px-6 py-10 md:px-12">
       <div className="mx-auto max-w-7xl">
         <p className="text-sm font-black">探索不同料理的餐廳</p>
-        <div className="mt-6 flex gap-8 overflow-x-auto pb-2">
+        <form action="/shops" method="get" role="search" className="mt-5 flex max-w-2xl gap-2">
+          <label htmlFor="home-restaurant-search" className="sr-only">搜尋餐廳</label>
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-500" />
+            <input
+              id="home-restaurant-search"
+              name="q"
+              type="search"
+              placeholder="搜尋餐廳名稱、地址、行政區或捷運站"
+              className="h-12 w-full rounded-full border border-[#d9d1c1] bg-[#fbf8f1] pl-12 pr-4 text-sm outline-none transition placeholder:text-zinc-500 focus:border-[#b59a58] focus:ring-2 focus:ring-[#b59a58]/20"
+            />
+          </div>
+          <button type="submit" className="h-12 shrink-0 rounded-full bg-[#191713] px-6 text-sm font-black text-white transition hover:bg-[#3b352d]">
+            搜尋
+          </button>
+        </form>
+        <div className="mt-7 flex gap-8 overflow-x-auto pb-2">
           {categories.slice(0, 12).map((category) => {
             const { icon: Icon } = getCategoryStyle(category.slug);
+            const illustration = CATEGORY_ILLUSTRATIONS[category.slug];
             return (
               <Link
                 key={category.id}
                 href={`/shops?types=${category.id}`}
                 className="group flex min-w-[96px] flex-col items-center gap-3 text-center"
               >
-                <div className="flex h-24 w-24 items-center justify-center rounded-[1.75rem] border border-[#ded7c9] bg-[#f4efe6] transition group-hover:-translate-y-1 group-hover:bg-white group-hover:shadow-md">
-                  <Icon className="h-10 w-10 text-[#2e2a24]" strokeWidth={1.35} />
+                <div className="flex h-24 w-28 items-center justify-center transition group-hover:-translate-y-1">
+                  {illustration ? (
+                    <img
+                      src={`/images/categories/${illustration}.webp`}
+                      alt=""
+                      width={224}
+                      height={192}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-[1.75rem] border border-[#ded7c9] bg-[#f4efe6] group-hover:bg-white group-hover:shadow-md">
+                      <Icon className="h-10 w-10 text-[#2e2a24]" strokeWidth={1.35} />
+                    </div>
+                  )}
                 </div>
                 <span className="text-sm font-black">{category.name}</span>
               </Link>
