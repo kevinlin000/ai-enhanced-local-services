@@ -58,6 +58,11 @@ const NAV_ITEMS = [
     icon: CalendarDays,
   },
   {
+    label: "我的餐券",
+    href: "/my-vouchers",
+    icon: TicketPercent,
+  },
+  {
     label: "收藏餐廳",
     href: "/favorites",
     icon: Heart,

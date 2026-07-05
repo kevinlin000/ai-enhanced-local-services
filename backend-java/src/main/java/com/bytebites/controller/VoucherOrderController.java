@@ -3,7 +3,11 @@ package com.bytebites.controller;
 
 import com.bytebites.annotation.RateLimit;
 import com.bytebites.dto.Result;
+import com.bytebites.domain.jpa.ShopJpa;
+import com.bytebites.domain.jpa.VoucherJpa;
 import com.bytebites.domain.jpa.VoucherOrderJpa;
+import com.bytebites.repository.ShopJpaRepository;
+import com.bytebites.repository.VoucherJpaRepository;
 import com.bytebites.repository.VoucherOrderJpaRepository;
 import com.bytebites.service.IVoucherOrderService;
 import com.bytebites.utils.UserHolder;
@@ -18,6 +22,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
 import jakarta.annotation.Resource;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -36,6 +46,10 @@ public class VoucherOrderController {
     @Resource
     private VoucherOrderJpaRepository voucherOrderJpaRepo;
     @Resource
+    private VoucherJpaRepository voucherJpaRepo;
+    @Resource
+    private ShopJpaRepository shopJpaRepo;
+    @Resource
     private Counter seckillAttempts;
 
     @PostMapping("seckill/{id}")
@@ -53,6 +67,44 @@ public class VoucherOrderController {
         Long userId = UserHolder.getUser().getId();
         Page<VoucherOrderJpa> result = voucherOrderJpaRepo
                 .findByUserIdOrderByCreateTimeDesc(userId, PageRequest.of(page - 1, size));
-        return Result.ok(result.getContent());
+
+        // 補上餐券與店家資訊，讓「我的餐券」頁不用逐張查詢
+        List<Long> voucherIds = result.getContent().stream()
+                .map(VoucherOrderJpa::getVoucherId)
+                .distinct()
+                .toList();
+        Map<Long, VoucherJpa> vouchers = voucherJpaRepo.findAllById(voucherIds).stream()
+                .collect(Collectors.toMap(VoucherJpa::getId, v -> v));
+        List<Long> shopIds = vouchers.values().stream()
+                .map(VoucherJpa::getShopId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, String> shopNames = shopJpaRepo.findAllById(shopIds).stream()
+                .collect(Collectors.toMap(ShopJpa::getId, ShopJpa::getName));
+
+        List<Map<String, Object>> enriched = result.getContent().stream()
+                .map(order -> {
+                    VoucherJpa voucher = vouchers.get(order.getVoucherId());
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("id", String.valueOf(order.getId()));
+                    row.put("voucherId", order.getVoucherId());
+                    row.put("status", order.getStatus());
+                    row.put("createTime", order.getCreateTime());
+                    row.put("payTime", order.getPayTime());
+                    row.put("useTime", order.getUseTime());
+                    if (voucher != null) {
+                        row.put("title", voucher.getTitle());
+                        row.put("subTitle", voucher.getSubTitle());
+                        row.put("rules", voucher.getRules());
+                        row.put("payValue", voucher.getPayValue());
+                        row.put("actualValue", voucher.getActualValue());
+                        row.put("shopId", voucher.getShopId());
+                        row.put("shopName", shopNames.get(voucher.getShopId()));
+                    }
+                    return row;
+                })
+                .toList();
+        return Result.ok(enriched);
     }
 }

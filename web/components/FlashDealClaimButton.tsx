@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,8 +29,8 @@ export function FlashDealClaimButton({ dealId }: Props) {
         setError(result.errorMsg ?? "餐券搶購失敗，請稍後再試");
         return;
       }
-      const orderId = result.data?.orderId;
-      setMessage(orderId ? `已搶到餐券，訂單 ${orderId} 建立中` : "已搶到餐券，訂單建立中");
+      // 訂單由 MQ 非同步落庫，稍後才會出現在「我的餐券」
+      setMessage("已搶到餐券，訂單建立中");
     } catch (err) {
       setError(err instanceof Error ? err.message : "餐券搶購失敗，請稍後再試");
     } finally {
@@ -46,6 +47,10 @@ export function FlashDealClaimButton({ dealId }: Props) {
       {message ? (
         <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
           {message}
+          {" · "}
+          <Link href="/my-vouchers" className="font-medium underline underline-offset-2 hover:text-emerald-700">
+            到「我的餐券」查看
+          </Link>
         </p>
       ) : null}
       {error ? (
