@@ -1,0 +1,18 @@
+# web 與 ai 的 Dockerfile 都以 repo 根目錄為 build context。
+# 只放行需要的來源，其他（.git 470MB、node_modules 600MB、tools 600MB…）全擋。
+*
+!shared/
+!web/
+!ai-service-python/
+web/node_modules/
+web/.next/
+web/.env*
+web/tsconfig.tsbuildinfo
+web/e2e/
+web/tests/
+ai-service-python/.venv/
+ai-service-python/.env
+ai-service-python/tests/
+ai-service-python/docs/
+ai-service-python/scripts/
+**/__pycache__/

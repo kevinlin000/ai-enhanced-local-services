@@ -1,0 +1,139 @@
+# ByteBites AWS 單機部署（EC2 t4g.large / x86 t3.large 皆可）。
+#
+#   cd deploy/aws
+#   cp .env.prod.example .env.prod   # 填入所有 secrets
+#   docker compose --env-file .env.prod up -d --build
+#
+# 對外只綁 127.0.0.1；TLS 與公網路由由主機上的 Nginx + Let's Encrypt 處理
+# （設定範本：deploy/nginx/bytebites.conf.template）。
+name: bytebites
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: hmdp
+      TZ: Asia/Taipei
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.4
+    restart: unless-stopped
+    volumes:
+      - qdrant-data:/qdrant/storage
+    ports:
+      - "127.0.0.1:6333:6333"   # 只給主機上的資料匯入腳本用
+
+  java:
+    build: ../../backend-java
+    restart: unless-stopped
+    depends_on:
+      mysql: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      AI_SERVICE_URL: http://ai:8000
+      JWT_SECRET: ${JWT_SECRET}
+      LINE_CHANNEL_ID: ${LINE_LOGIN_CHANNEL_ID}
+      LINE_CHANNEL_SECRET: ${LINE_LOGIN_CHANNEL_SECRET}
+      LINE_REDIRECT_URI: https://${PUBLIC_DOMAIN}/api/java/api/auth/line/callback
+      LINE_OAUTH_COOKIE_PATH: /api/java/api/auth/line
+      LINE_AUTH_COOKIE_SECURE: "true"
+      FRONTEND_URL: https://${PUBLIC_DOMAIN}
+      CORS_ALLOWED_ORIGIN_PATTERNS: https://${PUBLIC_DOMAIN}
+      LINE_INTERNAL_WEBHOOK_SECRET: ${LINE_INTERNAL_WEBHOOK_SECRET}
+      LINE_ACTION_SECRET: ${LINE_ACTION_SECRET}
+      TAPPAY_PARTNER_KEY: ${TAPPAY_PARTNER_KEY}
+      TAPPAY_MERCHANT_CREDITCARD: ${TAPPAY_MERCHANT_CREDITCARD}
+    ports:
+      - "127.0.0.1:8081:8081"
+    mem_limit: 1600m
+
+  ai:
+    build:
+      context: ../..
+      dockerfile: ai-service-python/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      qdrant: { condition: service_started }
+      redis: { condition: service_healthy }
+    environment:
+      JAVA_BACKEND_URL: http://java:8081
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: bytebites_shops
+      REDIS_URL: redis://redis:6379/0
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_CHAT_MODEL: gemini-3.1-flash-lite
+      GEMINI_AGENT_MODEL: gemini-3.1-flash-lite
+      LINE_CHANNEL_SECRET: ${LINE_MSG_CHANNEL_SECRET}
+      LINE_CHANNEL_ACCESS_TOKEN: ${LINE_MSG_CHANNEL_ACCESS_TOKEN}
+      LINE_SIGNATURE_VERIFY: "true"
+      LINE_REPLY_ENABLED: "true"
+      LINE_PUBLIC_WEB_URL: https://${PUBLIC_DOMAIN}
+      LINE_INTERNAL_WEBHOOK_SECRET: ${LINE_INTERNAL_WEBHOOK_SECRET}
+      LINE_INTERNAL_WEBHOOK_REQUIRE_SECRET: "true"
+      LINE_ACTION_SECRET: ${LINE_ACTION_SECRET}
+    ports:
+      - "127.0.0.1:8000:8000"
+    mem_limit: 768m
+
+  web:
+    build:
+      context: ../..
+      dockerfile: web/Dockerfile
+      # proxy 目標是 build-time 決定（Next rewrites）；Dockerfile ARG 預設
+      # 已對準 java/ai 服務名，這裡不需要 runtime env
+    restart: unless-stopped
+    depends_on:
+      - java
+      - ai
+    ports:
+      - "127.0.0.1:3000:3000"
+    mem_limit: 768m
+
+volumes:
+  mysql-data:
+  redis-data:
+  rabbitmq-data:
+  qdrant-data:

@@ -6,6 +6,9 @@ const aiApiProxyTarget = process.env.AI_API_PROXY_TARGET ?? "http://localhost:80
 const nextConfig: NextConfig = {
   poweredByHeader: false,
 
+  // Docker 部署用：build 產出自包含的 server（.next/standalone）
+  output: "standalone",
+
   // 允許本機驗證與 ngrok tunnel 做為 dev origin（HMR WebSocket + hydration）
   allowedDevOrigins: ["127.0.0.1", "*.ngrok-free.app", "*.ngrok-free.dev", "*.ngrok.io"],
 
