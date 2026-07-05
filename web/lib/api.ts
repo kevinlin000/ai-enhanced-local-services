@@ -15,6 +15,7 @@ const CLIENT_JAVA_API = "/api/java";
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...init, cache: "no-store" });
+  if (res.status === 401) throw new AuthRequiredError();
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
 }
@@ -360,6 +361,22 @@ export type BookingIncident = {
   resolvedAt?: string;
 };
 
+export type MyVoucherOrder = {
+  id: string;
+  voucherId: number;
+  status: number;
+  createTime?: string | null;
+  payTime?: string | null;
+  useTime?: string | null;
+  title?: string;
+  subTitle?: string;
+  rules?: string;
+  payValue?: number;
+  actualValue?: number;
+  shopId?: number;
+  shopName?: string;
+};
+
 export type MyBooking = {
   bookingCode: string;
   userId?: number | null;
@@ -484,8 +501,9 @@ function authHeaders(contentType = false): HeadersInit {
   const token = typeof window !== "undefined"
     ? window.localStorage.getItem("bytebites_token")
     : null;
-  if (!token) throw new AuthRequiredError();
-  headers.Authorization = `Bearer ${token}`;
+  // 沒有 localStorage token 時不擋：LINE 登入也會種 HttpOnly cookie（Path=/），
+  // fetch 預設 same-origin 會自動帶上；真的未登入由後端 401 → AuthRequiredError。
+  if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
 }
 
@@ -693,6 +711,11 @@ export const javaApi = {
   myBookings: () =>
     fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking[] }>(
       `${CLIENT_JAVA_API}/api/booking/my`,
+      { headers: authHeaders() },
+    ),
+  myVoucherOrders: () =>
+    fetchJson<{ success: boolean; errorMsg?: string; data: MyVoucherOrder[] }>(
+      `${CLIENT_JAVA_API}/voucher-order/of/user`,
       { headers: authHeaders() },
     ),
   cancelBooking: (bookingCode: string) =>

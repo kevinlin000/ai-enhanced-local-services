@@ -48,28 +48,34 @@ export function useAuth() {
       credentials: "same-origin",
       cache: "no-store",
     })
-      .then((res) => {
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        return res.json() as Promise<{ success: boolean; data?: AuthUser }>;
-      })
-      .then((payload) => {
+      .then(async (res) => {
         if (cancelled) return;
-        if (payload.success && payload.data) {
-          setUser(payload.data);
-          setAuthStatus("authenticated");
-          return;
+        if (res.ok) {
+          const payload = (await res.json()) as { success: boolean; data?: AuthUser };
+          if (cancelled) return;
+          if (payload.success && payload.data) {
+            setUser(payload.data);
+            setAuthStatus("authenticated");
+            return;
+          }
         }
-        if (token) localStorage.removeItem(KEY);
-        setToken(null);
-        setUser(null);
-        setAuthStatus(token ? "expired" : "anonymous");
-      })
-      .catch(() => {
-        if (!cancelled) {
+        // 只有後端明確回 401（或回應成功但沒有 user）才視為登入失效並清 token；
+        // 5xx / 服務重啟中不能清，否則後端重啟一次就把使用者踢登出。
+        if (res.status === 401 || res.ok) {
           if (token) localStorage.removeItem(KEY);
           setToken(null);
           setUser(null);
           setAuthStatus(token ? "expired" : "anonymous");
+          return;
+        }
+        setUser(null);
+        setAuthStatus("anonymous");
+      })
+      .catch(() => {
+        // 網路錯誤：保留 token，下次載入再驗證
+        if (!cancelled) {
+          setUser(null);
+          setAuthStatus("anonymous");
         }
       });
 
