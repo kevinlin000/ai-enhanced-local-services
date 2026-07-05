@@ -1,6 +1,6 @@
 # RAG Eval Report
 
-- Timestamp: 2026-07-05T21:57:54.609381
+- Timestamp: 2026-07-06T02:27:20.119246
 - Total cases: 15
 - Hit@5: 15/15 (100.0%)
 
