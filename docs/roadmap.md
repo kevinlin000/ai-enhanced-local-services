@@ -137,15 +137,14 @@ The section below preserves earlier planning context. Some items have already be
 - 📋 好友關注 + 簽到
 
 ### Python AI 服務
-- 📋 FastAPI 起手式
-- 📋 RAG pipeline（LlamaIndex + Qdrant）
-- 📋 商家自然語言搜尋（「適合約會的安靜咖啡廳」）
-- 📋 評論智能摘要 + 情感分析
-- 📋 平台規則 AI 助手（RAG-based 客服）
-- 📋 LLM Gateway（LiteLLM）+ Token 成本記錄
-- 📋 Agent workflow（Planner → Tool → Critic）
-- 📋 Prompt 評估（RAGAS + promptfoo）
-- 📋 Guardrail（prompt injection 防禦）
+- ✅ FastAPI 起手式
+- ✅ RAG pipeline（google-genai embedding + Qdrant；實作時以直連 SDK 取代原規劃的 LlamaIndex）
+- ✅ 商家自然語言搜尋（「適合約會的安靜咖啡廳」）
+- ✅ 評論智能摘要 + 情感分析（ABSA）
+- ✅ Token 成本記錄（Prometheus `bytebites_ai_tokens_total`；以直連 SDK 取代原規劃的 LiteLLM）
+- ✅ Agent workflow（Gemini function calling + 工具守衛）
+- ✅ 檢索評估（自製 eval harness `evals/run_eval.py`，Hit@K + 版本化 dataset；取代原規劃的 RAGAS/promptfoo）
+- ✅ Guardrail（prompt injection 防禦 + 輸出句級遮蔽）
 
 ### 前端
 - ✅ Next.js 15 + React 19 + TypeScript 前端已上線，首頁 / 店家列表 / 店家詳情 / AI 搜尋頁已完成
