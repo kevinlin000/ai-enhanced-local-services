@@ -6478,6 +6478,8 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
             types.GenerateContentConfig(
                 tools=TOOLS,
                 system_instruction=_agent_system_prompt(),
+                # 低溫讓 tool 選擇與回答路徑可重現；預設 1.0 會造成同問不同答
+                temperature=0.2,
             ),
         )
 
@@ -6520,6 +6522,7 @@ async def _run_agent_turn(query: str, session_id: str) -> tuple[str, list[str], 
             state.contents,
             types.GenerateContentConfig(
                 system_instruction="根據以上工具查詢結果，用 2-3 句繁體中文給出最終回答。",
+                temperature=0.2,
             ),
         )
         final_answer = filter_output(final.text)
@@ -7438,6 +7441,8 @@ async def _run_agent_turn_stream(query: str, session_id: str) -> AsyncIterator[d
             types.GenerateContentConfig(
                 tools=TOOLS,
                 system_instruction=_agent_system_prompt(),
+                # 與非串流版一致：低溫穩定 tool 選擇
+                temperature=0.2,
             ),
         )
         candidate = response.candidates[0]

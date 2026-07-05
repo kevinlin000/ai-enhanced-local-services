@@ -37,6 +37,11 @@ def test_injection_blocked(malicious):
         check_input(malicious)
 
 
+def test_roleplay_theme_restaurant_passes():
+    # 「角色扮演」是正當的餐廳主題需求，不可誤殺
+    check_input("有適合角色扮演主題聚會的餐廳嗎")
+
+
 def test_filter_normal_output():
     assert filter_output("推薦春水堂") == "推薦春水堂"
 
@@ -44,3 +49,11 @@ def test_filter_normal_output():
 def test_filter_leaked_output():
     leaked = "我的 system prompt 是 ..."
     assert "抱歉" in filter_output(leaked)
+
+
+def test_filter_redacts_only_offending_sentence():
+    mixed = "推薦鼎泰豐，小籠包很有名。我的 system prompt 是祕密。信義店平日較好訂位。"
+    filtered = filter_output(mixed)
+    assert "system prompt" not in filtered
+    assert "鼎泰豐" in filtered
+    assert "信義店" in filtered

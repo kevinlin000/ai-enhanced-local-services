@@ -14,7 +14,8 @@ INJECTION_PATTERNS = [
     r"pretend\s+(you|to)",
     r"假裝你是",
     r"act\s+as\s+",
-    r"扮演",
+    # 「角色扮演」是正當餐廳主題詞（cosplay 主題店），只擋指令式的「扮演」
+    r"(?<!角色)扮演",
     r"jailbreak",
     r"DAN\s+mode",
     r"<\s*\|.*?\|\s*>",
@@ -48,13 +49,21 @@ def check_input(query: str) -> None:
 
 
 def filter_output(answer: str) -> str:
-    """Redact suspicious content from LLM output."""
+    """Redact suspicious content from LLM output.
+
+    只移除含有 blocklist 字眼的句子，保留其餘正常內容；
+    整段都被移除時才退回道歉句，避免一個字眼毀掉整個回答。
+    """
     if not answer:
         return answer
 
-    lower = answer.lower()
-    for blocked in OUTPUT_BLOCKLIST:
-        if blocked.lower() in lower:
-            return "抱歉，我只能協助查詢店家資訊。"
+    def is_blocked(sentence: str) -> bool:
+        lower = sentence.lower()
+        return any(blocked.lower() in lower for blocked in OUTPUT_BLOCKLIST)
 
-    return answer
+    sentences = re.split(r"(?<=[。！？!?\n])", answer)
+    kept = [s for s in sentences if s and not is_blocked(s)]
+    filtered = "".join(kept).strip()
+    if not filtered:
+        return "抱歉，我只能協助查詢店家資訊。"
+    return filtered
