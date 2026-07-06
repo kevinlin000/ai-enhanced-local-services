@@ -7,6 +7,7 @@ ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 COPY ai-service-python/pyproject.toml ai-service-python/uv.lock ./
 RUN uv sync --locked --no-dev --no-install-project
 COPY shared /repo/shared
+COPY web/data/shop-media.json /repo/web/data/shop-media.json
 COPY ai-service-python/app ./app
 COPY ai-service-python/evals ./evals
 EXPOSE 8000

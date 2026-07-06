@@ -17,7 +17,8 @@ RUN pnpm build
 
 FROM node:22-alpine
 WORKDIR /app
-ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000
+ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000 \
+    JAVA_API_PROXY_TARGET=http://java:8081 AI_API_PROXY_TARGET=http://ai:8000
 # standalone 已含裁剪過的 node_modules 與 server.js（於輸出根目錄）
 COPY --from=build /repo/web/.next/standalone ./
 COPY --from=build /repo/web/.next/static ./.next/static
