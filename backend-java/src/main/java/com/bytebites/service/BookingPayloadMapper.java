@@ -3,6 +3,8 @@ package com.bytebites.service;
 import com.bytebites.entity.jpa.BookingJpa;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -23,15 +25,19 @@ public class BookingPayloadMapper {
         out.put("depositTotal", booking.getDepositTotal());
         out.put("status", statusLabel(booking.getStatus()));
         out.put("paymentTransId", booking.getPaymentTransId());
-        out.put("holdExpiresAt", booking.getHoldExpiresAt() != null ? booking.getHoldExpiresAt().toString() : null);
+        out.put("holdExpiresAt", timestamp(booking.getHoldExpiresAt()));
         out.put("holdMinutes", BookingHoldService.HOLD_MINUTES);
         out.put("drivingToBooking", Boolean.TRUE.equals(booking.getDrivingToBooking()));
         out.put("parkingReminderEnabled", Boolean.TRUE.equals(booking.getParkingReminderEnabled()));
-        out.put("parkingReminderSentAt", booking.getParkingReminderSentAt() != null ? booking.getParkingReminderSentAt().toString() : null);
-        out.put("createdAt", booking.getCreatedAt() != null ? booking.getCreatedAt().toString() : null);
-        out.put("updatedAt", booking.getUpdatedAt() != null ? booking.getUpdatedAt().toString() : null);
+        out.put("parkingReminderSentAt", timestamp(booking.getParkingReminderSentAt()));
+        out.put("createdAt", timestamp(booking.getCreatedAt()));
+        out.put("updatedAt", timestamp(booking.getUpdatedAt()));
         out.put("idempotentReplay", idempotentReplay);
         return out;
+    }
+
+    private String timestamp(LocalDateTime value) {
+        return value == null ? null : value.atZone(ZoneId.systemDefault()).toOffsetDateTime().toString();
     }
 
     public String statusLabel(Integer status) {
