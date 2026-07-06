@@ -26,6 +26,8 @@
 3. 準備新 secrets（**全部輪換**，舊值已暴露在開發過程）：LINE Developers Console 重發
    Login channel secret 與 Messaging channel secret/access token；`openssl rand -hex 32`
    產 JWT/內部 secrets；Google AI Studio 重發 GEMINI_API_KEY。
+   TapPay sandbox 另需前端 App ID/App Key（`NEXT_PUBLIC_TAPPAY_*`）與後端
+   Partner Key/Merchant ID；前端不可使用 Partner Key。
 
 ## 1. AWS 資源
 

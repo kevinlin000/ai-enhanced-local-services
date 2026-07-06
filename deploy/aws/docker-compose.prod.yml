@@ -122,6 +122,10 @@ services:
     build:
       context: ../..
       dockerfile: web/Dockerfile
+      args:
+        NEXT_PUBLIC_TAPPAY_APP_ID: ${NEXT_PUBLIC_TAPPAY_APP_ID:?required}
+        NEXT_PUBLIC_TAPPAY_APP_KEY: ${NEXT_PUBLIC_TAPPAY_APP_KEY:?required}
+        NEXT_PUBLIC_TAPPAY_ENV: ${NEXT_PUBLIC_TAPPAY_ENV:?required}
       # proxy 目標是 build-time 決定（Next rewrites）；Dockerfile ARG 預設
       # 已對準 java/ai 服務名，這裡不需要 runtime env
     restart: unless-stopped
