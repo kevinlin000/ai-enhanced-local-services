@@ -579,9 +579,7 @@ export const javaApi = {
         `${CLIENT_JAVA_API}/api/flash-deals/${dealId}/claim`,
         {
           method: "POST",
-          headers: {
-            "X-Demo-Mode": "true",
-          },
+          headers: authHeaders(),
         },
       );
     } catch {
@@ -589,9 +587,7 @@ export const javaApi = {
         `${CLIENT_JAVA_API}/voucher-order/seckill/${dealId}`,
         {
           method: "POST",
-          headers: {
-            "X-Demo-Mode": "true",
-          },
+          headers: authHeaders(),
         },
       );
       return {

@@ -662,7 +662,6 @@ export default async function ShopDetailPage({
       saving: Math.max((voucher.actualValue ?? 0) - (voucher.payValue ?? 0), 0),
     }))
     .filter((voucher) => (voucher.stock ?? 0) > 0);
-  const merchantOffers = vouchers.filter((voucher) => voucher.type === 0);
   const bestHotSeatOffer = [...hotSeatOffers].sort((a, b) => {
     const savingDiff = (b.saving ?? 0) - (a.saving ?? 0);
     if (savingDiff !== 0) return savingDiff;
@@ -830,7 +829,7 @@ export default async function ShopDetailPage({
         </div>
       </section>
 
-      {(hotSeatOffers.length > 0 || merchantOffers.length > 0) && (
+      {hotSeatOffers.length > 0 && (
         <section id="offers" className="max-w-4xl mx-auto px-4 md:px-8 mt-6 space-y-6">
           <div className="rounded-lg border bg-muted/20 p-5 md:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -918,35 +917,6 @@ export default async function ShopDetailPage({
             </div>
           ) : null}
 
-          {merchantOffers.length > 0 ? (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium">商家優惠</h3>
-                <span className="text-xs rounded-full bg-muted px-2 py-1 text-muted-foreground">
-                  一般餐券 / 套餐
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {merchantOffers.map((offer) => (
-                  <div key={offer.id} className="rounded-lg border p-4">
-                    <div className="font-medium">{offer.title}</div>
-                    {offer.subTitle ? (
-                      <div className="text-sm text-muted-foreground mt-1">{offer.subTitle}</div>
-                    ) : null}
-                    <div className="flex items-center gap-2 mt-3">
-                      <span className="font-medium">{formatCurrency(offer.payValue)}</span>
-                      <span className="text-xs text-muted-foreground line-through">
-                        {formatCurrency(offer.actualValue)}
-                      </span>
-                    </div>
-                    {offer.rules ? (
-                      <p className="text-xs text-muted-foreground mt-3">使用規則：{offer.rules}</p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </section>
       )}
 

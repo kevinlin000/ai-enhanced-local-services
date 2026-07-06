@@ -17,6 +17,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.connection.stream.*;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -42,6 +44,10 @@ import java.util.concurrent.Executors;
 @Service
 public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, VoucherOrder> implements IVoucherOrderService {
 
+    private static final String ORDER_STREAM = "stream.orders";
+    private static final String ORDER_GROUP = "g1";
+    private static final String ORDER_CONSUMER = "c1";
+    private static final long RETRY_DELAY_MILLIS = 1_000L;
 
     @Resource
     private ISeckillVoucherService seckillVoucherService;
@@ -74,7 +80,27 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     @PostConstruct
     private void init() {
+        try {
+            ensureOrderStreamGroup();
+        } catch (RuntimeException e) {
+            log.warn("餐券訂單串流初始化失敗，consumer 將重試：{}", conciseMessage(e));
+        }
         SECKILL_ORDER_EXECUTOR.submit(new VoucherOrderHandler());
+    }
+
+    void ensureOrderStreamGroup() {
+        try {
+            stringRedisTemplate.execute((RedisCallback<String>) connection ->
+                    connection.streamCommands().xGroupCreate(
+                            ORDER_STREAM.getBytes(StandardCharsets.UTF_8),
+                            ORDER_GROUP,
+                            ReadOffset.from("0"),
+                            true
+                    )
+            );
+        } catch (RuntimeException e) {
+            if (!containsMessage(e, "BUSYGROUP")) throw e;
+        }
     }
 
     @PreDestroy
@@ -84,14 +110,14 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     }
 
         private class VoucherOrderHandler implements Runnable {
-        String queueName = "stream.orders";
+        String queueName = ORDER_STREAM;
         @Override
         public void run() {
             while (running && !Thread.currentThread().isInterrupted()) {
                 try {
                     //1.從消息隊列中獲取訂單資訊
                     List<MapRecord<String, Object, Object>> list = stringRedisTemplate.opsForStream().read(
-                            Consumer.from("g1", "c1"),
+                            Consumer.from(ORDER_GROUP, ORDER_CONSUMER),
                             StreamReadOptions.empty().count(1).block(Duration.ofSeconds(2)),
                             StreamOffset.create(queueName, ReadOffset.lastConsumed())
                     );//2.判斷消息獲取是否成功
@@ -105,18 +131,18 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                     //3.如果獲取成功，創建訂單
                     handleVoucherOrder(voucherOrder);
                     //4.ACK確認
-                    stringRedisTemplate.opsForStream().acknowledge(queueName, "g1", record.getId());
-                } catch (IllegalStateException e) {
-                    if (!running || Thread.currentThread().isInterrupted()) {
-                        return;
-                    }
-                    log.error("處理訂單異常", e);
-                    handlePendingList();
+                    stringRedisTemplate.opsForStream().acknowledge(queueName, ORDER_GROUP, record.getId());
                 } catch (Exception e) {
                     if (!running || Thread.currentThread().isInterrupted()) {
                         return;
                     }
-                    log.error("處理訂單異常", e);
+                    log.warn("餐券訂單串流處理失敗，稍後重試：{}", conciseMessage(e));
+                    try {
+                        ensureOrderStreamGroup();
+                    } catch (RuntimeException groupError) {
+                        log.warn("餐券訂單 consumer group 尚未就緒：{}", conciseMessage(groupError));
+                    }
+                    pauseBeforeRetry();
                     handlePendingList();
                 }
             }
@@ -127,7 +153,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                     try {
                         //1.從pending list中獲取訂單資訊
                         List<MapRecord<String, Object, Object>> list = stringRedisTemplate.opsForStream().read(
-                                Consumer.from("g1", "c1"),
+                                Consumer.from(ORDER_GROUP, ORDER_CONSUMER),
                                 StreamReadOptions.empty().count(1),
                                 StreamOffset.create(queueName, ReadOffset.from("0"))
                         );//2.判斷消息獲取是否成功
@@ -141,27 +167,39 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                         //3.如果獲取成功，創建訂單
                         handleVoucherOrder(voucherOrder);
                         //4.ACK確認
-                        stringRedisTemplate.opsForStream().acknowledge(queueName, "g1", record.getId());
-                    } catch (IllegalStateException e) {
-                        if (!running || Thread.currentThread().isInterrupted()) {
-                            return;
-                        }
-                        log.error("處理訂單異常", e);
+                        stringRedisTemplate.opsForStream().acknowledge(queueName, ORDER_GROUP, record.getId());
                     } catch (Exception e) {
                         if (!running || Thread.currentThread().isInterrupted()) {
                             return;
                         }
-                        log.error("處理訂單異常", e);
-                        try {
-                            Thread.sleep(20);
-                        } catch (InterruptedException ex) {
-                            Thread.currentThread().interrupt();
-                            return;
-                        }
+                        log.warn("餐券 pending 訂單處理失敗，稍後重試：{}", conciseMessage(e));
+                        pauseBeforeRetry();
+                        return;
                     }
                 }
             }
         }
+
+    private void pauseBeforeRetry() {
+        try {
+            Thread.sleep(RETRY_DELAY_MILLIS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static boolean containsMessage(Throwable error, String value) {
+        for (Throwable current = error; current != null; current = current.getCause()) {
+            if (current.getMessage() != null && current.getMessage().contains(value)) return true;
+        }
+        return false;
+    }
+
+    private static String conciseMessage(Throwable error) {
+        Throwable current = error;
+        while (current.getCause() != null) current = current.getCause();
+        return current.getMessage() == null ? current.getClass().getSimpleName() : current.getMessage();
+    }
 
     private void handleVoucherOrder(VoucherOrder voucherOrder) {
         //獲取用戶

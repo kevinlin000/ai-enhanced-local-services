@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export function FlashDealClaimButton({ dealId }: Props) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +33,7 @@ export function FlashDealClaimButton({ dealId }: Props) {
       }
       // 訂單由 MQ 非同步落庫，稍後才會出現在「我的餐券」
       setMessage("已搶到餐券，訂單建立中");
+      window.setTimeout(() => router.refresh(), 500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "餐券搶購失敗，請稍後再試");
     } finally {

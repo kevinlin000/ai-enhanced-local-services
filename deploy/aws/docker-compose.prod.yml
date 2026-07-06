@@ -8,10 +8,17 @@
 # （設定範本：deploy/nginx/bytebites.conf.template）。
 name: bytebites
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   mysql:
     image: mysql:8.0
     restart: unless-stopped
+    logging: *default-logging
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: hmdp
@@ -28,6 +35,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    logging: *default-logging
     command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
@@ -40,6 +48,7 @@ services:
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     restart: unless-stopped
+    logging: *default-logging
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
@@ -54,6 +63,7 @@ services:
   qdrant:
     image: qdrant/qdrant:v1.13.4
     restart: unless-stopped
+    logging: *default-logging
     volumes:
       - qdrant-data:/qdrant/storage
     ports:
@@ -62,6 +72,7 @@ services:
   java:
     build: ../../backend-java
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       mysql: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -86,6 +97,8 @@ services:
       LINE_ACTION_SECRET: ${LINE_ACTION_SECRET}
       TAPPAY_PARTNER_KEY: ${TAPPAY_PARTNER_KEY}
       TAPPAY_MERCHANT_CREDITCARD: ${TAPPAY_MERCHANT_CREDITCARD}
+      DEMO_MODE_ENABLED: "false"
+      SECURITY_STRICT_MODE: "true"
     ports:
       - "127.0.0.1:8081:8081"
     mem_limit: 1600m
@@ -95,6 +108,7 @@ services:
       context: ../..
       dockerfile: ai-service-python/Dockerfile
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       qdrant: { condition: service_started }
       redis: { condition: service_healthy }
@@ -129,6 +143,7 @@ services:
       # proxy 目標是 build-time 決定（Next rewrites）；Dockerfile ARG 預設
       # 已對準 java/ai 服務名，這裡不需要 runtime env
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       - java
       - ai
