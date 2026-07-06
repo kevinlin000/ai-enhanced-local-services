@@ -507,6 +507,15 @@ public class BookingController {
                     result.depositPolicy(),
                     "CUSTOMER_RESCHEDULE"
             );
+            if (result.depositPolicy() != null && result.depositPolicy().manualHandlingRequired()) {
+                var shop = shopService.getById(booking.getShopId());
+                String shopName = shop != null ? shop.getName() : null;
+                Map<String, Object> response = bookingResponse(booking, shopName, false);
+                response.put("changed", false);
+                response.put("adjustmentRequired", true);
+                response.put("depositPolicy", result.depositPolicy().toPayload());
+                return Result.ok(response);
+            }
             return Result.fail(result.error());
         }
 

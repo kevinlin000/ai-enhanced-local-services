@@ -784,6 +784,16 @@ export default function MerchantPage() {
 
           {activeSection !== "shops" ? (
           <div className="min-w-0 space-y-5">
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {error}
+              </div>
+            )}
+            {message && (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                {message}
+              </div>
+            )}
             {activeSection === "overview" ? (
               <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <MerchantWorkCard
@@ -1429,17 +1439,6 @@ export default function MerchantPage() {
                   </label>
                 </div>
               </div>
-
-            {error && (
-              <div className="mx-5 mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-                {error}
-              </div>
-            )}
-            {message && (
-              <div className="mx-5 mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-                {message}
-              </div>
-            )}
 
             <div className="p-5">
               {loading ? (

@@ -306,7 +306,7 @@ class BookingSyncContractTest {
     }
 
     @Test
-    void paidRescheduleRejectsDepositIncreaseBeforeChangingSlots() {
+    void paidRescheduleDefersDepositIncreaseBeforeChangingSlots() {
         UserHolder.saveUser(webUser());
         BookingJpa booking = paidBooking("BK-SYNC-DEPOSIT-INCREASE");
         LocalDate oldDate = booking.getBookingDate();
@@ -323,8 +323,13 @@ class BookingSyncContractTest {
                 "people", 4
         ));
 
-        assertThat(result.getSuccess()).isFalse();
-        assertThat(result.getErrorMsg()).contains("增加訂金");
+        assertThat(result.getSuccess()).isTrue();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) result.getData();
+        assertThat(data)
+                .containsEntry("changed", false)
+                .containsEntry("adjustmentRequired", true)
+                .containsKey("depositPolicy");
         assertThat(booking.getBookingDate()).isEqualTo(oldDate);
         assertThat(booking.getBookingTime()).isEqualTo(oldTime);
         assertThat(booking.getPeople()).isEqualTo(oldPeople);
@@ -346,7 +351,7 @@ class BookingSyncContractTest {
     }
 
     @Test
-    void paidRescheduleRejectsDepositRefundBeforeChangingCapacity() {
+    void paidRescheduleDefersDepositRefundBeforeChangingCapacity() {
         UserHolder.saveUser(webUser());
         BookingJpa booking = paidBooking("BK-SYNC-DEPOSIT-REFUND");
         booking.setPeople(4);
@@ -362,8 +367,13 @@ class BookingSyncContractTest {
                 "people", 2
         ));
 
-        assertThat(result.getSuccess()).isFalse();
-        assertThat(result.getErrorMsg()).contains("訂金退款");
+        assertThat(result.getSuccess()).isTrue();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) result.getData();
+        assertThat(data)
+                .containsEntry("changed", false)
+                .containsEntry("adjustmentRequired", true)
+                .containsKey("depositPolicy");
         assertThat(booking.getBookingDate()).isEqualTo(oldDate);
         assertThat(booking.getBookingTime()).isEqualTo(oldTime);
         assertThat(booking.getPeople()).isEqualTo(oldPeople);

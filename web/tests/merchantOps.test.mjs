@@ -20,3 +20,11 @@ test("merchant page connects flash deals to inventory and revenue", () => {
   assert.match(source, /家庭用餐、訂金付款、開車停車、LINE 同步/);
   assert.match(source, /調低容量即可模擬額滿與空位釋出/);
 });
+
+test("merchant feedback is visible in every operations section", () => {
+  const source = readFileSync(join(root, "app/merchant/page.tsx"), "utf8");
+
+  const feedback = source.indexOf("{error && (");
+  const firstOperationsSection = source.indexOf('id="incident-queue"');
+  assert.ok(feedback > 0 && feedback < firstOperationsSection);
+});
