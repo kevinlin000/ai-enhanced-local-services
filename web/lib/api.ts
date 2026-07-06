@@ -481,10 +481,7 @@ export type PrivateAiOfferSummary = {
 };
 
 function merchantHeaders(): HeadersInit {
-  return {
-    "Content-Type": "application/json",
-    "X-Demo-Mode": "true",
-  };
+  return authHeaders(true);
 }
 
 export class AuthRequiredError extends Error {
