@@ -112,6 +112,18 @@ LINE Developers Console：
 
 驗證：手機 LINE 對 bot 發「信義區火鍋」收到推薦卡片；網站用 LINE 登入成功。
 
+## 6.5 TapPay Sandbox IP 白名單
+
+TapPay pay-by-prime 會驗證**後端 server 的來源 IP**。EC2 的 Elastic IP 固定，
+所以只需設定一次：
+
+1. 登入 [TapPay Portal](https://portal.tappaysdk.com/)（sandbox）。
+2. 商家管理 → 對應 Merchant → Server IP 白名單 → 加入 EC2 的 Elastic IP。
+
+驗證：網站上走一次信用卡補款／訂金流程（測試卡 4242…），不再出現
+「TapPay sandbox IP 未在商家後台白名單內」。
+（本機開發因 IP 浮動無法固定白名單，demo 錢包路徑不受影響。）
+
 ## 7. 終驗
 
 ```bash

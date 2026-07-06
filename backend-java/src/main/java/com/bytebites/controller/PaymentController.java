@@ -199,6 +199,44 @@ public class PaymentController {
         return Result.fail("TapPay: " + msg + " (status=" + status + ")");
     }
 
+    /**
+     * Demo 錢包補款（LINE Pay / Apple Pay / 街口）：與首次訂金的 pay-test 同一套規則，
+     * 仍回寫真實的 settlement 狀態，避免 UI 與 DB 不一致。
+     */
+    @PostMapping("/deposit-adjustments/{adjustmentId}/top-up/pay-demo")
+    public Result payTopUpWithDemo(@PathVariable Long adjustmentId) {
+        Long userId = currentUserId();
+        if (userId == null) return Result.fail("請先登入");
+
+        Map<String, Object> adjustment;
+        try {
+            adjustment = bookingDepositAdjustmentService.payableTopUpForCustomer(userId, adjustmentId);
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return Result.fail(ex.getMessage());
+        }
+        long amount = Math.abs(toLong(adjustment.get("deltaAmount")));
+        if (amount <= 0) return Result.fail("補款金額不可為 0");
+
+        String demoTransId = "DEMO-" + java.util.UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+        Map<String, Object> completed = bookingDepositAdjustmentService.recordCustomerTopUpSettlement(
+                userId,
+                adjustmentId,
+                demoTransId,
+                "Customer demo wallet top-up completed"
+        );
+        log.info("[Payment top-up demo] adjustmentId={} userId={} amount={} trans={}",
+                adjustmentId, userId, amount, demoTransId);
+        return Result.ok(Map.of(
+                "status", "PAID",
+                "adjustmentId", adjustmentId,
+                "bookingCode", String.valueOf(adjustment.get("bookingCode")),
+                "amount", amount,
+                "rec_trade_id", demoTransId,
+                "adjustment", completed,
+                "msg", "Demo 補款成功"
+        ));
+    }
+
     @PostMapping("/tappay/deposit-adjustments/{adjustmentId}/refund/reconcile")
     public Result reconcileRefundAdjustment(
             @PathVariable Long adjustmentId,

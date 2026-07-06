@@ -708,6 +708,23 @@ export const javaApi = {
         }),
       },
     ),
+  payTopUpWithDemo: (adjustmentId: number) =>
+    fetchJson<{
+      success: boolean;
+      errorMsg?: string;
+      data: {
+        adjustmentId: number;
+        bookingCode: string;
+        rec_trade_id: string;
+        amount: number;
+        status: "PAID";
+        adjustment: CustomerTopUpAdjustment;
+        msg?: string;
+      };
+    }>(
+      `${CLIENT_JAVA_API}/api/payment/deposit-adjustments/${adjustmentId}/top-up/pay-demo`,
+      { method: "POST", headers: authHeaders(true) },
+    ),
   myBookings: () =>
     fetchJson<{ success: boolean; errorMsg?: string; data: MyBooking[] }>(
       `${CLIENT_JAVA_API}/api/booking/my`,

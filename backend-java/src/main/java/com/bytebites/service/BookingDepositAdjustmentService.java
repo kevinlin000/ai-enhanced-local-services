@@ -3,6 +3,7 @@ package com.bytebites.service;
 import com.bytebites.entity.jpa.BookingJpa;
 import com.bytebites.repository.BookingJpaRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookingDepositAdjustmentService {
@@ -866,6 +868,12 @@ public class BookingDepositAdjustmentService {
         if (normalizedTransId == null) {
             throw new IllegalArgumentException("settlementTransId 必填");
         }
+        // 店家手動登記 = 現場收款逃生門：付款狀態由「收錢方」單方面宣告，
+        // 必須留下收款方式與原因，否則不接受。
+        String normalizedNote = trimToNull(settlementNote);
+        if (normalizedNote == null) {
+            throw new IllegalArgumentException("請填寫收款方式與原因（例如：現場現金收款）");
+        }
 
         int expectedAmount = Math.abs(toInt(adjustment.get("deltaAmount")));
         if (expectedAmount <= 0) {
@@ -873,6 +881,8 @@ public class BookingDepositAdjustmentService {
         }
 
         String normalizedProvider = normalizeProvider(provider);
+        log.info("[DepositAdjustment manual-settlement] adjustmentId={} shopId={} merchantUserId={} provider={} transId={} amount={} note={}",
+                adjustmentId, shopId, merchantUserId, normalizedProvider, normalizedTransId, expectedAmount, normalizedNote);
         jdbcTemplate.update(
                 """
                 UPDATE tb_booking_deposit_adjustment

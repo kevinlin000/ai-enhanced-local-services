@@ -33,6 +33,7 @@ export default function MyBookingsPage() {
   const [memoryByBooking, setMemoryByBooking] = useState<Record<string, DiningMemory>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [busyCode, setBusyCode] = useState<string | null>(null);
   const [paymentBooking, setPaymentBooking] = useState<MyBooking | null>(null);
   const [topUpPayment, setTopUpPayment] = useState<CustomerTopUpAdjustment | null>(null);
@@ -313,6 +314,12 @@ export default function MyBookingsPage() {
       }
       await loadBookings();
       setRescheduleBooking(null);
+      setNotice("改單已送出。若訂金增加，請先在「待補款改單」完成補款，店家確認後改單才會生效。");
+      // 讓使用者看見改單去了哪裡：捲到待補款區（若有）或頁面頂端的提示
+      window.setTimeout(() => {
+        const anchor = document.getElementById("pending-adjustments");
+        (anchor ?? document.getElementById("booking-list-top"))?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
     } catch (err) {
       setRescheduleError(err instanceof Error ? err.message : "改單失敗");
     } finally {
@@ -373,13 +380,13 @@ export default function MyBookingsPage() {
         message: incidentForm.message.trim() || undefined,
       });
       if (!response.success) {
-        setIncidentError(response.errorMsg ?? "救場通知建立失敗");
+        setIncidentError(response.errorMsg ?? "回報建立失敗");
         return;
       }
       await loadBookings();
       setIncidentBooking(null);
     } catch (err) {
-      setIncidentError(err instanceof Error ? err.message : "救場通知建立失敗");
+      setIncidentError(err instanceof Error ? err.message : "回報建立失敗");
     } finally {
       setBusyCode(null);
     }
@@ -509,8 +516,21 @@ export default function MyBookingsPage() {
     }
 
     if (activeTopUp) {
-      setPaymentError("補款目前僅支援信用卡 TapPay checkout");
-      setBusyCode(null);
+      // Demo 錢包補款：與首次訂金的 demo 授權同一套規則，後端仍回寫 settlement 狀態
+      try {
+        const response = await javaApi.payTopUpWithDemo(activeTopUp.id);
+        if (!response.success) {
+          setPaymentError(response.errorMsg ?? "補款失敗");
+          return;
+        }
+        await loadBookings();
+        setTopUpPayment(null);
+        setNotice("補款完成。店家確認後改單就會生效，屆時訂位資訊會自動更新。");
+      } catch (err) {
+        setPaymentError(err instanceof Error ? err.message : "補款失敗");
+      } finally {
+        setBusyCode(null);
+      }
       return;
     }
 
@@ -584,7 +604,20 @@ export default function MyBookingsPage() {
           </Link>
         </div>
 
-        <div className="bb-premium-surface mt-6 rounded-lg p-5 md:p-6">
+        <div id="booking-list-top" className="bb-premium-surface mt-6 rounded-lg p-5 md:p-6">
+          {notice ? (
+            <div className="mb-5 flex items-start justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
+              <span className="leading-6">{notice}</span>
+              <button
+                type="button"
+                onClick={() => setNotice("")}
+                className="shrink-0 rounded-full px-2 text-emerald-700 hover:bg-emerald-100"
+                aria-label="關閉提示"
+              >
+                ✕
+              </button>
+            </div>
+          ) : null}
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-xl font-medium">訂位紀錄</h2>
@@ -612,7 +645,7 @@ export default function MyBookingsPage() {
           ) : null}
 
           {mounted && !isAuthLoading && isLoggedIn && !loading && topUpAdjustments.length > 0 ? (
-            <section className="mb-5 rounded-lg border border-sky-200 bg-sky-50/70 p-4">
+            <section id="pending-adjustments" className="mb-5 rounded-lg border border-sky-200 bg-sky-50/70 p-4">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div>
                   <h3 className="text-base font-semibold text-sky-950">待補款改單</h3>
@@ -751,6 +784,19 @@ export default function MyBookingsPage() {
                           </p>
                         ) : null}
                         {booking.latestIncident ? (
+                          booking.latestIncident.status === "RESOLVED" ? (
+                            <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-900">
+                              <p className="font-medium">店家已處理：{booking.latestIncident.title}</p>
+                              <p className="mt-1 leading-5 text-emerald-800">
+                                {booking.latestIncident.customerMessage}
+                              </p>
+                              {booking.latestIncident.resolvedAt ? (
+                                <p className="mt-1 text-xs text-emerald-700">
+                                  處理時間：{booking.latestIncident.resolvedAt}
+                                </p>
+                              ) : null}
+                            </div>
+                          ) : (
                           <div className="mt-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sky-900">
                             <p className="font-medium">{booking.latestIncident.title}</p>
                             <p className="mt-1 leading-5 text-sky-800">
@@ -796,6 +842,7 @@ export default function MyBookingsPage() {
                               </div>
                             ) : null}
                           </div>
+                          )
                         ) : null}
                       </div>
                       <div className="flex flex-col gap-2 sm:flex-row">
@@ -825,7 +872,7 @@ export default function MyBookingsPage() {
                             disabled={busy}
                             className="rounded-full px-5"
                           >
-                            {memory ? "更新標籤" : "吃後標籤"}
+                            {memory ? "更新用餐偏好" : "記錄用餐偏好"}
                           </Button>
                         ) : null}
                         {canIncident ? (
@@ -835,7 +882,7 @@ export default function MyBookingsPage() {
                             disabled={busy}
                             className="rounded-full px-5"
                           >
-                            臨場救場
+                            晚到回報
                           </Button>
                         ) : null}
                         {canCancel ? (
@@ -894,14 +941,11 @@ export default function MyBookingsPage() {
                 <div className="grid gap-2">
                   {paymentMethods.map((method) => {
                     const active = paymentMethod === method.id;
-                    const disabled = Boolean(topUpPayment && method.id !== "credit_card");
                     return (
                       <button
                         key={method.id}
                         type="button"
-                        disabled={disabled}
                         onClick={() => {
-                          if (disabled) return;
                           setPaymentMethod(method.id);
                           setPaymentError("");
                         }}
@@ -909,7 +953,7 @@ export default function MyBookingsPage() {
                           active
                             ? "border-[#0b8a5b] bg-emerald-50"
                             : "border-zinc-200 bg-white hover:border-zinc-300"
-                        } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+                        }`}
                       >
                         <span>
                           <span className="block font-medium">{method.label}</span>
@@ -1035,7 +1079,7 @@ export default function MyBookingsPage() {
                 返回訂位
               </button>
               <p className="text-sm font-medium uppercase tracking-normal text-emerald-700">Rescue notice</p>
-              <h2 className="mt-2 text-xl font-medium">臨場救場通知</h2>
+              <h2 className="mt-2 text-xl font-medium">晚到／現場狀況回報</h2>
               <p className="mt-2 text-sm leading-6 text-zinc-500">
                 {incidentBooking.shopName} · {formatDateTime(incidentBooking)} · {incidentBooking.people} 人
               </p>
@@ -1115,7 +1159,7 @@ export default function MyBookingsPage() {
                 disabled={busyCode === incidentBooking.bookingCode}
                 className="bg-[#0b8a5b] px-6 hover:bg-[#087a50]"
               >
-                {busyCode === incidentBooking.bookingCode ? "通知中..." : "建立救場通知"}
+                {busyCode === incidentBooking.bookingCode ? "送出中..." : "送出回報"}
               </Button>
             </div>
           </section>

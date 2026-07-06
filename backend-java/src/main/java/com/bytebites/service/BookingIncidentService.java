@@ -159,7 +159,6 @@ public class BookingIncidentService {
                 FROM tb_booking_incident i
                 JOIN tb_shop s ON s.id = i.shop_id
                 WHERE i.booking_code = ?
-                  AND i.status = 'OPEN'
                 ORDER BY i.created_at DESC
                 LIMIT 1
                 """,

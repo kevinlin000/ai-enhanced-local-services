@@ -102,7 +102,7 @@ export const ADJUSTMENT_TYPE_LABEL: Record<string, string> = {
 
 export const ADJUSTMENT_SOURCE_LABEL: Record<string, string> = {
   CUSTOMER_RESCHEDULE: "顧客改單",
-  INCIDENT_PROPOSAL: "救場提案",
+  INCIDENT_PROPOSAL: "替代時段提案",
 };
 
 export const SETTLEMENT_STATUS_LABEL: Record<string, string> = {

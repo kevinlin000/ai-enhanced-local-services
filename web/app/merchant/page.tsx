@@ -72,6 +72,7 @@ export default function MerchantPage() {
   const [incidentBusyId, setIncidentBusyId] = useState<number | null>(null);
   const [adjustmentBusyId, setAdjustmentBusyId] = useState<number | null>(null);
   const [settlementRefs, setSettlementRefs] = useState<Record<number, string>>({});
+  const [settlementMethods, setSettlementMethods] = useState<Record<number, string>>({});
   const [refundEscalationNotes, setRefundEscalationNotes] = useState<Record<number, string>>({});
   const [refundNotifyBusy, setRefundNotifyBusy] = useState(false);
   const [refundPolicyBusy, setRefundPolicyBusy] = useState(false);
@@ -230,10 +231,10 @@ export default function MerchantPage() {
       setError(null);
       try {
         const response = await javaApi.merchantIncidents({ shopId, status: "OPEN" });
-        if (!response.success) throw new Error(response.errorMsg ?? "無法載入救場事件");
+        if (!response.success) throw new Error(response.errorMsg ?? "無法載入現場事件");
         if (!cancelled) setIncidents(response.data.incidents);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "載入救場事件失敗");
+        if (!cancelled) setError(err instanceof Error ? err.message : "載入現場事件失敗");
       } finally {
         if (!cancelled) setIncidentLoading(false);
       }
@@ -429,11 +430,11 @@ export default function MerchantPage() {
         shopId: selectedShopId,
         incidentId: incident.id,
       });
-      if (!response.success) throw new Error(response.errorMsg ?? "救場事件處理失敗");
+      if (!response.success) throw new Error(response.errorMsg ?? "現場事件處理失敗");
       setIncidents((current) => current.filter((item) => item.id !== incident.id));
-      setMessage("救場事件已標記為已處理；顧客端會在下次讀取訂位時看不到 open incident。");
+      setMessage("事件已標記為已處理；顧客端的訂位卡會同步顯示處理結果。");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "救場事件處理失敗");
+      setError(err instanceof Error ? err.message : "現場事件處理失敗");
     } finally {
       setIncidentBusyId(null);
     }
@@ -474,23 +475,24 @@ export default function MerchantPage() {
     }
     const settlementTransId = (settlementRefs[adjustment.id] ?? "").trim();
     if (!settlementTransId) {
-      setError("請輸入補款交易編號");
+      setError("請輸入收款單號或原因（現金可填收據號）");
       return;
     }
+    const method = settlementMethods[adjustment.id] ?? "CASH";
+    const methodLabel = method === "CASH" ? "現金" : method === "TRANSFER" ? "轉帳" : "其他";
 
     setAdjustmentBusyId(adjustment.id);
     setError(null);
     setMessage(null);
     try {
-      const actionLabel = adjustment.adjustmentType === "TOP_UP" ? "補款" : "退款";
       const response = await javaApi.recordMerchantDepositAdjustmentSettlement({
         shopId: selectedShopId,
         adjustmentId: adjustment.id,
-        provider: "TAPPAY",
+        provider: `OFFLINE_${method}`,
         settlementTransId,
-        settlementNote: `${actionLabel} ${currency(adjustment.deltaAmount)} 已由金流完成`,
+        settlementNote: `現場收款（${methodLabel}）${currency(adjustment.deltaAmount)}，參考：${settlementTransId}`,
       });
-      if (!response.success) throw new Error(response.errorMsg ?? "補款完成記錄失敗");
+      if (!response.success) throw new Error(response.errorMsg ?? "現場收款記錄失敗");
       setDepositAdjustments((current) =>
         current.map((item) => (item.id === adjustment.id ? response.data : item)),
       );
@@ -892,7 +894,7 @@ export default function MerchantPage() {
                     <AlertTriangle className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-xl font-semibold">臨場救場</h2>
+                    <h2 className="text-xl font-semibold">現場事件</h2>
                     <p className="mt-1 break-words text-sm text-stone-500">
                       顧客晚到或現場等候過久時，店家可保留座位、提出替代時段，並同步 LINE 通知。
                     </p>
@@ -989,7 +991,7 @@ export default function MerchantPage() {
 
                 {!incidentLoading && incidents.length === 0 && (
                   <div className="rounded-lg bg-stone-50 p-6 text-sm text-stone-500">
-                    目前沒有待處理救場事件。顧客在「我的訂位」建立救場通知，或對 AI 說「我塞車會晚到 20 分鐘」後會出現在這裡。
+                    目前沒有待處理的現場事件。顧客在「我的訂位」回報晚到，或對 AI 說「我塞車會晚到 20 分鐘」後會出現在這裡。
                   </div>
                 )}
               </div>
@@ -1201,21 +1203,47 @@ export default function MerchantPage() {
                             {currency(adjustment.settlementAmount || adjustment.deltaAmount)}
                           </p>
                         ) : isTopUp || settlementProcessing || settlementFailed ? (
-                          <label className="mt-3 flex max-w-sm flex-col gap-1 text-xs font-medium text-stone-600">
-                            {isTopUp ? "補款交易編號" : "退款交易編號"}
-                            <input
-                              type="text"
-                              value={settlementRefs[adjustment.id] ?? ""}
-                              onChange={(event) =>
-                                setSettlementRefs((current) => ({
-                                  ...current,
-                                  [adjustment.id]: event.target.value,
-                                }))
-                              }
-                              placeholder={isTopUp ? "例如：補款交易編號" : "例如：退款交易編號"}
-                              className="h-10 rounded-lg border border-sky-200 bg-white px-3 text-sm text-stone-900 outline-none focus:border-sky-500"
-                            />
-                          </label>
+                          <div className="mt-3 flex max-w-sm flex-col gap-2">
+                            {isTopUp ? (
+                              <>
+                                <p className="text-xs leading-5 text-stone-500">
+                                  顧客線上補款完成會自動標記金流；此欄位只用於<span className="font-semibold">現場付現／轉帳</span>時的人工登記。
+                                </p>
+                                <label className="flex flex-col gap-1 text-xs font-medium text-stone-600">
+                                  收款方式
+                                  <select
+                                    value={settlementMethods[adjustment.id] ?? "CASH"}
+                                    onChange={(event) =>
+                                      setSettlementMethods((current) => ({
+                                        ...current,
+                                        [adjustment.id]: event.target.value,
+                                      }))
+                                    }
+                                    className="h-10 rounded-lg border border-sky-200 bg-white px-3 text-sm text-stone-900 outline-none focus:border-sky-500"
+                                  >
+                                    <option value="CASH">現金</option>
+                                    <option value="TRANSFER">轉帳</option>
+                                    <option value="OTHER">其他</option>
+                                  </select>
+                                </label>
+                              </>
+                            ) : null}
+                            <label className="flex flex-col gap-1 text-xs font-medium text-stone-600">
+                              {isTopUp ? "收款單號／原因（必填）" : "退款交易編號"}
+                              <input
+                                type="text"
+                                value={settlementRefs[adjustment.id] ?? ""}
+                                onChange={(event) =>
+                                  setSettlementRefs((current) => ({
+                                    ...current,
+                                    [adjustment.id]: event.target.value,
+                                  }))
+                                }
+                                placeholder={isTopUp ? "例如：收據 R-0012 現金收訖" : "例如：退款交易編號"}
+                                className="h-10 rounded-lg border border-sky-200 bg-white px-3 text-sm text-stone-900 outline-none focus:border-sky-500"
+                              />
+                            </label>
+                          </div>
                         ) : (
                           <p className="mt-3 text-xs font-semibold text-stone-500">
                             先送出退款請求，等金流確認完成後才套用改單。
@@ -1271,7 +1299,7 @@ export default function MerchantPage() {
                             className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <CreditCard className="h-4 w-4" />
-                            {adjustmentBusyId === adjustment.id ? "記錄中" : "記錄補款完成"}
+                            {adjustmentBusyId === adjustment.id ? "記錄中" : "記錄現場收款"}
                           </button>
                         ) : isRefund && settlementPending ? (
                           <button
