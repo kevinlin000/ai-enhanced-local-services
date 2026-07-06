@@ -67,6 +67,10 @@ class BookingDepositAdjustmentServiceTest {
         );
 
         verify(jdbcTemplate).update(
+                contains("status = 'SUPERSEDED'"),
+                eq("BK-DEPOSIT-ADJ")
+        );
+        verify(jdbcTemplate).update(
                 contains("INSERT INTO tb_booking_deposit_adjustment"),
                 eq("BK-DEPOSIT-ADJ"),
                 eq(7L),

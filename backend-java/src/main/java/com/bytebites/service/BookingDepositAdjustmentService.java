@@ -51,6 +51,14 @@ public class BookingDepositAdjustmentService {
         String adjustmentType = adjustment.delta() > 0 ? "TOP_UP" : "REFUND";
         jdbcTemplate.update(
                 """
+                UPDATE tb_booking_deposit_adjustment
+                SET status = 'SUPERSEDED', updated_at = CURRENT_TIMESTAMP
+                WHERE booking_code = ? AND status = 'OPEN' AND settlement_status = 'PENDING'
+                """,
+                booking.getBookingCode()
+        );
+        jdbcTemplate.update(
+                """
                 INSERT INTO tb_booking_deposit_adjustment (
                     booking_code,
                     incident_id,
