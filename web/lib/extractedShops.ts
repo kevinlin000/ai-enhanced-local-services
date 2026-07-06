@@ -32,7 +32,13 @@ let cache: Map<number, ExtractedShopRecord> | null = null;
 let cacheSignature: string | null = null;
 
 export async function loadExtractedShopMap() {
-  const files = await readdir(RAW_DIR);
+  let files: string[];
+  try {
+    files = await readdir(RAW_DIR);
+  } catch (error) {
+    if ((error as { code?: string }).code === "ENOENT") return new Map<number, ExtractedShopRecord>();
+    throw error;
+  }
   const candidates = files
     .filter((name) => /^places_extracted_\d{8}_\d{6}\.json$/.test(name))
     .sort();
