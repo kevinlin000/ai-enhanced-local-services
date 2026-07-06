@@ -323,7 +323,7 @@ function MrtPopularSection({
         <SectionHeader
           kicker="捷運站熱門"
           title="沿著捷運找好店"
-          description="恢復原本最有 ByteBites 特色的捷運搜尋邏輯。每一列都是真實站點資料，不是靜態展示。"
+          description="以捷運站為起點找店：每一列都來自真實站點與店家資料，點進去就能看詳情、訂位。"
           href="/shops"
           cta="探索全部餐廳"
         />

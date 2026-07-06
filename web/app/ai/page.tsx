@@ -670,7 +670,7 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
                       </label>
                     </div>
                     <p className="mt-2 text-[11px] leading-5 text-stone-500">
-                      聊天室使用 demo confirmation，方便展示 Agent transaction；完整 TapPay iframe prime flow 已放在「我的訂位」付款頁。
+                      聊天室內採用簡化確認流程（沙盒付款）；完整的 TapPay 信用卡付款流程在「我的訂位」付款頁。
                     </p>
                   </div>
                 ) : null}
@@ -705,7 +705,7 @@ function AgentBookingConfirmationCard({ transaction }: { transaction: AgentTrans
             <div className="flex items-start gap-3">
               <Car className="mt-0.5 h-5 w-5 shrink-0 text-sky-700" />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">會開車嗎？我可以接停車提醒與車位保留展示。</p>
+                <p className="text-sm font-semibold">會開車嗎？我可以幫你設定停車提醒與車位保留。</p>
                 <p className="mt-1 leading-5 text-sky-900/80">
                   開啟後，LINE 會整理附近停車場名稱、剩餘車位、導航入口；抵達前也能示範保留車位，顯示樓層、區域、車格號碼與保留時間。
                 </p>
