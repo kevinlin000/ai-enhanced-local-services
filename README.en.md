@@ -1,203 +1,108 @@
-# ByteBites — AI Dining Operations Platform
+<p align="center">
+  <img src="docs/assets/bytebites-logo.png" alt="ByteBites logo" width="92" />
+</p>
 
-[中文 README](README.md)
+<h1 align="center">ByteBites</h1>
 
-![Source Available](https://img.shields.io/badge/source%20available-portfolio%20review%20only-blue)
+<p align="center">AI dining operations platform — from a one-sentence request to an executable booking, payment and fulfillment flow</p>
 
-ByteBites is an AI-assisted dining operations system for Taiwan restaurant scenarios. It extends restaurant discovery into booking, payment state, conversational rescheduling, real-time incident handling, LINE notifications, merchant operations, refund visibility, and verified data quality.
+<p align="center">
+  <a href="https://github.com/kevinlin000/ai-enhanced-local-services/actions/workflows/portfolio-ci.yml"><img alt="Portfolio CI" src="https://github.com/kevinlin000/ai-enhanced-local-services/actions/workflows/portfolio-ci.yml/badge.svg?branch=main" /></a>
+  <img alt="Java 17" src="https://img.shields.io/badge/Java-17-E76F00?style=flat-square" />
+  <img alt="Spring Boot 3.2" src="https://img.shields.io/badge/Spring%20Boot-3.2-6DB33F?style=flat-square" />
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-Gemini%20Agent-009688?style=flat-square" />
+  <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square" />
+  <img alt="Source Available" src="https://img.shields.io/badge/Source%20Available-Portfolio%20Review%20Only-4E9F3D?style=flat-square" />
+</p>
 
-The core boundary:
+[中文版（主要文件）](README.md) — the Chinese README is the primary, most detailed document; this page is a condensed English mirror.
 
-```text
-AI interprets intent and coordinates the workflow.
-Java owns booking, payment, incident, and refund state.
-```
+## What it is
 
-This repository is not positioned as a chatbot demo. It is a contract-tested full-stack system showing how an AI product can operate around transactional state without letting the model become the source of truth.
+Booking a group dinner in Taiwan means half an hour on Google Maps, a phone call or a booking widget, a deposit, another call when one more person joins, and yet another when you are stuck in traffic. Most AI restaurant apps only cover the first step — discovery. ByteBites wires up the whole flow: say *"4 people in Da'an tomorrow 7pm, somewhere good for conversation, bookable online"* and the system handles recommendation, booking and deposit payment; reschedules, top-ups, late arrivals and merchant counter-proposals are then handled on both Web and LINE, reading and writing **one** backend state.
 
-## Quick Read
-
-| Area | Evidence |
-|---|---|
-| Product | AI dining operations platform, not one-shot restaurant recommendation. |
-| State ownership | Web, LINE, and AI are entry points; Java owns business state. |
-| Data | 599 active Taipei shops, media coverage, review sync, ABSA, taxonomy audit, Qdrant payload sync. |
-| Verification | `scripts/verify-portfolio.sh`, Portfolio CI, release readiness, clean MySQL migration smoke. |
-| Design | Architecture docs, dbdiagram DBML ER model, query/index evidence, engineering case studies. |
-
-## Review Path
-
-| Time | Start Here |
-|---|---|
-| 30 seconds | This README: Quick Read and Core Workflow. |
-| 3 minutes | [Demo Walkthrough](docs/demo-walkthrough.en.md), [Architecture Overview](docs/architecture-overview.md), [Booking Operations ER Model](docs/er-model-booking-operations.md). |
-| 10 minutes | [Performance And Query Evidence](docs/performance-query-evidence.md), [Nginx Public Deployment Boundary](docs/deployment-nginx.md), [Engineering Case Studies](docs/case-studies/README.md). |
-| Verification | Run `scripts/verify-portfolio.sh` or inspect Portfolio CI. |
-
-## Core Workflow
+The boundary that makes an AI safe to sit inside a transaction flow:
 
 ```text
-natural-language dining need
-  -> restaurant retrieval and recommendation
-  -> structured recommendation cards
-  -> booking and demo deposit payment
-  -> Web / LINE state sync
-  -> conversational reschedule
-  -> real-time incident handling and merchant proposal
-  -> top-up / refund / operations digest
-  -> private dining memory and private offers
+AI understands intent and coordinates; the Java backend owns booking,
+payment, incident and refund state.
 ```
 
-The strongest example is real-time incident handling:
+The model may phrase things badly or rank imperfectly — but money and seats have exactly one consistent state at all times, protected by a state machine. Any transactional action requires a draft, an explicit user confirmation, and Java-side capacity/deposit validation.
 
-1. The user tells AI: `我塞車會晚到 20 分鐘`.
-2. AI does not guess the booking. It asks Java for the latest valid booking.
-3. Java creates `tb_booking_incident` and exposes the state to Web and LINE.
-4. The merchant proposes an alternative slot.
-5. The customer accepts or declines from Web or LINE.
-6. Java validates slot capacity, identity, and deposit policy before applying any booking change.
+## Numbers
 
-## Engineering Evidence
-
-### Java-owned transaction state
-
-Spring Boot owns booking, payment, rescheduling, incident, proposal, deposit adjustment, refund reconciliation, and merchant notification state. The AI service does not mutate transactional state directly.
-
-Evidence:
-
-- [Booking Operations ER Model](docs/er-model-booking-operations.md), including dbdiagram DBML source and normalization notes.
-- [Web / LINE Booking Sync Case Study](docs/case-studies/07-web-line-booking-sync.md)
-- [Portfolio Verification Case Study](docs/case-studies/14-portfolio-verification.md)
-
-### Deterministic AI orchestration
-
-The AI service handles intent, recommendation context, conversation state, and LINE cards. Booking, rescheduling, incident creation, and refund workflows are routed through backend contracts.
-
-Evidence:
-
-- [AI Dialogue State Case Study](docs/case-studies/10-ai-dialogue-state.md)
-- [AI Concierge Quality Hardening Case Study](docs/case-studies/13-ai-concierge-quality-hardening.md)
-- `ai-service-python/evals/`
-
-### Data quality before prompt quality
-
-Recommendation quality is backed by data coverage and repeatable checks, not just prompt tuning.
-
-| Metric | Status |
-|---|---|
-| Active Taipei shops | 599 |
-| Cover image / media manifest | 100% |
-| AI summary coverage | 100% |
-| ABSA / Mongo review coverage | 99%+ |
-| Price signal coverage | 85%+ |
-
-Full report: [Data Coverage Report](docs/data-coverage-report.md)
+| Metric | Value | Evidence |
+|---|---|---|
+| Active Taipei restaurants | 599 (real crawled data) | [coverage report](docs/data-coverage-report.md) |
+| Restaurant photos | 3,600 (6 per shop, zero gaps/dupes) | `web/public/images/shops/` |
+| Automated tests | 341 (Java 115 · Python 191 · Web 35) | [Portfolio CI](.github/workflows/portfolio-ci.yml) |
+| Retrieval evaluation | Hit@5 = 15/15, versioned gold dataset | [latest report](ai-service-python/evals/report.md) |
+| Engineering case studies | 15 first-hand write-ups | [index](docs/case-studies/README.md) |
 
 ## Architecture
 
-```text
-Browser / LINE
-  |
-  v
-Next.js Web
-  |-- discovery, AI chat, bookings, merchant console
-  |
-  +--> Spring Boot Java
-  |      |-- auth / shop / booking / payment / incident / refund / parking
-  |      |-- MySQL / Flyway / Redis / RabbitMQ
-  |      |-- LINE identity and notification contracts
-  |
-  +--> FastAPI AI service
-         |-- Gemini agent and dialogue policy
-         |-- Qdrant semantic search
-         |-- LINE Messaging webhook and Flex cards
-
-ETL / data quality
-  |-- Google Places / Maps crawler
-  |-- Mongo review sync
-  |-- ABSA pipeline
-  |-- taxonomy audit and Qdrant payload sync
+```mermaid
+flowchart TB
+    Browser[Browser] --> Web["Next.js 16 Web"]
+    LINE[LINE App] -->|Messaging webhook| AI
+    LINE -->|LINE Login| Java
+    Web -->|"/api/java/*"| Java["Spring Boot 3.2 · Java 17<br/>booking / payment / incident / refund"]
+    Web -->|"/api/ai/*"| AI["FastAPI AI Service<br/>Gemini agent · semantic search · guardrail"]
+    AI -->|"always queries business state"| Java
+    Java --> MySQL[(MySQL 8 · Flyway)]
+    Java --> Redis[(Redis 7)]
+    Java --> MQ[(RabbitMQ)]
+    AI --> Qdrant[(Qdrant · 599 shops)]
+    ETL[ETL pipeline] --> MySQL
+    ETL --> Qdrant
 ```
 
-Full details: [Architecture Overview](docs/architecture-overview.md)
+The AI service is layered by dependency direction — anyone touching ranking only needs the ranking layer plus the eval gate:
 
-## Stack
+```text
+config → ranking → retrieval → agent → line_routes → main
+```
 
-| Area | Stack |
-|---|---|
-| Frontend | Next.js |
-| Backend | Spring Boot 3.2 / Java 17 / MySQL / Redis / RabbitMQ / Flyway |
-| AI service | FastAPI, Gemini agent, semantic search, LINE cards |
-| Vector DB | Qdrant |
-| Data | Python ETL, Google Places / Maps crawler, Mongo-backed reviews, ABSA metadata |
-| Deployment | Nginx reverse-proxy blueprint, Docker Compose public-proxy overlay, local ngrok demo |
-| Verification | Java, Python, ETL, data-quality, Web, release readiness, clean migration smoke |
+## Highlights
 
-## Demo Walkthrough
+- **Retrieval regression gate** — 15 versioned gold cases hit the live service before/after every ranking change (Hit@5 15/15, up from a 66.7% baseline). Born from a real "every fix broke something else" spiral: [case study 15](docs/case-studies/15-ranking-eval-regression-gate.md).
+- **Agent tool guards** — bookings are drafted, never executed by the model; one booking per conversation; past dates rejected; multi-branch brands require disambiguation. Even if all guards failed, Java still validates capacity, identity and deposit policy.
+- **Pay-first reschedule** — changing a paid booking never mutates it in place: the original stays intact, the deposit delta is settled first (online, or an audited offline-settlement escape hatch), and the change applies only after merchant confirmation.
+- **Seckill flash deals** — token-bucket rate limiting → atomic Redis Lua stock/dedup → RabbitMQ async persistence → DLQ.
+- **One state, two entrances** — LINE Flex card actions carry signed tokens back into the same Java transaction contract the Web uses; webhook signatures verified; internal Java↔Python calls share a secret.
+- **Direct google-genai SDK** (no LangChain/LlamaIndex) — fewer layers, native function calling, tenacity retries, per-call token metrics in Prometheus. A deliberate, documented simplification of the original plan.
 
-Use [Demo Walkthrough](docs/demo-walkthrough.en.md) for the 3-minute and 5-minute review path.
+Design rationale lives in [ADR 0001](docs/adr/0001-java-python-frontend-split.md) (service split) and [ADR 0002](docs/adr/0002-demo-mode-merchant-auth.md) (demo-mode auth boundary) — Chinese-primary with English summaries.
 
-Recommended sequence:
-
-1. AI recommendation cards.
-2. Booking and demo payment state.
-3. Real-time incident handling.
-4. Merchant alternative-slot proposal.
-5. LINE rescue/proposal card.
-6. Refund operations digest.
-7. Architecture, ER model, and verification gates.
-
-## Verification
+## Verify
 
 ```bash
 scripts/verify-portfolio.sh
 ```
 
-The portfolio gate covers Java contract tests, AI service tests, ETL tests, data-quality checks, Nginx route contracts, clean migration contracts, release-boundary checks, query evidence checks, Web tests, and a production build.
+Runs Java (115), Python (191), ETL and Web (35) tests, the data-quality gate (coverage, taxonomy, markdown links), the Nginx route contract and the release boundary check. Retrieval quality: `ai-service-python/evals/run_eval.py`. CI: [`portfolio-ci.yml`](.github/workflows/portfolio-ci.yml).
 
-Release rehearsal:
+## Run locally
 
 ```bash
-scripts/release-readiness.sh --offline
-scripts/smoke-clean-mysql-migrations.sh --timeout 180
+docker compose up -d          # MySQL / Redis / RabbitMQ / Qdrant / Prometheus / Grafana
+
+cd backend-java && set -a; source .env; set +a && mvn spring-boot:run
+cd ai-service-python && set -a; source .env; set +a && uv run uvicorn app.main:app --reload --port 8000
+cd web && pnpm install && pnpm dev
 ```
 
-## Selected Case Studies
+Requires Java 17+, Python 3.12+ (uv), Node 22+ (pnpm), Docker, a Gemini API key, and optionally a LINE Developers channel. Deployment (single-host AWS with a step-by-step runbook): [docs/aws-deploy-runbook.md](docs/aws-deploy-runbook.md).
 
-- [Real Streaming for an AI Agent](docs/case-studies/01-sse-streaming-debug.md)
-- [ABSA Review Intelligence Pipeline](docs/case-studies/02-absa-pipeline.md)
-- [Data Crawling and Coverage](docs/case-studies/06-data-crawler-coverage.md)
-- [Web / LINE Booking Sync](docs/case-studies/07-web-line-booking-sync.md)
-- [AI Dialogue State](docs/case-studies/10-ai-dialogue-state.md)
-- [Public Deployment Rehearsal](docs/case-studies/11-demo-deployment.md)
+## Known limitations
 
-Full list: [Engineering Case Studies](docs/case-studies/README.md)
+Merchant auth is a designed demo-mode switch, not yet an account system ([ADR 0002](docs/adr/0002-demo-mode-merchant-auth.md)); refunds are state-machine simulated, not a real PSP; the AI runs a cost-efficient flash-lite model with seconds-level agent latency; single-host deployment with a documented Stage-2 (RDS/ElastiCache/ECS) path.
 
 ## License
 
-This project is not open-source.
+Not open-source. Source available for portfolio and technical review only; no permission to copy, modify, distribute or reuse without explicit written permission.
 
-Source code is available for portfolio and technical review only. No permission
-is granted to copy, modify, distribute, sublicense, publish, or reuse this
-project, in whole or in part, without explicit written permission.
+## Contact
 
-## Local Development
-
-```bash
-docker compose up -d
-
-cd backend-java
-set -a; source .env; set +a
-mvn spring-boot:run
-
-cd ../ai-service-python
-set -a; source .env; set +a
-uv run uvicorn app.main:app --reload --port 8000
-
-cd ../web
-npm run dev
-```
-
-## Production Boundary
-
-This project is portfolio-ready and contract-tested. It is not claimed as a production SaaS rollout. Production rollout would require managed secrets, cloud data stores, backup and restore policy, observability dashboards, real PSP refund provider integration, merchant notification preferences, and operations playbooks.
+GitHub: [@kevinlin000](https://github.com/kevinlin000)
