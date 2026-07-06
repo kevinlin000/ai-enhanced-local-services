@@ -77,7 +77,7 @@ const BOUNDARIES = [
 ];
 
 const ENGINEERING_FACTS = [
-  "Java（Spring Boot 3 + JPA）擁有訂位、付款、候補、事件與退款的交易狀態機 — 114 個測試",
+  "Java（Spring Boot 3 + JPA）擁有訂位、付款、候補、事件與退款的交易狀態機 — 115 個測試",
   "Python（FastAPI + Gemini function calling + Qdrant）負責語意檢索、對話 Agent 與 LINE 流程 — 191 個測試",
   "檢索品質有回歸防護網：版本化 gold dataset，Hit@5 15/15，改排序前後必跑",
   "Guardrail 雙向防護：輸入端擋 prompt injection，輸出端句級過濾而非整段封殺",
@@ -88,7 +88,7 @@ const ENGINEERING_FACTS = [
 const METRICS = [
   { value: "599", label: "台北店家", caption: "真實爬取資料：照片、評論、ABSA 情感分析與向量索引全對齊" },
   { value: "3,600", label: "店家照片", caption: "每店 6 張高解析總覽照，缺漏與重複皆為 0" },
-  { value: "336", label: "自動化測試", caption: "Java 114 · Python 191 · Web 31，CI 全綠" },
+  { value: "341", label: "自動化測試", caption: "Java 115 · Python 191 · Web 35，CI 全綠" },
   { value: "15/15", label: "檢索評估", caption: "Hit@5 回歸防護網，排序改動前後必跑" },
 ];
 

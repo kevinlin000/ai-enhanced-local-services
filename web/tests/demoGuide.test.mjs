@@ -30,7 +30,7 @@ test("showcase metrics stay tied to verifiable numbers", () => {
   const source = readFileSync(join(root, "app/showcase/page.tsx"), "utf8");
   // 599 家店與測試總數要跟 README / footer 一致；出現湊數型 metric 視為回歸
   assert.match(source, /599/);
-  assert.match(source, /336/);
+  assert.match(source, /341/);
   assert.match(source, /15\/15/);
   assert.doesNotMatch(source, /500\+/);
 });
