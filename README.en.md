@@ -17,7 +17,7 @@
 
 [中文版（主要文件）](README.md) — the Chinese README is the primary, most detailed document; this page is a condensed English mirror.
 
-**Demo**: [https://bytebites-kevin.duckdns.org](https://bytebites-kevin.duckdns.org) — browsing 599 shops and AI recommendations needs no login; booking, payment, vouchers and the merchant console require LINE login. Single-host AWS deployment, step-by-step: [docs/aws-deploy-runbook.md](docs/aws-deploy-runbook.md).
+**Demo**: [https://bytebites-kevin.duckdns.org](https://bytebites-kevin.duckdns.org) — browsing 599 shops and AI recommendations needs no login; booking, payment and vouchers require LINE login. **The merchant console (`/merchant`) needs no login** — it runs under a fixed demo identity managing all 14 showcase shops. Single-host AWS deployment, step-by-step: [docs/aws-deploy-runbook.md](docs/aws-deploy-runbook.md).
 
 ## What it is
 
@@ -48,6 +48,7 @@ The model may phrase things badly or rank imperfectly — but money and seats ha
 ![Restaurant discovery](docs/screenshots/02-shops-list.png)
 ![Restaurant detail](docs/screenshots/03-shop-detail.png)
 ![AI chat](docs/screenshots/04-ai-chat.png)
+![Merchant console (no login required)](docs/screenshots/07-merchant-ops.png)
 ![Engineering overview page](docs/screenshots/05-showcase.png)
 
 More screenshots and captions: see the [Chinese README](README.md#畫面截圖).

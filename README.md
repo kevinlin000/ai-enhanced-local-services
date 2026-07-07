@@ -19,7 +19,7 @@
 
 **Demo URL**：[https://bytebites-kevin.duckdns.org](https://bytebites-kevin.duckdns.org)
 
-> 消費端可直接瀏覽 599 家店與 AI 推薦；訂位、付款、我的餐券、商家後台需要 LINE 登入。單機 AWS 部署，架構與逐步指令見 [AWS 部署 Runbook](docs/aws-deploy-runbook.md)。
+> 消費端可直接瀏覽 599 家店與 AI 推薦；訂位、付款、我的餐券需要 LINE 登入。**商家後台（`/merchant`）免登入即可操作**，走固定的 demo 身分管理全部 14 家展示店。單機 AWS 部署，架構與逐步指令見 [AWS 部署 Runbook](docs/aws-deploy-runbook.md)。
 
 ## 專案簡介
 
@@ -98,7 +98,7 @@ AI 負責理解需求與協調流程；Java 後端擁有訂位、付款、事件
 
 ## 畫面截圖
 
-以下截圖取自線上 demo，展示消費端主流程與工程總覽頁；訂位、付款、商家後台需要 LINE 登入才能操作，完整流程建議直接開 demo 網址體驗。
+以下截圖取自線上 demo。消費端瀏覽免登入；商家後台走固定的 demo 身分，同樣不用登入即可操作、管理全部 14 家展示店。
 
 **首頁** — 一句話說需求，AI 直接接手；下方是分類與捷運快速入口。
 
@@ -115,6 +115,14 @@ AI 負責理解需求與協調流程；Java 後端擁有訂位、付款、事件
 **AI 對話** — 自然語言描述需求，AI 用 SSE 真串流回結構化推薦與訂位草稿。
 
 ![AI 對話](docs/screenshots/04-ai-chat.png)
+
+**商家營運台** — 免登入即可操作，切換 14 家展示店管理工作佇列、訂金退款、時段容量、限時餐券。
+
+![商家營運台](docs/screenshots/07-merchant-ops.png)
+
+**時段容量** — 調整可接待人數直接影響 Web / LINE 的可訂庫存，改單與空位通知讀同一份資料。
+
+![時段容量](docs/screenshots/08-merchant-slots.png)
 
 **工程總覽頁**（`/showcase`）— 給面試官與教授看的證據頁：真實數據、系統邊界、可驗證的工程實證。
 
