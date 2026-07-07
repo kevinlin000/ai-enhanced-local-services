@@ -15,7 +15,7 @@
 - Web AI、booking UI、notifications、merchant console；
 - 13 篇 case studies。
 
-但如果沒有一條清楚的審查路線，這些亮點會變成「散在 repo 裡的功能」。面試官不會幫你慢慢挖。
+但如果沒有一條清楚的審查路線，這些亮點會變成「散在 repo 裡的功能」。讀者不會幫你慢慢挖。
 
 ## 2. 決策：把作品變成可驗證，而不是只靠 README 說服
 
@@ -235,7 +235,7 @@ claim -> code anchor -> test/eval -> public evidence doc
 
 ## 12. 我學到的事
 
-**頂級作品不是功能越多越好，而是證據越清楚越好。** 面試官需要快速看到 claim、code、test、demo 的連線。
+**頂級作品不是功能越多越好，而是證據越清楚越好。** 讀者需要快速看到 claim、code、test、demo 的連線。
 
 **CI 不是形式。** 對 portfolio 來說，CI 是可信度的一部分。
 

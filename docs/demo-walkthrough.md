@@ -2,7 +2,7 @@
 
 [English version](demo-walkthrough.en.md)
 
-這份文件是給 reviewer 或面試官看的展示路線。它不是內部錄影備忘錄，也不是功能清單；目標是用 3 到 5 分鐘證明 ByteBites 的核心工程判斷：
+這份文件是給讀者看的展示路線。它不是內部錄影備忘錄，也不是功能清單；目標是用 3 到 5 分鐘證明 ByteBites 的核心工程判斷：
 
 ```text
 AI 負責理解需求與協調流程。

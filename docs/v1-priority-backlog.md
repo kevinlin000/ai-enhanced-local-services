@@ -21,8 +21,8 @@
 
 - **結論**：已完成第一版，後續只保留內部相容命名，不再把 `HotSeat` 當對外產品名。
 - **原因**：
-  - Java / Python / 前端仍保留 `voucher`、`seckill`、`hot-seat` 等內部相容語意，但使用者與面試官只看 `限時餐券`。
-  - 對使用者與面試官來說，「限時餐券」比「優惠券秒殺」更貼近餐廳離峰補位與熱門時段轉單場景。
+  - Java / Python / 前端仍保留 `voucher`、`seckill`、`hot-seat` 等內部相容語意，但對外只看 `限時餐券`。
+  - 對讀者來說，「限時餐券」比「優惠券秒殺」更貼近餐廳離峰補位與熱門時段轉單場景。
   - 這是後續文件、demo、影片、AWS 展示的語意底座。
 - **現況證據**：
   - Java 舊入口 `/voucher-order/seckill/{id}` 保留，並新增 `/api/flash-deals/{id}/claim` 對外 alias。

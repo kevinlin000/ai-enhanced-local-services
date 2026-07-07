@@ -53,6 +53,11 @@ The model may phrase things badly or rank imperfectly — but money and seats ha
 
 More screenshots and captions: see the [Chinese README](README.md#畫面截圖).
 
+## Demo videos
+
+- [Multi-turn conversational booking: from a fragmented request to a waitlist notification](https://youtu.be/ttxynxWrPvk) — a single message carrying time, location, budget, an allergy exclusion and a soft preference; the ranking tone shifting once a manager joins; state carried across turns (a later message only changes time and headcount); falling back to a waitlist when the slot is full, synced across LINE and Web.
+- [Post-booking parking reminder](https://youtu.be/tZZdrug-htk) — detecting a "driving" intent from the conversation, surfacing a parking-reminder action after the booking is confirmed, and pushing a LINE card that can reserve the nearest parking spot in one tap.
+
 ## Architecture
 
 ```mermaid
