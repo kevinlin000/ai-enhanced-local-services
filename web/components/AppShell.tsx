@@ -208,30 +208,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="border-b border-stone-200 px-5 py-5">
+            {/* 商家後台一律走 demo identity（見 ADR 0002），跟個人 LINE
+                登入狀態無關；顯示「請先登入」會誤導訪客以為要先登入才能操作。 */}
             <div className="flex items-center gap-3">
               <div
                 className="bb-shell-avatar flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-background ring-1 ring-border"
                 style={{ width: 48, height: 48, maxWidth: 48, maxHeight: 48 }}
               >
-                {pictureUrl ? (
-                  <img
-                    src={pictureUrl}
-                    alt={displayName}
-                    width={48}
-                    height={48}
-                    className="bb-shell-avatar-image"
-                    style={{ width: "100%", height: "100%", maxWidth: "100%", maxHeight: "100%", objectFit: "cover" }}
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <UserCircle className="h-8 w-8 text-zinc-500" />
-                )}
+                <Store className="h-6 w-6 text-zinc-500" />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-base font-medium tracking-normal">{displayName}</p>
-                <p className="mt-0.5 text-xs font-medium text-zinc-500">
-                  {mounted && isAuthLoading ? "正在確認 LINE 登入" : mounted && isLoggedIn ? "LINE 已登入" : "未登入"}
-                </p>
+                <p className="truncate text-base font-medium tracking-normal">展示商家</p>
+                <p className="mt-0.5 text-xs font-medium text-zinc-500">Demo 模式 · 免登入即可操作</p>
               </div>
             </div>
           </div>
