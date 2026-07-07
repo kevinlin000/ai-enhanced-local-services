@@ -17,10 +17,9 @@
 
 [English version](README.en.md)
 
-<!-- TODO(deploy): 部署完成後在此補上
-**Demo URL**：https://<PUBLIC_DOMAIN>
-> 消費端開放體驗（LINE 登入）；商家後台與 LINE Bot 完整流程見下方 demo 影片。
--->
+**Demo URL**：[https://bytebites-kevin.duckdns.org](https://bytebites-kevin.duckdns.org)
+
+> 消費端可直接瀏覽 599 家店與 AI 推薦；訂位、付款、我的餐券、商家後台需要 LINE 登入。單機 AWS 部署，架構與逐步指令見 [AWS 部署 Runbook](docs/aws-deploy-runbook.md)。
 
 ## 專案簡介
 
@@ -96,6 +95,34 @@ AI 負責理解需求與協調流程；Java 後端擁有訂位、付款、事件
 | 商家後台 | 時段容量（直接控制雙端可訂庫存）、現場事件佇列、替代時段提案、訂金差額（補收 / 退款 / SLA 監控）、限時餐券 | demo 模式免登入，邊界見 [ADR 0002](docs/adr/0002-demo-mode-merchant-auth.md) |
 | 秒殺 | 限時餐券搶購：令牌桶限流 + Redis Lua 預扣 + RabbitMQ 非同步落庫 | 訂單出現在「我的餐券」 |
 | 偏好記憶 | 用餐後記錄「太吵 / 不再推薦」，影響後續 AI 推薦 | 推薦卡會標示記憶原因 |
+
+## 畫面截圖
+
+以下截圖取自線上 demo，展示消費端主流程與工程總覽頁；訂位、付款、商家後台需要 LINE 登入才能操作，完整流程建議直接開 demo 網址體驗。
+
+**首頁** — 一句話說需求，AI 直接接手；下方是分類與捷運快速入口。
+
+![首頁](docs/screenshots/01-home.png)
+
+**餐廳探索** — 599 家台北店家，依分類、評分、限時餐券快速篩選。
+
+![餐廳探索](docs/screenshots/02-shops-list.png)
+
+**餐廳詳情** — 真實評論、ABSA 情感摘要、附近停車、可訂時段整合在同一頁。
+
+![餐廳詳情](docs/screenshots/03-shop-detail.png)
+
+**AI 對話** — 自然語言描述需求，AI 用 SSE 真串流回結構化推薦與訂位草稿。
+
+![AI 對話](docs/screenshots/04-ai-chat.png)
+
+**工程總覽頁**（`/showcase`）— 給面試官與教授看的證據頁：真實數據、系統邊界、可驗證的工程實證。
+
+![工程總覽頁](docs/screenshots/05-showcase.png)
+
+**功能導覽頁**（`/demo`）— 五分鐘走完一次用餐的完整旅程。
+
+![功能導覽頁](docs/screenshots/06-demo-guide.png)
 
 ## 系統架構
 

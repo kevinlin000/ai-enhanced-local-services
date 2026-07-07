@@ -17,6 +17,8 @@
 
 [中文版（主要文件）](README.md) — the Chinese README is the primary, most detailed document; this page is a condensed English mirror.
 
+**Demo**: [https://bytebites-kevin.duckdns.org](https://bytebites-kevin.duckdns.org) — browsing 599 shops and AI recommendations needs no login; booking, payment, vouchers and the merchant console require LINE login. Single-host AWS deployment, step-by-step: [docs/aws-deploy-runbook.md](docs/aws-deploy-runbook.md).
+
 ## What it is
 
 Booking a group dinner in Taiwan means half an hour on Google Maps, a phone call or a booking widget, a deposit, another call when one more person joins, and yet another when you are stuck in traffic. Most AI restaurant apps only cover the first step — discovery. ByteBites wires up the whole flow: say *"4 people in Da'an tomorrow 7pm, somewhere good for conversation, bookable online"* and the system handles recommendation, booking and deposit payment; reschedules, top-ups, late arrivals and merchant counter-proposals are then handled on both Web and LINE, reading and writing **one** backend state.
@@ -39,6 +41,16 @@ The model may phrase things badly or rank imperfectly — but money and seats ha
 | Automated tests | 341 (Java 115 · Python 191 · Web 35) | [Portfolio CI](.github/workflows/portfolio-ci.yml) |
 | Retrieval evaluation | Hit@5 = 15/15, versioned gold dataset | [latest report](ai-service-python/evals/report.md) |
 | Engineering case studies | 15 first-hand write-ups | [index](docs/case-studies/README.md) |
+
+## Screenshots
+
+![Home](docs/screenshots/01-home.png)
+![Restaurant discovery](docs/screenshots/02-shops-list.png)
+![Restaurant detail](docs/screenshots/03-shop-detail.png)
+![AI chat](docs/screenshots/04-ai-chat.png)
+![Engineering overview page](docs/screenshots/05-showcase.png)
+
+More screenshots and captions: see the [Chinese README](README.md#畫面截圖).
 
 ## Architecture
 
