@@ -97,8 +97,12 @@ services:
       LINE_ACTION_SECRET: ${LINE_ACTION_SECRET}
       TAPPAY_PARTNER_KEY: ${TAPPAY_PARTNER_KEY}
       TAPPAY_MERCHANT_CREDITCARD: ${TAPPAY_MERCHANT_CREDITCARD}
-      DEMO_MODE_ENABLED: "false"
-      SECURITY_STRICT_MODE: "true"
+      # Demo 模式維持開啟：商家後台沒有 onboarding，只有 user_id=1001 的合成
+      # 展示帳號在 tb_merchant_shop 有擁有權對應（見 V23 migration）。關掉
+      # DEMO_MODE_ENABLED 或開 SECURITY_STRICT_MODE 會讓任何真人登入都查不到
+      # 任何店家——商家後台會永久失效。設計脈絡見 ADR 0002。
+      DEMO_MODE_ENABLED: "true"
+      SECURITY_STRICT_MODE: "false"
     ports:
       - "127.0.0.1:8081:8081"
     mem_limit: 1600m

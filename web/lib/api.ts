@@ -481,7 +481,13 @@ export type PrivateAiOfferSummary = {
 };
 
 function merchantHeaders(): HeadersInit {
-  return authHeaders(true);
+  // Demo 模式的商家後台沒有 onboarding，走 DemoModeFilter 注入的合成使用者
+  // （user_id=1001，tb_merchant_shop 已預先綁定擁有權，見 ADR 0002）。
+  // 改用真人 LINE token 只會查到 0 家可管理店家。
+  return {
+    "Content-Type": "application/json",
+    "X-Demo-Mode": "true",
+  };
 }
 
 export class AuthRequiredError extends Error {

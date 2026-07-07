@@ -692,7 +692,7 @@ export default function MerchantPage() {
                   className="mt-1 h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-900 outline-none focus:border-emerald-500"
                 >
                   {shops.length === 0 ? (
-                    <option value="">讀取店家中</option>
+                    <option value="">{loading ? "讀取店家中" : "無可管理店家"}</option>
                   ) : null}
                   {shops.map((shop) => (
                     <option key={shop.id} value={shop.id}>
