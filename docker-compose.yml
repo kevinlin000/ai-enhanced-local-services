@@ -1,6 +1,26 @@
 name: deploy
 
 services:
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: hmdp
+      TZ: Asia/Taipei
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+
   rabbitmq:
     image: rabbitmq:3.13-management
     container_name: hmdp-rabbitmq
@@ -52,6 +72,8 @@ services:
     restart: unless-stopped
 
 volumes:
+  mysql-data:
+  redis-data:
   rabbitmq-data:
   qdrant-data:
   grafana-data:
