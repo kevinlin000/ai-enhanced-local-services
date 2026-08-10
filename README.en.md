@@ -70,7 +70,7 @@ flowchart TB
     AI -->|"always queries business state"| Java
     Java --> MySQL[(MySQL 8 · Flyway)]
     Java --> Redis[(Redis 7)]
-    Java --> MQ[(RabbitMQ)]
+    Java --> MQ[(RabbitMQ<br/>Outbox events / demo queue + DLQ)]
     AI --> Qdrant[(Qdrant · 599 shops)]
     ETL[ETL pipeline] --> MySQL
     ETL --> Qdrant
@@ -87,9 +87,12 @@ config → ranking → retrieval → agent → line_routes → main
 - **Retrieval regression gate** — 15 versioned gold cases hit the live service before/after every ranking change (Hit@5 15/15, up from a 66.7% baseline). Born from a real "every fix broke something else" spiral: [case study 15](docs/case-studies/15-ranking-eval-regression-gate.md).
 - **Agent tool guards** — bookings are drafted, never executed by the model; one booking per conversation; past dates rejected; multi-branch brands require disambiguation. Even if all guards failed, Java still validates capacity, identity and deposit policy.
 - **Pay-first reschedule** — changing a paid booking never mutates it in place: the original stays intact, the deposit delta is settled first (online, or an audited offline-settlement escape hatch), and the change applies only after merchant confirmation.
-- **Seckill flash deals** — token-bucket rate limiting → atomic Redis Lua stock/dedup → RabbitMQ async persistence → DLQ.
+- **Seckill flash deals** — token-bucket rate limiting → atomic Redis Lua stock/dedup → Redis Stream (`stream.orders`, consumer group `g1`/`c1`) async persistence.
+
 - **One state, two entrances** — LINE Flex card actions carry signed tokens back into the same Java transaction contract the Web uses; webhook signatures verified; internal Java↔Python calls share a secret.
 - **Direct google-genai SDK** (no LangChain/LlamaIndex) — fewer layers, native function calling, tenacity retries, per-call token metrics in Prometheus. A deliberate, documented simplification of the original plan.
+
+RabbitMQ is used for Outbox event publishing and the demo queue/DLQ; it is not the seckill order queue. Current evidence covers capacity correctness through existing tests and conditional atomic updates only. This repo has no load-test/benchmark artifacts, so it does not claim completed stress testing or no-oversell validation.
 
 Design rationale lives in [ADR 0001](docs/adr/0001-java-python-frontend-split.md) (service split) and [ADR 0002](docs/adr/0002-demo-mode-merchant-auth.md) (demo-mode auth boundary) — Chinese-primary with English summaries.
 

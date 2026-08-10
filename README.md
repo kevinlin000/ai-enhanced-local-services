@@ -93,7 +93,7 @@ AI 負責理解需求與協調流程；Java 後端擁有訂位、付款、事件
 | 付款 | TapPay sandbox 信用卡（pay-by-prime）+ demo 錢包 | demo 錢包同樣回寫真實 settlement 狀態 |
 | LINE | Login 登入、Bot 對話推薦、Flex 卡片訂位、狀態推播、晚到協調 | 雙 channel：Login 管身份、Messaging 管對話 |
 | 商家後台 | 時段容量（直接控制雙端可訂庫存）、現場事件佇列、替代時段提案、訂金差額（補收 / 退款 / SLA 監控）、限時餐券 | demo 模式免登入，邊界見 [ADR 0002](docs/adr/0002-demo-mode-merchant-auth.md) |
-| 秒殺 | 限時餐券搶購：令牌桶限流 + Redis Lua 預扣 + RabbitMQ 非同步落庫 | 訂單出現在「我的餐券」 |
+| 秒殺 | 限時餐券搶購：令牌桶限流 + Redis Lua 預扣 + Redis Stream 非同步落庫 | 訂單出現在「我的餐券」 |
 | 偏好記憶 | 用餐後記錄「太吵 / 不再推薦」，影響後續 AI 推薦 | 推薦卡會標示記憶原因 |
 
 ## 畫面截圖
@@ -168,7 +168,7 @@ flowchart TB
     AI -->|"業務狀態一律回查"| Java
     Java --> MySQL[(MySQL 8<br/>Flyway)]
     Java --> Redis[(Redis 7<br/>快取 / 秒殺 / 冪等)]
-    Java --> MQ[(RabbitMQ<br/>秒殺訂單非同步落庫)]
+    Java --> MQ[(RabbitMQ<br/>Outbox 事件 / demo queue + DLQ)]
     AI --> Qdrant[(Qdrant<br/>599 店語意向量)]
     ETL["ETL Pipeline<br/>爬蟲 / 評論同步 / ABSA / taxonomy"] --> MySQL
     ETL --> Qdrant
@@ -219,12 +219,12 @@ stateDiagram-v2
 | 區塊 | 技術與責任 |
 |---|---|
 | Backend | Spring Boot 3.2 / Java 17、Spring Data JPA、Spring Security + JWT（Bearer 與 HttpOnly cookie 雙軌）、Flyway、Redisson |
-| 交易與併發 | 訂位 hold + 冪等鍵、秒殺令牌桶限流 + Redis 庫存 + RabbitMQ 非同步落庫、差額補款/退款狀態機 |
+| 交易與併發 | 訂位 hold + 冪等鍵、秒殺令牌桶限流 + Redis 庫存 + Redis Stream 非同步落庫、差額補款/退款狀態機 |
 | AI service | FastAPI、google-genai SDK 直連 Gemini（function calling agent）、Qdrant 語意檢索、自製 guardrail 與 Hit@K eval harness、tenacity 重試、token 成本指標 |
 | Data / ETL | Python ETL：Google Maps 爬蟲、評論同步（Mongo）、ABSA 情感分析、taxonomy 稽核、Qdrant payload 同步 |
 | Frontend | Next.js 16 / React 19 / TypeScript / Tailwind 4，消費端 + 商家後台 + LINE 內嵌頁三種介面 |
 | LINE | Login 與 Messaging API 雙 channel 分離；webhook 簽章驗證；Flex 卡片操作回 Java 交易驗證 |
-| Storage | MySQL 8（Flyway 版本化 migration）、Redis 7、RabbitMQ、Qdrant、Mongo-backed reviews |
+| Storage | MySQL 8（Flyway 版本化 migration）、Redis 7、RabbitMQ（Outbox 事件發布、demo queue／DLQ）、Qdrant、Mongo-backed reviews |
 | 可觀測性 | Prometheus（含每次 LLM 呼叫的 token/延遲指標）+ Grafana provisioning |
 | 部署 | Docker 化三應用（本機驗證過的 Dockerfile）、單機 AWS compose + 主機 Nginx/Let's Encrypt（[runbook](docs/aws-deploy-runbook.md)）、本機 ngrok demo |
 | 驗證 | 341 個測試、Portfolio CI 四車道、檢索 eval、release readiness、clean-schema migration smoke |
@@ -238,10 +238,12 @@ stateDiagram-v2
 | Guardrail 雙向防護 | 輸入擋 prompt injection，輸出句級遮蔽（不因一個字眼毀掉整個回答） | `ai-service-python/app/guardrail.py` + 測試 |
 | 資料品質管線 | 599 店的照片/評論/ABSA/taxonomy/向量全部對齊且有覆蓋率 gate | [資料覆蓋率報告](docs/data-coverage-report.md)、[案例 02](docs/case-studies/02-absa-pipeline.md)、[案例 06](docs/case-studies/06-data-crawler-coverage.md) |
 | 交易狀態機 | 訂位、付款、改單、事件、補款、退款集中由後端狀態流轉管理；AI 與前端都不持有權威狀態 | `backend-java` booking/payment/incident services + 115 測試 |
-| 秒殺與併發 | 限時餐券：令牌桶限流 + Redis 預扣 + Lua 冪等 + RabbitMQ 非同步落庫 | `VoucherOrderController`、`seckill.lua` |
+| 秒殺與併發 | 限時餐券：令牌桶限流 + Redis 預扣 + Lua 冪等 + Redis Stream 非同步落庫；容量正確性以既有測試與條件式原子更新驗證，不宣稱完成壓測或無超賣壓測 | `VoucherOrderController`、`seckill.lua` |
 | Web / LINE 單一狀態 | 兩個入口、同一套交易 contract；LINE Flex 卡片的接受/拒絕回 Java 驗證 | [案例 07](docs/case-studies/07-web-line-booking-sync.md) |
 | 效能與查詢證據 | 熱路徑 SQL、索引與程式碼錨點對照 | [效能與查詢證據](docs/performance-query-evidence.md) |
 | 真串流 | Agent 回覆 SSE 真串流，可量測 TTFT | [案例 01](docs/case-studies/01-sse-streaming-debug.md) |
+
+RabbitMQ 在本專案用於 Outbox 事件發布與 demo queue／DLQ；秒殺訂單非同步寫單使用 Redis Stream。容量正確性目前以既有測試與條件式原子更新驗證；repo 沒有 load test／benchmark 產物，不宣稱完成壓力測試或無超賣壓測驗證。
 
 ## 設計決策 Q&A
 
@@ -269,9 +271,9 @@ stateDiagram-v2
 
 商家帳號模型（onboarding、綁店、角色）是完整的 v2 功能，不是一個 filter 能補的。demo 模式的邊界是**設計好的開關**：`strict-mode` 一開，同一批路由立即要求認證；`ProductionSecurityGuard` 在啟動時驗證「strict-mode 關閉不得作為 production 部署」。見 [ADR 0002](docs/adr/0002-demo-mode-merchant-auth.md)。
 
-### Q7. 秒殺為什麼用 RabbitMQ 不用 Kafka？
+### Q7. 秒殺為什麼用 Redis Stream？RabbitMQ 用在哪裡？
 
-場景是業務訊息隊列（秒殺下單削峰、非同步落庫），不是大數據流。RabbitMQ 的路由與 DLQ 語意足夠且運維成本低；Kafka 在這個流量級別是拿牛刀殺雞，面試被問「為什麼需要」會答不出來。
+秒殺流程由 `seckill.lua` 以 `XADD stream.orders` 寫入 Redis Stream，再由 `VoucherOrderServiceImpl` 的 consumer group `g1`／consumer `c1` 非同步落庫。RabbitMQ 在本專案實際用於 Outbox 事件發布，以及 demo queue／DLQ；不是秒殺訂單隊列。
 
 ### Q8. LINE 整合的難點在哪？
 
