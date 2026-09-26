@@ -143,9 +143,28 @@ WHERE shop_id = ? AND booking_date = ? AND booking_time = ? AND table_type = ?
 
 ---
 
+## 外鍵：41 條關聯，只有 14 條下了約束
+
+DBML 裡畫了 41 條關聯線，但資料庫實際只建了 14 個 `FOREIGN KEY` 約束。
+沒下約束的 27 條是邏輯上的對應——程式查詢時照樣 JOIN，只是資料庫不幫忙檢查。
+
+有下約束的集中在「主資料刪掉、附屬也該跟著消失」的地方，例如店家刪除時
+它的 AI 摘要、徽章、標籤、收藏都設了 `ON DELETE CASCADE`。
+
+沒下約束的理由分三類：
+
+| 情況 | 例子 | 原因 |
+|---|---|---|
+| 欄位允許為空 | `tb_booking.user_id` | demo 模式的商家後台不需要登入，這欄可以是 NULL |
+| 參照的是對外編號 | `tb_booking_incident.booking_code` | 指向 `booking_code` 而不是主鍵，這幾張表跨到 LINE 與商家後台 |
+| 教學專案遺留 | `tb_blog`、`tb_sign` | 沒有使用也沒有清理，自然也沒補約束 |
+
+---
+
 ## 索引
 
 40 條自訂索引，全部從實際查詢路徑反推，沒有對應查詢的索引不建立。
+DBML 的每張表都帶 `indexes` 區塊，貼進 dbdiagram 後可以直接看到索引名稱與欄位組合。
 複合索引的欄位順序遵循「等值條件在前、範圍條件在後」。
 查詢路徑與索引的對照見 [performance-query-evidence.md](performance-query-evidence.md)。
 
