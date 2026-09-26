@@ -7,6 +7,8 @@
 - DBML 原始碼：[docs/dbml/bytebites-full-schema.dbml](dbml/bytebites-full-schema.dbml)
 - 只想看訂位主線：[booking operations ER model](er-model-booking-operations.md)（9 張表）
 
+![ByteBites 全庫 Schema](assets/bytebites-full-schema-er-model.png)
+
 ---
 
 ## 分組總覽

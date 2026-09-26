@@ -46,7 +46,7 @@ AI 負責理解需求與協調流程；Java 後端擁有訂位、付款、事件
 | AI 應用深度 | 「技術亮點」1–4：eval 回歸防護網、Agent 工具守衛、Guardrail、資料管線 |
 | Java 後端深度 | 「技術亮點」5–7：交易狀態機、秒殺併發、LINE 雙通道整合 |
 | 資料模型 | [訂位營運 ER Model](docs/er-model-booking-operations.md)（9 張核心表 + 正規化說明）<br>[全庫 Schema 說明](docs/er-model-full-schema.md)（33 張表的分組與設計決定） |
-| 測試與可驗證性 | 「工程數據」表與「驗證」節：341 個自動化測試 + Hit@5 檢索評估 15/15 |
+| 測試與可驗證性 | 「工程數據」表與「驗證」節：391 個自動化測試 + Hit@5 檢索評估 15/15 |
 | 決策脈絡 | 「設計決策 Q&A」與 [ADR](docs/adr/0001-java-python-frontend-split.md)、[15 篇工程案例](docs/case-studies/README.md) |
 
 ## 工程數據
@@ -55,7 +55,7 @@ AI 負責理解需求與協調流程；Java 後端擁有訂位、付款、事件
 |---|---|---|
 | 台北真實店家 | 599 家 active | [資料覆蓋率報告](docs/data-coverage-report.md) |
 | 店家照片 | 3,600 張（每店 6 張，缺漏/重複 = 0） | `web/public/images/shops/` |
-| 自動化測試 | 341（Java 115 · Python 191 · Web 35） | [Portfolio CI](.github/workflows/portfolio-ci.yml) |
+| 自動化測試 | 391（Java 118 · Python 185 · Web 42 · ETL 46） | [Portfolio CI](.github/workflows/portfolio-ci.yml) |
 | 檢索品質評估 | Hit@5 = 15/15，版本化 gold dataset | [最新報告](ai-service-python/evals/report.md) |
 | 工程案例 | 15 篇（除錯、資料、部署的第一手紀錄） | [案例索引](docs/case-studies/README.md) |
 | Commits | 600+（2026/05 起持續迭代） | git log |
@@ -212,9 +212,16 @@ stateDiagram-v2
 
 訂位營運核心表（booking / incident / deposit_adjustment / availability watch）的完整 DBML 與 1NF–3NF 說明：[訂位營運 ER Model](docs/er-model-booking-operations.md)。
 
-全庫 33 張表的分組、每張表的用途與設計取捨（含哪些是教學專案遺留、哪些機制完成但未接業務）：[全庫 Schema 說明](docs/er-model-full-schema.md)。線上 ER 圖：<https://dbdiagram.io/d/6ab73f570f25a52d01113ac2>，DBML 原始碼在 [docs/dbml/bytebites-full-schema.dbml](docs/dbml/bytebites-full-schema.dbml)。
-
 ![訂位營運 ER Model](docs/assets/bytebites-booking-operations-er-model.svg)
+
+全庫 33 張表的分組、每張表的用途與設計取捨（含哪些是教學專案遺留、哪些機制完成但未接業務）：[全庫 Schema 說明](docs/er-model-full-schema.md)。DBML 原始碼在 [docs/dbml/bytebites-full-schema.dbml](docs/dbml/bytebites-full-schema.dbml)，可縮放的線上版：<https://dbdiagram.io/d/6ab73f570f25a52d01113ac2>。
+
+<details>
+<summary>展開全庫 ER 圖（33 張表）</summary>
+
+![ByteBites 全庫 Schema](docs/assets/bytebites-full-schema-er-model.png)
+
+</details>
 
 ## 技術棧
 
@@ -229,7 +236,7 @@ stateDiagram-v2
 | Storage | MySQL 8（Flyway 版本化 migration）、Redis 7、RabbitMQ（Outbox 事件發布、demo queue／DLQ）、Qdrant、Mongo-backed reviews |
 | 可觀測性 | Prometheus（含每次 LLM 呼叫的 token/延遲指標）+ Grafana provisioning |
 | 部署 | Docker 化三應用（本機驗證過的 Dockerfile）、單機 AWS compose + 主機 Nginx/Let's Encrypt（[runbook](docs/aws-deploy-runbook.md)）、本機 ngrok demo |
-| 驗證 | 341 個測試、Portfolio CI 四車道、檢索 eval、release readiness、clean-schema migration smoke |
+| 驗證 | 391 個測試、Portfolio CI 四車道、檢索 eval、release readiness、clean-schema migration smoke |
 
 ## 技術亮點
 
@@ -239,7 +246,7 @@ stateDiagram-v2
 | Agent 工具守衛 | 訂位/付款是高風險動作：AI 只產生草稿，確認後才執行；一次對話最多一筆訂位 | `ai-service-python/app/agent.py`、[案例 10](docs/case-studies/10-ai-dialogue-state.md) |
 | Guardrail 雙向防護 | 輸入擋 prompt injection，輸出句級遮蔽（不因一個字眼毀掉整個回答） | `ai-service-python/app/guardrail.py` + 測試 |
 | 資料品質管線 | 599 店的照片/評論/ABSA/taxonomy/向量全部對齊且有覆蓋率 gate | [資料覆蓋率報告](docs/data-coverage-report.md)、[案例 02](docs/case-studies/02-absa-pipeline.md)、[案例 06](docs/case-studies/06-data-crawler-coverage.md) |
-| 交易狀態機 | 訂位、付款、改單、事件、補款、退款集中由後端狀態流轉管理；AI 與前端都不持有權威狀態 | `backend-java` booking/payment/incident services + 115 測試 |
+| 交易狀態機 | 訂位、付款、改單、事件、補款、退款集中由後端狀態流轉管理；AI 與前端都不持有權威狀態 | `backend-java` booking/payment/incident services + 118 測試 |
 | 秒殺與併發 | 限時餐券：令牌桶限流 + Redis 預扣 + Lua 冪等 + Redis Stream 非同步落庫；容量正確性以既有測試與條件式原子更新驗證，不宣稱完成壓測或無超賣壓測 | `VoucherOrderController`、`seckill.lua` |
 | Web / LINE 單一狀態 | 兩個入口、同一套交易 contract；LINE Flex 卡片的接受/拒絕回 Java 驗證 | [案例 07](docs/case-studies/07-web-line-booking-sync.md) |
 | 效能與查詢證據 | 熱路徑 SQL、索引與程式碼錨點對照 | [效能與查詢證據](docs/performance-query-evidence.md) |
