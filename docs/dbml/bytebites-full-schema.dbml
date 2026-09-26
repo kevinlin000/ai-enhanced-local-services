@@ -1,7 +1,8 @@
 // ByteBites 全庫 Schema
 //
 // 33 張表，由 55 個 Flyway migration 累積而成。
-// 用法：把整份內容貼到 https://dbdiagram.io 即可產生可縮放的 ER 圖。
+// 線上版：https://dbdiagram.io/d/6ab73f570f25a52d01113ac2
+// 或把整份內容貼到 https://dbdiagram.io 自行產生。
 //
 // 分組說明見 docs/er-model-full-schema.md。
 // 若只想看訂位營運這條主線，用 bytebites-booking-operations.dbml（9 張表）。

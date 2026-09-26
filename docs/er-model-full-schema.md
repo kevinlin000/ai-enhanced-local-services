@@ -3,8 +3,8 @@
 33 張表，由 55 個 Flyway migration 累積而成。這份文件說明它們怎麼分組，
 以及哪些是核心、哪些是接手教學專案時留下來的。
 
+- 線上 ER 圖：<https://dbdiagram.io/d/6ab73f570f25a52d01113ac2>（可縮放、可點選單張表）
 - DBML 原始碼：[docs/dbml/bytebites-full-schema.dbml](dbml/bytebites-full-schema.dbml)
-- 用法：把整份內容貼到 [dbdiagram.io](https://dbdiagram.io) 產生可縮放的 ER 圖
 - 只想看訂位主線：[booking operations ER model](er-model-booking-operations.md)（9 張表）
 
 ---

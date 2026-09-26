@@ -212,7 +212,7 @@ stateDiagram-v2
 
 訂位營運核心表（booking / incident / deposit_adjustment / availability watch）的完整 DBML 與 1NF–3NF 說明：[訂位營運 ER Model](docs/er-model-booking-operations.md)。
 
-全庫 33 張表的分組、每張表的用途與設計取捨（含哪些是教學專案遺留、哪些機制完成但未接業務）：[全庫 Schema 說明](docs/er-model-full-schema.md)，DBML 原始碼在 [docs/dbml/bytebites-full-schema.dbml](docs/dbml/bytebites-full-schema.dbml)，貼到 dbdiagram.io 可產生可縮放的完整 ER 圖。
+全庫 33 張表的分組、每張表的用途與設計取捨（含哪些是教學專案遺留、哪些機制完成但未接業務）：[全庫 Schema 說明](docs/er-model-full-schema.md)。線上 ER 圖：<https://dbdiagram.io/d/6ab73f570f25a52d01113ac2>，DBML 原始碼在 [docs/dbml/bytebites-full-schema.dbml](docs/dbml/bytebites-full-schema.dbml)。
 
 ![訂位營運 ER Model](docs/assets/bytebites-booking-operations-er-model.svg)
 
