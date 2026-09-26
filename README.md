@@ -45,7 +45,7 @@ AI 負責理解需求與協調流程；Java 後端擁有訂位、付款、事件
 | 系統樣貌與流程 | 下方「核心流程」與「系統架構」的圖，或直接看「展示影片」 |
 | AI 應用深度 | 「技術亮點」1–4：eval 回歸防護網、Agent 工具守衛、Guardrail、資料管線 |
 | Java 後端深度 | 「技術亮點」5–7：交易狀態機、秒殺併發、LINE 雙通道整合 |
-| 資料模型 | [訂位營運 ER Model](docs/er-model-booking-operations.md)（dbdiagram DBML + 正規化說明） |
+| 資料模型 | [訂位營運 ER Model](docs/er-model-booking-operations.md)（9 張核心表 + 正規化說明）<br>[全庫 Schema 說明](docs/er-model-full-schema.md)（33 張表的分組與設計決定） |
 | 測試與可驗證性 | 「工程數據」表與「驗證」節：341 個自動化測試 + Hit@5 檢索評估 15/15 |
 | 決策脈絡 | 「設計決策 Q&A」與 [ADR](docs/adr/0001-java-python-frontend-split.md)、[15 篇工程案例](docs/case-studies/README.md) |
 
@@ -211,6 +211,8 @@ stateDiagram-v2
 ### 資料模型
 
 訂位營運核心表（booking / incident / deposit_adjustment / availability watch）的完整 DBML 與 1NF–3NF 說明：[訂位營運 ER Model](docs/er-model-booking-operations.md)。
+
+全庫 33 張表的分組、每張表的用途與設計取捨（含哪些是教學專案遺留、哪些機制完成但未接業務）：[全庫 Schema 說明](docs/er-model-full-schema.md)，DBML 原始碼在 [docs/dbml/bytebites-full-schema.dbml](docs/dbml/bytebites-full-schema.dbml)，貼到 dbdiagram.io 可產生可縮放的完整 ER 圖。
 
 ![訂位營運 ER Model](docs/assets/bytebites-booking-operations-er-model.svg)
 

@@ -26,6 +26,7 @@ GitHub 可以直接顯示下方 Mermaid 圖。若要做簡報或視覺審查，�
 - 使用方式：將 DBML 內容貼到 dbdiagram.io，即可產生可縮放的 ER 圖。
 - 建議講法：這不是全庫 schema，而是 booking operations bounded context；目標是說清楚 Java-owned state。
 - SVG asset：[docs/assets/bytebites-booking-operations-er-model.svg](assets/bytebites-booking-operations-er-model.svg)
+- 全庫 33 張表：[全庫 Schema 說明](er-model-full-schema.md)
 
 ![ByteBites booking operations ER model](assets/bytebites-booking-operations-er-model.svg)
 

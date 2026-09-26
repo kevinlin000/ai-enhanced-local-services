@@ -1,0 +1,532 @@
+// ByteBites 全庫 Schema
+//
+// 33 張表，由 55 個 Flyway migration 累積而成。
+// 用法：把整份內容貼到 https://dbdiagram.io 即可產生可縮放的 ER 圖。
+//
+// 分組說明見 docs/er-model-full-schema.md。
+// 若只想看訂位營運這條主線，用 bytebites-booking-operations.dbml（9 張表）。
+//
+// 欄位以實際 migration 為準；為了圖面可讀，僅列出主鍵、外鍵、
+// 以及能說明用途的欄位，時間戳記等樣板欄位省略。
+
+// ═══════════════════════════════════════════════════════
+// 1. 身分與授權
+// ═══════════════════════════════════════════════════════
+
+Table tb_user {
+  id bigint [pk, increment]
+  phone varchar(11) [note: '手機號碼']
+  password varchar(128) [note: '加密儲存']
+  nick_name varchar(32)
+  icon varchar(255)
+  line_user_id varchar(64) [note: 'LINE id_token 的 sub，V3 加入']
+
+  Note: '顧客與商家共用的帳號表。台灣化之後主要走 LINE Login。'
+}
+
+Table tb_user_info {
+  user_id bigint [pk, note: '與 tb_user 一對一']
+  city varchar(64)
+  introduce varchar(128)
+  fans int
+  followee int
+  gender tinyint
+  birthday date
+  credits int
+  level tinyint
+
+  Note: '教學專案帶來的擴充資料表，本專案未使用。'
+}
+
+Table tb_line_identity_link {
+  id bigint [pk, increment]
+  line_user_id varchar(128) [unique, note: 'LINE Messaging API 的 user id']
+  user_id bigint
+  display_name varchar(255)
+  source varchar(32) [default: 'line_bot']
+
+  Note: 'LINE bot 的使用者與平台帳號的綁定。與 tb_user.line_user_id 的差別是這張支援多來源。'
+}
+
+Table tb_merchant_shop {
+  user_id bigint [pk]
+  shop_id bigint [pk]
+  role varchar(20) [default: 'owner']
+
+  Note: '商家授權邊界。商家 API 一律先查這張表，查不到就回 403。複合主鍵，role 依賴完整的使用者與店家組合。'
+}
+
+// ═══════════════════════════════════════════════════════
+// 2. 店家與內容
+// ═══════════════════════════════════════════════════════
+
+Table tb_shop {
+  id bigint [pk, increment]
+  name varchar(128)
+  type_id bigint [note: '分類 id']
+  images varchar(1024)
+  area varchar(128) [note: '商圈']
+  address varchar(255)
+  x double [note: '經度']
+  y double [note: '緯度']
+  avg_price bigint [note: '人均消費，訂金級距的依據']
+  comments int [note: 'Google 評論數']
+  score int [note: '評分乘 10 儲存，避免小數']
+  open_hours varchar(32)
+  mrt_station varchar(50) [note: '最近捷運站，由座標回填，覆蓋率 29.5%']
+  place_id varchar(255) [note: 'Google Places ID']
+  is_active tinyint [default: 1, note: '1=啟用、0=軟刪除']
+
+  Note: '599 家台北 active 店家。座標用於捷運回填與停車場距離計算。'
+}
+
+Table tb_shop_type {
+  id bigint [pk, increment]
+  name varchar(32)
+  icon varchar(255)
+  sort int
+  slug varchar(50) [note: 'url 友善識別碼，例如 beef-noodle']
+
+  Note: '店家分類。從 inline 的分法收斂成 12 個，改了五輪（V15 到 V19）。'
+}
+
+Table tb_shop_ai_metadata {
+  shop_id bigint [pk, note: '與 tb_shop 一對一']
+  ai_summary text [note: 'LLM 生成的餐廳介紹']
+  highlight_review varchar(500) [note: 'LLM 抽出的代表評論一句']
+  signature_dishes json [note: '招牌菜陣列，必須在評論中出現']
+  atmosphere_tags json [note: '用餐目的，只能從六個選項挑']
+  booking_difficulty varchar(50)
+  price_per_person varchar(50)
+  phone varchar(50)
+  opening_hours json
+  extracted_at timestamp
+  model_version varchar(50) [note: '抽取用的模型版本']
+
+  Note: 'ETL 用 LLM 從評論抽出的結構化資訊。prompt 裡有 14 條規則約束輸出。'
+}
+
+Table tb_shop_absa {
+  shop_id bigint [pk, note: '與 tb_shop 一對一']
+  aspects json [note: '四面向：菜色 / 服務 / 環境 / 價格，各帶摘要、情緒、可信度、正負證據']
+  meta json [note: '模型、prompt 版本、分析的評論數']
+  char_hit_rate float [note: '字面比對命中率']
+  semantic_hit_rate float [note: '語意比對命中率，門檻 0.55']
+  synonym_recovered int [note: '被語意層救回來的證據數']
+  unverified_count int [note: '兩層都沒過而丟棄的數量']
+  prompt_version varchar(20)
+  model varchar(100)
+  generated_at timestamp
+
+  Note: '面向情感分析。雙層可信度驗證的結果直接存成欄位，UI 上顯示的準確度就是這幾個值。586 / 599 家有資料。'
+}
+
+Table tb_badge_def {
+  code varchar(32) [pk, note: '人類看得懂的穩定 key']
+  display_name varchar(32)
+  sort int
+  is_active tinyint [default: 1]
+
+  Note: '徽章定義表。用 code 當主鍵而不是流水號，因為程式裡會直接引用。'
+}
+
+Table tb_tag_def {
+  code varchar(32) [pk]
+  display_name varchar(32)
+  sort int
+  is_active tinyint [default: 1]
+
+  Note: '標籤定義表。'
+}
+
+Table tb_shop_badge {
+  shop_id bigint [pk]
+  badge_code varchar(32) [pk]
+  source varchar(16) [note: '指派來源：allowlist / auto / manual']
+
+  Note: '店家與徽章的多對多。source 記錄是人工還是自動掛上的。'
+}
+
+Table tb_shop_tag {
+  shop_id bigint [pk]
+  tag_code varchar(32) [pk]
+
+  Note: '店家與標籤的多對多。'
+}
+
+Table tb_mrt_station {
+  id bigint [pk]
+  name varchar(50)
+  line varchar(50) [note: '路線名稱']
+  x double [note: '經度']
+  y double [note: '緯度']
+  district varchar(20)
+
+  Note: '捷運站座標。服務啟動時載入 Redis GEO，供「找我附近的站」使用。'
+}
+
+// ═══════════════════════════════════════════════════════
+// 3. 訂位營運（核心）
+// ═══════════════════════════════════════════════════════
+
+Table tb_booking {
+  id bigint [pk, increment]
+  booking_code varchar(50) [unique, note: 'BK-XXXXXXXXXXXX，對外的穩定編號']
+  user_id bigint [note: '訂位擁有者']
+  shop_id bigint
+  people int
+  booking_date date
+  booking_time varchar(10) [note: '時段，例如 18:30']
+  table_type varchar(20) [default: 'normal', note: 'normal / bar / private']
+  status tinyint [note: '1=待付款 2=已付款 3=已確認（免訂金）']
+  needs_deposit tinyint
+  deposit_per_person int [note: '依人均消費算出的級距']
+  deposit_total int
+  payment_trans_id varchar(100)
+  hold_expires_at datetime [note: '保留逾時後由排程釋放容量']
+  idempotency_key varchar(120) [unique, note: '前端或 agent 帶入，重送回傳原結果']
+  driving_to_booking tinyint [note: '從對話判斷使用者會開車，停車提醒靠這個決定要不要出現']
+
+  Note: '訂位的唯一真相。對外用 booking_code 串流程，避免把 row id 暴露到 LINE 與 URL。'
+}
+
+Table tb_booking_slot_inventory {
+  id bigint [pk, increment]
+  shop_id bigint
+  booking_date date
+  booking_time varchar(10)
+  table_type varchar(20) [default: 'normal']
+  capacity int [default: 8, note: '商家可調整的可接待人數']
+  booked_count int [default: 0, note: '由訂位流程累加，不開放手動改']
+
+  Note: '時段庫存。扣容量用條件式 UPDATE（booked_count + ? <= capacity），影響行數 1 表示扣成功。Web、LINE、空位通知讀的都是這張表。'
+}
+
+Table tb_booking_idempotency_lock {
+  idempotency_key varchar(120) [pk]
+
+  Note: '冪等專用鎖表。流程是先查 tb_booking，沒查到才 INSERT IGNORE 佔位、SELECT FOR UPDATE 鎖住，拿到鎖後再查一次（double-checked locking）。'
+}
+
+Table tb_booking_incident {
+  id bigint [pk, increment]
+  booking_code varchar(50)
+  user_id bigint
+  shop_id bigint
+  incident_type varchar(32) [note: 'CUSTOMER_LATE / 現場等候過久']
+  status varchar(20) [default: 'OPEN', note: 'OPEN → RESOLVED']
+  delay_minutes int
+  original_time varchar(10)
+  adjusted_time varchar(10)
+  title varchar(120)
+  customer_message varchar(500)
+  proposal_status varchar(20) [note: '店家提案的狀態']
+  proposed_date date
+  proposed_time varchar(10)
+  proposed_people int
+  proposal_message varchar(500)
+  proposed_at datetime
+  proposal_expires_at datetime [note: '逾期自動算 EXPIRED']
+  proposal_accepted_at datetime
+  proposal_declined_at datetime
+  resolved_at datetime
+
+  Note: '臨場事件與店家的替代時段提案。刻意讓一個事件只有一個待回覆提案，所以提案欄位放在同一列。要支援多輪協商，第一個要拆出來的就是提案歷史表。'
+}
+
+Table tb_booking_deposit_adjustment {
+  id bigint [pk, increment]
+  booking_code varchar(50)
+  incident_id bigint [note: '若由臨場事件引發']
+  user_id bigint
+  shop_id bigint
+  status varchar(20) [default: 'OPEN']
+  adjustment_type varchar(20) [note: '補款 / 退款']
+  current_deposit_total int [note: '改之前的總額']
+  proposed_deposit_total int [note: '改之後的總額']
+  delta_amount int [note: '差額。可由前兩者算出，但對帳要看當時談定的金額']
+  proposed_date date
+  proposed_time varchar(10)
+  proposed_table_type varchar(20)
+  proposed_people int
+  handled_by_user_id bigint
+  handled_at datetime
+  applied_booking_update tinyint [note: '結算完成才套用改單']
+  settlement_status varchar(30) [default: 'PENDING']
+  refund_escalated_at datetime [note: '逾時未完成，已通知營運']
+
+  Note: '已付款訂位異動後的金流義務。不直接改訂位金額，而是另外開一筆調整，訂位狀態與金流義務分開記錄。'
+}
+
+Table tb_booking_refund_reconciliation_event {
+  id bigint [pk, increment]
+  event_key varchar(120) [unique, note: '去重用，金流商重播也只留一筆']
+  adjustment_id bigint
+  booking_code varchar(50)
+  event_type varchar(40) [note: '送出退款 / 對帳成功 / 對帳失敗 / 人工介入']
+  result_status varchar(30)
+  amount int
+  settlement_trans_id varchar(100)
+  recorded_by_user_id bigint
+
+  Note: '退款對帳的 append-only 稽核紀錄。只增不改，任何一筆款項都回答得出目前狀態與經過的事件。'
+}
+
+Table tb_availability_watch {
+  id bigint [pk, increment]
+  user_id bigint
+  shop_id bigint
+  booking_date date
+  booking_time varchar(5)
+  table_type varchar(20)
+  people int
+  status varchar(16) [default: 'ACTIVE', note: 'ACTIVE → TRIGGERED']
+  triggered_at datetime
+  expires_at datetime
+  line_user_id varchar(128) [note: '推播用']
+
+  Note: '額滿時段的候補登記。唯一鍵限制同一人同一時段只能登記一次。容量釋放時（取消、保留逾時、商家調整）會撈這張表，撈的時候加 FOR UPDATE。'
+}
+
+Table tb_user_notification {
+  id bigint [pk, increment]
+  user_id bigint
+  type varchar(40) [note: '例如 AVAILABILITY_RELEASED']
+  title varchar(160)
+  body varchar(500)
+  shop_id bigint
+  watch_id bigint [unique, note: '唯一鍵，同一個候補只會產生一則通知']
+  status varchar(16) [default: 'UNREAD']
+  read_at datetime
+
+  Note: '站內通知。watch_id 的唯一鍵是候補通知三道冪等防護的最後一道。'
+}
+
+Table tb_merchant_notification_dispatch {
+  id bigint [pk, increment]
+  shop_id bigint
+  notification_type varchar(60)
+  dispatch_source varchar(30)
+  status varchar(20)
+  reason varchar(60) [note: '例如 COOLDOWN_ACTIVE']
+  attention_count int [note: '發送當下的異常總數']
+  pending_escalation_count int
+  escalated_count int
+  stuck_minutes int [default: 30, note: '判定卡住的門檻']
+  cooldown_minutes int [default: 120, note: '同一家店的通知間隔']
+  line_user_id varchar(100)
+  headline varchar(200)
+  sent_at datetime
+
+  Note: '商家營運通知的發送紀錄與冷卻控制。統計數字跟著通知一起存，事後查得到當時為什麼發。'
+}
+
+// ═══════════════════════════════════════════════════════
+// 4. 使用者偏好
+// ═══════════════════════════════════════════════════════
+
+Table tb_dining_memory {
+  id bigint [pk, increment]
+  user_id bigint
+  booking_code varchar(50)
+  shop_id bigint
+  rating tinyint [note: '避開 / 普通 / 會再訪']
+  tags_json text [note: '私人標籤']
+  note varchar(500) [note: '給自己看的備註']
+  do_not_recommend boolean [default: false, note: 'AI 推薦時會把這些店排除']
+  source varchar(32) [default: 'BOOKING_FEEDBACK']
+
+  Note: '私人記憶。唯一鍵是使用者加訂位編號，重複送出會覆蓋。Python 產生推薦前會呼叫 Java API 取得這份資料。'
+}
+
+Table tb_shop_favorite {
+  id bigint [pk, increment]
+  user_id bigint
+  shop_id bigint
+  status varchar(16) [default: 'ACTIVE']
+
+  Note: '收藏餐廳。'
+}
+
+Table tb_private_ai_offer {
+  id bigint [pk, increment]
+  user_id bigint
+  shop_id bigint
+  offer_code varchar(40) [unique]
+  title varchar(120)
+  description varchar(255)
+  trigger_reason varchar(64) [note: '例如反覆瀏覽未訂位']
+  offer_type varchar(32) [default: 'OFF_PEAK_FILL']
+  discount_percent int
+  min_people int
+  valid_until datetime
+  status varchar(20) [default: 'ACTIVE']
+  claimed_at datetime
+
+  Note: '依使用者行為產生的離峰優惠。與公開的餐券不同，這是一對一的。'
+}
+
+// ═══════════════════════════════════════════════════════
+// 5. 餐券與秒殺（教學專案的底，已改成限時餐券）
+// ═══════════════════════════════════════════════════════
+
+Table tb_voucher {
+  id bigint [pk, increment]
+  shop_id bigint
+  title varchar(255)
+  sub_title varchar(255)
+  rules varchar(1024)
+  pay_value bigint [note: '支付金額，單位是分']
+  actual_value bigint [note: '抵扣金額']
+  type tinyint [note: '0=普通券 1=秒殺券']
+  status tinyint [note: '1=上架 2=下架 3=過期']
+
+  Note: '優惠券。機制來自黑馬點評教學專案。'
+}
+
+Table tb_seckill_voucher {
+  voucher_id bigint [pk, note: '與 tb_voucher 一對一']
+  stock int [note: '庫存']
+  begin_time timestamp
+  end_time timestamp
+
+  Note: '秒殺券的庫存與時間窗。實際搶購時庫存在 Redis，Lua 腳本一次完成庫存檢查、一人一單檢查、扣庫存、投遞訊息。'
+}
+
+Table tb_voucher_order {
+  id bigint [pk]
+  user_id bigint
+  voucher_id bigint
+  pay_type tinyint
+  payment_provider varchar(20) [default: 'tappay']
+  status tinyint [note: '1=未支付 2=已支付 3=已核銷 4=已取消 5=退款中 6=已退款']
+  pay_time timestamp
+  use_time timestamp
+  refund_time timestamp
+
+  Note: '餐券訂單。秒殺時由 Redis Stream 的消費者非同步落庫。'
+}
+
+// ═══════════════════════════════════════════════════════
+// 6. 系統基礎
+// ═══════════════════════════════════════════════════════
+
+Table outbox_message {
+  id bigint [pk, increment]
+  aggregate_type varchar(50) [note: '例如 ORDER、REVIEW']
+  aggregate_id bigint
+  event_type varchar(100) [note: '例如 order.created']
+  payload json
+  routing_key varchar(100)
+  exchange varchar(100)
+  status tinyint [note: '0=待發送 1=已送出 2=失敗']
+  retry_count int
+  sent_at datetime
+
+  Note: 'Outbox 模式的訊息表。機制、重試、死信都完成並驗證過，但目前只有一個示範端點會寫入，訂位付款尚未接上。'
+}
+
+// ═══════════════════════════════════════════════════════
+// 7. 教學專案遺留（未使用，也未清除）
+// ═══════════════════════════════════════════════════════
+
+Table tb_blog {
+  id bigint [pk, increment]
+  shop_id bigint
+  user_id bigint
+  title varchar(255)
+  images varchar(2048)
+  content varchar(2048)
+  liked int
+  comments int
+
+  Note: '達人探店。黑馬點評的功能，本專案未使用。'
+}
+
+Table tb_blog_comments {
+  id bigint [pk, increment]
+  user_id bigint
+  blog_id bigint
+  parent_id bigint
+  answer_id bigint
+  content varchar(255)
+  liked int
+  status tinyint
+
+  Note: '探店留言。未使用。'
+}
+
+Table tb_follow {
+  id bigint [pk, increment]
+  user_id bigint
+  follow_user_id bigint
+
+  Note: '好友關注。未使用。'
+}
+
+Table tb_sign {
+  id bigint [pk, increment]
+  user_id bigint
+  month tinyint
+  date date
+  is_backup tinyint
+
+  Note: '每日簽到。未使用。'
+}
+
+// ═══════════════════════════════════════════════════════
+// 關聯
+// ═══════════════════════════════════════════════════════
+
+// 身分與授權
+Ref: tb_user_info.user_id - tb_user.id
+Ref: tb_line_identity_link.user_id > tb_user.id
+Ref: tb_merchant_shop.user_id > tb_user.id
+Ref: tb_merchant_shop.shop_id > tb_shop.id
+
+// 店家與內容
+Ref: tb_shop.type_id > tb_shop_type.id
+Ref: tb_shop_ai_metadata.shop_id - tb_shop.id
+Ref: tb_shop_absa.shop_id - tb_shop.id
+Ref: tb_shop_badge.shop_id > tb_shop.id
+Ref: tb_shop_badge.badge_code > tb_badge_def.code
+Ref: tb_shop_tag.shop_id > tb_shop.id
+Ref: tb_shop_tag.tag_code > tb_tag_def.code
+
+// 訂位營運
+Ref: tb_booking.user_id > tb_user.id
+Ref: tb_booking.shop_id > tb_shop.id
+Ref: tb_booking_slot_inventory.shop_id > tb_shop.id
+Ref: tb_booking_incident.booking_code > tb_booking.booking_code
+Ref: tb_booking_incident.shop_id > tb_shop.id
+Ref: tb_booking_deposit_adjustment.booking_code > tb_booking.booking_code
+Ref: tb_booking_deposit_adjustment.incident_id > tb_booking_incident.id
+Ref: tb_booking_refund_reconciliation_event.adjustment_id > tb_booking_deposit_adjustment.id
+Ref: tb_availability_watch.user_id > tb_user.id
+Ref: tb_availability_watch.shop_id > tb_shop.id
+Ref: tb_user_notification.user_id > tb_user.id
+Ref: tb_user_notification.shop_id > tb_shop.id
+Ref: tb_user_notification.watch_id - tb_availability_watch.id
+Ref: tb_merchant_notification_dispatch.shop_id > tb_shop.id
+
+// 使用者偏好
+Ref: tb_dining_memory.user_id > tb_user.id
+Ref: tb_dining_memory.shop_id > tb_shop.id
+Ref: tb_shop_favorite.user_id > tb_user.id
+Ref: tb_shop_favorite.shop_id > tb_shop.id
+Ref: tb_private_ai_offer.user_id > tb_user.id
+Ref: tb_private_ai_offer.shop_id > tb_shop.id
+
+// 餐券
+Ref: tb_voucher.shop_id > tb_shop.id
+Ref: tb_seckill_voucher.voucher_id - tb_voucher.id
+Ref: tb_voucher_order.user_id > tb_user.id
+Ref: tb_voucher_order.voucher_id > tb_voucher.id
+
+// 教學專案遺留
+Ref: tb_blog.user_id > tb_user.id
+Ref: tb_blog.shop_id > tb_shop.id
+Ref: tb_blog_comments.user_id > tb_user.id
+Ref: tb_blog_comments.blog_id > tb_blog.id
+Ref: tb_follow.user_id > tb_user.id
+Ref: tb_sign.user_id > tb_user.id
