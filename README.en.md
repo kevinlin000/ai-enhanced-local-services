@@ -17,7 +17,11 @@
 
 [中文版（主要文件）](README.md) — the Chinese README is the primary, most detailed document; this page is a condensed English mirror.
 
-**Demo**: [https://bytebites-kevin.duckdns.org](https://bytebites-kevin.duckdns.org) — browsing 599 shops and AI recommendations needs no login; booking, payment and vouchers require LINE login. **The merchant console (`/merchant`) needs no login** — it runs under a fixed demo identity managing all 14 showcase shops. Single-host AWS deployment, step-by-step: [docs/aws-deploy-runbook.md](docs/aws-deploy-runbook.md).
+**Live demo**: ran on a single AWS EC2 host from 2026-07 to 2026-10, now taken down to control cost.
+See [Demo videos](#demo-videos) for full walkthroughs and [Screenshots](#screenshots) for the UI;
+[docs/aws-deploy-runbook.md](docs/aws-deploy-runbook.md) has the redeploy steps and the specs it actually ran on.
+
+> While it was live: browsing 599 shops and AI recommendations needed no login; booking, payment and vouchers required LINE login. **The merchant console (`/merchant`) needed no login** — it ran under a fixed demo identity managing all 14 showcase shops.
 
 ## What it is
 
