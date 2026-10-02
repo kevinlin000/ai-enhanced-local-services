@@ -38,6 +38,44 @@
 
 驗證：`dig +short <PUBLIC_DOMAIN>` 回 Elastic IP。
 
+### 上一次實際用的規格（2026-07 至 2026-10，東京）
+
+| 項目 | 值 |
+|---|---|
+| Region | `ap-northeast-1`（可用區 `ap-northeast-1a`） |
+| 機型 | `t4g.large`（ARM Graviton，2 vCPU / 8 GB） |
+| 磁碟 | 30 GB gp3，根裝置 `/dev/sda1` |
+| 作業系統 | Ubuntu 24.04（ARM 版，映像要選 arm64） |
+| Security Group | inbound 22（限自己 IP）、80、443；outbound 全開 |
+
+**機型選 ARM 要注意**：所有 image 都得是 arm64。
+`docker compose` 拉的 MySQL、Redis、RabbitMQ、Qdrant 官方映像都有 arm64，
+但自己 build 的 Java 與 Python image 要在同架構上建，或用 `--platform linux/arm64`。
+
+### 一個月的實際花費（全天開機）
+
+| 項目 | 金額 |
+|---|---|
+| EC2 Compute（t4g.large 24h） | 約 US$62 |
+| 公有 IPv4 位址 | 約 US$3.6 |
+| EBS 30 GB gp3 | 約 US$2.9 |
+| **合計** | **約 US$68／月** |
+
+要省的話：demo 前再開、用完就終止。**停止（stop）不會變成零元**，
+EBS 與公有 IPv4 照算，停著還是約 US$6／月。
+
+### 關掉的時候要清哪些（容易漏）
+
+1. 終止 EC2 instance
+2. 確認根磁碟（EBS volume）跟著刪掉
+3. **釋放 Elastic IP** —— 沒釋放會一直計費
+4. **刪 Secrets Manager 的 secret** —— 每個約 US$0.4／月，要選立即刪除，
+   否則預設有 7 到 30 天的等待期，等待期間繼續計費
+5. 清空並刪除 S3 bucket
+6. 檢查有沒有殘留的 EBS 快照與 AMI
+
+清完隔兩三天回頭看一次帳單，確認當月累計不再增加。
+
 ## 2. 主機初始化（EC2 上）
 
 ```bash
